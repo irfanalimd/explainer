@@ -10,6 +10,13 @@
 //   above the dock with the chapter and its earlier steps only (never the current step a second time).
 // Spoilers: the HUD tells it (ctx.veil()) which step's words to hold back while a prediction is open and which
 // chapters' about lines to withhold until their predictions are revealed.
+// Glossary: the first time the run uses a {term:…} (in a chapter's about, or in a step), the panel prints its plain
+// definition (meta.terms) right under those words, while the playhead is on that step; later uses (and later steps
+// of the chapter) keep only the tooltip on the underlined word.
+// A question open in the panel keeps it calm: the about shrinks to one line (with "More"), no definition blocks, no
+// "Earlier", no current step until the reveal (then the step's caption sits under the why). If the card still does
+// not fit, fit() drops what is left in order (definitions, the about, Earlier, then a tighter card) so the question,
+// its options and its why are always in view without scrolling.
 // It renders only on a step, chapter or state change, and only while it can be seen.
 import { parse, toDOM, toText } from "./markup.mjs";
 
@@ -30,10 +37,31 @@ export const WITHHELD = "Explained once you have made your prediction.";
  * ctx: { root, doc, h, parent, caption, bar, store, markupOpts, instant(): bool, onJump(stepIndex), onLayout(),
  *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, revealed(): bool }
  */
+
+/** The glossary terms a piece of markup uses, in order, without repeats. */
+export function termsIn(src) {
+  const out = [];
+  const walk = (nodes) => { for (const n of nodes) { if (n.type === "term" && !out.includes(n.name)) out.push(n.name); else if (n.type === "bold") walk(n.children); } };
+  walk(parse(src ?? ""));
+  return out;
+}
+/**
+ * Where each term is first used, in reading order (a chapter's about, then its steps): name -> { step, about }.
+ * steps: [{ caption }], phases: [{ step, about }].
+ */
+export function firstUses(steps = [], phases = []) {
+  const first = new Map();
+  for (let i = 0; i < steps.length; i++) {
+    for (const ph of phases) if ((ph.step ?? 0) === i && ph.about) for (const t of termsIn(ph.about)) if (!first.has(t)) first.set(t, { step: i, about: true });
+    for (const t of termsIn(steps[i]?.caption)) if (!first.has(t)) first.set(t, { step: i, about: false });
+  }
+  return first;
+}
 export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts } = ctx;
-  const S = { tl: null, steps: [], phases: [], step: -1, ph: -1, shown: { step: -2, ph: -2, tl: null, sig: "" },
-    mode: "", open: store.get("explain") !== "0", sheet: false, held: null, askEl: null, capOverride: null };
+  const S = { tl: null, steps: [], phases: [], first: new Map(), step: -1, ph: -1, shown: { step: -2, ph: -2, tl: null, sig: "" },
+    mode: "", open: store.get("explain") !== "0", sheet: false, held: null, askEl: null, capOverride: null,
+    aboutDefs: null, aboutFirst: -1, aboutOpen: false };
 
   const titleEl = h("h2", { class: "ix-ex-title" });
   const posEl = h("span", { class: "ix-ex-pos" });
@@ -43,9 +71,11 @@ export function createExplain(ctx) {
   const nowBody = h("div", { class: "ix-ex-now-body" });
   const now = h("div", { class: "ix-ex-now" }, nowN, nowBody);
   const askSlot = h("div", { class: "ix-ex-ask" });
+  // narrow screens: the card never repeats the current step, but a word that step uses for the first time is defined here
+  const newWords = h("div", { class: "ix-ex-new" });
   const list = h("ol", { class: "ix-ex-list" });
   const earlier = h("div", { class: "ix-ex-earlier" }, h("div", { class: "ix-ex-label", text: "Earlier" }), list);
-  const body = h("div", { class: "ix-ex-body" }, head, askSlot, now, earlier);
+  const body = h("div", { class: "ix-ex-body" }, head, newWords, askSlot, now, earlier);
   const panel = h("aside", { class: "ix-explain ix-glass", "aria-label": "What is happening" },
     h("header", { class: "ix-ex-top" }, h("div", { class: "ix-ex-heading" }, titleEl, posEl), headBtn), body);
   const tab = h("button", { class: "ix-explain-tab ix-glass", type: "button", "aria-label": "Show the explanation", "data-kbd": "E",
@@ -116,6 +146,7 @@ export function createExplain(ctx) {
 
   function setTimeline(tl) {
     S.tl = tl; S.steps = tl?.steps ?? []; S.phases = tl?.phases ?? [];
+    S.first = firstUses(S.steps, S.phases);
     S.step = -1; S.ph = -1;
     S.shown.tl = null;
   }
@@ -143,8 +174,18 @@ export function createExplain(ctx) {
   const markup = (src) => toDOM(parse(src ?? ""), doc, markupOpts);
   const quiet = (src) => {
     const f = markup(src);
-    for (const r of f.querySelectorAll?.(".ix-ref") ?? []) { r.removeAttribute("role"); r.removeAttribute("tabindex"); }
+    for (const r of f.querySelectorAll?.(".ix-ref, .ix-term") ?? []) { r.removeAttribute("role"); r.removeAttribute("tabindex"); }
     return f;
+  };
+  // the plain definitions of the terms these words use for the first time in the run (where = { step, about })
+  const defs = (src, where) => {
+    const items = [];
+    for (const name of termsIn(src)) {
+      const f = S.first.get(name), def = markupOpts.term?.(name);
+      if (!def || !f || f.step !== where.step || f.about !== where.about) continue;
+      items.push(h("div", { class: "ix-ex-def" }, h("dt", { text: name }), h("dd", { text: def })));
+    }
+    return items.length ? h("dl", { class: "ix-ex-defs", "aria-label": "New words" }, items) : null;
   };
   // a soft refresh, not a show: new words fade up from 25 % in one short beat (a new node starts its animation)
   const fresh = (cls, instant) => (instant ? cls : `${cls} ix-ex-fresh`);
@@ -193,10 +234,15 @@ export function createExplain(ctx) {
     } else {
       nowN.textContent = String(n);
       nowN.setAttribute("aria-label", `Step ${n} of ${end - first} in this chapter`);
-      nowBody.replaceChildren(veiled
-        ? h("p", { class: "ix-ex-text ix-ex-veiled", "aria-label": "Hidden until your prediction is revealed", text: VEIL })
-        : h("p", { class: fresh("ix-ex-text", instant) }, markup(S.capOverride ?? st?.caption ?? "")));
+      const text = S.capOverride ?? st?.caption ?? "";
+      // a step under an open question keeps its new words in their tooltips: no block under the card
+      const stepDefs = veiled || S.askEl ? null : defs(text, { step: S.step, about: false });
+      nowBody.replaceChildren(...(veiled
+        ? [h("p", { class: "ix-ex-text ix-ex-veiled", "aria-label": "Hidden until your prediction is revealed", text: VEIL })]
+        : [h("p", { class: fresh("ix-ex-text", instant) }, markup(text)), ...(S.mode === "docked" && stepDefs ? [stepDefs] : [])]));
+      newWords.replaceChildren(...(S.mode !== "docked" && stepDefs ? [stepDefs] : []));
     }
+    if (held) newWords.replaceChildren();
     // a prediction takes the current step's place; once revealed the step's words come back under it
     now.hidden = S.mode !== "docked" || (!!S.askEl && !ctx.revealed?.());
     // earlier steps of this chapter, newest first: quiet, but with their chips, each a way back

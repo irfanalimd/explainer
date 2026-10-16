@@ -117,7 +117,7 @@ export function shotTimes(info, at = "phases") {
 
 /** Caption markup -> plain text (for reports and contact sheets). */
 export const plainCaption = (m = "") => String(m)
-  .replace(/\{(?:key|ref|tone):([^}|]+)(?:\|([^}]+))?\}/g, (_, a, b) => b ?? a).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\s+/g, " ").trim();
+  .replace(/\{(?:key|ref|tone|term):([^}|]+)(?:\|([^}]+))?\}/g, (_, a, b) => b ?? a).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\s+/g, " ").trim();
 export const clip = (s, n = 72) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
 /** Group findings that repeat across steps and shots: one line per (kind, message), with the steps it occurs at. */

@@ -176,6 +176,9 @@ export function tone(t, text) {
   return `{tone:${t}|${markText(text, "tone")}}`;
 }
 
+/** term("pointer") "{term:pointer}" — a glossary word (its plain definition lives in meta.terms); term("pointer", "pointers"). */
+export const term = (name, text) => (text === undefined ? `{term:${markName(name, "term")}}` : `{term:${markName(name, "term")}|${markText(text, "term")}}`);
+
 /** code("hash(k) % R") "`hash(k) % R`" */
 export const code = (text) => "`" + String(text).replace(/[`\\]/g, (c) => "\\" + c) + "`";
 
@@ -185,7 +188,7 @@ export const bold = (markup) => `**${markup}**`;
 /** Strip markup to plain text (chips become their text; refs without text become their id). */
 export function plain(markup) {
   return String(markup)
-    .replace(/\{(?:key|ref|tone):([^{}|]*)(?:\|((?:\\.|[^{}])*))?\}/g, (_, a, b) => (b === undefined ? a : b))
+    .replace(/\{(?:key|ref|tone|term):([^{}|]*)(?:\|((?:\\.|[^{}])*))?\}/g, (_, a, b) => (b === undefined ? a : b))
     .replace(/\*\*/g, "")
     .replace(/(^|[^\\])`/g, "$1")
     .replace(/\\(.)/g, "$1");

@@ -16,6 +16,8 @@ Contents: [1 Module](#1-the-figure-module) · [2 Model](#2-the-recording-model) 
 ```js
 export const meta = { title, subtitle, kicker, fig, cite: { text, url }, theme: "dark" | "light",
   hook: "Five servers, any of which can crash. How do they still agree on one log?",      // optional: the start card's question
+  terms: { leader: "the one server that decides the order of the log" },                 // optional: plain definitions, {term:leader}
+  recap: ["Servers vote for one leader.", "The leader copies each entry to the others."], // optional: 2–4 lines at the end
   takeaway: "An entry is committed once a majority stores it, so it can never be lost." }; // optional: the end's one sentence
 export const params = {                 // knobs; verify runs every one at its extremes
   n:    { label: "Keys", type: "int", min: 4, max: 12, value: 8 },   // also "float" (min, max, step), "bool", "text",
@@ -294,7 +296,7 @@ s.step(`{key:${word}} goes to {ref:r1|reduce 1} because \`hash(${word}) % ${R} =
 - **`s.phase(name, { about })`** starts a scrubber chapter at the next step. Use 3 to 6 per figure.
   - `about` (optional, recommended) is one or two plain-English sentences on what this chapter does and **why**,
     shown at the top of the explain panel beside the world while the chapter plays. Markup is allowed
-    (`` `hash(word) % R` ``, `{key:…}`, `{ref:…}`). Keep it under 40 words, explain any jargon in a word, and make it
+    (`` `hash(word) % R` ``, `{key:…}`, `{ref:…}`). Keep it under 40 words, explain any jargon in a word (or mark it `{term:…}`), and make it
     true for every scenario and knob value: build it from the run (`victim >= 0 ? … : …`) when the chapter differs.
   - `s.phase(name)` and `s.phase(name, "about text")` also work. Sim runtimes pass it through
     (`ctx.phase(name, { about })`, `a.phase(name, { about })`). An unknown `{ref:…}` in it is an `unknown-ref` problem.
@@ -379,12 +381,13 @@ Captions, tags and `s.say` share one markup.
 | `{key:fox}`, `{key:fox\|the word fox}` | a chip in fox's identity colour |
 | `{ref:m2}`, `{ref:m2\|map 2}` | an entity chip; hovering it lights m2 (an unknown id is a problem) |
 | `{tone:fail\|crashes}` | a word in a status tone |
+| `{term:pointer}`, `{term:pointer\|pointers}` | a glossary word (dotted underline): its `meta.terms` definition shows on hover, focus or tap; without one it is plain text and verify reports it |
 | `` `hash(k) % R` `` | inline code |
 | `**bold**` | bold |
 | `\{` `\|` `` \` `` `\*` | literal characters |
 
-Build markup safely with `sim/fmt.mjs` (`fmt.key`, `fmt.ref`, `fmt.code`), or with
-`import { key, ref, tone, code } from "@internals/engine/scene/narrate.mjs"`.
+Build markup safely with `sim/fmt.mjs` (`fmt.key`, `fmt.ref`, `fmt.term`, `fmt.code`), or with
+`import { key, ref, tone, term, code } from "@internals/engine/scene/narrate.mjs"`.
 
 Keep captions at 6 to 18 words, with the numbers from the run, and say why.
 

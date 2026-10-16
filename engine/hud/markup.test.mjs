@@ -119,3 +119,29 @@ test("punctuation after a chip is glued to it so a line never starts with it", (
   assert.equal(glue2.children[1].text, ".");
   assert.equal(t2.text, " done");
 });
+
+test("glossary terms parse with and without custom text, and flatten to their text", () => {
+  assert.deepEqual(parse("{term:pointer}"), [{ type: "term", name: "pointer", text: "pointer" }]);
+  assert.deepEqual(parse("follow the {term:pointer|pointers} home"), [
+    { type: "text", text: "follow the " }, { type: "term", name: "pointer", text: "pointers" }, { type: "text", text: " home" },
+  ]);
+  assert.equal(toText(parse("**{term:hash|hashing}** a word")), "hashing a word");
+  assert.equal(toText(parse("{term:}")), "{term:}");
+});
+
+test("toDOM makes a defined term a focusable word that carries its definition; an undefined one stays plain text", () => {
+  const doc = fakeDoc();
+  const terms = { pointer: "an arrow that says where the next box lives" };
+  const frag = toDOM("each box keeps a {term:pointer|pointer}. Then {term:node}.", doc, { term: (n) => terms[n] ?? null });
+  const glue = frag.children[1];
+  const t = glue.children[0];
+  assert.equal(glue.className, "ix-nowrap");                 // "pointer." never breaks before the full stop
+  assert.equal(t.className, "ix-term");
+  assert.equal(t.textContent, "pointer");
+  assert.equal(t.dataset.term, "pointer");
+  assert.equal(t.dataset.tipHead, "pointer");
+  assert.equal(t.dataset.tip, terms.pointer);
+  assert.equal(t.tabIndex, 0);
+  const undef = frag.children[3].children[0];
+  assert.equal(undef.text, "node");                          // no definition: a plain word, no underline
+});

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MOTION } from "../tokens.mjs";
 import { compile, resolveParams } from "./index.mjs";
-import { plain, mentions, key, ref, tone, code } from "./narrate.mjs";
+import { plain, mentions, key, ref, tone, code, term } from "./narrate.mjs";
 
 const fig = (build, extra = {}) => ({ build, ...extra });
 
@@ -178,7 +178,9 @@ test("events mark notable ops for scrubber ticks; build errors become problems",
 test("narration helpers build markup that round-trips, and captions may only refer to real entities", () => {
   const m = `${ref("m2", "mapper 2")} emits ${key("fox")} ${tone("fail", "crashed")} ${code("hash(k) % R")}`;
   assert.equal(plain(m), "mapper 2 emits fox crashed hash(k) % R");
-  assert.deepEqual(mentions(m), { keys: ["fox"], refs: ["m2"] });
+  assert.deepEqual(mentions(m), { keys: ["fox"], refs: ["m2"], terms: [] });
+  assert.deepEqual(mentions(`a ${term("pointer", "pointers")}`).terms, ["pointer"]);
+  assert.equal(plain(`follow the ${term("pointer", "pointers")}`), "follow the pointers");
   assert.equal(plain("{key:a\\|b|odd}"), "odd");
   const tl = compile(fig((s) => { s.tile("a"); s.step("see {ref:a} and {ref:ghost}"); }));
   assert.ok(tl.problems.some((p) => p.kind === "unknown-ref" && p.id === "ghost"));

@@ -82,6 +82,9 @@ test("caption markup helpers", () => {
   assert.equal(fmt.code("hash(k) % R"), "`hash(k) % R`");
   assert.equal(fmt.code("a`b"), "`a\\`b`");
   assert.equal(fmt.bold("x"), "**x**");
+  assert.equal(fmt.term("pointer"), "{term:pointer}");
+  assert.equal(fmt.term("pointer", "pointers"), "{term:pointer|pointers}");
+  assert.equal(fmt.plain(`follow the ${fmt.term("pointer", "pointers")}`), "follow the pointers");
   assert.equal(fmt.escape("a*b {c}"), "a\\*b \\{c\\}");
   assert.throws(() => fmt.key("a|b"), /markup character/);
   assert.throws(() => fmt.ref(""), /empty/);

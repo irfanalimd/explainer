@@ -29,7 +29,7 @@ const PARAM_TYPES = ["int", "float", "bool", "text", "select"];
 const FORMATS = ["int", "bytes", "ms", "pct", "x"];
 const MAX_STEPS = 400, MIN_STEPS = 4, MAX_PHASE_S = 150;   // chapters pause for the reader (guided mode), so long ones are fine
 
-const plain = (m = "") => String(m).replace(/\{(?:key|ref|tone):([^}|]+)(?:\|([^}]+))?\}/g, (_, a, b) => b ?? a).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\s+/g, " ").trim();
+const plain = (m = "") => String(m).replace(/\{(?:key|ref|tone|term):([^}|]+)(?:\|([^}]+))?\}/g, (_, a, b) => b ?? a).replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\s+/g, " ").trim();
 const clip = (s, n = 64) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const fmtVal = (v) => (typeof v === "string" ? JSON.stringify(clip(v, 20)) : String(v));
 

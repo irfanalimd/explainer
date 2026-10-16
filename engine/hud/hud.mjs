@@ -1409,6 +1409,8 @@ export function createHud(root, opts = {}, cb = {}) {
   const markupOpts = {
     keyIndex: (name) => S.keyIndex.get(String(name)) ?? null,
     refTitle: (id) => S.entities?.get?.(id)?.title ?? null,
+    // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
+    term: (name) => { const d = S.meta?.terms?.[name]; return typeof d === "string" && d.trim() ? d.trim() : null; },
   };
   let capCur = null, liveTimer = 0;
   function setCaption(markup, step) {
@@ -2014,9 +2016,9 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!sticky) toastTimer = later(() => toast.classList.remove("ix-show"), o.duration ?? Math.min(9000, 2600 + String(text).length * 45));
   }
   let tipTimer = 0, tipFor = null;
-  function showTip(el, delay) {
+  function showTip(el, delay, force = false) {
     cancel(tipTimer);
-    if (!el?.dataset.tip || S.size === "phone") return;
+    if (!el?.dataset.tip || (S.size === "phone" && !force)) return;
     tipTimer = later(() => {
       if (!el.isConnected || el.closest("[inert]")) return;
       tipFor = el;
@@ -2032,6 +2034,9 @@ export function createHud(root, opts = {}, cb = {}) {
       const y = below ? br.bottom - rr.top + 8 : br.top - rr.top - th - 8;
       tip.style.transform = `translate3d(${Math.round(x)}px,${Math.round(y)}px,0)`;
       tip.classList.add("ix-show");
+      // the words under a tip can be re-rendered away (a new step in the explain panel): the tip leaves with them
+      const watch = () => { if (tipFor !== el) return; if (!el.isConnected) hideTip(); else tipTimer = later(watch, 400); };
+      tipTimer = later(watch, 400);
     }, delay);
   }
   function hideTip() { cancel(tipTimer); tipFor = null; tip.classList.remove("ix-show"); }
@@ -2046,6 +2051,13 @@ export function createHud(root, opts = {}, cb = {}) {
   on(hud, "pointerdown", hideTip);
   on(hud, "focusin", (e) => { const el = e.target.closest?.("[data-tip]"); if (el && el.matches(":focus-visible")) showTip(el, 0); });
   on(hud, "focusout", hideTip);
+  // a glossary word ({term:…}) also answers a tap or a click, on every screen size (touch has no hover)
+  on(hud, "click", (e) => {
+    const el = e.target.closest?.(".ix-term[data-tip]");
+    if (!el || el.closest("button")) return;
+    if (tipFor === el) { hideTip(); return; }
+    showTip(el, 0, true);
+  });
 
   // ---------- world tags ----------
   const tagPool = new Map();

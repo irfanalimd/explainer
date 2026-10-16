@@ -1,13 +1,15 @@
 // Caption markup (CONTRACTS.md 4.4) -> a small node list -> DOM nodes or plain text.
 //   {key:fox} {key:fox|the word fox}   identity chip        {ref:m2} {ref:m2|mapper 2}   entity chip
 //   {tone:fail|crashed}                status-toned word    `code`                       inline code
+//   {term:pointer} {term:pointer|pointers}  a glossary word: underlined; its plain definition (meta.terms) shows on
+//                                      hover, focus or tap
 //   **bold** (may contain the marks above)                  \{ \` \* \\                   literal characters
 // Anything malformed stays literal text, so a caption never loses words.
 
 export const TONES = ["ok", "busy", "warn", "fail", "idle"];
-const MARK = /^\{(key|ref|tone):([^{}|]*)(?:\|([^{}]*))?\}/;
+const MARK = /^\{(key|ref|tone|term):([^{}|]*)(?:\|([^{}]*))?\}/;
 
-/** Parse markup into nodes: {type:"text"|"key"|"ref"|"tone"|"code"|"bold", ...}. Pure. */
+/** Parse markup into nodes: {type:"text"|"key"|"ref"|"tone"|"term"|"code"|"bold", ...}. Pure. */
 export function parse(src, inBold = false) {
   const out = [];
   const s = String(src ?? "").replace(/\s*\n\s*/g, " ");
@@ -33,6 +35,7 @@ export function parse(src, inBold = false) {
         const text = b === undefined ? null : b;
         if (kind === "key") out.push({ type: "key", name, text: text ?? name });
         else if (kind === "ref") out.push({ type: "ref", id: name, text });
+        else if (kind === "term") out.push({ type: "term", name, text: text ?? name });
         else out.push({ type: "tone", tone: TONES.includes(name) ? name : null, text: text ?? name });
         i += all.length;
         continue;
@@ -78,7 +81,8 @@ export function toText(nodes, refTitle = () => null) {
 
 /**
  * Build DOM nodes for a node list into a DocumentFragment.
- * opts.keyIndex(name) -> identity index or null; opts.refTitle(id) -> entity title or null.
+ * opts.keyIndex(name) -> identity index or null; opts.refTitle(id) -> entity title or null;
+ * opts.term(name) -> the term's plain definition or null (meta.terms).
  * Key chips colour themselves from --ix-key-N, so a theme switch needs no re-render.
  */
 export function toDOM(nodes, doc, opts = {}) {
@@ -91,7 +95,7 @@ export function toDOM(nodes, doc, opts = {}) {
 // A chip is an atomic inline, so a line may break between it and the punctuation after it ("reducer 1" / ":").
 // Glue that punctuation to the chip with a no-wrap span.
 const PUNCT = /^[.,;:!?)\]…»”’%]+/;
-const isChip = (n) => n && (n.type === "key" || n.type === "ref" || n.type === "code");
+const isChip = (n) => n && (n.type === "key" || n.type === "ref" || n.type === "code" || n.type === "term");
 function appendAll(parent, nodes, doc, opts) {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i], next = nodes[i + 1];
@@ -119,6 +123,19 @@ function node(n, doc, opts) {
       return e;
     }
     case "tone": return span(n.tone ? `ix-tone ix-tone-${n.tone}` : "ix-tone", n.text);
+    case "term": {
+      // a glossary word: the HUD's tooltip shows data-tip-head / data-tip on hover, focus or tap. Without a
+      // definition it is plain text (verify's teaching lint reports the missing entry).
+      const def = opts.term?.(n.name);
+      if (!def) return doc.createTextNode(n.text);
+      const e = span("ix-term", n.text);
+      e.dataset.term = n.name;
+      e.dataset.tipHead = n.name;
+      e.dataset.tip = String(def);
+      e.tabIndex = 0;
+      e.setAttribute?.("aria-description", `${n.name}: ${def}`);
+      return e;
+    }
     case "key": {
       const idx = opts.keyIndex?.(n.name);
       const e = span(idx == null ? "ix-chip ix-key ix-key-unknown" : "ix-chip ix-key", n.text);
