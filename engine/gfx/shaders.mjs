@@ -808,7 +808,11 @@ void main() {
   }
   e *= mix(0.6, 1.0, prof);
   if (uTheme == 1) {
-    // on paper a lit trace is a saturated colour in the channel; the halo comes from the bloom tint
+    // on paper a line that means something (a keyed pointer, a toned link, data in flight) is inked in its own
+    // colour, a little deeper than the token so it holds on white ceramic; plain wiring (no glow) stays a quiet cut
+    float lineA = clamp(g1.w * 5.2, 0.0, 0.92) * mix(0.7, 1.0, prof);
+    c = mix(c, toSrgb(g2.rgb * 0.6), lineA);
+    // pulses and their heads: a saturated colour in the channel; the halo comes from the bloom tint
     float el = luma(e);
     vec3 hue = e / max(max(e.r, e.g), max(e.b, 1e-4));
     c = mix(c, toSrgb(hue * 0.6), clamp(el * 3.2, 0.0, 0.94));
