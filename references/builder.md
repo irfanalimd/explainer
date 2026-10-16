@@ -15,6 +15,7 @@ Contents: [1 Module](#1-the-figure-module) · [2 Model](#2-the-recording-model) 
 
 ```js
 export const meta = { title, subtitle, kicker, fig, cite: { text, url }, theme: "dark" | "light",
+  level: "intro" | "core" | "deep",                                                         // optional (core): sizes the lesson
   hook: "Five servers, any of which can crash. How do they still agree on one log?",      // optional: the start card's question
   terms: { leader: "the one server that decides the order of the log" },                 // optional: plain definitions, {term:leader}
   recap: ["Servers vote for one leader.", "The leader copies each entry to the others."], // optional: 2–4 lines at the end

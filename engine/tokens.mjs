@@ -218,6 +218,8 @@ export const MOTION = {
   speeds: [0.5, 1, 1.5, 2, 4],
   // a step lasts at least as long as its caption takes to read at 1x; motion stretches at most 1.35x, the rest is a hold
   read: { base: 1.0, perWord: 0.3, max: 6.5, stretch: 1.6 },
+  // meta.level "intro" (a first encounter with the idea) reads a little slower: reading time and its cap scale by this
+  readIntro: 1.2,
 };
 
 export const TYPE = {

@@ -185,3 +185,19 @@ test("narration helpers build markup that round-trips, and captions may only ref
   const tl = compile(fig((s) => { s.tile("a"); s.step("see {ref:a} and {ref:ghost}"); }));
   assert.ok(tl.problems.some((p) => p.kind === "unknown-ref" && p.id === "ghost"));
 });
+
+test("meta.level intro reads a little slower; ask keeps its why", () => {
+  const body = (s) => {
+    s.tile("a");
+    s.step("A box that holds one value and an arrow to the next box in the list.");
+    s.ask("Where does the arrow point?", ["the next box", "nowhere"], 0, { why: "Every box but the last points at the one after it." });
+    s.step("It points at the next box.");
+  };
+  const core = compile(fig(body));
+  const intro = compile({ ...fig(body), meta: { level: "intro" } });
+  assert.ok(intro.steps[0].dur > core.steps[0].dur * 1.15, `${intro.steps[0].dur} vs ${core.steps[0].dur}`);
+  assert.equal(core.steps[1].ask.why, "Every box but the last points at the one after it.");
+  assert.equal(core.steps[1].ask.answer, 0);
+  const plainAsk = compile(fig((s) => { s.tile("a"); s.step("x y"); s.ask("q?", ["a", "b"], 1); s.step("z w"); }));
+  assert.equal("why" in plainAsk.steps[1].ask, false);
+});

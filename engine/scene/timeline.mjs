@@ -50,6 +50,13 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
   const problems = script.problems.slice();
   const steps = script.steps;
   const nSteps = steps.length;
+  // reading time at 1x: an "intro" figure (meta.level) gives every caption a little longer
+  const readK = figure.meta?.level === "intro" ? MOTION.readIntro : 1;
+  const readTime = (caption) => {
+    const words = plain(caption ?? "").split(/\s+/).filter(Boolean).length;
+    const R = MOTION.read;
+    return Math.min(R.max * readK, (R.base + R.perWord * words) * readK);
+  };
 
   // ---------- states, run-wide facts ----------
   const allStates = [script.S0];
@@ -271,14 +278,12 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
       dur = fill = Math.min(st.pace.max, Math.max(st.pace.min, dt / st.pace.ms));
       // a sim-timed step still holds long enough to read its caption (unless s.pace({ read: false })); packets keep
       // their speed, the hold follows
-      const words = plain(st.caption ?? "").split(/\s+/).filter(Boolean).length;
-      const R = MOTION.read, read = Math.min(R.max, R.base + R.perWord * words);
+      const read = readTime(st.caption);
       if (st.pace.read !== false && read > dur) dur = read;
     } else if (st.dur === null) {
       // reading time: the caption must be readable at 1x; motion keeps (nearly) its natural speed and a hold follows
-      const words = plain(st.caption ?? "").split(/\s+/).filter(Boolean).length;
-      const R = MOTION.read, read = Math.min(R.max, R.base + R.perWord * words);
-      if (read > dur) { fill = Math.min(read, dur * R.stretch); dur = read; }
+      const read = readTime(st.caption);
+      if (read > dur) { fill = Math.min(read, dur * MOTION.read.stretch); dur = read; }
     }
     const t0 = t, t1 = t + dur;
     let bt = t0;
