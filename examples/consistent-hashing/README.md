@@ -57,6 +57,11 @@ Knobs: servers (2–6), keys (6–24), seats per server (1–8), seed (which key
 Numbers: keys moved on the ring (in the dock); keys moved the remainder way (in the dock for "Add a server", the only
 story that runs the remainder board); busiest server's share (in the dock for "Many seats per server"); servers.
 
+Layout: on a wide screen the remainder board is one column of housings (3-wide trays) just right of the ring, and the
+ring's hash marks sit at the top, the bottom and the diagonals, so its zone is only as wide as the ring. Ring and board
+then fit side by side beside the explain panel at 1440×900 and 1280×720, and the Result step frames both. On a portrait
+screen (`env.portrait`) the board is a 3-column grid under the ring.
+
 ## Invariants (verify checks every step of every run)
 
 - Every key is stored on exactly one live server, and each server's badge matches the ring.

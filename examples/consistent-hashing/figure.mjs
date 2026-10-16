@@ -366,8 +366,9 @@ const plainWords = (markup) => fmt.plain(markup).split(/\s+/).filter(Boolean).le
 // motion plays at its natural pace; a long caption gets enough time to be read at 1x
 const readable = (markup, min = 1.3) => Math.min(4.2, Math.max(min, 0.24 * plainWords(markup)));
 
-export function build(s, p, scenario) {
+export function build(s, p, scenario, env) {
   const P = plan(p, scenario);
+  const portrait = !!env?.portrait;   // a layout choice only: the run is the same
   const { R, at, house } = P.geo;
   const { sc, keys, servers, extra } = P;
   const K = keys.length;
@@ -401,11 +402,16 @@ export function build(s, p, scenario) {
   // ---- the opening picture: the ring and the servers ----
   for (let i = 0; i < FILLERS; i++) s.text(`f${i}`, { text: "", size: 1, at: polar(R, (i / FILLERS) * TAU) });
   for (let i = 0; i < FILLERS; i++) s.trace(`ring${i}`, `f${i}`, `f${(i + 1) % FILLERS}`, { route: "straight" });
-  const marks = ["0x0000_0000", "0x4000_0000", "0x8000_0000", "0xc000_0000"];
-  const markAt = [[0, -(R + 34)], [R + 80, 0], [0, R + 34], [-(R + 80), 0]];
-  marks.forEach((m, i) => s.text(`q${i}`, { text: m, size: 8.5, at: markAt[i] }));
-  s.zone("ringzone", { around: ["q0", "q1", "q2", "q3"], title: "hash ring · murmur3, 32-bit" });
-  const RING = ["q0", "q1", "q2", "q3"];   // a zone cannot be a focus target, its four corner marks can
+  // Hash marks at the top, the bottom and the four diagonals, where the corners of the ring's zone have room, so
+  // the zone is only as wide as the ring itself and the remainder board fits beside it. Two blank anchors at the
+  // sides hold the zone's left and right edges 14 u outside the keys there (records reach R + 32).
+  const marks = [0, 1, 3, 4, 5, 7].map((e) => ({ e, text: fmt.hex(e * 2 ** 29, 8) }));
+  const markAt = (e) => (e % 4 === 0 ? polar(R + 38, (e / 8) * TAU) : polar(R + 70, (e / 8) * TAU));
+  marks.forEach((m) => s.text(`q${m.e}`, { text: m.text, size: 8.5, at: markAt(m.e) }));
+  s.text("qr", { text: "", size: 1, at: [R + 18, 0] });
+  s.text("ql", { text: "", size: 1, at: [-(R + 18), 0] });
+  const RING = ["q0", "qr", "q4", "ql"];   // a zone cannot be a focus target; its outermost marks can
+  s.zone("ringzone", { around: [...RING, ...marks.map((m) => `q${m.e}`)], title: "hash ring · murmur3, 32-bit" });
 
   const addHousing = (sv, o = {}) => {
     s.housing(sv, { at: house.get(sv), title: sv, sub: o.sub ?? null, led: o.led ?? "idle", key: sv, tray: { cols: 1, of: "tile" }, state: housingState(sv, { active: o.active ?? false }) });
@@ -413,7 +419,7 @@ export function build(s, p, scenario) {
   };
   for (const sv of servers) addHousing(sv);
 
-  // the mod N board, beside the ring: one housing per server, server i holds the keys with hash % N = i
+  // the mod N board, beside the ring (under it in portrait): one housing per server; server i holds hash % N = i
   const modAt = new Map();
   const modOwner = new Map();
   let modIds = [];
@@ -421,15 +427,26 @@ export function build(s, p, scenario) {
   if (sc === "add") {
     const all = [...servers, extra];
     const fullest = (n) => Math.max(...Array.from({ length: n }, (_, b) => keys.filter((k) => k.hash % n === b).length));
-    const rows = Math.max(1, Math.ceil(Math.max(fullest(servers.length), fullest(all.length)) / 2));
-    const mw = Math.max(120, 2 * SIZE.record.w + SIZE.record.gap + 2 * SIZE.housing.pad + 2 * SIZE.well.inset);
+    // Landscape: one column of housings just right of the ring, with 3-wide trays so the column stands about as
+    // tall as the ring (two columns when it would be far taller), so ring and board fit beside the explain panel.
+    // Portrait: a 3-column grid of housings, 2-wide trays, under the ring.
+    const trayCols = portrait ? 2 : 3;
+    const rows = Math.max(1, Math.ceil(Math.max(fullest(servers.length), fullest(all.length)) / trayCols));
+    const mw = Math.max(120, trayCols * SIZE.record.w + (trayCols - 1) * SIZE.record.gap + 2 * SIZE.housing.pad + 2 * SIZE.well.inset);
     const md = Math.max(80, SIZE.housing.header + rows * SIZE.record.d + (rows - 1) * SIZE.record.gap + 2 * SIZE.housing.pad + SIZE.well.inset);
-    const x0 = R + 74 + 40 + 2 * SIZE.zone.pad + SIZE.gutter + mw / 2, rowsN = Math.ceil(all.length / 2);
-    const y0 = -((rowsN - 1) * (md + 18)) / 2;
-    all.forEach((sv, i) => { modAt.set(sv, [x0 + (i % 2) * (mw + 18), y0 + Math.floor(i / 2) * (md + 18)]); });
+    const GAP = 14, ZONES = 12;                       // between housings; between the two zones' borders
+    const ringRight = R + 18 + SIZE.zone.pad;         // the ring zone's right border (the blank side anchor)
+    const ringBottom = R + 38 + 5 + SIZE.zone.pad;    // its bottom border (the 0x8000_0000 mark)
+    const colH = (c) => { const r = Math.ceil(all.length / c); return r * md + (r - 1) * GAP; };
+    const cols = portrait ? Math.min(3, all.length) : colH(1) <= 1.25 * 2 * ringBottom ? 1 : 2;
+    const rowsN = Math.ceil(all.length / cols);
+    const pitchX = mw + GAP, pitchY = md + GAP;
+    const ox = portrait ? -((cols - 1) * pitchX) / 2 : ringRight + ZONES + SIZE.zone.pad + mw / 2;
+    const oy = portrait ? ringBottom + ZONES + SIZE.zone.pad + 14 + md / 2 : -((rowsN - 1) * pitchY) / 2;
+    all.forEach((sv, i) => { modAt.set(sv, [ox + (i % cols) * pitchX, oy + Math.floor(i / cols) * pitchY]); });
     addMod = (sv, n) => {
       const b = all.indexOf(sv);
-      s.housing(`m.${sv}`, { at: modAt.get(sv), w: mw, d: md, title: sv, sub: `h % ${n} = ${b}`, led: "ok", key: sv, tray: { cols: 2, rows, of: "record" }, state: { kind: "bucket", server: sv, index: b, n } });
+      s.housing(`m.${sv}`, { at: modAt.get(sv), w: mw, d: md, title: sv, sub: `h % ${n} = ${b}`, led: "ok", key: sv, tray: { cols: trayCols, rows, of: "record" }, state: { kind: "bucket", server: sv, index: b, n } });
     };
     servers.forEach((sv) => addMod(sv, servers.length));
     modIds = servers.map((sv) => `m.${sv}`);
@@ -643,7 +660,7 @@ export function build(s, p, scenario) {
 
     s.phase("Result", { about: "Only the keys in one slice of the ring moved: on average one key in N. The remainder way moved most of them, and every moved key is data copied across the network." });
     s.gauge("modmoved", modm);
-    s.focus(...RING);   // both boards together are wider than the camera may zoom out to on desktop
+    s.focus(...RING, ...modIds, `m.${extra}`);   // both boards: the ring's 3 against the remainder way's 14
     if (takes.length) s.lit(...takes.map((k) => `k.${k.name}`));
     s.line(18, 19);
     say(`${takes.length} of ${K} keys moved; one in ${servers.length + 1} would be ${fmt.num(K / (servers.length + 1), 1)}. The remainder way moved ${modm}.`, { min: 4 });
