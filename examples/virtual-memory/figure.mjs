@@ -295,27 +295,42 @@ export function build(s, p, scenario, env = {}) {
   const C = makeCache({ sets: 64, ways: 8, line: 64, addressBits: 40 }); // what the walker's reads go through: cold
 
   // ---- the opening picture ----
-  s.column("addr", { align: "end", gap: 4 });
+  // wide screens: the CPU (TLB over CR3) beside the address, the rooms in one row under both, so the whole path
+  // (address, sticky notes, directory, room) fits beside the explain panel; portrait phones: the address, then the
+  // CPU (TLB beside CR3), then the rooms, so the world is about square
+  if (portrait) {
+    s.column("addr", { align: "end", gap: 4 });
+    s.column("machine", { gap: 56 });
+    s.row("cpu", { in: "machine", gap: 40, title: "CPU core" });
+  } else {
+    s.row("top", { gap: 12, align: "start" });
+    s.column("cpu", { in: "top", gap: 28, title: "CPU core" });
+    if (fault) s.column("side", { in: "top", align: "end", gap: 40 });   // the disk sits under the address
+    s.column("addr", { in: fault ? "side" : "top", align: "end", gap: 4 });
+  }
   const vaLabel = (v) => `the program's address (virtual) · ${vaHex(v)}`;
   s.bits("va", { in: "addr", width: 48, value: va0, fields: VA_FIELDS, label: vaLabel(va0) });
   s.spacer("addr.gap", { in: "addr", d: 14 });
   s.bits("pa", { in: "addr", width: PA_BITS, value: 0, fields: PA_FIELDS, label: "the real address (physical) · not known yet" });
 
-  // wide screens: CPU beside DRAM, one long row; portrait phones: CPU above DRAM, so the world is about square
-  (portrait ? s.column : s.row)("machine", { gap: portrait ? 56 : 76 });
-  s.row("cpu", { in: "machine", gap: 40, title: "CPU core" });
   const tlbState = () => ({ entries: N, policy: "LRU, fully associative", slots: T.slots().map((x) => (x ? `${vpnHex(x.vpn)} → ${pfnHex(x.pfn)}` : "empty")) });
   s.housing("tlb", { in: "cpu", variant: "chip", title: "TLB", sub: `${N} sticky notes`, tray: { cols: 2, rows: N, of: "record" }, led: "idle", state: tlbState() });
   const regs = fault ? "regs" : "cpu";
-  if (regs === "regs") s.column("regs", { in: "cpu", gap: 24 });
+  if (regs === "regs") (portrait ? s.column : s.row)("regs", { in: "cpu", gap: portrait ? 24 : 12 });
   const cr3State = (who) => ({ cr3: paHex(Number(cr3Now)), holds: `where program ${who}'s directory (its PML4) starts`, program: who });
   s.housing("cr3", { in: regs, variant: "chip", title: "CR3", sub: paHex(Number(cr3Now)), tray: { cols: 1, rows: 1, of: "record" }, state: cr3State("A") });
   s.tile("cr3.v", { in: "cr3", of: "record", text: "PML4", sub: tilePfn(mem.cr3), state: { pml4: pfnHex(mem.cr3) } });
-  if (fault) s.housing("kernel", { in: regs, variant: "chip", title: "kernel", sub: "fault handler", led: "off", state: { handled: false } });
+  if (fault) s.housing("kernel", { in: regs, variant: "chip", title: "kernel", sub: "page faults", led: "off", state: { handled: false } });
 
-  const memCol = fault && portrait ? "memcol" : "machine";
+  // portrait: the disk goes under the rooms; wide: under the address, beside the CPU
+  const memCol = !portrait ? null : fault ? "memcol" : "machine";
   if (memCol === "memcol") s.column("memcol", { in: "machine", gap: 48, align: "end" });
-  s.row("dram", { in: memCol, gap: portrait ? 26 : 40, title: "main memory · the real rooms" });
+  s.row("dram", { ...(memCol ? { in: memCol } : {}), gap: portrait ? 26 : 28, title: "main memory · the real rooms" });
+  // On a wide screen the whole machine fits beside the explain panel at a readable size, so every step frames all of
+  // it: the reader keeps the whole path (address, sticky notes, directory, room) in view while the lit parts move.
+  // Portrait phones frame the step's own parts.
+  const wide = !portrait && !env.phone;
+  const see = (...ids) => s.focus(...ids, ...(wide ? ["cpu", "va", "pa", "dram", ...(fault ? ["ssd"] : [])] : []));
 
   // the walk an address takes through the running program's tables
   const pathOf = (va) => {
@@ -352,7 +367,7 @@ export function build(s, p, scenario, env = {}) {
   const byteContent = (vpn, o, who = "A") => { const b = byteAt(mem.seed, vpn, o, who); return { text: offHex(o).slice(2), sub: b.toString(16), state: { offset: offHex(o), byte: hx(b, 2), char: String.fromCharCode(b), program: who } }; };
   s.housing("page", { in: "dram", title: fault ? "free room" : "page", sub: paHex(pfn0 * 4096), tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { frame: pfnHex(pfn0), base: paHex(pfn0 * 4096), loads: [] } });
   if (fault) {
-    s.housing("ssd", { in: memCol, variant: "store", title: "disk · SSD", sub: `slot ${hx(mem.swapSlot, 3)}`, tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0) } });
+    s.housing("ssd", { in: portrait ? memCol : "side", variant: "store", title: "disk · SSD", sub: `slot ${hx(mem.swapSlot, 3)}`, tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0) } });
     for (let k = 0; k < 3; k++) s.tile(`page.b${k}`, { in: "ssd", of: "record", ...byteContent(vpn0, byteWin + k) });
   } else {
     for (let k = 0; k < 3; k++) s.tile(`page.b${k}`, { in: "page", of: "record", ...byteContent(vpn0, byteWin + k) });
@@ -436,14 +451,14 @@ export function build(s, p, scenario, env = {}) {
     s.beat();
     setPA(null, off);
     s.lit(...paCells(0, 11));
-    s.focus("va", "pa");
+    see("va", "pa");
     s.line(3);
     s.step(`The low 12 bits, ${c(offHex(off))}, are the {term:offset}, the byte's place in its {term:page}. They copy straight over.`, { keep: true });
   }
   function splitVpn(va) {
     s.lit(...vaCells(12, 47));
     s.tag("va[30]", `page ${vpnHex(vpnOf(va))}`);
-    s.focus("va");
+    see("va");
     s.line(3);
     s.step(`The upper 36 bits, ${c(vpnHex(vpnOf(va)))}, name the page, the apartment. Only this part is looked up.`, { keep: true });
   }
@@ -468,7 +483,7 @@ export function build(s, p, scenario, env = {}) {
       s.tag("tlb", "miss", { tone: "warn" });
       s.set("tlb", { led: "warn" });
     }
-    s.focus("va", "tlb");
+    see("va", "tlb");
     if (!quiet) {
       s.step(r.hit
         ? `Page ${c(vpnHex(vpn))} is on note ${r.slot + 1}: a {tone:ok|hit}. Its real room, {term:frame} ${c(pfnHex(r.pfn))}, in 1 cycle.`
@@ -506,14 +521,14 @@ export function build(s, p, scenario, env = {}) {
     s.tag("cr3", "directory starts here", {});
     s.set("tlb", { led: "idle" });
     s.line(6);
-    s.focus("tlb", "cr3", "t0");
+    see("tlb", "cr3", "t0");
     s.step(`On a miss, the CPU opens this program's directory. {term:CR3} holds where it starts: ${c(paHex(Number(cr3Now)))}.`, { keep: true });
     const path = [];
     let table = cr3Now;
     for (let L = 0; L < 4; L++) {
       const rd = readLevel(L, va, table);
       path.push({ table: hx(table, 10), index: rd.i, entry: pteHex(rd.e) });
-      s.focus("va", L ? `t${L - 1}` : "cr3", `t${L}`);
+      see("va", L ? `t${L - 1}` : "cr3", `t${L}`);
       if (!rd.present) {
         s.set(`t${L}`, { led: "fail" });
         s.line(10, 11);
@@ -545,7 +560,7 @@ export function build(s, p, scenario, env = {}) {
     const pt = reads[3];
     s.tag(pt.tile, hits === 4 ? "all from the cache" : hits === 0 ? "all from memory" : `${hits} of 4 from the cache`, hits === 4 ? { tone: "ok" } : {});
     const cost = reads.reduce((a, r) => a + r.cost, 0);
-    s.focus(...(fault ? [] : ["tlb"]), "cr3", "t0", "t1", "t2", "t3");
+    see(...(fault ? [] : ["tlb"]), "cr3", "t0", "t1", "t2", "t3");
     s.line(7, 12);
     s.step(say(reads, cost, hits));
     return { path, frame: Number(table >> 12n), reads };
@@ -558,7 +573,7 @@ export function build(s, p, scenario, env = {}) {
     setPA(frame, off);
     s.lit(...paCells(12, PA_BITS - 1));
     s.line(from === "tlb" ? 5 : 15);
-    s.focus(from === "tlb" ? "tlb" : "t3", "pa", ...(from === "tlb" ? [] : [page]));
+    see(from === "tlb" ? "tlb" : "t3", "pa", ...(from === "tlb" ? [] : [page]));
     const pa = frame * 4096 + off;
     s.step(say ? say(pa) : from === "tlb"
       ? `Room ${c(pfnHex(frame))}, then offset ${c(offHex(off))}, side by side: real address ${c(paHex(pa))}, no directory opened.`
@@ -579,7 +594,7 @@ export function build(s, p, scenario, env = {}) {
     s.lit(`tlb.v${ins.slot}`, `tlb.p${ins.slot}`);
     s.set("tlb", { state: tlbState() });
     s.line(14);
-    s.focus(...(fault ? ["tlb"] : ["t3", "tlb"]));                     // the fault layout puts the kernel between them
+    see(...(fault ? ["tlb"] : ["t3", "tlb"]));                     // the fault layout puts the kernel between them
     s.step(`A sticky note now maps page ${c(vpnHex(vpn))} to room ${c(pfnHex(frame))}` + (ins.evicted
       ? ", replacing the note used longest ago."
       : ", on a free note."));
@@ -593,7 +608,7 @@ export function build(s, p, scenario, env = {}) {
     s.tag(t, `${hx(b, 2)} '${String.fromCharCode(b)}'`);
     logLoads.push({ va: vaHex(va), pa: paHex(pa), via, who: "A", ...(path ? { path } : {}) });
     s.set("page", { state: { frame: pfnHex(Math.floor(pa / 4096)), base: paHex(Math.floor(pa / 4096) * 4096), loads: logLoads.slice() } });
-    s.focus("page", "pa");
+    see("page", "pa");
     s.line(null);
     s.step(`The byte at ${c(paHex(pa))} is ${c(hx(b, 2))}. ${extra}`);
     return b;
@@ -602,7 +617,7 @@ export function build(s, p, scenario, env = {}) {
   // ---- the run ----
   s.phase("Apartment numbers", { about: "Think of a building where each program has its own apartment numbers. A directory per program turns a number into a real room, so two programs can use the same number safely." });
   s.line(2);
-  s.focus("va", "pa");
+  see("va", "pa");
   s.step(`The program reads one byte at ${c(vaHex(va0))}. That number is its own address, a {term:virtual address}.` +
     (target.note ? ` (You typed an address the figure cannot use: ${target.note}.)` : ""), { keep: true });
   splitOffset(va0);
@@ -633,7 +648,7 @@ export function build(s, p, scenario, env = {}) {
     s.count("faults");
     spend(COST.trap);
     s.line(19, 20);
-    s.focus("t3", "kernel");
+    see("t3", "kernel");
     s.step(`The CPU stops the program and hands the address to the {term:kernel}: about 1 µs, ${fmt.int(COST.trap)} cycles.`);
 
     s.set("ssd", { led: "busy", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0), reads: 1 } });
@@ -642,7 +657,7 @@ export function build(s, p, scenario, env = {}) {
     for (let k = 0; k < 3; k++) s.move(`page.b${k}`, "page", { via: "swap-in" });
     spend(COST.ssd);
     s.line(21, 22);
-    s.focus("ssd", "page");
+    see("ssd", "page");
     s.step(`Its directory line names disk slot ${c(hx(mem.swapSlot, 3))}. Copying 4 KiB into free room ${c(pfnHex(mem.faultFrame))} takes ${fmt.int(COST.ssd)} cycles.`);
 
     const pte = (BigInt(mem.faultFrame) << 12n) | DATA;
@@ -657,7 +672,7 @@ export function build(s, p, scenario, env = {}) {
     s.set("page", { led: "idle" });
     s.set("kernel", { led: "idle", state: { handled: true, frame: pfnHex(mem.faultFrame), slot: hx(mem.swapSlot, 3) } });
     s.line(23, 24);
-    s.focus("kernel", "t3");
+    see("kernel", "t3");
     s.step(`The kernel writes room ${c(pfnHex(mem.faultFrame))} into line ${pt.i}, marks it present, and returns. The read starts over.`);
 
     s.phase("Try again", { about: "The CPU runs the same read again from the start. No sticky note has the page, so it walks the directory again; this time its lines are in the fast {term:cache}." });
@@ -693,7 +708,7 @@ export function build(s, p, scenario, env = {}) {
     s.beat();
     setPA(null, v1 % 4096);
     s.lit(...paCells(0, 11));
-    s.focus("va", "pa");
+    see("va", "pa");
     s.line(2, 3);
     s.step(`Next it reads the following byte, ${c(vaHex(v1))}: the same page, one byte further in.`);
     s.ask("How long will finding this byte's room take?",
@@ -719,10 +734,10 @@ export function build(s, p, scenario, env = {}) {
       const slot = T.slots().findIndex((x) => x && x.vpn === vpn0);
       s.lit(`tlb.v${slot}`, `tlb.p${slot}`);
       s.tag(`tlb.v${slot}`, `${fmt.int(rest)} hits`, { tone: "ok" });
-      s.focus("va", "pa", "tlb");
+      see("va", "pa", "tlb");
       s.step(`It reads on to the page's end: ${fmt.int(rest)} more bytes, each found by the note in 1 cycle.`);
     }
-    s.focus("va", "tlb");
+    see("va", "tlb");
     s.step(`${fmt.int(loads)} reads, ${fmt.int(cycles)} cycles: about ${fmt.num(cycles / loads, 1)} each. One slow lookup, then the note did the rest.`);
   }
 
@@ -744,7 +759,7 @@ export function build(s, p, scenario, env = {}) {
   setPA(null, Number(paShown & 0xfffn));                               // A's room no longer applies
   s.lit("cr3.v");
   s.line(null);
-  s.focus("cr3", "tlb");
+  see("cr3", "tlb");
   s.step(`The operating system switches to program B: {term:CR3} now holds B's directory, and A's sticky notes are wiped.`, { keep: true });
 
   const chB = setVA(va0);
@@ -776,7 +791,7 @@ export function build(s, p, scenario, env = {}) {
   s.lit(tB, tA);
   s.tag(tB, `${hx(byteB, 2)} '${String.fromCharCode(byteB)}'`);
   s.set("pageB", { state: { frame: pfnHex(wB.frame), base: paHex(wB.frame * 4096), program: "B", loads: [{ va: vaHex(va0), pa: paHex(paB), via: "walk", who: "B", path: wB.path }] } });
-  s.focus("page", "pageB", "pa");
+  see("page", "pageB", "pa");
   s.line(null);
   s.step(`Program B reads ${c(hx(byteB, 2))} from room ${c(pfnHex(wB.frame))}. A's byte, ${c(hx(byteA, 2))}, sits untouched in room ${c(pfnHex(pfn0))}.`);
   s.tag("page", "program A", { tone: "ok" });
