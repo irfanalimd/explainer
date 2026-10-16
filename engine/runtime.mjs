@@ -427,6 +427,35 @@ export async function mount(root, figure, options = {}) {
       const room = (p.w ?? SIZE[p.kind]?.w ?? SIZE.tile.w) - 2 * 3;
       if (width > room) out.push({ kind: "label-overflow", step: frame.step, id: p.id, message: `"${text}" is ${width.toFixed(1)} u wide on a ${room.toFixed(1)} u face` });
     }
+    // floor prints: a bitfield bracket's name must not run into another print (a second label drawn in its place)
+    const prints = [];
+    for (const p of frame.poses) {
+      if ((p.opacity ?? 1) < 0.05) continue;
+      if (p.kind === "bracket" && p.text && p.points?.length >= 2) {
+        const B = SIZE.bracket, size = B.label, text = String(p.text).toUpperCase();
+        measure.font = `600 ${size}px "${TYPE.mono}"`;
+        const w = measure.measureText(text).width + text.length * size * B.tracking;
+        const cx = (p.points[0][0] + p.points[p.points.length - 1][0]) / 2, cy = p.points[0][1] + B.dy;
+        prints.push({ id: p.id, text: p.text, bracket: true, x0: cx - w / 2, x1: cx + w / 2, y0: cy - size * 0.5, y1: cy + size * 0.5, z: p.z ?? 0 });
+      } else if (p.kind === "text" && p.text) {
+        const size = Number(p.size) || 7, text = p.upper ? String(p.text).toUpperCase() : String(p.text);
+        measure.font = `500 ${size}px "${TYPE.mono}"`;
+        const w = measure.measureText(text).width;
+        const align = p.align ?? (p.variant === "label" ? "left" : "center");
+        const x0 = align === "left" ? p.x : align === "right" ? p.x - w : p.x - w / 2;
+        prints.push({ id: p.id, text: p.text, bracket: false, x0, x1: x0 + w, y0: p.y - size * 0.5, y1: p.y + size * 0.5, z: p.z ?? 0 });
+      }
+    }
+    for (let a = 0; a < prints.length; a++) {
+      if (!prints[a].bracket) continue;
+      const A = prints[a];
+      for (let b = 0; b < prints.length; b++) {
+        const B = prints[b];
+        if (b === a || (B.bracket && b < a) || Math.abs(A.z - B.z) > 1) continue;
+        const ox = Math.min(A.x1, B.x1) - Math.max(A.x0, B.x0), oy = Math.min(A.y1, B.y1) - Math.max(A.y0, B.y0);
+        if (ox > 1 && oy > 1) out.push({ kind: "print-overlap", step: frame.step, id: A.id, message: `bracket "${A.text}" overlaps the floor print "${B.text}" (${B.id})` });
+      }
+    }
     if (renderer) {
       const tags = (frame.tags ?? []).map((t) => ({ t, at: renderer.project(t.at) }));
       for (const { t, at } of tags) {
