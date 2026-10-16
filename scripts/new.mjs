@@ -72,6 +72,19 @@ export function scaffold(dir, { from, title, force } = {}) {
 
 One or two sentences: what this figure shows and what the reader should leave knowing.
 
+## Lesson plan (references/teaching.md)
+
+- **Level:** intro | core | deep (also \`meta.level\`).
+- **Question:** the hook, in the reader's words (\`meta.hook\`).
+- **Everyday picture:** the analogy, and which real part each piece maps to (the first chapter's about).
+- **Problem first:** the naive way, and why it hurts.
+- **Ladder:** one new idea per chapter: what it is, the basic move, the payoff, the cost, what breaks.
+- **Misconception and aha:** the wrong belief the run disproves; the predict question goes right before it.
+- **Words:** each new term with its plain definition (\`meta.terms\`).
+- **Recap:** 2–4 lines (\`meta.recap\`), then the takeaway.
+
+## Facts
+
 - **Source:** the paper, book or docs it follows (also in \`meta.cite\`).
 - **Scenarios:** what each tab demonstrates.
 - **Invariants:** the properties verify checks on every step.
@@ -79,7 +92,8 @@ One or two sentences: what this figure shows and what the reader should leave kn
 ## Commands
 
 \`\`\`sh
-node ${scripts}/verify.mjs figure.mjs                 # headless checks: determinism, invariants, captions, param extremes
+node ${scripts}/verify.mjs figure.mjs                 # headless checks: determinism, invariants, captions, param extremes, the lesson
+node ${scripts}/lesson.mjs figure.mjs                 # the lesson as text: read it as a beginner would
 node ${scripts}/build.mjs figure.mjs                  # one self-contained page next to this file
 node ${scripts}/build.mjs figure.mjs --serve          # live-reloading dev page
 node ${scripts}/shoot.mjs <page>.html                 # screenshots of every phase, both themes, desktop + phone

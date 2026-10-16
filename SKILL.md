@@ -30,6 +30,8 @@ Bar: an Apple keynote render, a Stripe or Linear page, a Bartosz Ciechanowski es
 
 The captions, counters, colours and positions all come from that run. If a caption says "9 bytes", the run moved 9 bytes. That is what makes these figures trustworthy to a CS student, and what makes them hold up when a professional changes a knob or picks the failure scenario.
 
+**And teach it to a beginner.** The default reader knows basic programming, not the concept. A figure that runs perfectly but uses words the reader has never met teaches nothing. `references/teaching.md` is the teaching standard: plan the lesson before the code, and `verify` checks it.
+
 ## Workflow
 
 1. **Size it** and tell the user before starting, with a time estimate:
@@ -42,20 +44,31 @@ The captions, counters, colours and positions all come from that run. If a capti
    - the canonical source to cite in `meta.cite`
 
    Choose a small instance that still shows the interesting behaviour: 3 mappers, not 300; a 5-node cluster; 8 keys. Decide which **scenarios** tell the story: the happy path, then what breaks (crash, partition, skew, worst case, collision, miss).
-3. **Pick the boards** from the catalog below. Most figures need one main board; a protocol often adds a lanes board (space-time diagram) for the same nodes.
-4. **Scaffold**: `node scripts/new.mjs <dir>` writes a commented `figure.mjs` and a README. `--from <example>` starts from one of `examples/`. Open the closest example first.
-5. **Write `figure.mjs`**:
-   - `meta` (with a `hook` and a `takeaway`), `params` (knobs), `scenarios` (each with a one-line `description` of its story, a `whatIf`, and its own `takeaway` when the lesson differs), `counters` (numbers in real units, each with a plain `label` and a one-line `hint`, the 1–3 that tell the story marked `primary`), optional `code`
+3. **Plan the lesson** (`references/teaching.md`, read it every time) before any code. Write down, in plain text:
+   - the level (`intro` for a linked list or binary search, `core`, `deep` for Raft), which sizes everything
+   - the learner's question (the hook), and an everyday picture with an explicit mapping to the real parts
+   - the problem shown before the solution: the naive way, run for real, and why it hurts
+   - the ladder of chapters, one new idea each: what it is, the basic move, the payoff, the cost, what breaks
+   - the one misconception to disprove, the aha step (a predict question goes right before it), the recap
+   - every new word with a plain definition (`meta.terms`), and stories named the way a learner would ask
+4. **Pick the boards** from the catalog below. Most figures need one main board; a protocol often adds a lanes board (space-time diagram) for the same nodes.
+5. **Scaffold**: `node scripts/new.mjs <dir>` writes a commented `figure.mjs` and a README. `--from <example>` starts from one of `examples/`. Open the closest example first.
+6. **Write `figure.mjs`**:
+   - `meta` (with a `level`, a `hook`, `terms`, a `recap` and a `takeaway`), `params` (knobs), `scenarios` (each with a one-line `description` of its story, a `whatIf`, and its own `takeaway` when the lesson differs), `counters` (numbers in real units, each with a plain `label` and a one-line `hint`, the 1–3 that tell the story marked `primary`), optional `code`
    - `invariants` (the properties that must hold on every step)
    - `build(s, params, scenario)`
 
    Use the simulation runtimes in `sim/` rather than hand-rolling: `actors` for anything with messages and time, `tracked` for arrays and structures, `lockstep` to race two algorithms, `machine` for bits, caches and page tables. All randomness goes through `s.rng` (or `s.rng.fork(label)`); the runtimes fork it by default and take a `seed` only to decouple their stream (`references/sim.md`).
-6. **Verify** with `node scripts/verify.mjs figure.mjs`. It must end with `0 failing`. It checks:
+7. **Verify** with `node scripts/verify.mjs figure.mjs`. It must end with `0 failing`. It checks:
    - every scenario at defaults and every param at its extremes
    - determinism and invariants on every step
    - compile problems: unknown ids, overflowing trays, overlapping housings, missing captions
    - pacing, and the sampler
-7. **Build and look**:
+   - the lesson (its **teaching** section): undefined terms, jargon, long captions, a missing hook, analogy, recap or why, size for the level
+
+   Then **read the lesson**: `node scripts/lesson.mjs figure.mjs` prints every story as a script (hook, chapters and abouts, captions, questions with their why, recap, takeaway). Read it top to bottom as a beginner and fix the first line you would not understand.
+   Once it builds, `node scripts/shoot.mjs page.html --teach` also shoots every predict card (asked, then revealed with its why) and the end card; look at them too.
+8. **Build and look**:
    - `node scripts/build.mjs figure.mjs` writes one self-contained HTML file. Use `--serve` for a live-reloading dev page.
    - `node scripts/shoot.mjs page.html` takes every phase in both themes, desktop and phone, plus `contact.png`. **Read the contact sheet and every PNG that matters.**
    - `node scripts/audit.mjs page.html` checks label overflow, tags off-screen and focus out of frame.
@@ -65,7 +78,7 @@ The captions, counters, colours and positions all come from that run. If a capti
    - a step that does two unrelated things (split it, or use `s.beat()`)
    - focus that jumps around (use `s.focus`)
    - a board too crowded (reduce n, or split into boards)
-8. **Deliver**:
+9. **Deliver**:
    - the HTML file (it works from `file://`, offline, with no dependencies)
    - a light-theme build if the destination is light (`--theme light`)
    - a video if asked: `node scripts/record.mjs page.html --out x.webm --captions` (`--size vertical` for 9:16)
@@ -95,13 +108,20 @@ export function build(s, p, scenario) {
 }
 ```
 
-Rules that make a figure read well:
+Rules that make a figure teach. The beginner rules come first (detail and examples in `references/teaching.md`):
 
+- **Write for a beginner who knows basic programming, not the concept.** Start from what they know (an array, a dictionary, a group chat) and contrast the new idea with it.
+- **Beginner words first, the real name second, defined at first use.** "an arrow to the next box, called a {term:pointer}", with `meta.terms = { pointer: "an arrow that says where the next box lives" }`. The HUD underlines the word and shows its definition on hover, focus or tap. No flagged jargon (hash, mapper, straggler, quorum, pivot, TLB, …) without a definition, and none at all in the hook or a story's label, what-if or description.
+- **A picture, then the problem, then the idea.** The first chapter's `about` maps an everyday analogy onto the parts on screen; run the naive way and show why it hurts before the solution.
+- **A ladder, one new idea per chapter**: what it is, the basic move (every sub-step of its first occurrence, at full length), the payoff, the cost, what breaks. Size it with `meta.level`: an `intro` concept gets 3–5 slow chapters, at most two knobs and one or two numbers.
+- **Predict where a beginner would guess wrong**, and say why: `s.ask(question, options, answer, { why })` right before the step that disproves the misconception. Wrong options are the real misconceptions.
+- **Close with a recap and a takeaway.** `meta.recap` (2–4 short lines, in the order the run showed them) sits above `meta.takeaway` at the end.
+- **Stories are a learner's what-ifs.** Label them in learner words ("One slow machine", not "Straggler"); `whatIf` finishes "What if…" the way a learner would ask it.
 - **One idea per step.** A step moves one causal chain: a send and its delivery, a compare and its swap. Use `s.beat()` to sequence parts of one step. Use `s.phase(name, { about })` for chapters (3–6 per figure).
 - **A hook at the start, a payoff at the end.** `meta.hook` is the one question the run answers, asked on the start card ("Five servers, any of which can crash. How do they still agree on one log?"). End on the result and `s.focus` it: the last step's focus is framed close and large. `meta.takeaway` (or a scenario's own `takeaway`) is the one sentence worth remembering, shown with the result beside "What if…" invitations to the other scenarios (`whatIf: "a worker dies"`). Both must be true of the run in every scenario they cover; state the principle, not knob-dependent numbers.
 - **Every chapter says what it is for.** Give each `s.phase` an `about`: 1–2 plain-English sentences, at most 40 words, on what the chapter does and why. It heads the explain panel beside the world. Explain any jargon in a word ("the TLB, a tiny cache of recent translations"), and keep it true in every scenario (build it from the run when the chapter differs).
-- **Captions are true, short and specific.** About 6–18 words, present tense, with the real numbers from the run.
-  - `{key:fox}` makes an identity chip, `{ref:m2|map 2}` an entity chip, `{tone:fail|crashes}` a status word, and `` `hash(fox) % 2 = 1` `` inline code.
+- **Captions are true, short and specific.** What happened and why, at most 18 words, present tense, with the real numbers from the run.
+  - `{key:fox}` makes an identity chip, `{ref:m2|map 2}` an entity chip, `{tone:fail|crashes}` a status word, `{term:hash}` a defined word, and `` `hash(fox) % 2 = 1` `` inline code.
   - Say *why*, not only *what*: "goes to reduce 1 because `hash(fox) % 2 = 1`".
 - **Identity colour is for data identity.** Give `key` to the thing the reader tracks: a word, a partition, a node, a term. Use at most 8 keys; more repeat colours. Status uses `tone` and `led`, never a key.
 - **Light the one thing to watch.** Moved and spawned tiles are lit automatically; `s.lit(id)` for anything else. Use `s.tag(id, text)` for one short annotation of an event, never a paragraph.
@@ -114,7 +134,6 @@ Rules that make a figure read well:
 - **Few numbers, in plain words and real units**: bytes moved, messages sent, comparisons, cache misses, simulated milliseconds. Label each the way a newcomer would say it ("sent between machines", not "shuffled"), give it a one-line `hint` on what it means, and mark only the 1–3 that tell the story `primary` (`primary: ["skew"]` for one scenario); the rest stay in the full list.
 - **Invariants are the safety net.** State the property the concept guarantees: records conserved, at most one leader per term, output sorted and a permutation of the input. Let verify prove it on every step of every scenario.
 - **Code panel when there is code.** Export `code` and call `s.line(a, b)` as the run moves through it.
-- **Predict** (`s.ask(question, options, answer)`) before the step that reveals a non-obvious outcome, at most 2–3 per figure.
 - **Fit the screen.** `build(s, p, scenario, env)` receives `env.portrait` and `env.phone`. On a portrait phone, use a compact layout: a 2-column `grid` instead of a wide `ring` or `row`, and secondary boards (such as a lanes board) off by default, behind a knob. Check both sizes in the contact sheet.
 
 ## Boards: how CS concepts map to the world
@@ -152,7 +171,8 @@ Never fix it with styling hacks. The design language (`DESIGN.md`):
 ## Verification checklist
 
 Before delivering, all of these must be true:
-- verify ends `0 failing`, with no warnings you can't justify
+- verify ends `0 failing`, with no warnings you can't justify (teaching warnings included)
+- you read `node scripts/lesson.mjs figure.mjs` top to bottom **as a beginner** and passed the cold-read rubric (`references/teaching.md` section 8): every word defined before it is needed, the problem before the solution, one idea per chapter, a prediction with its why, a recap you could say back
 - audit ends clean at 1440×900 and 390×844
 - you read `contact.png` and the key frames in both themes:
   - every label fits

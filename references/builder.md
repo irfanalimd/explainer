@@ -88,6 +88,15 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
     replaces it.
   - All three must be true of what the run shows, in every scenario they apply to and at any knob setting: state the
     principle, not numbers that a knob can change.
+- **The lesson.** Plan it before the code with `references/teaching.md`; `verify` checks it in a teaching section and
+  `node scripts/lesson.mjs figure.mjs` prints it as text.
+  - `meta.level` sizes it: `"intro"` (a first encounter: linked list, stack, binary search) gives every caption 20 %
+    more reading time at 1× and tighter limits (3–5 chapters, at most 2 knobs and 2 dock numbers); `"core"` is the
+    default; `"deep"` allows more (Raft, page walks). An unknown value is an error.
+  - `meta.terms` maps a word to its plain definition (under 20 words, only words the reader has). Mark its first use
+    in a caption, about, tag or question with `{term:name}` (section 10): the HUD underlines it and shows the
+    definition on hover, focus or tap, and the explain panel prints it under the words that use it for the first
+    time. A `{term:x}` without `meta.terms.x` is an error.
 - **`env`**, the 4th argument of `build`, describes the viewer's frame: `{ width, height, aspect, portrait, phone }`.
   Use it only to choose a *layout*; never let it change the simulation itself. The runtime recompiles, keeping the
   phase, when the orientation flips; verify and Node use a 1440×900 desktop env, and verify also runs a phone env.
@@ -393,7 +402,8 @@ Captions, tags and `s.say` share one markup.
 Build markup safely with `sim/fmt.mjs` (`fmt.key`, `fmt.ref`, `fmt.term`, `fmt.code`), or with
 `import { key, ref, tone, term, code } from "@internals/engine/scene/narrate.mjs"`.
 
-Keep captions at 6 to 18 words, with the numbers from the run, and say why.
+Keep captions at 6 to 18 words, with the numbers from the run: what happened and why. Beginner words first and the
+real name second, marked at first use: "each box keeps an arrow to the next, called a {term:pointer}".
 
 ## 11. Attention, camera, tags
 

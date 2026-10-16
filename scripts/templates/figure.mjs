@@ -5,6 +5,11 @@
 // and the meters. Nothing here chooses a colour, a size or a position: layout, look and motion come from the
 // engine. Every number a caption prints must come from the run.
 //
+// It is also a lesson for a beginner who knows basic programming but not this idea. Plan it before the code
+// (references/teaching.md): the question, an everyday picture, the problem before the solution, one new idea per
+// chapter, the word for each thing defined in plain words before it is used, a prediction, a recap.
+//
+// Read it:    node __SCRIPTS__/lesson.mjs figure.mjs         (the whole lesson as text, then the teaching checks)
 // Check it:   node __SCRIPTS__/verify.mjs figure.mjs
 // Build it:   node __SCRIPTS__/build.mjs figure.mjs            (one self-contained .html next to this file)
 // Look at it: node __SCRIPTS__/shoot.mjs <page>.html           (screenshots + contact sheet)
@@ -12,45 +17,63 @@
 // Title block and page metadata. `kicker` is shown as "ALGORITHMS · FIG 1"; `cite` links the source.
 export const meta = {
   title: "__TITLE__",
-  subtitle: "Halving a sorted array until one key is left",
+  subtitle: "Halving a sorted list until one number is left",
   kicker: "Algorithms",
   fig: 1,
   cite: { text: "Knuth, The Art of Computer Programming, Vol. 3, §6.2.1", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
   theme: "dark",
-  hook: "A sorted array of keys. How few looks does it take to find one, or to prove it is not there?",   // the start card's question
-  takeaway: "Each comparison throws away half of what is left, so even a missing key costs only ⌈log2(n+1)⌉ looks.", // shown with the result
+  // "intro" (a first encounter: few slow chapters, one or two numbers), "core" (the default) or "deep"
+  level: "intro",
+  // the start card's question, in the reader's words: the one thing the run answers
+  hook: "A list of numbers in order. How can you find one in a few looks, or know it is not there?",
+  // plain definitions; mark the first use of each word in a caption or about with {term:name}
+  terms: {
+    index: "a box's position in the list, counting from 0",
+    window: "the part of the list where the number could still be",
+  },
+  // 2–4 short lines on what the run showed, shown at the end above the takeaway
+  recap: [
+    "The list is in order, so one look tells you which half to keep.",
+    "Every look throws away half of the window.",
+    "Found or missing, a few looks settle it.",
+  ],
+  // the one sentence worth remembering: true in every story, at every knob setting
+  takeaway: "Each look throws away half of what is left, so a thousand numbers need only about ten looks.",
 };
 
 // Knobs in the settings drawer. Changing one re-runs build() instantly. verify.mjs runs every int/float at its
 // min and max, every bool both ways and every select at its first and last option, so give ranges you mean.
+// A first-encounter lesson keeps one or two; every knob is something a beginner must understand first.
 export const params = {
-  n:    { label: "Keys",  type: "int",  min: 4, max: 12, value: 10 },
-  seed: { label: "Seed",  type: "int",  value: 7 },          // all randomness comes from s.rng, seeded from this
+  n:    { label: "Numbers", type: "int", min: 4, max: 12, value: 10 },
+  seed: { label: "Seed",    type: "int", value: 7 },          // all randomness comes from s.rng, seeded from this
   // also: { type: "float", min, max, step }, { type: "bool" }, { type: "text" }, { type: "select", options: [{ value, label }] }
 };
 
-// Stories (the story picker). Each may override params; build() also receives the id to stage different stories.
+// Stories (the story picker). Label them in the learner's words; `whatIf` finishes "What if…" as a learner would
+// ask it; `description` is one plain sentence on what happens. build() also receives the id.
 export const scenarios = [
-  { id: "found",   label: "Key present", whatIf: "the key is in the array",
-    description: "The key is in the array, so the window closes on it in a few halvings." },
-  { id: "missing", label: "Key absent", whatIf: "the key is missing",
-    description: "The key is not in the array, so the window halves until it is empty." },
+  { id: "found",   label: "It is there", whatIf: "the number is in the list",
+    description: "The number is in the list, so the window closes on it in a few looks." },
+  { id: "missing", label: "It is missing", whatIf: "the number is not in the list",
+    description: "The number is not in the list, so the window shrinks until nothing is left." },
 ];
 
-// The readout meters, in display order. format: "int" | "bytes" | "ms" | "pct" | "x".
+// The numbers, in display order. format: "int" | "bytes" | "ms" | "pct" | "x". Mark the one or two that tell
+// the story `primary`; plain labels, and a hint that says what the number means.
 export const counters = {
-  compares: { label: "comparisons", format: "int", primary: true,
-              hint: "How many times the key was compared with an element; never more than ⌈log2(n+1)⌉." },
-  window:   { label: "candidates",  format: "int",
-              hint: "How many elements could still be the key: the window between lo and hi." },
+  looks:  { label: "looks", format: "int", primary: true,
+            hint: "How many numbers we have compared with the one we want." },
+  window: { label: "places left", format: "int",
+            hint: "How many places the number could still be in." },
 };
 
 // Properties that must hold on every step's snapshot; verify.mjs checks them for every scenario and param
 // extreme. Return true, or a message saying what went wrong. snap.counters holds the meter values.
 export const invariants = {
-  "at most ⌈log2(n+1)⌉ comparisons": (snap, { params: p }) => {
+  "at most ⌈log2(n+1)⌉ looks": (snap, { params: p }) => {
     const bound = Math.ceil(Math.log2(p.n + 1));
-    return (snap.counters.compares ?? 0) <= bound || `${snap.counters.compares} comparisons, bound ${bound} for n = ${p.n}`;
+    return (snap.counters.looks ?? 0) <= bound || `${snap.counters.looks} looks, bound ${bound} for n = ${p.n}`;
   },
   "the window never grows": (snap, { params: p }) => (snap.counters.window ?? p.n) <= p.n || `window ${snap.counters.window} > n = ${p.n}`,
 };
@@ -71,10 +94,10 @@ export const code = {
 };
 
 // The simulation. Calls before the first s.step() set up the opening picture (no animation); every s.step()
-// after that commits one animated step with its caption. s.phase(name, { about }) starts a chapter on the scrubber;
-// `about` is 1-2 plain sentences on what the chapter does and why (the explain panel shows it).
+// after that commits one animated step with its caption (what happened and why, at most ~18 words).
+// s.phase(name, { about }) starts a chapter: `about` is 1–2 plain sentences on what it does and why.
 export function build(s, p, scenario) {
-  // Real data: sorted keys from the seeded RNG (never Math.random, which would break determinism).
+  // Real data: sorted numbers from the seeded RNG (never Math.random, which would break determinism).
   const keys = [];
   for (let i = 0, v = s.rng.int(3, 9); i < p.n; i++, v += s.rng.int(3, 11)) keys.push(v);
   const key = scenario === "missing" ? keys[Math.floor(p.n / 3)] + 1 : keys[s.rng.int(0, p.n - 1)];
@@ -83,38 +106,51 @@ export function build(s, p, scenario) {
   s.pointer("lo", { at: a.cell(0), text: "lo" });
   s.pointer("hi", { at: a.cell(p.n - 1), text: "hi" });
   s.gauge("window", p.n);
-  s.phase("Setup", { about: "Binary search needs a sorted array. It keeps a window of places the key could still be, from `lo` to `hi`." });
+  // The first chapter carries the everyday picture and maps it onto the parts on screen.
+  s.phase("The idea", { about: "Think of looking up a word in a dictionary. You open it in the middle, see whether your word comes before or after, and ignore the other half. A sorted list works the same way." });
   s.line(1, 2);
-  s.step(`A sorted array of ${p.n} keys. We look for \`${key}\`.`);
+  // The problem before the solution: what the naive way would cost.
+  s.step(`${p.n} numbers in order. We want \`${key}\`. Checking one by one could take ${p.n} looks.`);
+  s.step(`The {term:window} starts as the whole list: every {term:index} from 0 to ${p.n - 1}.`);
 
-  s.phase("Search", { about: "Each step compares the key with the middle of the window and throws away the half that cannot hold it, so the window halves every time." });
-  let lo = 0, hi = p.n - 1, at = -1, compares = 0;
+  s.phase("Look in the middle", { about: "Compare the number we want with the middle of the window. The list is in order, so the answer tells us which half cannot hold it, and we drop that half." });
+  let lo = 0, hi = p.n - 1, at = -1, looks = 0, asked = false;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
     if (!s.has("mid")) s.pointer("mid", { at: a.cell(mid), text: "mid" });
     else s.point("mid", a.cell(mid));
-    s.count("compares"); compares++;
+    s.count("looks"); looks++;
     s.lit(a.cell(mid));                                         // the one thing to watch this step
     s.tag(a.cell(mid), `a[${mid}] = ${keys[mid]}`);             // a floating chip for this step only
-    s.line(4, 5);
+    s.line(4);
+    s.step(`Look at the middle of the window: index ${mid} holds \`${keys[mid]}\`.`);
     if (keys[mid] === key) {
       s.set(a.cell(mid), { tone: "ok" });
-      s.step(`\`a[${mid}] = ${keys[mid]}\`: {tone:ok|found} after ${compares} comparison${compares > 1 ? "s" : ""}.`);
+      s.line(5);
+      s.step(`\`${keys[mid]}\` is the number we want: {tone:ok|found} after ${looks} ${looks > 1 ? "looks" : "look"}.`);
       at = mid;
       break;
     }
     const right = keys[mid] < key;
+    // Predict once, where a beginner might guess wrong; `why` is shown when the answer is revealed.
+    if (!asked) {
+      asked = true;
+      s.ask(`The middle is ${keys[mid]} and we want ${key}. Which half can we drop?`,
+        ["The left half", "The right half", "Neither: we must check both"], right ? 0 : 1,
+        { why: `The list is in order, so every number ${right ? "left" : "right"} of ${keys[mid]} is ${right ? "smaller" : "bigger"} than ${keys[mid]}, and so cannot be ${key}.` });
+    }
     for (let i = right ? lo : mid; i <= (right ? mid : hi); i++) s.set(a.cell(i), { dim: true });   // ruled out
     if (right) lo = mid + 1; else hi = mid - 1;
     if (lo <= hi) { s.point("lo", a.cell(lo)); s.point("hi", a.cell(hi)); }
     s.gauge("window", Math.max(0, hi - lo + 1));
     s.line(right ? 6 : 7);
-    s.step(`\`${keys[mid]}\` is ${right ? "less" : "greater"} than \`${key}\`, so the key can only be to the ${right ? "right" : "left"}: ${Math.max(0, hi - lo + 1)} candidates left.`);
+    const left = Math.max(0, hi - lo + 1);
+    s.step(`\`${keys[mid]}\` is ${right ? "smaller" : "bigger"} than \`${key}\`, so we drop the ${right ? "left" : "right"} half: ${left} ${left === 1 ? "place" : "places"} left.`);
   }
 
-  s.phase("Result", { about: at >= 0 ? "The key was found. Halving the window means about log2(n) comparisons, even for a large array." : "The window is empty, so the key is not in the array. Even proving that took only about log2(n) comparisons." });
-  s.focus(a.id);                                                // frame the whole array for the closing shot
+  s.phase("The answer", { about: at >= 0 ? "Found. Each look halved the window, so even a long list needs only a few looks." : "The window is empty, so the number is not in the list. Proving that took only a few looks too." });
+  s.focus(a.id);                                                // the payoff: frame the whole list for the closing shot
   s.line(at >= 0 ? 5 : 8);
-  s.step(at >= 0 ? `Found at index ${at}. A linear scan would have needed ${at + 1} comparisons.`
-                 : `The window is empty: \`${key}\` is {tone:fail|not in the array}.`);
+  s.step(at >= 0 ? `Found at index ${at} in ${looks} ${looks > 1 ? "looks" : "look"}; one by one could take up to ${p.n}.`
+                 : `Nothing is left in the window: \`${key}\` is {tone:fail|not in the list}, after ${looks} looks.`);
 }
