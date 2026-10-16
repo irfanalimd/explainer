@@ -169,7 +169,7 @@ Before delivering, all of these must be true:
 - `references/teaching.md`: the teaching standard: the reader, the lesson plan, words and jargon, sizing by level, a worked linked-list plan, a before/after MapReduce rewrite, the cold-read rubric and what the teaching lint checks.
 - `references/builder.md`: the full builder API: groups, housings, containers, tiles, traces, buses, lanes, zones, step ops, pacing, held messages, narration markup, pitfalls.
 - `references/sim.md`: the runtimes: `rng`, `fmt`, `tracked`, `actors`, `lockstep`, `machine`.
-- `references/tooling.md`: every script and flag: verify, build, serve, shoot, audit, record, new.
+- `references/tooling.md`: every script and flag: verify, lesson, build, serve, shoot, audit, record, new.
 - `references/roadmap.md`: known gaps and their workarounds (ring by angle, keyed traces, desktop scale). Check it when the engine seems unable to do something.
 - `examples/`: complete flagship figures. Open the closest one before starting:
   - `raft/`: consensus with crash and partition, a responsive layout, predict questions, and a space-time lanes board that is off by default (opt in with the "Space-time board" setting).

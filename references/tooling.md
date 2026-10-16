@@ -8,6 +8,7 @@ to the skill root; every script also takes absolute paths and works from any wor
 ```sh
 node scripts/new.mjs ~/figs/raft                       # figure.mjs (commented template) + README.md
 node scripts/verify.mjs ~/figs/raft/figure.mjs         # headless checks; fix until it exits 0
+node scripts/lesson.mjs ~/figs/raft/figure.mjs         # the lesson as text: read it as a beginner would
 node scripts/build.mjs ~/figs/raft/figure.mjs --serve  # live-reloading dev page, URL printed
 node scripts/build.mjs ~/figs/raft/figure.mjs          # the shippable single file: ~/figs/raft/raft.html
 node scripts/shoot.mjs ~/figs/raft/raft.html           # PNGs of every phase, both themes, desktop + phone, contact sheet
@@ -50,6 +51,20 @@ hung) instead of hanging the caller. Checks, in order:
 
 An invariant receives `(snap, { step, final, params, scenario, timeline })` and must return `true` or a message;
 `false` and `undefined` are reported as such (a forgotten `return` is the usual cause).
+
+## lesson.mjs
+
+`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--all] [--full] [--no-lint] [--json] [--width 100]`
+
+Prints the lesson as plain text, story by story, so it can be read like a script: the hook, the defined words, the
+numbers (`*` for the dock), then for each story its what-if and description, each chapter's name and about, every
+caption (markup flattened; a term's definition in `[brackets]` where the run first uses it, as the explain panel
+does), each predict question with its options, the answer (`✓`) and its why, then the recap and the takeaway. Then
+the teaching checks (the same findings verify reports).
+
+- A run of steps with one caption shape shows two, then "… 6 more like this (steps 14–19)"; `--all` shows every step.
+- Later stories start where they leave story 1 (as the page does on a switch); `--full` prints them from step 0.
+- `--json` prints `{ figure, lesson, findings }`. Exit 1 when the teaching checks find an error.
 
 ## build.mjs
 
@@ -200,7 +215,8 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
 `cdp.mjs` (launch Chrome, pages in their own windows, error collection including failed loads, screenshots),
 `modules.mjs` (lexer, import scan, specifier resolution and mapping, rewrite, graph), `webm.mjs` (EBML writer,
 muxer, reader), `figure-page.mjs` (open a page through `__internals`, shot times, capture CSS, finding groups),
-`args.mjs`, `node-hooks.mjs`.
+`args.mjs`, `node-hooks.mjs`, `lesson.mjs` (extract and format the lesson a figure teaches) and `teach.mjs` (the
+teaching lint, its jargon list and size limits, readability helpers).
 
 ## Tests
 
