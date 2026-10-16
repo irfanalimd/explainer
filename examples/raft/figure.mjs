@@ -458,7 +458,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     st.ledTerms.push(st.term);
     ctx.cancel("election");
     for (const f of ctx.peers) { st.nextIndex[f] = lastIndex(st) + 1; st.matchIndex[f] = 0; }
-    if (!sawLeader) { sawLeader = true; ctx.phase("Replication", { about: ABOUT.replication }); }
+    if (!sawLeader) { sawLeader = true; ctx.phase("Copying the log", { about: ABOUT.replication }); }
     else if (scenario === "partition" && !sawNewLeader && cutOff(ctx).length) { sawNewLeader = true; ctx.phase("New leader", { about: ABOUT.newLeader }); }
     if (leaderlessSince !== null) { s.gauge("leaderless", Math.round(net.now - leaderlessSince)); leaderlessSince = null; }
     if (noop) {
@@ -804,7 +804,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
       const L = m.from, peer = ids[(ids.indexOf(L) + 1) % N];
       const minority = [L, peer].slice(0, N - majority), rest = ids.filter((x) => !minority.includes(x));
       const at = net.now + 2, heal = at + 450;
-      net.at(at, () => { s.phase("Partition", { about: ABOUT.partition }); leaderlessSince = net.now; }, { quiet: true });   // the phase lands on the partition's own step
+      net.at(at, () => { s.phase("The network splits", { about: ABOUT.partition }); leaderlessSince = net.now; }, { quiet: true });   // the phase lands on the partition's own step
       net.at(heal, () => s.phase("Heal", { about: ABOUT.heal }), { quiet: true });
       net.partition([minority, rest], at, heal);
       net.at(at + 20, () => submitNext(), { quiet: true });

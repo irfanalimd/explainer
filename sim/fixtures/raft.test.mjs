@@ -166,9 +166,9 @@ test("deterministic, with honest counters and sim time on every step", () => {
   assert.equal(a.rec.counters.lost, a.rec.find("deliver").filter((c) => c.args[1]?.remove).length);
   assert.ok(a.rec.steps.every((st) => Number.isFinite(st.t)));
   const phases = a.rec.steps.map((st) => st.phase).filter(Boolean);
-  assert.deepEqual(phases, ["Election", "Replication", "Crash", "Re-election", "Catch-up", "Agreement"]);
+  assert.deepEqual(phases, ["Election", "Copying the log", "Crash", "Re-election", "Catch-up", "Agreement"]);
   const p = runFigure(figure, { scenario: "partition", params: { seed: 9 } });
-  assert.deepEqual(p.rec.steps.map((st) => st.phase).filter(Boolean), ["Election", "Replication", "Partition", "New leader", "Heal", "Agreement"]);
+  assert.deepEqual(p.rec.steps.map((st) => st.phase).filter(Boolean), ["Election", "Copying the log", "The network splits", "New leader", "Heal", "Agreement"]);
 });
 
 test("the invariants reject forged histories", () => {
