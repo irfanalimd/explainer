@@ -39,14 +39,18 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
 ```
 
 - **Params** are resolved in this order: each knob's `value`, then the scenario's `params`, then the user's settings.
-  A scenario may set params that are not knobs (such as `crash` above). `build` receives the resolved values `p` and
-  the scenario **id** (a string).
-- **Scenarios are stories.** Each one is the same system told another way, and the reader picks it from a menu
-  under the title ("Story · Worker dies ⌄"). Give every scenario of a figure with more than one a
-  `description`: one plain sentence, about 10–20 words, on what happens in this story ("A mapper crashes halfway
-  through its split, and the master runs it again elsewhere."). It is shown beside the picker and in its menu, so it
-  must be true at every knob value (no counts a knob can change). Keep `label` short (1–3 words). verify warns when a
-  description is missing.
+  A scenario may set params that are not knobs (such as `crash` above). A param marked `hidden: true` is kept out of
+  the settings drawer (a counter marked `hidden: true` stays out of the dock): it still resolves, a scenario may set
+  it, verify still runs it at its extremes, and the teaching lint does not count it as a knob. `build` receives the
+  resolved values `p` and the scenario **id** (a string).
+- **Scenarios are stories.** Each one is the same system told another way, and the reader picks it from a strip
+  of stories at the top centre (it collapses to a centred "Story · A machine crashes ⌄" pill when it does not fit).
+  Give every scenario of a figure with more than one a `description`: one plain sentence, about 10–20 words, on what
+  happens in this story ("A machine crashes halfway through its share, and the master runs it again elsewhere."). It
+  is shown with the picker and in its menu, so it must be true at every knob value (no counts a knob can change).
+  Keep `label` short (1–4 words) and in the learner's words ("A machine crashes", "One word everywhere", not
+  "Straggler" or "Skewed keys"): the picker is read before anything is explained. verify warns when a description
+  is missing, and its teaching section flags jargon in labels, what-ifs and descriptions.
 - **Counters are the numbers a newcomer reads.** Few and plain:
   - `label`: plain words, lower case, as they would read in a sentence ("words mapped", "sent between machines",
     "time without a leader"), never jargon or code ("records emitted", "commit index"). `short` replaces it on

@@ -74,18 +74,39 @@ window.__results = (async () => {
     check("hover arrow hidden at rest", getComputedStyle(a.querySelector(".ix-title-arrow")).opacity === "0");
     hud.setMeta(meta0);
   }
-  // stories: no tab strip in the toolbar; a labelled picker under the title names the story and opens the list
-  const storyBtn = root.querySelector(".ix-story");
-  check("no scenario tabs in the toolbar; the story picker sits under the title", !root.querySelector(".ix-tab, .ix-tabs, .ix-select-wrap")
-    && !!root.querySelector(".ix-title .ix-story-row .ix-story") && root.querySelectorAll(".ix-toolbar > *").length === 1);
-  check("the pill is compact: Story · its name, no position (the menu numbers them); its accessible name keeps the position",
+  // stories: a segmented strip at the top centre of the stage (every story in view), not under the title or in the toolbar
+  const storyBtn = root.querySelector(".ix-story"), storyBar = root.querySelector(".ix-stories");
+  const strip = root.querySelector(".ix-stories-strip"), tabs = [...root.querySelectorAll(".ix-stories-tab")];
+  check("the stories sit in the header row between the title and the toolbar, not under the title", !!root.querySelector(".ix-top > .ix-stories")
+    && !root.querySelector(".ix-title .ix-story, .ix-title .ix-stories, .ix-story-row, .ix-tab, .ix-tabs, .ix-select-wrap") && root.querySelectorAll(".ix-toolbar > *").length === 1);
+  check("wide: the full strip shows, the pill is out of the accessibility tree", root.dataset.stories === "strip"
+    && getComputedStyle(strip).display !== "none" && getComputedStyle(storyBtn).display === "none" && tabs.length === 2
+    && tabs.map((b) => b.textContent).join("|") === "Happy path|Worker dies", [root.dataset.stories, tabs.map((b) => b.textContent)]);
+  check("the strip is one labelled radio group: Story n of N names, the current one checked and the only tab stop",
+    strip.getAttribute("role") === "radiogroup" && strip.getAttribute("aria-label") === "Stories" && tabs.every((b) => b.getAttribute("role") === "radio")
+    && tabs[0].getAttribute("aria-label") === "Story 1 of 2: Happy path" && tabs[1].getAttribute("aria-label") === "Story 2 of 2: Worker dies"
+    && tabs[0].getAttribute("aria-checked") === "true" && tabs[1].getAttribute("aria-checked") === "false" && tabs[0].tabIndex === 0 && tabs[1].tabIndex === -1,
+    tabs.map((b) => [b.getAttribute("aria-label"), b.getAttribute("aria-checked"), b.tabIndex]));
+  check("each story carries its description for the tooltip and screen readers, and its digit", tabs[1].dataset.tip === "A mapper dies mid-task and its split runs again."
+    && tabs[1].dataset.tipHead === "Worker dies" && tabs[1].dataset.kbd === "2" && tabs[1].getAttribute("aria-description") === tabs[1].dataset.tip);
+  {
+    const rr = root.getBoundingClientRect(), sb = storyBar.getBoundingClientRect(), tt = root.querySelector(".ix-title").getBoundingClientRect(), tb = root.querySelector(".ix-toolbar").getBoundingClientRect();
+    const free = (hud.insets.left + rr.width - hud.insets.right) / 2;
+    check("the strip is centred on the free stage, clear of the title and the toolbar, on the toolbar's row",
+      Math.abs(sb.left + sb.width / 2 - rr.left - free) <= 1 && sb.left >= tt.right + 16 && sb.right <= tb.left - 16
+      && Math.round(sb.top) === Math.round(tb.top) && Math.round(sb.height) === 36, [sb.left, sb.width, free, tt.right, tb.left, sb.top, tb.top]);
+    const th = root.querySelector(".ix-stories-thumb").getBoundingClientRect(), t0 = tabs[0].getBoundingClientRect();
+    check("the thumb sits under the current story", Math.abs(th.left - t0.left) < 1 && Math.abs(th.width - t0.width) < 1, [th.left, t0.left, th.width, t0.width]);
+  }
+  check("the pill (the collapsed form) is compact: Story · its name; its accessible name keeps the position",
     storyBtn.textContent.replace(/\s+/g, " ").trim() === "StoryHappy path" && !/of 2/.test(storyBtn.textContent)
     && getComputedStyle(root.querySelector(".ix-story-k"), "::after").content === '"·"'
     && storyBtn.getAttribute("aria-label") === "Story 1 of 2: Happy path. Choose another story" && storyBtn.getAttribute("aria-haspopup") === "menu", storyBtn.textContent);
-  check("the header is the title and the pill only: no subtitle or story description beside them",
+  check("the header is the title alone on the left: no subtitle or story description beside it",
     !root.querySelector(".ix-subtitle, .ix-story-desc, .ix-story-pos") && !root.querySelector(".ix-title").textContent.includes("Counting words")
-    && !root.querySelector(".ix-title").textContent.includes("Every machine stays healthy")
+    && !root.querySelector(".ix-top").textContent.includes("Every machine stays healthy")
     && [...root.querySelector(".ix-head-row").children].every((e) => e.matches(".ix-heading, .ix-about-btn")));
+  check("insets.top is the header row's bottom (the strip adds no height)", hud.insets.top === Math.round(root.querySelector(".ix-top").getBoundingClientRect().bottom), hud.insets);
   {
     const note = root.querySelector(".ix-story-note");
     check("the story note is a polite status line, hidden at rest", note?.getAttribute("role") === "status" && note.getAttribute("aria-live") === "polite"
@@ -337,6 +358,44 @@ window.__results = (async () => {
   {
     hud.setScenario("happy");   // the digit check above picked "crash"
     reset();
+    // the strip: a click picks a story; arrows move to the next one and pick it (wrapping), Home / End, never stepping the run
+    const insStrip = JSON.stringify(hud.insets);
+    tabs[1].click();
+    check("a click on a story picks it and moves the check and the tab stop", take("onScenario")[0]?.[1] === "crash"
+      && tabs[1].getAttribute("aria-checked") === "true" && tabs[1].tabIndex === 0 && tabs[0].tabIndex === -1);
+    const note = root.querySelector(".ix-story-note");
+    await frameWait();
+    const nr = note.getBoundingClientRect(), sr = storyBar.getBoundingClientRect();
+    check("switching story shows its description once, centred under the strip, without moving the world", note.classList.contains("ix-show")
+      && note.textContent === "A mapper dies mid-task and its split runs again." && nr.top >= sr.bottom && Math.abs(nr.left + nr.width / 2 - (sr.left + sr.width / 2)) <= 1
+      && JSON.stringify(hud.insets) === insStrip, [note.className, nr.top, sr.bottom, insStrip, hud.insets]);
+    tabs[1].focus();
+    reset();
+    key("ArrowRight", {}, tabs[1]);
+    check("ArrowRight on the strip wraps to the first story and picks it, without stepping the run", take("onScenario")[0]?.[1] === "happy"
+      && document.activeElement === tabs[0] && take("onStep").length === 0);
+    key("End", {}, tabs[0]);
+    check("End picks the last story, without seeking", take("onScenario")[1]?.[1] === "crash" && document.activeElement === tabs[1] && take("onSeek").length === 0);
+    key("ArrowLeft", {}, tabs[1]);
+    check("ArrowLeft picks the previous story", take("onScenario")[2]?.[1] === "happy" && document.activeElement === tabs[0]);
+    strip.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    check("pointing at the strip clears the note (the tooltip carries the line)", !note.classList.contains("ix-show"));
+    reset();
+    hud.open("stories");
+    check("with the strip in view, opening the stories focuses the current one (no menu)", document.activeElement === tabs[0]
+      && !root.querySelector(".ix-story-menu").classList.contains("ix-open"));
+    tabs[0].blur();
+
+    // narrower: the strip no longer fits between the title and the toolbar, so it collapses to the pill and its menu
+    root.style.right = "auto"; root.style.width = "520px";
+    await frameWait(); await frameWait();
+    check("narrow: the strip collapses to one pill in the header row, between the title and the toolbar", root.dataset.stories === "pill"
+      && getComputedStyle(strip).display === "none" && getComputedStyle(storyBtn).display !== "none"
+      && storyBtn.getBoundingClientRect().left >= root.querySelector(".ix-title").getBoundingClientRect().right + 12
+      && storyBtn.getBoundingClientRect().right <= root.querySelector(".ix-toolbar").getBoundingClientRect().left - 12
+      && hud.insets.top === Math.round(root.querySelector(".ix-top").getBoundingClientRect().bottom),
+      [root.dataset.stories, storyBtn.getBoundingClientRect().left, storyBtn.getBoundingClientRect().width, hud.insets]);
+    check("the pill never truncates a label that fits", root.querySelector(".ix-story-name").scrollWidth <= root.querySelector(".ix-story-name").clientWidth);
     storyBtn.focus();
     storyBtn.click();
     await frameWait();
@@ -345,8 +404,9 @@ window.__results = (async () => {
       && storyBtn.getAttribute("aria-expanded") === "true" && items.length === 2 && items[1].querySelector(".ix-story-text")?.textContent === "A mapper dies mid-task and its split runs again."
       && items[0].getAttribute("aria-checked") === "true" && items[0].getAttribute("role") === "menuitemradio" && document.activeElement === items[0],
       [menu.className, storyBtn.getAttribute("aria-expanded"), items.length, items[1]?.textContent, items[0]?.getAttribute("aria-checked"), document.activeElement?.className]);
-    const mr = menu.getBoundingClientRect(), br = storyBtn.getBoundingClientRect();
-    check("the menu drops from the picker and fits its items", mr.top >= br.bottom && mr.height < 260, [mr.top, br.bottom, mr.height]);
+    const mr = menu.getBoundingClientRect(), br = storyBtn.getBoundingClientRect(), rr = root.getBoundingClientRect();
+    check("the menu drops from the pill, centred under it, inside the root, and fits its items", mr.top >= br.bottom && mr.height < 260
+      && mr.left >= rr.left + 8 && mr.right <= rr.right - 8 && Math.abs(mr.left + mr.width / 2 - (br.left + br.width / 2)) <= 1, [mr.top, br.bottom, mr.height, mr.left, mr.right]);
     key("ArrowDown", {}, document.activeElement);
     check("arrow keys move through the stories", document.activeElement === items[1]);
     key("Escape", {}, document.activeElement);
@@ -356,15 +416,15 @@ window.__results = (async () => {
     items[1].click();
     check("picking a story switches scenario and closes the menu", take("onScenario")[0]?.[1] === "crash" && !menu.classList.contains("ix-open")
       && /Worker dies/.test(storyBtn.textContent), [take("onScenario"), menu.className, storyBtn.textContent]);
-    const note = root.querySelector(".ix-story-note"), insNote = JSON.stringify(hud.insets);
     await frameWait();
-    check("switching story shows its description once under the pill, without moving the world", note.classList.contains("ix-show")
-      && note.textContent === "A mapper dies mid-task and its split runs again." && note.getBoundingClientRect().top >= storyBtn.getBoundingClientRect().bottom
-      && JSON.stringify(hud.insets) === insNote, [note.className, note.textContent, insNote, hud.insets]);
+    check("the pill shows the new story's description once under it", note.classList.contains("ix-show") && note.getBoundingClientRect().top >= storyBtn.getBoundingClientRect().bottom);
     storyBtn.click();
     check("opening the menu clears the note (the menu carries every description)", !note.classList.contains("ix-show"));
     key("Escape", {}, document.activeElement);
     hud.setScenario("happy");
+    root.style.right = ""; root.style.width = "";
+    await frameWait(); await frameWait();
+    check("wide again: back to the strip", root.dataset.stories === "strip" && getComputedStyle(strip).display !== "none");
     reset();
   }
   {
@@ -719,9 +779,12 @@ window.__results = (async () => {
     hud5.destroy(); root5.remove();
   }
 
-  // header geometry: desktop is the title row (32) + 8 + the pill (32) = 72 px, left edges aligned, insets.top exact;
-  // a single-story figure shows no pill; phones keep the one-line title (tap opens the about card) over a 28 px pill
-  for (const [w, hgt, sc] of [[1440, 900, scenarios], [1440, 900, [scenarios[0]]], [390, 844, scenarios]]) {
+  // header geometry: desktop is one 36 px row (title, the stories at the top centre, the toolbar), insets.top exact;
+  // a single-story figure shows no stories at all; too many or too long stories collapse to the pill in the row; phones
+  // keep the one-line title (tap opens the about card) over a 28 px pill centred on its own row
+  const longStories = ["Normal run", "One worker dies halfway through", "A slow worker holds everyone up", "One word is very common",
+    "The network splits in two", "Two masters at once"].map((label, i) => ({ id: `s${i}`, label, description: `Story ${i}.` }));
+  for (const [w, hgt, sc] of [[1440, 900, scenarios], [1440, 900, [scenarios[0]]], [1440, 900, longStories], [1280, 720, scenarios], [390, 844, scenarios], [390, 844, longStories]]) {
     const rH = document.createElement("div");
     rH.style.cssText = `position:fixed;left:0;top:0;width:${w}px;height:${hgt}px;visibility:hidden`;
     rH.append(document.createElement("canvas"));
@@ -733,20 +796,29 @@ window.__results = (async () => {
     await frameWait();
     const tag = `${w}px, ${sc.length} ${sc.length > 1 ? "stories" : "story"}`;
     const top = rH.querySelector(".ix-top").getBoundingClientRect(), title = rH.querySelector(".ix-title").getBoundingClientRect();
-    const head = rH.querySelector(".ix-head-row").getBoundingClientRect(), row = rH.querySelector(".ix-story-row"), pill = rH.querySelector(".ix-story").getBoundingClientRect();
-    const phone = rH.dataset.size === "phone";
-    check(`${tag}: insets.top is the header's bottom edge`, hH.insets.top === Math.round(top.bottom), [hH.insets.top, top.bottom]);
+    const head = rH.querySelector(".ix-head-row").getBoundingClientRect(), bar = rH.querySelector(".ix-stories"), sb = bar.getBoundingClientRect();
+    const tb = rH.querySelector(".ix-toolbar").getBoundingClientRect(), pill = rH.querySelector(".ix-story").getBoundingClientRect();
+    const phone = rH.dataset.size === "phone", mode = rH.dataset.stories;
     if (sc.length < 2) {
-      check(`${tag}: no pill, the header is the title row alone`, row.hidden && getComputedStyle(row).display === "none" && Math.round(title.height) === 32, title.height);
+      check(`${tag}: no stories, the header is the title row alone`, bar.hidden && getComputedStyle(bar).display === "none" && Math.round(title.height) === 32
+        && hH.insets.top === Math.round(top.bottom), [title.height, hH.insets.top, top.bottom]);
     } else if (!phone) {
-      check(`${tag}: title row 32, 8 px gap, pill 32: 72 px, left edges aligned`, Math.round(head.height) === 32 && Math.round(pill.top - head.bottom) === 8
-        && Math.round(pill.height) === 32 && Math.round(title.height) === 72 && Math.round(pill.left) === Math.round(head.left), [head.height, pill.top - head.bottom, pill.height, title.height, pill.left, head.left]);
+      check(`${tag}: one 36 px row; the stories (${mode}) sit on it between the title and the toolbar, never touching either`,
+        Math.round(top.height) === 36 && Math.round(head.height) === 32 && Math.round(sb.top) === Math.round(top.top) && Math.round(sb.height) === 36
+        && sb.left >= title.right + 16 && sb.right <= tb.left - 16 && hH.insets.top === Math.round(top.bottom) && hH.insets.top === 60,
+        [top.height, head.height, sb.left, sb.right, title.right, tb.left, hH.insets.top]);
+      check(`${tag}: ${sc.length > 4 ? "too many to fit: the pill" : "the full strip"}`, mode === (sc.length > 4 ? "pill" : "strip"), mode);
     } else {
-      check(`${tag}: one-line title (36) over a 28 px pill, 4 px apart, left edges aligned`, Math.round(head.height) === 36 && Math.round(pill.height) === 28
-        && Math.round(pill.top - head.bottom) === 4 && Math.round(pill.left) === Math.round(head.left), [head.height, pill.height, pill.top - head.bottom]);
-      rH.querySelector(".ix-heading").click();
-      check(`${tag}: a tap on the title still opens the about card with the subtitle and paper link`, rH.querySelector(".ix-about").classList.contains("ix-open")
-        && rH.querySelector(".ix-about-sub").textContent === "Lomuto partitioning" && !rH.querySelector(".ix-about-link").hidden);
+      check(`${tag}: one-line title (36) over a 28 px pill centred on its own row, 4 px apart; insets.top is the pill's bottom`, mode === "row"
+        && Math.round(head.height) === 36 && Math.round(pill.height) === 28 && Math.round(pill.top - head.bottom) === 4
+        && Math.abs(pill.left + pill.width / 2 - w / 2) <= 1 && pill.left >= 16 && pill.right <= w - 16 && hH.insets.top === Math.round(pill.bottom),
+        [mode, head.height, pill.height, pill.top - head.bottom, pill.left, pill.width, hH.insets.top, pill.bottom]);
+      if (sc === scenarios) {
+        rH.querySelector(".ix-heading").click();
+        check(`${tag}: a tap on the title still opens the about card with the subtitle and paper link, below the pill`, rH.querySelector(".ix-about").classList.contains("ix-open")
+          && rH.querySelector(".ix-about-sub").textContent === "Lomuto partitioning" && !rH.querySelector(".ix-about-link").hidden
+          && rH.querySelector(".ix-about").getBoundingClientRect().top >= pill.bottom);
+      }
     }
     hH.destroy(); rH.remove();
   }

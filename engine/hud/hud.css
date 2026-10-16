@@ -116,9 +116,9 @@
 .ix-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px; vertical-align: 1px; flex: none; }
 
 /* ---------- title block ---------- */
-/* two rows on the 8 px grid: the title alone (32 px line) and, with 2+ stories, the story pill (8 px gap, 32 px), so the
-   header is 72 px tall. The subtitle lives on the start card. With a paper url the title links to it; a small arrow
-   shows on hover/focus */
+/* one row: the title alone (32 px line) on the left, the stories at the top centre, the toolbar (36 px) on the right, so
+   the header is 36 px tall (phones add a 28 px row for the story pill). The subtitle lives on the start card. With a
+   paper url the title links to it; a small arrow shows on hover/focus */
 .ix-top {
   position: absolute; z-index: 1; top: var(--ix-pad-t); left: var(--ix-pad-l); right: var(--ix-pad-r);
   display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
@@ -146,23 +146,55 @@
 .ix-title-link:hover .ix-title-arrow, .ix-title-link:focus-visible .ix-title-arrow { opacity: 1; transform: none; }
 .ix-about-btn, .ix-about { display: none; }
 
-/* ---------- stories: the scenario picker under the title ----------
-   A compact "Story · Worker dies ⌄" pill. It reads as part of the heading, not a menu bar: a story is the whole figure
-   told another way. The menu numbers every story with its description; after a switch, the new story's description
-   shows once under the pill (out of flow, so the world never moves) and fades. */
-.ix-story-row { position: relative; display: flex; align-items: center; margin-top: 8px; min-width: 0; pointer-events: auto; }
-.ix-story {
-  display: inline-flex; align-items: center; gap: 6px; flex: none; max-width: 100%;
-  height: 32px; padding: 0 8px 0 12px; border-radius: 16px;
-  font-size: 13px; letter-spacing: -0.005em; color: var(--ix-ink); white-space: nowrap; text-shadow: none;
-  background: rgb(var(--ix-ink-rgb) / 0.07);
-  box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.12);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  transition: background-color var(--ix-dur-fast) var(--ix-ease), box-shadow var(--ix-dur-fast) var(--ix-ease);
+/* ---------- stories: the scenarios, at the top centre of the stage ----------
+   A segmented strip of every story (Normal run | Worker dies | Straggler) in the header row, centred on the free stage
+   (hud.mjs placeStories), so a beginner sees at once that the same system can be told other ways. The current story
+   sits on a thumb that slides between them; each story's description is its tooltip, and shows once under the strip
+   after a switch (out of flow, so the world never moves). Where the strip does not fit between the title and the
+   toolbar it collapses to one glass pill, "Story · Worker dies ⌄", with the menu centred under it; on a phone the pill
+   takes a 28 px row of its own under the title. */
+.ix-stories {
+  position: absolute; top: 0; left: 0; z-index: 1; height: 36px; pointer-events: auto;
+  transition: transform var(--ix-dur-slow) var(--ix-ease);
 }
-.ix-story:hover, .ix-story[aria-expanded="true"] { background: rgb(var(--ix-ink-rgb) / 0.12); box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.2); }
-.ix[data-theme="light"] .ix-story { background: rgb(255 255 255 / 0.7); box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.12), 0 1px 2px rgb(var(--ix-shade-rgb) / 0.06); }
-.ix[data-theme="light"] .ix-story:hover, .ix[data-theme="light"] .ix-story[aria-expanded="true"] { background: var(--ix-tile); box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.22), 0 1px 3px rgb(var(--ix-shade-rgb) / 0.1); }
+.ix-stories-strip {
+  position: relative; display: flex; align-items: center; gap: 2px; width: max-content; height: 36px; padding: 2px;
+}
+.ix-stories-k {
+  position: relative; padding: 0 10px 0 10px; margin-right: 2px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--ix-ink-faint); white-space: nowrap;
+  -webkit-user-select: none; user-select: none;
+}
+.ix-stories-k::after { content: ""; position: absolute; right: 0; top: 50%; width: 1px; height: 14px; margin-top: -7px; background: var(--ix-hair); }
+.ix-stories-tab {
+  position: relative; z-index: 1; height: 30px; padding: 0 12px; border-radius: 11px;
+  font-size: 13px; font-weight: 500; letter-spacing: -0.005em; line-height: 30px; white-space: nowrap; color: var(--ix-ink-muted);
+  transition: color var(--ix-dur-fast) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-stories-tab:hover { color: var(--ix-ink); background: rgb(var(--ix-ink-rgb) / 0.05); }
+.ix-stories-tab[aria-checked="true"] { color: var(--ix-ink); background: none; }
+.ix-stories-tab:active { background: rgb(var(--ix-ink-rgb) / 0.08); }
+.ix-stories-tab:focus-visible { outline-offset: 0; }
+.ix-stories-thumb {
+  position: absolute; left: 0; top: 2px; width: 0; height: 30px; border-radius: 11px; pointer-events: none;
+  background: rgb(var(--ix-ink-rgb) / 0.13);
+  box-shadow: inset 0 1px 0 rgb(var(--ix-ink-rgb) / 0.1), inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.06), 0 1px 3px rgb(var(--ix-shade-rgb) / 0.3);
+  transition: transform var(--ix-dur-slow) var(--ix-ease), width var(--ix-dur-slow) var(--ix-ease);
+}
+.ix[data-theme="light"] .ix-stories-thumb {
+  background: var(--ix-tile);
+  box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.08), 0 1px 2px rgb(var(--ix-shade-rgb) / 0.1), 0 2px 8px rgb(var(--ix-shade-rgb) / 0.06);
+}
+/* the collapsed form: one glass pill naming the current story, its menu under it */
+.ix-story {
+  display: none; align-items: center; gap: 6px; max-width: 100%;
+  height: 36px; padding: 0 10px 0 14px;
+  font-size: 13px; letter-spacing: -0.005em; color: var(--ix-ink); white-space: nowrap;
+  transition: background-image var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-stories-pill .ix-stories-strip { display: none; }
+.ix-stories-pill .ix-story { display: inline-flex; }
+.ix-stories-row { top: calc(100% + 4px); height: 28px; }
+.ix-story:hover, .ix-story[aria-expanded="true"] { background-image: linear-gradient(var(--ix-hover), var(--ix-hover)); }
 .ix-story-k { font-weight: 500; color: var(--ix-ink-muted); }
 .ix-story-k::after { content: "·"; margin-left: 6px; color: var(--ix-ink-faint); }
 .ix-story-name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -170,14 +202,14 @@
 .ix-story-chev svg { width: 14px; height: 14px; }
 .ix-story[aria-expanded="true"] .ix-story-chev { transform: rotate(180deg); }
 .ix-story-note {
-  position: absolute; top: 100%; left: 0; width: max-content; max-width: min(56ch, calc(100vw - 2 * var(--ix-pad-l)));
-  margin: 8px 0 0; font-size: 13px; line-height: 20px; color: var(--ix-ink-muted); text-shadow: var(--ix-halo); text-wrap: pretty;
-  pointer-events: none; opacity: 0; visibility: hidden; transform: translateY(-2px);
+  position: absolute; top: 100%; left: 50%; width: max-content; max-width: min(56ch, calc(100vw - 32px));
+  margin: 10px 0 0; font-size: 13px; line-height: 20px; text-align: center; color: var(--ix-ink-muted); text-shadow: var(--ix-halo); text-wrap: balance;
+  pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, -2px);
   transition: opacity var(--ix-dur-slow) var(--ix-ease), transform var(--ix-dur-slow) var(--ix-ease), visibility 0s linear var(--ix-dur-slow);
 }
-.ix-story-note.ix-show { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
-.ix.ix-reduced .ix-story-note { transition: none; transform: none; }
-.ix-menu.ix-story-menu { bottom: auto; right: auto; width: min(400px, calc(100% - 32px)); padding: 6px; transform-origin: top left; transform: translateY(-4px) scale(0.98); }
+.ix-story-note.ix-show { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition-delay: 0s; }
+.ix.ix-reduced .ix-story-note { transition: none; transform: translate(-50%, 0); }
+.ix-menu.ix-story-menu { bottom: auto; right: auto; width: min(400px, calc(100% - 32px)); padding: 6px; transform-origin: top center; transform: translateY(-4px) scale(0.98); }
 .ix-menu.ix-story-menu.ix-open { transform: none; }
 .ix-story-head { padding: 8px 10px 8px; font-size: 12px; line-height: 16px; color: var(--ix-ink-faint); }
 .ix-story-item {
@@ -826,6 +858,7 @@
 /* a stat's tip: its name, then the one line that says what it means */
 .ix-tip.ix-tip-rich { flex-direction: column; align-items: flex-start; gap: 2px; height: auto; width: max-content; max-width: 280px; padding: 8px 12px 9px; white-space: normal; border-radius: 10px; }
 .ix-tip-head { font-weight: 600; }
+.ix-tip-head:has(kbd) { display: flex; align-items: center; justify-content: space-between; gap: 12px; align-self: stretch; }
 /* number labels are written lower case so they read inside sentences; as headings they start with a capital */
 :is(.ix-tip-head, .ix-stat-label, .ix-meter-label .ix-ml-full, .ix-cmp-label .ix-ml-full)::first-letter { text-transform: uppercase; }
 .ix-tip-body { font-weight: 400; line-height: 17px; color: var(--ix-ink-muted); text-wrap: pretty; }
@@ -1062,7 +1095,7 @@
   .ix-help, .ix-help-scrim, .ix-inspector, .ix-toast, .ix-menu, .ix-tip, .ix-preview, .ix-sheet-scrim, .ix-about, .ix-about-btn,
   .ix-stats-chev) { display: none !important; }
 /* a still or a video still names its story, as plain text */
-.ix.ix-capture:not(.ix-keep-chrome) .ix-story { background: none; box-shadow: none; padding-left: 0; -webkit-backdrop-filter: none; backdrop-filter: none; text-shadow: var(--ix-halo); }
+.ix.ix-capture:not(.ix-keep-chrome) .ix-story { background: none; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; text-shadow: var(--ix-halo); }
 .ix.ix-capture:not(.ix-keep-chrome) .ix-story-chev { display: none; }
 /* the start card, chapter card and coach hints never appear in a capture, with or without chrome */
 :is(.ix.ix-capture, .ix-capture .ix) :is(.ix-intro, .ix-intro-scrim, .ix-coach) { display: none !important; }
@@ -1088,9 +1121,8 @@
 .ix[data-size="phone"] { --ix-pad: 16px; --ix-pad-t: max(12px, env(safe-area-inset-top, 0px)); --ix-pad-b: max(12px, env(safe-area-inset-bottom, 0px)); }
 .ix[data-size="phone"] .ix-only-desk { display: none; }
 .ix[data-size="phone"] .ix-top { gap: 8px; align-items: flex-start; }
-/* phone header: 36 px title row (centred on the 36 px toolbar), 4 px, a 28 px pill: 68 px */
-.ix[data-size="phone"] .ix-story-row { margin-top: 4px; }
-.ix[data-size="phone"] .ix-story { height: 28px; font-size: 12.5px; padding: 0 6px 0 12px; }
+/* phone header: 36 px title row (centred on the 36 px toolbar), 4 px, the 28 px story pill centred under it: 68 px */
+.ix[data-size="phone"] .ix-story { height: 28px; font-size: 12.5px; padding: 0 8px 0 12px; }
 .ix[data-size="phone"] .ix-story-note { font-size: 12.5px; line-height: 18px; }
 /* one line: the title, and a chevron that opens the subtitle and the paper link; a tap on the title opens the card, never the paper */
 .ix[data-size="phone"] .ix-title { pointer-events: auto; }

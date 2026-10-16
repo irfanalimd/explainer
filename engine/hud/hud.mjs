@@ -59,7 +59,7 @@ const GUIDE = [
   ["timeline", "The timeline", "Each segment is a chapter. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
-  ["branch", "Stories", "The same system again with a twist, like a worker crashing halfway. Pick one from the Story button under the title."],
+  ["branch", "Stories", "The same system again with a twist, like a worker crashing halfway. Pick one from the stories at the top, or press its number."],
   ["meter", "Numbers and settings", "The numbers count what the run has done so far; point at one, or tap them, to see what it means. Settings change the inputs and re-run it instantly."],
 ];
 const SPEED_NAMES = { 0.5: "Slow", 1: "Normal", 2: "Fast", 4: "Fastest" };
@@ -210,15 +210,20 @@ export function createHud(root, opts = {}, cb = {}) {
   // subtitle and a link to the paper open from it in a small card
   const aboutBtn = h("button", { class: "ix-about-btn", type: "button", "aria-label": "About this figure", "aria-expanded": "false", html: ICON.chevron, onclick: () => toggleAbout() });
   const headRow = h("div", { class: "ix-head-row" }, titleEl, aboutBtn);
-  // the story picker (scenarios) sits under the title, a compact "Story · Random ⌄" pill: a story is the whole figure
-  // told another way. Its description lives in the menu, and shows once, briefly, under the pill when the story changes.
+  // the stories (scenarios) sit at the top centre of the stage, over the world they retell: a segmented strip with every
+  // story in view (Normal run | Worker dies | Straggler), the current one on a sliding thumb. Where the labels do not fit
+  // between the title and the toolbar it collapses to one "Story · Worker dies ⌄" pill with a menu; on a phone the pill
+  // takes a short second row. A story's description shows in its tooltip, and once, briefly, under the strip after a switch.
+  const storyThumb = h("span", { class: "ix-stories-thumb", "aria-hidden": "true" });
+  const storySegK = h("span", { class: "ix-stories-k", "aria-hidden": "true", text: "Stories" });
+  const storySeg = h("div", { class: "ix-stories-strip ix-glass", role: "radiogroup", "aria-label": "Stories" }, storySegK, storyThumb);
   const storyName = h("span", { class: "ix-story-name" });
-  const storyBtn = h("button", { class: "ix-story", type: "button", "aria-haspopup": "menu", "aria-expanded": "false",
+  const storyBtn = h("button", { class: "ix-story ix-glass", type: "button", "aria-haspopup": "menu", "aria-expanded": "false",
     onclick: () => toggleStoryMenu() },
   h("span", { class: "ix-story-k", "aria-hidden": "true", text: "Story" }), storyName, h("span", { class: "ix-story-chev", html: ICON.chevron }));
   const storyNote = h("p", { class: "ix-story-note", role: "status", "aria-live": "polite", "aria-atomic": "true" });
-  const storyRow = h("div", { class: "ix-story-row", hidden: true }, storyBtn, storyNote);   // shown once there are 2+ stories
-  const titleBlock = h("div", { class: "ix-title" }, headRow, storyRow);
+  const storyBar = h("div", { class: "ix-stories", hidden: true }, storySeg, storyBtn, storyNote);   // shown once there are 2+ stories
+  const titleBlock = h("div", { class: "ix-title" }, headRow);
   const aboutSub = h("p", { class: "ix-about-sub" });
   const aboutCite = h("a", { class: "ix-about-link", target: "_blank", rel: "noopener" });
   const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite);
@@ -245,12 +250,20 @@ export function createHud(root, opts = {}, cb = {}) {
     if (canvas) canvas.setAttribute("aria-label", figureLabel());
   }
 
-  // ---------- stories: the scenarios, picked from a menu under the title ----------
-  // Each item is a story of the same system with its one-line description; digits 1-9 pick one from anywhere.
+  // ---------- stories: the scenarios, a strip at the top centre (or a pill and its menu where the strip does not fit) ----------
+  // Each is a story of the same system with its one-line description; digits 1-9 pick one from anywhere.
   const storyMenu = h("div", { class: "ix-menu ix-story-menu ix-glass", role: "menu", "aria-label": "Stories", id: uid("stories") });
   storyBtn.setAttribute("aria-controls", storyMenu.id);
-  let storyItems = [], storyOpen = false;
+  let storyItems = [], storyTabs = [], storyOpen = false, storyMode = "strip";
   function buildScenarios() {
+    const n = S.scenarios.length;
+    storyTabs = S.scenarios.map((sc, i) => h("button", {
+      class: "ix-stories-tab", type: "button", role: "radio", "aria-checked": "false", tabindex: "-1", "data-id": sc.id,
+      "aria-label": `Story ${i + 1} of ${n}: ${sc.label ?? sc.id}`, "aria-description": sc.description ?? null,
+      "data-tip": sc.description ?? null, "data-tip-head": sc.description ? sc.label ?? sc.id : null, "data-kbd": i < 9 ? String(i + 1) : null,
+      onclick: () => chooseScenario(sc.id),
+    }, sc.label ?? sc.id));
+    put(storySeg, storySegK, storyThumb, storyTabs);
     storyItems = S.scenarios.map((sc, i) => h("button", {
       class: "ix-story-item", type: "button", role: "menuitemradio", "aria-checked": "false", tabindex: "-1", "data-id": sc.id,
       onclick: () => { toggleStoryMenu(false); storyBtn.focus({ preventScroll: true }); chooseScenario(sc.id); },
@@ -260,10 +273,12 @@ export function createHud(root, opts = {}, cb = {}) {
     h("span", { class: "ix-menu-check", html: ICON.check })));
     put(storyMenu, h("div", { class: "ix-story-head", "aria-hidden": "true", text: "Same system, different stories" }), storyItems);
     const many = S.scenarios.length > 1;
-    storyRow.hidden = !many;
+    storyBar.hidden = !many;
     if (!many) toggleStoryMenu(false);
     root.classList.toggle("ix-has-scenarios", many);
+    storyMode = "";   // re-measure: the labels changed
     renderScenario();
+    if (S.W) updateInsets();
   }
   function renderScenario() {
     const n = S.scenarios.length, i = Math.max(0, S.scenarios.findIndex((x) => x.id === S.scenario)), sc = S.scenarios[i];
@@ -271,30 +286,86 @@ export function createHud(root, opts = {}, cb = {}) {
     storyName.textContent = label;
     storyBtn.setAttribute("aria-label", `Story ${i + 1} of ${n}: ${label}. Choose another story`);
     storyItems.forEach((b) => b.setAttribute("aria-checked", String(b.dataset.id === S.scenario)));
+    // the strip is one radio group with a roving tab stop on the current story
+    storyTabs.forEach((b) => { const on = b.dataset.id === S.scenario; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
+    placeThumb();
+    if (storyMode !== "strip" && S.W) updateInsets();   // the pill's width follows its label
     renderChips();
     applyPrimary();
   }
-  // after a switch, the new story's description shows once under the pill, out of the layout flow (the world never
-  // moves), and fades after a few seconds; the status role reads it aloud
+  // the thumb slides under the current story (layout boxes, so a transform on the bar never skews it)
+  let thumbSet = false;
+  function placeThumb() {
+    const b = storyTabs.find((x) => x.dataset.id === S.scenario);
+    if (!b || !b.offsetWidth) return;
+    if (!thumbSet) storyThumb.style.transition = "none";
+    storyThumb.style.width = `${b.offsetWidth}px`;
+    storyThumb.style.transform = `translateX(${b.offsetLeft}px)`;
+    if (!thumbSet) { void storyThumb.offsetWidth; storyThumb.style.transition = ""; thumbSet = true; }
+  }
+  // Centre the stories on the free stage (between the code panel and the explain panel, so they sit over the world they
+  // retell), in the header row between the title and the toolbar: the full strip where it fits, else the pill, else
+  // (phones) the pill on a short row of its own. Called from updateInsets, before the header is measured.
+  function placeStories(rr) {
+    if (storyBar.hidden) return;
+    // a capture without chrome names its story as plain text: the pill's form, never the strip
+    const capture = root.classList.contains("ix-capture") && !root.classList.contains("ix-keep-chrome");
+    const tr = top.getBoundingClientRect(), ttl = titleBlock.getBoundingClientRect(), tb = toolbar.getBoundingClientRect();
+    const gap = S.size === "phone" ? 12 : 24;
+    const L = Math.round(ttl.right - tr.left) + gap;
+    const R = (tb.width > 0 ? Math.round(tb.left - tr.left) : Math.round(tr.width)) - gap;
+    const cx = (insets.left + (rr.width - insets.right)) / 2 - (tr.left - rr.left);
+    // measure both forms at their natural width (a forced layout, only when the layout changes)
+    storyBar.style.width = "";
+    storyBar.classList.remove("ix-stories-pill", "ix-stories-row");
+    const segW = Math.ceil(storySeg.getBoundingClientRect().width);   // sub-pixel widths round up, or a label ellipsizes
+    storyBar.classList.add("ix-stories-pill");
+    const pillW = Math.ceil(storyBtn.getBoundingClientRect().width);
+    const mode = !capture && segW <= R - L ? "strip" : pillW <= R - L ? "pill" : "row";
+    const w = mode === "strip" ? segW : Math.min(pillW, Math.floor(tr.width));
+    const x = mode === "row" ? clamp(cx - w / 2, 0, Math.max(0, tr.width - w)) : clamp(cx - w / 2, L, R - w);
+    storyBar.classList.toggle("ix-stories-pill", mode !== "strip");
+    storyBar.classList.toggle("ix-stories-row", mode === "row");
+    root.dataset.stories = mode;
+    const snap = mode !== storyMode || still();
+    if (snap) storyBar.style.transition = "none";
+    storyBar.style.width = `${w}px`;
+    storyBar.style.transform = `translateX(${Math.round(x)}px)`;
+    if (snap) { void storyBar.offsetWidth; storyBar.style.transition = ""; }
+    if (mode !== storyMode) { if (mode === "strip") toggleStoryMenu(false); storyMode = mode; }
+    if (storyOpen) placeStoryMenu();
+    placeThumb();
+  }
+  // after a switch, the new story's description shows once under the stories, centred, out of the layout flow (the
+  // world never moves), and fades after a few seconds; the status role reads it aloud
   let noteTimer = 0;
   function showStoryNote() {
     cancel(noteTimer);
+    hideTip();
     const text = scenarioDef()?.description ?? "";
     storyNote.textContent = text;
     storyNote.classList.toggle("ix-show", !!text);
     noteTimer = text ? later(hideStoryNote, 4000) : 0;
+    obstaclesDirty = true;
   }
-  function hideStoryNote() { cancel(noteTimer); noteTimer = 0; storyNote.classList.remove("ix-show"); }
+  function hideStoryNote() {
+    cancel(noteTimer); noteTimer = 0;
+    if (storyNote.classList.contains("ix-show")) { storyNote.classList.remove("ix-show"); obstaclesDirty = true; }
+  }
+  // the menu drops from the pill, centred under it and kept inside the root
+  function placeStoryMenu() {
+    const rr = root.getBoundingClientRect(), br = storyBtn.getBoundingClientRect(), mw = storyMenu.offsetWidth;
+    storyMenu.style.top = `${Math.round(br.bottom - rr.top + 8)}px`;
+    storyMenu.style.left = `${Math.round(clamp(br.left - rr.left + br.width / 2 - mw / 2, 8, Math.max(8, rr.width - mw - 8)))}px`;
+  }
   function toggleStoryMenu(open = !storyOpen) {
     if (open && S.scenarios.length < 2) open = false;
+    // with the whole strip in view there is no menu: "open the stories" puts focus on the current one
+    if (open && storyMode === "strip") { (storyTabs.find((b) => b.tabIndex === 0) ?? storyTabs[0])?.focus({ preventScroll: true }); open = false; }
     if (open === storyOpen) return;
     if (open) hideStoryNote();
     storyOpen = open;
-    if (open) {
-      const rr = root.getBoundingClientRect(), br = storyBtn.getBoundingClientRect();
-      storyMenu.style.top = `${Math.round(br.bottom - rr.top + 8)}px`;
-      storyMenu.style.left = `${Math.round(br.left - rr.left)}px`;
-    }
+    if (open) placeStoryMenu();
     storyMenu.classList.toggle("ix-open", open);
     storyBtn.setAttribute("aria-expanded", String(open));
     if (open) (storyItems.find((b) => b.getAttribute("aria-checked") === "true") ?? storyItems[0])?.focus({ preventScroll: true });
@@ -309,6 +380,19 @@ export function createHud(root, opts = {}, cb = {}) {
     if (j != null) { e.preventDefault(); e.stopPropagation(); storyItems[j]?.focus(); }
     else if (e.key === "Tab") toggleStoryMenu(false);
   });
+  // the strip is a radio group: arrows move to the next story and pick it (wrapping), Home / End the first and last
+  on(storySeg, "keydown", (e) => {
+    const i = storyTabs.indexOf(doc.activeElement), last = storyTabs.length - 1;
+    if (i < 0 || e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key, fwd = k === "ArrowRight" || k === "ArrowDown", back = k === "ArrowLeft" || k === "ArrowUp";
+    const j = fwd ? (i + 1) % (last + 1) : back ? (i + last) % (last + 1) : k === "Home" ? 0 : k === "End" ? last : null;
+    if (j == null) return;
+    e.preventDefault(); e.stopPropagation();
+    storyTabs[j].focus({ preventScroll: true });
+    chooseScenario(storyTabs[j].dataset.id);
+  });
+  // pointing at the strip clears the note: the tooltip under it carries the same line
+  on(storySeg, "pointerover", () => hideStoryNote());
   // scenario chips on the finished card ("What if…"): one radio set, kept in step with the story picker
   const chipSets = [];
   function scenarioChips(exclude) {
@@ -366,7 +450,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk");
   const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, codeBtn, tuneBtn, themeBtn, helpBtn, fullBtn);
   const toolbar = h("div", { class: "ix-toolbar" }, tools);
-  const top = h("div", { class: "ix-top" }, titleBlock, toolbar);
+  const top = h("div", { class: "ix-top" }, titleBlock, storyBar, toolbar);
   const fsEnabled = !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
   fullBtn.hidden = !fsEnabled;
 
@@ -1938,7 +2022,8 @@ export function createHud(root, opts = {}, cb = {}) {
       tipFor = el;
       const rich = !!el.dataset.tipHead;
       tip.classList.toggle("ix-tip-rich", rich);
-      if (rich) put(tip, h("span", { class: "ix-tip-head", text: el.dataset.tipHead }), h("span", { class: "ix-tip-body", text: el.dataset.tip }));
+      if (rich) put(tip, h("span", { class: "ix-tip-head" }, el.dataset.tipHead, el.dataset.kbd ? h("kbd", { class: "ix-kbd ix-kbd-sm", text: el.dataset.kbd }) : null),
+        h("span", { class: "ix-tip-body", text: el.dataset.tip }));
       else put(tip, h("span", { text: el.dataset.tip }), el.dataset.kbd ? h("kbd", { class: "ix-kbd ix-kbd-sm", text: el.dataset.kbd }) : null);
       const rr = root.getBoundingClientRect(), br = el.getBoundingClientRect();
       const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1976,6 +2061,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const add = (r, pad = 4) => { if (r && r.width > 0 && r.height > 0) obstacles.push({ l: r.left - rr.left - pad, t: r.top - rr.top - pad, r: r.right - rr.left + pad, b: r.bottom - rr.top + pad }); };
     const rect = (el) => (el && el.isConnected && !el.hidden ? el.getBoundingClientRect() : null);
     add(rect(titleBlock)); add(rect(toolbar)); add(rect(bar));
+    if (!storyBar.hidden) { add(rect(storyBar)); if (storyNote.classList.contains("ix-show")) add(rect(storyNote)); }
     if (readoutOpen) add(rect(meterBox));
     if (legendOpen) add(rect(legend));
     if (aboutOpen) add(rect(about));
@@ -2274,14 +2360,19 @@ export function createHud(root, opts = {}, cb = {}) {
   // ---------- layout observation ----------
   const insets = { top: 0, right: 0, bottom: 0, left: 0 };
   // how much of the root the chrome covers, so the camera can frame the world in the free area
+  // The header is the title row plus, on phones, the stories' own row under it: insets.top is the lower of the two.
   function updateInsets() {
-    root.style.setProperty("--ix-top-h", `${top.offsetHeight}px`);
-    root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
-    const rr = root.getBoundingClientRect(), tr = top.getBoundingClientRect(), br = bottom.getBoundingClientRect();
-    insets.top = Math.max(0, Math.round(tr.bottom - rr.top));
-    insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
+    const rr = root.getBoundingClientRect();
     insets.left = codeOpen && S.size !== "phone" ? Math.round(codePanel.offsetLeft + codePanel.offsetWidth) : 0;
     insets.right = explain.inset();
+    placeStories(rr);   // centred on the free stage the side insets leave
+    const tr = top.getBoundingClientRect(), br = bottom.getBoundingClientRect();
+    const sb = storyBar.hidden ? null : storyBar.getBoundingClientRect();
+    const headBottom = Math.max(tr.bottom, sb && sb.height > 0 ? sb.bottom : -Infinity);
+    root.style.setProperty("--ix-top-h", `${Math.round(headBottom - tr.top)}px`);
+    root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
+    insets.top = Math.max(0, Math.round(headBottom - rr.top));
+    insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;

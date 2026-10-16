@@ -119,7 +119,7 @@ export const params = {                      // knobs; every one appears in the 
   seed:     { label: "Seed",     type: "int",  value: 7 },
   // type "float" (min, max, step) and "select" (options: [{value, label}]) also exist
 };
-export const scenarios = [                   // the stories (story picker under the title); each overrides params
+export const scenarios = [                   // the stories (the strip at the top centre); each overrides params
   { id: "happy", label: "Normal run", description: "Every machine stays healthy: the whole job, start to finish." },
   { id: "crash", label: "Worker dies", params: { crash: 1 }, description: "A mapper crashes mid-task and its split runs again." },
 ];                                           // optional: description (one line), whatIf, takeaway, start
