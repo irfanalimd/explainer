@@ -414,7 +414,9 @@ export function walkView(s, id, m, o = {}) {
   X86_64.levels.forEach((L, i) => s.housing(ids.levels[i], { in: row, title: L, sub: "512 entries", variant: "chip", tray: { cols: 1, rows: win, of: "record" }, led: "idle", key: L }));
   s.housing(ids.page, { in: row, title: "Page", sub: "4 KiB frame", variant: "store", tray: { cols: 1, rows: 1, of: "record" }, led: "idle" });
   const chain = [ids.cr3, ...ids.levels, ids.page];
-  for (let i = 0; i + 1 < chain.length; i++) s.trace(`${id}.t${i}`, chain[i], chain[i + 1], {});
+  // each entry points at the next table, one way, so the chain ends in arrows (o.arrow: false for plain grooves)
+  const arrow = o.arrow ?? true;
+  for (let i = 0; i + 1 < chain.length; i++) s.trace(`${id}.t${i}`, chain[i], chain[i + 1], arrow ? { arrow } : {});
   const entryTile = (lvl, k) => `${ids.levels[lvl]}.e${k}`;
   X86_64.levels.forEach((_, lvl) => { for (let k = 0; k < win; k++) s.tile(entryTile(lvl, k), { in: ids.levels[lvl], of: "record", text: "", tone: "ghost" }); });
   const tlbTile = (k) => `${ids.tlb}.e${k}`;
