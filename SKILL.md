@@ -196,7 +196,7 @@ Before delivering, all of these must be true:
   - `mapreduce/`: pipeline with a bus shuffle, worker crash, straggler with a backup task, skewed keys, combiner.
   - `quicksort/`: `tracked.array` with pointers, sorted regions, worst case and duplicates.
   - `consistent-hashing/`: a 2³² MurmurHash3 ring, add or remove a server, ring vs `hash % N`, virtual nodes.
-  - `virtual-memory/`: x86-64 4-level page walk, TLB hit, miss and fill, page fault with swap-in, cycles counted.
+  - `virtual-memory/`: x86-64 4-level page walk, TLB hit, miss and fill, page fault with swap-in, a second program reaching a different frame from the same address, cycles counted.
   - `event-loop/`: tasks vs microtasks, `await`, microtask starvation, yielding with `setTimeout`, predict questions.
   - `btree/`: a B+ tree index taking inserts, leaf and root splits, sequential vs random keys, a range scan over the leaf chain.
   - `linked-list/`: the reference **intro** figure (`meta.level: "intro"`): array vs linked list, nodes at real addresses, walking, inserting by changing two arrows, and the wrong-order bug. Open it first for any beginner-level concept.

@@ -5,12 +5,24 @@
 // table + 8 × index exactly as the hardware does. The TLB is sim/machine.mjs's fully associative LRU TLB; the
 // walker's reads go through machine.mjs's cache model, so a line it read once is cheap the next time. The page
 // fault really finds P = 0, the "kernel" really allocates a frame, copies the page in and rewrites the entry,
-// and the load really restarts. Invariants check every physical address on screen against machine.mjs's own
-// page-table model (a second, independent implementation fed the same virtual → physical mapping).
+// and the load really restarts. A second program really has its own tables (its own CR3), so the same virtual
+// address walks to another frame; the CR3 write flushes the TLB, as it does on x86-64 without PCIDs.
+// Invariants check every physical address on screen against machine.mjs's own page-table model (a second,
+// independent implementation fed the same virtual → physical mapping, one per program).
 //
 // Costs (cycles at 3 GHz; the sources are in the README):
 //   TLB lookup 1 · table read from DRAM 240 · table read that hits the cache (L2) 14 ·
 //   #PF trap + kernel handler ≈ 1 µs = 3 000 · 4 KiB read from an NVMe SSD ≈ 20 µs = 60 000.
+//
+// The lesson (references/teaching.md; the full plan is in the README):
+//   Reader    knows that programs read memory by address; has never met pages, page tables or the TLB.
+//   Picture   a building where each program has its own apartment numbers. The building directory (one per
+//             program, the page table) turns a number into a real room (the frame); the receptionist's sticky
+//             notes of recent lookups are the TLB; a room whose boxes went to storage is a page out on disk.
+//   Problem   two programs use the same address: if it were a real place, they would overwrite each other.
+//   Ladder    apartment numbers · sticky notes · the directory · the real room · same page again (the aha:
+//             one cycle) · another program (the same number, another room).
+//   Wrong     "every read walks the directory" and "an address is one fixed place in memory".
 
 import { tlb as makeTlb, cache as makeCache, pageTable } from "../../sim/machine.mjs";
 import { rng } from "../../sim/rng.mjs";
@@ -19,55 +31,86 @@ import { stateOf, counterOf } from "../../sim/inspect.mjs";
 
 export const meta = {
   title: "Virtual memory",
-  subtitle: "How one load finds its byte",
+  subtitle: "How each program gets its own addresses, and how one read finds its byte",
   kicker: "Operating systems",
   fig: 4,
+  level: "core",
   cite: {
     text: "Intel SDM Vol. 3A §4.5, 4-level paging · latencies: Drepper, “What Every Programmer Should Know About Memory”, 2007",
     url: "https://www.akkadia.org/drepper/cpumemory.pdf",
   },
   theme: "dark",
-  hook: "A program never sees a real memory address. How does each load still find its byte, and quickly?",
-  takeaway: "A TLB miss costs a four-level page walk, but the TLB keeps the answer, so the loads that follow in the same page cost one cycle each.",
+  hook: "Two programs can use the same memory address for their own data. Why don't they overwrite each other, and how is it fast?",
+  terms: {
+    "virtual address": "The number a program uses for a place in its memory: its own apartment number, not a real room.",
+    page: "A block of 4,096 bytes. Memory is handed out, looked up and moved one block at a time.",
+    offset: "How many bytes into its page a byte sits, counting from the page's start.",
+    TLB: "Translation lookaside buffer: the CPU's few sticky notes of recently looked-up pages and their real rooms.",
+    cycle: "One tick of the CPU's clock. A 3 GHz CPU ticks 3 billion times a second.",
+    "page table": "A program's directory: for each of its pages, a line saying which real room holds it.",
+    CR3: "A slot inside the CPU that holds where the running program's directory starts in memory.",
+    frame: "A page-sized room of real memory. A page lives in one while it is in memory.",
+    "physical address": "The real place in memory: the room's start plus the offset inside it.",
+    "page fault": "The CPU finds a page is not in memory, stops, and asks the operating system to fetch it.",
+    kernel: "The core of the operating system: it hands out memory and fetches pages back from disk.",
+    cache: "Small, fast memory beside the CPU that keeps copies of recently read memory, so reading again is cheap.",
+  },
+  recap: [
+    "A program's address is its own number, not a real place in memory.",
+    "Sticky notes, the TLB, are checked first; a miss means a four-level directory walk.",
+    "The note made every later read in that page take one cycle.",
+    "Program B's same address led through its own directory to a different room.",
+  ],
+  takeaway: "Each program's addresses go through its own directory, so programs can't touch each other's memory; sticky notes make most lookups take one cycle.",
 };
 
 const ADDRESSES = [
-  { value: "0x7f3a2c108e48", label: "0x7f3a_2c10_8e48 · mmap'd buffer", what: "an mmap'd buffer" },
-  { value: "0x555555559a20", label: "0x5555_5555_9a20 · heap", what: "the heap" },
-  { value: "0x7ffde4b21f9c", label: "0x7ffd_e4b2_1f9c · stack", what: "the stack" },
+  { value: "0x7f3a2c108e48", label: "0x7f3a_2c10_8e48 · a data buffer" },
+  { value: "0x555555559a20", label: "0x5555_5555_9a20 · heap data" },
+  { value: "0x7ffde4b21f9c", label: "0x7ffd_e4b2_1f9c · the stack" },
 ];
 
 export const params = {
-  address: { label: "Virtual address", type: "select", options: ADDRESSES.map(({ value, label }) => ({ value, label })), value: ADDRESSES[0].value },
-  custom: { label: "Or type a user address (hex)", type: "text", value: "" },
-  tlbSize: { label: "TLB entries", type: "int", min: 2, max: 8, value: 8 },
-  seed: { label: "Seed (physical layout)", type: "int", value: 11 },
+  address: { label: "Address the program reads", type: "select", options: ADDRESSES.map(({ value, label }) => ({ value, label })), value: ADDRESSES[0].value },
+  custom: { label: "Or type your own address (hex)", type: "text", value: "" },
+  tlbSize: { label: "Sticky notes (TLB size)", type: "int", min: 2, max: 8, value: 8 },
+  seed: { label: "Seed (where pages land in memory)", type: "int", value: 11 },
 };
 
 export const scenarios = [
-  { id: "miss", label: "TLB miss", whatIf: "the TLB has never seen the page",
-    description: "The TLB has never seen this page, so the hardware walks four levels of page tables; later loads from it are cheap." },
-  { id: "hit", label: "TLB hit", whatIf: "the TLB already knows the page",
-    description: "The page's translation is already in the TLB: a one-cycle lookup and no page-table reads.",
-    takeaway: "With the translation already in the TLB, a load costs one cycle and never touches the page tables." },
-  { id: "fault", label: "Page fault", whatIf: "the page is not in memory",
-    description: "The page is not in RAM: the walk finds it missing, the kernel reads it in from the SSD, and the load runs again.",
-    takeaway: "A page that is not in RAM costs a trap and an SSD read, tens of thousands of cycles: that is why the OS keeps hot pages resident." },
+  { id: "miss", label: "A new address", whatIf: "the program reads a new address",
+    description: "Nothing is noted for this page yet, so the CPU looks it up in the program's directory. Then a second program uses the same address." },
+  { id: "hit", label: "A recent address", whatIf: "the page was used a moment ago",
+    description: "The page was used a moment ago, so a sticky note already holds its room: one cycle, no directory.",
+    takeaway: "With the page already on a sticky note, finding its room takes one cycle and never opens the directory.",
+    recap: [
+      "The page was used a moment ago, so a sticky note had its room.",
+      "The real address came straight from the note, in one cycle.",
+      "The directory was never opened.",
+    ] },
+  { id: "fault", label: "The page isn't in memory", whatIf: "the page was moved out to disk",
+    description: "The page was moved out to disk: the CPU stops, the operating system fetches it back, and the read starts over.",
+    takeaway: "A page out on disk costs tens of thousands of cycles. That is why the operating system keeps busy pages in memory.",
+    recap: [
+      "The directory said the page was out on disk: a page fault.",
+      "The kernel copied it into a free room and fixed the directory line.",
+      "The read started over, walked the directory again and found the room.",
+    ] },
 ];
 
 export const counters = {
-  cycles: { label: "cycles to translate", short: "cycles", format: "int", primary: true,
-    hint: "CPU cycles spent turning virtual addresses into physical ones: TLB checks, page-table reads and any fault." },
-  hits: { label: "TLB hits", format: "int", primary: ["miss", "hit"],
-    hint: "Translations the TLB, a tiny cache of recent ones, answered on its own in about one cycle." },
-  misses: { label: "TLB misses", format: "int",
-    hint: "Lookups the TLB could not answer, so the page tables had to be walked." },
-  dram: { label: "page-table reads from memory", short: "memory reads", format: "int", primary: ["miss", "fault"],
-    hint: "Page-table entries read from main memory (DRAM), the slowest kind of read." },
-  cached: { label: "page-table reads from cache", short: "cache reads", format: "int",
-    hint: "Page-table entries the CPU cache already held: far cheaper than a read from memory." },
-  faults: { label: "page faults", format: "int", primary: ["fault"],
-    hint: "Times the page was not in RAM, so the kernel had to bring it in from storage." },
+  cycles: { label: "cycles spent translating", short: "cycles", format: "int", primary: true,
+    hint: "CPU clock ticks spent turning program addresses into real ones: sticky-note checks, directory reads and any trip to disk." },
+  hits: { label: "answered by a sticky note", short: "note hits", format: "int", primary: ["miss", "hit"],
+    hint: "Lookups the TLB, the CPU's sticky notes, answered on its own in one cycle." },
+  misses: { label: "not on a sticky note", short: "note misses", format: "int",
+    hint: "Lookups the sticky notes could not answer, so the directory had to be read." },
+  dram: { label: "directory reads from memory", short: "memory reads", format: "int", primary: ["miss", "fault"],
+    hint: "Directory lines (page-table entries) read from main memory: about 240 cycles each." },
+  cached: { label: "directory reads from the cache", short: "cache reads", format: "int",
+    hint: "Directory lines the CPU's small fast cache already held: about 14 cycles each." },
+  faults: { label: "pages fetched from disk", short: "from disk", format: "int", primary: ["fault"],
+    hint: "Times the page was not in memory, so the operating system had to bring it back from disk." },
 };
 
 export const COST = { tlb: 1, dram: 240, cache: 14, trap: 3000, ssd: 60000 };
@@ -106,7 +149,6 @@ export const code = {
 // ---- the machine: real entries in a sparse physical memory -------------------------------------------------
 
 const LEVELS = ["PML4", "PDPT", "PD", "PT"];
-const NEXT = ["the PDPT", "the page directory", "the page table", "the data page"];
 const SHIFT = [39, 30, 21, 12];
 const F = { P: 1n, RW: 2n, US: 4n, A: 0x20n, D: 0x40n, NX: 1n << 63n };
 const TABLE = F.P | F.RW | F.US | F.A | F.D;          // 0x067, what Linux puts in a non-leaf entry
@@ -143,13 +185,13 @@ const USER_TOP = 2 ** 47;                              // bit 47 = 0: the lower,
 /** The address the figure loads from: the select, unless a valid user-space hex address was typed. */
 export function resolveAddress(p) {
   const sel = ADDRESSES.find((a) => a.value === p.address) ?? ADDRESSES[0];
-  const out = { va: Number(sel.value), what: sel.what, note: "" };
+  const out = { va: Number(sel.value), note: "" };
   const raw = String(p.custom ?? "").trim().toLowerCase().replace(/[_\s]/g, "");
   if (!raw) return out;
   const m = /^(0x)?([0-9a-f]{1,16})$/.exec(raw);
   if (!m) { out.note = `\`${fmt.escape(String(p.custom)).slice(0, 24)}\` is not a hex address`; return out; }
   const v = BigInt("0x" + m[2]);
-  if (v >= 0x1000n && v < BigInt(USER_TOP)) { out.va = Number(v); out.what = "the address you typed"; return out; }
+  if (v >= 0x1000n && v < BigInt(USER_TOP)) { out.va = Number(v); return out; }
   out.note = v < 0x1000n ? "page 0 is never mapped" : "that is not a user-space address";
   return out;
 }
@@ -157,7 +199,9 @@ export function resolveAddress(p) {
 const memo = new Map();
 /**
  * Physical memory for one seed: frames from a seeded allocator, real page-table entries at table + 8 × index.
- * Pure (memoised); build() copies `words` before it changes anything.
+ * Program A (the one we follow) has the target page, its neighbours and a realistic set of other pages; program B
+ * (built last, so it never shifts A's layout) has its own tables mapping the same three virtual pages to frames of
+ * its own. Pure (memoised); build() copies `words` before it changes anything.
  */
 export function memoryMap(seed, va, scenario) {
   const k = `${seed}|${va}|${scenario}`;
@@ -168,8 +212,8 @@ export function memoryMap(seed, va, scenario) {
   const cr3 = alloc();
   const words = new Map();      // physical address (BigInt) -> 64-bit entry (BigInt); missing = 0
   const pages = new Map();      // vpn -> { pfn, flags, what }
-  const leafAddr = (vpn, create) => {
-    let table = BigInt(cr3) << 12n;
+  const leafAddr = (vpn, create, root = cr3) => {
+    let table = BigInt(root) << 12n;
     for (let L = 0; L < 3; L++) {
       const at = table + 8n * BigInt(index(vpn * 4096, L));
       let e = words.get(at) ?? 0n;
@@ -179,8 +223,9 @@ export function memoryMap(seed, va, scenario) {
     return table + 8n * BigInt(index(vpn * 4096, 3));
   };
   const vpn = vpnOf(va);
+  const near = [-1, 0, 1].filter((d) => vpn + d >= 1 && (vpn + d) * 4096 < USER_TOP).map((d) => vpn + d);
   const list = RESIDENTS.map(([v, what, flags]) => ({ vpn: vpnOf(v), what, flags }));
-  for (const d of [-1, 0, 1]) if (vpn + d >= 1 && (vpn + d) * 4096 < USER_TOP) list.push({ vpn: vpn + d, what: d ? "neighbouring page" : "target", flags: DATA });
+  for (const v of near) list.push({ vpn: v, what: v !== vpn ? "neighbouring page" : "target", flags: DATA });
   for (const pg of r.shuffle(list)) {
     if (pages.has(pg.vpn)) continue;
     const pfn = alloc();
@@ -195,13 +240,20 @@ export function memoryMap(seed, va, scenario) {
     pages.set(vpn, { ...pages.get(vpn), pfn: null });
     faultFrame = alloc();
   }
-  const out = { cr3, words, pages, vpn, swapSlot, faultFrame, seed };
+  // program B: another CR3, other tables, the same virtual pages in frames of its own
+  const other = { cr3: alloc(), pages: new Map() };
+  for (const v of near) {
+    const pfn = alloc();
+    other.pages.set(v, { pfn, flags: DATA, what: "program B's data" });
+    words.set(leafAddr(v, true, other.cr3), (BigInt(pfn) << 12n) | DATA);
+  }
+  const out = { cr3, words, pages, vpn, swapSlot, faultFrame, seed, other };
   memo.set(k, out);
   return out;
 }
 
-/** The byte stored at (page, offset): printable ASCII, fixed per seed. */
-const byteAt = (seed, vpn, off) => rng(`${seed}/data/${vpn}/${off}`).int(0x21, 0x7e);
+/** The byte stored at (page, offset) of a program: printable ASCII, fixed per seed. */
+const byteAt = (seed, vpn, off, who = "A") => rng(`${seed}/data/${who === "A" ? "" : who}${vpn}/${off}`).int(0x21, 0x7e);
 
 // ---- formatting ---------------------------------------------------------------------------------------------
 
@@ -229,7 +281,7 @@ export function build(s, p, scenario, env = {}) {
   const portrait = !!env.portrait;
   const fault = sc === "fault";
   const va0 = target.va, vpn0 = vpnOf(va0), off0 = va0 % 4096;
-  const cr3Base = BigInt(mem.cr3) << 12n;
+  let cr3Now = BigInt(mem.cr3) << 12n;                                 // the running program's PML4 (A, then B)
 
   // the TLB, full of the process's other pages (in the hit scenario, ours too), in a seeded recency order
   const T = makeTlb({ entries: N, policy: "lru" });
@@ -254,31 +306,33 @@ export function build(s, p, scenario, env = {}) {
       s.text(`${id}.names.${f.key}`, { in: `${id}.names`, at: [(x0 + x1) / 2, 0], text: span > 9 ? `${f.name} · bits ${f.to}–${f.from}` : `${f.name} · ${f.to}–${f.from}`, size: 7 });
     }
   };
-  s.bits("va", { in: "addr", width: 48, value: va0, fields: VA_FIELDS, label: `virtual address · ${vaHex(va0)}` });
+  const vaLabel = (v) => `the program's address (virtual) · ${vaHex(v)}`;
+  s.bits("va", { in: "addr", width: 48, value: va0, fields: VA_FIELDS, label: vaLabel(va0) });
   fieldNames("va", 48, VA_FIELDS);
   s.spacer("addr.gap", { in: "addr", d: 14 });
-  s.bits("pa", { in: "addr", width: PA_BITS, value: 0, fields: PA_FIELDS, label: "physical address · not known yet" });
+  s.bits("pa", { in: "addr", width: PA_BITS, value: 0, fields: PA_FIELDS, label: "the real address (physical) · not known yet" });
   fieldNames("pa", PA_BITS, PA_FIELDS);
 
   // wide screens: CPU beside DRAM, one long row; portrait phones: CPU above DRAM, so the world is about square
   (portrait ? s.column : s.row)("machine", { gap: portrait ? 56 : 76 });
   s.row("cpu", { in: "machine", gap: 40, title: "CPU core" });
   const tlbState = () => ({ entries: N, policy: "LRU, fully associative", slots: T.slots().map((x) => (x ? `${vpnHex(x.vpn)} → ${pfnHex(x.pfn)}` : "empty")) });
-  s.housing("tlb", { in: "cpu", variant: "chip", title: "TLB", sub: `${N} entries · LRU`, tray: { cols: 2, rows: N, of: "record" }, led: "idle", state: tlbState() });
+  s.housing("tlb", { in: "cpu", variant: "chip", title: "TLB", sub: `${N} sticky notes`, tray: { cols: 2, rows: N, of: "record" }, led: "idle", state: tlbState() });
   const regs = fault ? "regs" : "cpu";
   if (regs === "regs") s.column("regs", { in: "cpu", gap: 24 });
-  s.housing("cr3", { in: regs, variant: "chip", title: "CR3", sub: paHex(Number(cr3Base)), tray: { cols: 1, rows: 1, of: "record" }, state: { cr3: paHex(Number(cr3Base)), holds: "physical address of the PML4" } });
+  const cr3State = (who) => ({ cr3: paHex(Number(cr3Now)), holds: `where program ${who}'s directory (its PML4) starts`, program: who });
+  s.housing("cr3", { in: regs, variant: "chip", title: "CR3", sub: paHex(Number(cr3Now)), tray: { cols: 1, rows: 1, of: "record" }, state: cr3State("A") });
   s.tile("cr3.v", { in: "cr3", of: "record", text: "PML4", sub: tilePfn(mem.cr3), state: { pml4: pfnHex(mem.cr3) } });
-  if (fault) s.housing("kernel", { in: regs, variant: "chip", title: "kernel", sub: "#PF handler", led: "off", state: { handled: false } });
+  if (fault) s.housing("kernel", { in: regs, variant: "chip", title: "kernel", sub: "fault handler", led: "off", state: { handled: false } });
 
   const memCol = fault && portrait ? "memcol" : "machine";
   if (memCol === "memcol") s.column("memcol", { in: "machine", gap: 48, align: "end" });
-  s.row("dram", { in: memCol, gap: portrait ? 26 : 40, title: "DRAM · physical memory" });
+  s.row("dram", { in: memCol, gap: portrait ? 26 : 40, title: "main memory · the real rooms" });
 
-  // the walk the target address takes through today's tables, for the opening windows
+  // the walk an address takes through the running program's tables
   const pathOf = (va) => {
     const out = [];
-    let table = cr3Base;
+    let table = cr3Now;
     for (let L = 0; L < 4; L++) {
       const i = index(va, L), addr = table + 8n * BigInt(i), e = words.get(addr) ?? 0n;
       out.push({ L, table, index: i, addr, e });
@@ -307,10 +361,10 @@ export function build(s, p, scenario, env = {}) {
   }
   const pfn0 = fault ? mem.faultFrame : mem.pages.get(vpn0).pfn;
   let byteWin = Math.max(0, Math.min(4093, off0 - 1));
-  const byteContent = (vpn, o) => { const b = byteAt(mem.seed, vpn, o); return { text: offHex(o).slice(2), sub: b.toString(16), state: { offset: offHex(o), byte: hx(b, 2), char: String.fromCharCode(b) } }; };
-  s.housing("page", { in: "dram", title: fault ? "free frame" : "page", sub: paHex(pfn0 * 4096), tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { frame: pfnHex(pfn0), base: paHex(pfn0 * 4096), loads: [] } });
+  const byteContent = (vpn, o, who = "A") => { const b = byteAt(mem.seed, vpn, o, who); return { text: offHex(o).slice(2), sub: b.toString(16), state: { offset: offHex(o), byte: hx(b, 2), char: String.fromCharCode(b), program: who } }; };
+  s.housing("page", { in: "dram", title: fault ? "free room" : "page", sub: paHex(pfn0 * 4096), tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { frame: pfnHex(pfn0), base: paHex(pfn0 * 4096), loads: [] } });
   if (fault) {
-    s.housing("ssd", { in: memCol, variant: "store", title: "swap · SSD", sub: `slot ${hx(mem.swapSlot, 3)}`, tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0) } });
+    s.housing("ssd", { in: memCol, variant: "store", title: "disk · SSD", sub: `slot ${hx(mem.swapSlot, 3)}`, tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0) } });
     for (let k = 0; k < 3; k++) s.tile(`page.b${k}`, { in: "ssd", of: "record", ...byteContent(vpn0, byteWin + k) });
   } else {
     for (let k = 0; k < 3; k++) s.tile(`page.b${k}`, { in: "page", of: "record", ...byteContent(vpn0, byteWin + k) });
@@ -345,12 +399,12 @@ export function build(s, p, scenario, env = {}) {
     for (let b = from; b <= to; b++) if (bitOf(cur, b) !== bitOf(next, b)) { s.set(`${id}[${b}]`, { text: String(bitOf(next, b)) }); changed.push(`${id}[${b}]`); }
     return changed;
   };
-  const setVA = (v) => { const ch = showBits("va", vaShown, BigInt(v), 0, 47); vaShown = BigInt(v); s.set("va", { label: `virtual address · ${vaHex(v)}` }); return ch; };
+  const setVA = (v) => { const ch = showBits("va", vaShown, BigInt(v), 0, 47); vaShown = BigInt(v); s.set("va", { label: vaLabel(v) }); return ch; };
   const setPA = (frame, off) => {
     const next = (frame === null ? 0n : BigInt(frame) << 12n) | BigInt(off);
     const ch = showBits("pa", paShown, next, 0, PA_BITS - 1);
     paShown = next;
-    s.set("pa", { label: frame === null ? "physical address · not known yet" : `physical address · ${paHex(Number(next))}` });
+    s.set("pa", { label: frame === null ? "the real address (physical) · not known yet" : `the real address (physical) · ${paHex(Number(next))}` });
     return ch;
   };
   const mid = (L) => `va[${Math.floor((VA_FIELDS[L].from + VA_FIELDS[L].to) / 2)}]`;
@@ -386,25 +440,23 @@ export function build(s, p, scenario, env = {}) {
     return id;
   }
 
-  function splitOffset(va, first) {
+  function splitOffset(va) {
     const off = va % 4096;
     s.lit(...vaCells(0, 11));
     s.tag(mid(4), c(offHex(off)));
     s.beat();
-    const ch = setPA(null, off);
+    setPA(null, off);
     s.lit(...paCells(0, 11));
     s.focus("va", "pa");
     s.line(3);
-    s.step(first
-      ? `The low 12 bits are the byte's place inside its 4 KiB page, offset ${c(offHex(off))}. They pass into the physical address untranslated.`
-      : `Its offset, ${c(offHex(off))}, again goes straight into the physical address${ch.length ? "" : " (it was already there)"}.`);
+    s.step(`The low 12 bits, ${c(offHex(off))}, are the {term:offset}, the byte's place in its {term:page}. They copy straight over.`, { keep: true });
   }
   function splitVpn(va) {
     s.lit(...vaCells(12, 47));
-    s.tag("va[30]", `VPN ${vpnHex(vpnOf(va))}`);
+    s.tag("va[30]", `page ${vpnHex(vpnOf(va))}`);
     s.focus("va");
     s.line(3);
-    s.step(`The upper 36 bits are the virtual page number, ${c(vpnHex(vpnOf(va)))}. Only this part needs translating.`);
+    s.step(`The upper 36 bits, ${c(vpnHex(vpnOf(va)))}, name the page, the apartment. Only this part is looked up.`, { keep: true });
   }
   function lookup(va, { quiet } = {}) {
     const vpn = vpnOf(va);
@@ -430,8 +482,8 @@ export function build(s, p, scenario, env = {}) {
     s.focus("va", "tlb");
     if (!quiet) {
       s.step(r.hit
-        ? `The {ref:tlb|TLB} has ${c(vpnHex(vpn))} in entry ${r.slot}: a {tone:ok|hit}, frame ${c(pfnHex(r.pfn))}, in 1 cycle.`
-        : `The {ref:tlb|TLB} checks ${c(vpnHex(vpn))} against all ${N} cached page numbers at once: a {tone:warn|miss}, 1 cycle.`);
+        ? `Page ${c(vpnHex(vpn))} is on note ${r.slot + 1}: a {tone:ok|hit}. Its real room, {term:frame} ${c(pfnHex(r.pfn))}, in 1 cycle.`
+        : `The {ref:tlb|TLB} checks all ${N} notes at once for page ${c(vpnHex(vpn))}: a {tone:warn|miss}, 1 cycle.`);
     }
     return r;
   }
@@ -441,7 +493,7 @@ export function build(s, p, scenario, env = {}) {
     const i = index(va, L), addr = table + 8n * BigInt(i), e = words.get(addr) ?? 0n;
     const tile = entryTile(L, table, i);
     s.lit(...fieldCells(L));
-    if (tags && !warm) s.tag(mid(L), String(i));
+    if (tags && !warm) s.tag(mid(L), `line ${i}`);
     s.send(s.uid("rd"), L ? `t${L - 1}` : "cr3", `t${L}`, { via: `w${L}`, key: VA_FIELDS[L].key, text: paHex(Number(addr)) });
     s.beat();
     const hit = C.access(Number(addr)).hit;
@@ -451,25 +503,24 @@ export function build(s, p, scenario, env = {}) {
     const present = !!(e & F.P);
     s.set(tile, { key: VA_FIELDS[L].key, tone: present ? null : "fail" });
     s.lit(tile);
-    if (tags) s.tag(tile, hit ? `cache · ${COST.cache} cycles` : `DRAM · ${COST.dram} cycles`, hit ? { tone: "ok" } : {});
+    if (tags) s.tag(tile, hit ? `cache · ${COST.cache} cycles` : `memory · ${COST.dram} cycles`, hit ? { tone: "ok" } : {});
     s.line(8, 9);
     return { L, i, addr, e, present, next: e & FRAME_MASK, cost, hit, tile };
   }
   const bitsText = (L) => `Bits ${VA_FIELDS[L].to}–${VA_FIELDS[L].from}`;
-  const costText = (rd) => (rd.hit ? `cache, ${rd.cost} cycles` : `DRAM, ${rd.cost} cycles`);
 
   // a cold walk: one step per level, so each read is its own moment
   function coldWalk(va) {
     s.send(s.uid("go"), "tlb", "cr3", { via: "miss" });
     s.beat();
     s.lit("cr3.v");
-    s.tag("cr3", "PML4 base", {});
+    s.tag("cr3", "directory starts here", {});
     s.set("tlb", { led: "idle" });
     s.line(6);
     s.focus("tlb", "cr3", "t0");
-    s.step(`On a miss the hardware walks the page tables. {ref:cr3|CR3} holds the PML4's physical address, ${c(paHex(Number(cr3Base)))}.`);
+    s.step(`On a miss, the CPU opens this program's directory. {term:CR3} holds where it starts: ${c(paHex(Number(cr3Now)))}.`, { keep: true });
     const path = [];
-    let table = cr3Base;
+    let table = cr3Now;
     for (let L = 0; L < 4; L++) {
       const rd = readLevel(L, va, table);
       path.push({ table: hx(table, 10), index: rd.i, entry: pteHex(rd.e) });
@@ -477,21 +528,23 @@ export function build(s, p, scenario, env = {}) {
       if (!rd.present) {
         s.set(`t${L}`, { led: "fail" });
         s.line(10, 11);
-        s.step(`${bitsText(L)} = ${rd.i}: entry ${c(paHex(Number(rd.addr)))} has P = 0 (${costText(rd)}). The page is not in memory: a {tone:fail|page fault}.`);
+        s.step(`${bitsText(L)} pick line ${rd.i} of level ${L + 1}, ${LEVELS[L]}: it says {tone:fail|not present}. The page isn't in memory.`);
         return { path, fault: rd };
       }
-      s.step(`${bitsText(L)} = ${rd.i}: entry ${c(paHex(Number(rd.addr)))} holds ${NEXT[L]}'s frame, ${c(pfnHex(Number(rd.next >> 12n)))} (${costText(rd)}).`);
+      s.step(L < 3
+        ? `${bitsText(L)} pick line ${rd.i} of level ${L + 1}, ${LEVELS[L]}, which says where level ${L + 2} starts: ${rd.cost} cycles.`
+        : `${bitsText(L)} pick line ${rd.i} of level 4, ${LEVELS[L]}, which gives the page's real room: {term:frame} ${c(pfnHex(Number(rd.next >> 12n)))}.`);
       table = rd.next;
     }
     return { path, frame: Number(table >> 12n) };
   }
-  // a warm walk: the same reads in one step, beat by beat
-  function warmWalk(va, prev) {
+  // a later walk: the same reads in one step, beat by beat; `say(reads, cost, hits)` writes its caption
+  function quickWalk(va, say) {
     s.send(s.uid("go"), "tlb", "cr3", { via: "miss" });
     s.set("tlb", { led: "idle" });
     s.beat();
     const path = [], reads = [];
-    let table = cr3Base;
+    let table = cr3Now;
     for (let L = 0; L < 4; L++) {
       const rd = readLevel(L, va, table, { warm: true, tags: false });
       reads.push(rd);
@@ -501,31 +554,26 @@ export function build(s, p, scenario, env = {}) {
     }
     const hits = reads.filter((r) => r.hit).length;
     const pt = reads[3];
-    const prevPt = prev?.[3];
-    const sameLine = prevPt && prevPt.addr !== pt.addr && (prevPt.addr >> 6n) === (pt.addr >> 6n);
-    if (sameLine) s.tag(pt.tile, `same 64 B line as PT[${prevPt.i}]`, { tone: "ok" });
-    else s.tag(pt.tile, pt.hit ? "cached" : "DRAM", pt.hit ? { tone: "ok" } : {});
+    s.tag(pt.tile, hits === 4 ? "all from the cache" : hits === 0 ? "all from memory" : `${hits} of 4 from the cache`, hits === 4 ? { tone: "ok" } : {});
     const cost = reads.reduce((a, r) => a + r.cost, 0);
-    s.focus("tlb", "cr3", "t0", "t1", "t2", "t3");
+    s.focus(...(fault ? [] : ["tlb"]), "cr3", "t0", "t1", "t2", "t3");
     s.line(7, 12);
-    s.step(hits === 4
-      ? `The walk reads 4 entries again, but every line is already in the cache: ${COST.cache} cycles each, ${cost} in all.`
-      : `The walk reads 4 entries again: ${hits} hit the cache and ${4 - hits} go to DRAM, ${cost} cycles in all.`);
+    s.step(say(reads, cost, hits));
     return { path, frame: Number(table >> 12n), reads };
   }
-  function formPA(va, frame, from) {
+  function formPA(va, frame, from, { page = "page", via = "w4", say } = {}) {
     const off = va % 4096;
     if (from === "tlb") s.send(s.uid("pfn"), "tlb", "pa", { via: "air", key: "frame", text: pfnHex(frame) });
-    else s.send(s.uid("pfn"), "t3", "page", { via: "w4", key: "frame", text: pfnHex(frame) });
+    else s.send(s.uid("pfn"), "t3", page, { via, key: "frame", text: pfnHex(frame) });
     s.beat();
     setPA(frame, off);
     s.lit(...paCells(12, PA_BITS - 1));
     s.line(from === "tlb" ? 5 : 15);
-    s.focus(from === "tlb" ? "tlb" : "t3", "pa", ...(from === "tlb" ? [] : ["page"]));
+    s.focus(from === "tlb" ? "tlb" : "t3", "pa", ...(from === "tlb" ? [] : [page]));
     const pa = frame * 4096 + off;
-    s.step(from === "tlb"
-      ? `PA = ${c(`${pfnHex(frame)} << 12 | ${offHex(off)}`)} = ${c(paHex(pa))}, without reading a single page table.`
-      : `Frame ${c(pfnHex(frame))}, shifted past the offset: PA = ${c(`${pfnHex(frame)} << 12 | ${offHex(off)}`)} = ${c(paHex(pa))}.`);
+    s.step(say ? say(pa) : from === "tlb"
+      ? `Room ${c(pfnHex(frame))}, then offset ${c(offHex(off))}, side by side: real address ${c(paHex(pa))}, no directory opened.`
+      : `Room ${c(pfnHex(frame))}, then offset ${c(offHex(off))}, side by side: the real address, the {term:physical address}, ${c(paHex(pa))}.`);
     return pa;
   }
   function fill(va, frame) {
@@ -534,7 +582,7 @@ export function build(s, p, scenario, env = {}) {
     s.send(s.uid("fill"), "t3", "tlb", { via: "air", key: "frame", text: `${vpnHex(vpn)} → ${pfnHex(frame)}` });
     s.beat();
     const [v, f] = showSlot(ins.slot);
-    if (ins.evicted) s.tag(`tlb.v${ins.slot}`, `evict ${tileVpn(ins.evicted.vpn)}`, { tone: "warn" });
+    if (ins.evicted) s.tag(`tlb.v${ins.slot}`, `replaces ${tileVpn(ins.evicted.vpn)}`, { tone: "warn" });
     s.set(`tlb.v${ins.slot}`, { text: v.text, tone: null, state: v.state });
     if (keyedTlb && keyedTlb !== `tlb.p${ins.slot}`) s.set(keyedTlb, { key: null });
     s.set(`tlb.p${ins.slot}`, { text: f.text, tone: null, key: "frame", state: f.state });
@@ -542,11 +590,10 @@ export function build(s, p, scenario, env = {}) {
     s.lit(`tlb.v${ins.slot}`, `tlb.p${ins.slot}`);
     s.set("tlb", { state: tlbState() });
     s.line(14);
-    s.focus("t3", "tlb");
-    const what = ins.evicted ? mem.pages.get(ins.evicted.vpn)?.what : null;
-    s.step(`The {ref:tlb|TLB} keeps ${c(`${vpnHex(vpn)} → ${pfnHex(frame)}`)}` + (ins.evicted
-      ? `, evicting ${c(vpnHex(ins.evicted.vpn))}${what ? ` (${what})` : ""}, its least recently used entry.`
-      : " in a free entry."));
+    s.focus(...(fault ? ["tlb"] : ["t3", "tlb"]));                     // the fault layout puts the kernel between them
+    s.step(`A sticky note now maps page ${c(vpnHex(vpn))} to room ${c(pfnHex(frame))}` + (ins.evicted
+      ? ", replacing the note used longest ago."
+      : ", on a free note."));
   }
   function readByte(va, pa, via, path, extra) {
     const off = va % 4096;
@@ -554,50 +601,51 @@ export function build(s, p, scenario, env = {}) {
     const b = byteAt(mem.seed, vpnOf(va), off);
     s.set(t, { key: "offset" });
     s.lit(t);
-    s.tag(t, `al = ${hx(b, 2)} '${String.fromCharCode(b)}'`);
-    logLoads.push({ va: vaHex(va), pa: paHex(pa), via, ...(path ? { path } : {}) });
+    s.tag(t, `${hx(b, 2)} '${String.fromCharCode(b)}'`);
+    logLoads.push({ va: vaHex(va), pa: paHex(pa), via, who: "A", ...(path ? { path } : {}) });
     s.set("page", { state: { frame: pfnHex(Math.floor(pa / 4096)), base: paHex(Math.floor(pa / 4096) * 4096), loads: logLoads.slice() } });
     s.focus("page", "pa");
     s.line(null);
-    s.step(`The load reads byte ${c(hx(b, 2))} at ${c(paHex(pa))}. ${extra}`);
+    s.step(`The byte at ${c(paHex(pa))} is ${c(hx(b, 2))}. ${extra}`);
+    return b;
   }
 
   // ---- the run ----
-  s.phase("Address", { about: "Programs use virtual addresses, so the CPU must translate each one before it can read memory. The low 12 bits are the byte's offset inside a 4 KiB page; the upper bits name the page." });
+  s.phase("Apartment numbers", { about: "Think of a building where each program has its own apartment numbers. A directory per program turns a number into a real room, so two programs can use the same number safely." });
   s.line(2);
-  s.step(`${c("movzx eax, byte [rdi]")} loads one byte from ${target.what} at ${c(vaHex(va0))}. Where is it in physical memory?` +
-    (target.note ? ` (You typed an address the figure cannot use: ${target.note}.)` : ""));
-  splitOffset(va0, true);
+  s.focus("va", "pa");
+  s.step(`The program reads one byte at ${c(vaHex(va0))}. That number is its own address, a {term:virtual address}.` +
+    (target.note ? ` (You typed an address the figure cannot use: ${target.note}.)` : ""), { keep: true });
+  splitOffset(va0);
   splitVpn(va0);
 
-  s.phase("TLB", { about: "First the CPU checks the TLB, a tiny cache of recent page translations. A hit gives the physical frame in about one cycle; a miss means reading the page tables in memory." });
+  s.phase("Sticky notes", { about: "Reading the directory is slow, because it sits in memory too. So the CPU keeps sticky notes of recent lookups, the {term:TLB}, and checks them first, in one {term:cycle}." });
   if (sc === "hit") {
     const r = lookup(va0);
-    s.phase("Load", { about: "The TLB had the frame, so the CPU joins frame number and offset into a physical address and reads the byte. The page tables were never touched." });
+    s.phase("The real room", { about: "The note already had the room, so the CPU puts the offset after it to get the real address and reads the byte. The directory is never opened." });
     const pa = formPA(va0, r.pfn, "tlb");
-    readByte(va0, pa, "tlb", null, `The page tables were never touched: a walk from DRAM would have added 4 × ${COST.dram} = ${4 * COST.dram} cycles.`);
+    readByte(va0, pa, "tlb", null, `Walking the directory would have added ${4 * COST.dram} cycles.`);
     s.focus("tlb", "t0", "t1", "t2", "t3");
-    s.step(`Translation cost ${plural(cycles, "cycle")}. Programs touch the same pages over and over, so real TLBs hit over 99% of the time.`);
+    s.step(`Finding the room cost ${plural(cycles, "cycle")}. Real programs reuse pages, so notes answer over 99% of lookups.`);
     return;
   }
 
   lookup(va0);
-  s.phase("Page walk", { about: "On a miss, the hardware walks four levels of page tables. Each 9-bit slice of the page number picks an entry that points to the next table" +
-    (fault ? ", until the last entry says the page is not in memory." : ", until the last one gives the physical frame.") });
+  s.phase("The directory", { about: "On a miss, the CPU reads this program's directory, the {term:page table}. It has four levels, and each 9-bit slice of the page number picks one line in one of them." });
   let w = coldWalk(va0);
 
   if (fault) {
-    s.phase("Page fault", { about: "The last entry's present bit is 0: the page is not in RAM. The CPU traps into the kernel, which reads the page from the SSD into a free frame, maps it and returns." });
+    s.phase("Fetch from disk", { about: "The page's boxes went to storage: the operating system moved it to disk to free memory. This is a {term:page fault}: the CPU stops, and the {term:kernel} copies the page back." });
     const pt = w.fault;
-    s.send(s.uid("pf"), "t3", "kernel", { via: "air", tone: "fail", text: "#PF" });
+    s.send(s.uid("pf"), "t3", "kernel", { via: "air", tone: "fail", text: "page fault" });
     s.beat();
     s.set("kernel", { led: "busy" });
-    s.tag("kernel", `CR2 = ${vaHex(va0)}`, { tone: "fail" });
+    s.tag("kernel", `address ${vaHex(va0)}`, { tone: "fail" });
     s.count("faults");
     spend(COST.trap);
     s.line(19, 20);
     s.focus("t3", "kernel");
-    s.step(`#PF: the CPU saves the address in CR2 and traps into the {ref:kernel|kernel} (≈ 1 µs, ${fmt.int(COST.trap)} cycles at ${GHZ} GHz).`);
+    s.step(`The CPU stops the program and hands the address to the {term:kernel}: about 1 µs, ${fmt.int(COST.trap)} cycles.`);
 
     s.set("ssd", { led: "busy", state: { device: "NVMe SSD", slot: hx(mem.swapSlot, 3), page: vpnHex(vpn0), reads: 1 } });
     s.set("page", { title: "page", led: "busy" });
@@ -606,7 +654,7 @@ export function build(s, p, scenario, env = {}) {
     spend(COST.ssd);
     s.line(21, 22);
     s.focus("ssd", "page");
-    s.step(`The entry names swap slot ${c(hx(mem.swapSlot, 3))}. The kernel reads those 4 KiB from the SSD into free frame ${c(pfnHex(mem.faultFrame))}: ≈ 20 µs, ${fmt.int(COST.ssd)} cycles.`);
+    s.step(`Its directory line names disk slot ${c(hx(mem.swapSlot, 3))}. Copying 4 KiB into free room ${c(pfnHex(mem.faultFrame))} takes ${fmt.int(COST.ssd)} cycles.`);
 
     const pte = (BigInt(mem.faultFrame) << 12n) | DATA;
     words.set(pt.addr, pte);
@@ -621,32 +669,35 @@ export function build(s, p, scenario, env = {}) {
     s.set("kernel", { led: "idle", state: { handled: true, frame: pfnHex(mem.faultFrame), slot: hx(mem.swapSlot, 3) } });
     s.line(23, 24);
     s.focus("kernel", "t3");
-    s.step(`It writes PT[${pt.i}] = frame ${c(pfnHex(mem.faultFrame))} with P = 1 and returns. The CPU runs the same load again, from the top.`);
+    s.step(`The kernel writes room ${c(pfnHex(mem.faultFrame))} into line ${pt.i}, marks it present, and returns. The read starts over.`);
 
-    s.phase("Retry", { about: "The CPU runs the same load again from the start. The TLB still misses, so it walks again, this time finds the page, fills the TLB and reads the byte." });
-    s.ask("The load runs again. Does the TLB hit this time?", ["Yes: the kernel just mapped the page", "No: it misses and walks again"], 1);
+    s.phase("Try again", { about: "The CPU runs the same read again from the start. No sticky note has the page, so it walks the directory again; this time its lines are in the fast {term:cache}." });
+    s.ask("The read starts over. Will a sticky note have the page now?",
+      ["Yes: the kernel just put the page in memory", "No: no note was written, so it walks again"], 1,
+      { why: "The CPU writes a note only after a walk that finds the room, and the kernel fixed the directory, not the notes." });
     lookup(va0, { quiet: true });
-    s.step(`Still a TLB {tone:warn|miss}: the CPU never caches a not-present entry, and the kernel does not fill the TLB.`);
-    const prev = null;
-    w = warmWalk(va0, prev);
+    s.step(`Still no note: a {tone:warn|miss}. The CPU only writes a note after a walk that succeeds.`, { keep: true });
+    w = quickWalk(va0, (reads, cost, hits) => (hits === 4
+      ? `The same 4 directory lines again, but now from the {term:cache}: ${COST.cache} cycles each, ${cost} in all.`
+      : `The same 4 directory lines again: ${hits} from the {term:cache}, ${4 - hits} from memory, ${cost} cycles.`));
     const pa = formPA(va0, w.frame, "walk");
     fill(va0, w.frame);
-    readByte(va0, pa, "walk", w.path, `${plural(cycles, "cycle")} for one byte; the SSD read alone is ${fmt.pct(COST.ssd / cycles)}.`);
+    readByte(va0, pa, "walk", w.path, `${plural(cycles, "cycle")} for one byte, ${fmt.pct(COST.ssd / cycles)} of it the disk.`);
     s.focus("tlb", "kernel", "t3", "ssd", "page");
-    s.step(`A TLB hit costs 1 cycle and a cold walk ${1 + 4 * COST.dram}; this fault cost ${fmt.int(cycles)}. That gap is why the OS works so hard to keep pages resident.`);
+    s.step(`A note hit costs 1 cycle and a full walk ${1 + 4 * COST.dram}; this trip to disk cost ${fmt.int(cycles)}.`);
     return;
   }
 
-  // ---- TLB miss: the cold walk, then locality ----
-  s.phase("Fill", { about: "The walk found the frame. The CPU stores the translation in the TLB, so later loads from this page skip the walk, then reads the byte." });
+  // ---- a new address: the cold walk, then the same page again, then another program ----
+  s.phase("The real room", { about: "The walk found the page's room. The CPU puts the offset after the room number to get the real address, writes a sticky note for next time, and reads the byte." });
   const pa0 = formPA(va0, w.frame, "walk");
   fill(va0, w.frame);
   const first = cycles;
-  readByte(va0, pa0, "walk", w.path, `Translating it cost ${plural(first, "cycle")}: 1 for the TLB and ${4 * COST.dram} for four DRAM reads.`);
+  const byteA = readByte(va0, pa0, "walk", w.path, `Finding its room cost ${plural(first, "cycle")}, mostly directory reads.`);
 
-  s.phase("Same page", { about: "The program reads on through the same page. Every load shares the page number, so each one hits the TLB entry just filled and costs one cycle." });
   let loads = 1;
   if (off0 < 4095) {
+    s.phase("Same page again", { about: "The program reads on through the same page. Every byte there shares the page number, so the sticky note just written answers in one cycle." });
     const v1 = va0 + 1;
     const ch = setVA(v1);
     s.lit(...ch);
@@ -655,13 +706,15 @@ export function build(s, p, scenario, env = {}) {
     s.lit(...paCells(0, 11));
     s.focus("va", "pa");
     s.line(2, 3);
-    s.step(`The program is scanning the buffer: the next load reads ${c("rdi + 1")} = ${c(vaHex(v1))}, in the same page.`);
-    s.ask(`How many cycles will translating ${vaHex(v1)} take?`, ["1", `${1 + 4 * COST.dram}`, `${1 + 4 * COST.cache}`], 0);
+    s.step(`Next it reads the following byte, ${c(vaHex(v1))}: the same page, one byte further in.`);
+    s.ask("How long will finding this byte's room take?",
+      [`${fmt.int(first)} cycles again: every read walks the directory`, "1 cycle: a sticky note has this page", "About half: part of the walk is remembered"], 1,
+      { why: `Both bytes are in page ${vpnHex(vpn0)}, and the note written a moment ago already maps that page to its room.` });
     const r = lookup(v1, { quiet: true });
-    s.step(`TLB {tone:ok|hit}: same page, same entry, frame ${c(pfnHex(r.pfn))} in 1 cycle. No walk at all.`);
+    s.step(`A sticky note {tone:ok|has} page ${c(vpnHex(vpn0))}: room ${c(pfnHex(r.pfn))} in 1 cycle, no directory read.`, { keep: true });
     loads++;
     const pa1 = formPA(v1, r.pfn, "tlb");
-    readByte(v1, pa1, "tlb", null, `Two loads, ${plural(cycles, "cycle")} of translation.`);
+    readByte(v1, pa1, "tlb", null, `Two reads so far: ${plural(cycles, "cycle")}.`);
     const last = vpn0 * 4096 + 4095;
     const rest = last - v1;
     if (rest > 0) {
@@ -673,42 +726,74 @@ export function build(s, p, scenario, env = {}) {
       s.count("hits", rest);
       spend(rest * COST.tlb);
       loads += rest;
-      logLoads.push({ va: `${vaHex(v1 + 1)} … ${vaHex(last)}`, loads: rest, via: "tlb" });
+      logLoads.push({ va: `${vaHex(v1 + 1)} … ${vaHex(last)}`, loads: rest, via: "tlb", who: "A" });
       const slot = T.slots().findIndex((x) => x && x.vpn === vpn0);
       s.lit(`tlb.v${slot}`, `tlb.p${slot}`);
       s.tag(`tlb.v${slot}`, `${fmt.int(rest)} hits`, { tone: "ok" });
       s.focus("va", "pa", "tlb");
-      s.step(`The scan reads on to the end of the page: ${fmt.int(rest)} more loads, up to ${c(vaHex(last))}, all {tone:ok|hit} this entry at 1 cycle each.`);
+      s.step(`It reads on to the page's end: ${fmt.int(rest)} more bytes, each found by the note in 1 cycle.`);
     }
+    s.focus("va", "tlb");
+    s.step(`${fmt.int(loads)} reads, ${fmt.int(cycles)} cycles: about ${fmt.num(cycles / loads, 1)} each. One slow lookup, then the note did the rest.`);
   }
-  const v2 = (vpn0 + 1) * 4096;
-  if (v2 < USER_TOP && mem.pages.has(vpn0 + 1)) {
-    s.phase("Next page", { about: "Crossing into the next page needs a new translation, so the TLB misses again. Neighbouring pages share most of the walk, so its table reads can come from the CPU cache instead of DRAM." });
-    const prevReads = [0, 1, 2, 3].map((L) => ({ i: index(va0, L), addr: pathOf(va0)[L].addr }));
-    const ch = setVA(v2);
-    s.lit(...ch);
-    s.beat();
-    setPA(null, 0);
-    s.focus("va", "pa");
-    s.line(2, 3);
-    s.step(`At ${c(vaHex(v2))} the scan crosses into the next page, ${c(vpnHex(vpn0 + 1))}: a new page number, so a new translation.`);
-    lookup(v2);
-    const ptSame = (prevReads[3].addr >> 6n) === (pathOf(v2)[3].addr >> 6n);
-    // the answer comes from the cache model, not from an assumption: probe the lines the walk will read
-    const dramReads = pathOf(v2).filter((x) => !C.lookup(Number(x.addr)).hit).length;
-    const choices = ["All 4, like last time", "None of them", "Just the PT entry"];
-    const answer = dramReads === 4 ? 0 : dramReads === 0 ? 1 : dramReads === 1 && !C.lookup(Number(pathOf(v2)[3].addr)).hit ? 2 : -1;
-    if (answer >= 0) s.ask(`The walk for page ${vpnHex(vpn0 + 1)} reads four entries again. How many come from DRAM?`, choices, answer);
-    const ww = warmWalk(v2, prevReads);
-    loads++;
-    const pa2 = formPA(v2, ww.frame, "walk");
-    fill(v2, ww.frame);
-    readByte(v2, pa2, "walk", ww.path, ptSame
-      ? `Eight 8-byte entries share a 64-byte line, so neighbouring pages walk almost for free.`
-      : `This page's entry lives in another line, so part of the walk went back to DRAM.`);
+
+  // ---- program B: the same address, its own directory ----
+  const B = mem.other;
+  s.phase("Another program", { about: "The operating system now runs program B, which uses the very same address for its own data. B has its own directory, so the number leads to a different room." });
+  cr3Now = BigInt(B.cr3) << 12n;
+  T.flush();                                                           // a CR3 write drops every user TLB entry (no PCIDs)
+  s.set("cr3", { sub: paHex(Number(cr3Now)), state: cr3State("B") });
+  s.set("cr3.v", { sub: tilePfn(B.cr3), state: { pml4: pfnHex(B.cr3) } });
+  s.tag("cr3", "program B", { tone: "busy" });
+  for (let k = 0; k < N; k++) {
+    const [v, f] = showSlot(k);
+    s.set(`tlb.v${k}`, { text: v.text, tone: v.tone, state: v.state });
+    s.set(`tlb.p${k}`, { text: f.text, tone: f.tone, key: null, state: f.state });
   }
-  s.focus("va", "tlb", "t0", "t1", "t2", "t3", "page");
-  s.step(`${fmt.int(loads)} loads, ${fmt.int(cycles)} translation cycles: ${fmt.num(cycles / loads, 1)} per load. One cold walk, then locality pays it back.`);
+  keyedTlb = null;
+  s.set("tlb", { led: "idle", state: tlbState() });
+  setPA(null, Number(paShown & 0xfffn));                               // A's room no longer applies
+  s.lit("cr3.v");
+  s.line(null);
+  s.focus("cr3", "tlb");
+  s.step(`The operating system switches to program B: {term:CR3} now holds B's directory, and A's sticky notes are wiped.`, { keep: true });
+
+  const chB = setVA(va0);
+  s.lit(...chB);
+  s.beat();
+  setPA(null, off0);
+  lookup(va0, { quiet: true });
+  s.step(`Program B reads the very same address, ${c(vaHex(va0))}. No sticky note has it: a {tone:warn|miss}.`);
+
+  s.ask("B uses the same address as A. Whose byte will B read?",
+    ["A's byte: an address is one fixed place in memory", "Its own byte: B's directory points to another room", "Neither: two programs can't share an address"], 1,
+    { why: "Every program has its own directory. B's lines lead to a room the operating system gave B, so A's room is never reached." });
+  const pfnB = B.pages.get(vpn0).pfn;
+  s.set("page", { title: "A's page" });
+  s.housing("pageB", { in: "dram", title: "B's page", sub: paHex(pfnB * 4096), tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { frame: pfnHex(pfnB), base: paHex(pfnB * 4096), program: "B", loads: [] } });
+  const winB = Math.max(0, Math.min(4093, off0 - 1));
+  for (let k = 0; k < 3; k++) s.tile(`pageB.b${k}`, { in: "pageB", of: "record", ...byteContent(vpn0, winB + k, "B") });
+  s.trace("w4b", "t3", "pageB");
+  s.beat();
+  const wB = quickWalk(va0, (reads, cost) => `B's own directory, read line by line (${cost} cycles), leads to room ${c(pfnHex(Number(reads[3].next >> 12n)))}, not ${c(pfnHex(pfn0))}.`);
+  const paB = formPA(va0, wB.frame, "walk", { page: "pageB", via: "w4b",
+    say: (pa) => `Room ${c(pfnHex(wB.frame))}, then the same offset ${c(offHex(off0))}: B's real address is ${c(paHex(pa))}.` });
+  fill(va0, wB.frame);
+  const byteB = byteAt(mem.seed, vpn0, off0, "B");
+  const tB = `pageB.b${off0 - winB}`;
+  s.set(tB, { key: "offset" });
+  const tA = byteTile(off0);                                           // A's byte at the same offset, still there
+  s.set(tA, { key: "offset" });
+  s.lit(tB, tA);
+  s.tag(tB, `${hx(byteB, 2)} '${String.fromCharCode(byteB)}'`);
+  s.set("pageB", { state: { frame: pfnHex(wB.frame), base: paHex(wB.frame * 4096), program: "B", loads: [{ va: vaHex(va0), pa: paHex(paB), via: "walk", who: "B", path: wB.path }] } });
+  s.focus("page", "pageB", "pa");
+  s.line(null);
+  s.step(`Program B reads ${c(hx(byteB, 2))} from room ${c(pfnHex(wB.frame))}. A's byte, ${c(hx(byteA, 2))}, sits untouched in room ${c(pfnHex(pfn0))}.`);
+  s.tag("page", "program A", { tone: "ok" });
+  s.tag("pageB", "program B", { tone: "busy" });
+  s.focus("page", "pageB");
+  s.step("Same address, two rooms: each program's own directory keeps their data apart.");
 }
 
 // ---- invariants ---------------------------------------------------------------------------------------------
@@ -716,12 +801,12 @@ export function build(s, p, scenario, env = {}) {
 const scenarioId = (x) => (typeof x === "string" ? x : x?.id ?? "miss");
 const refOf = (ctx) => { const t = resolveAddress(ctx.params); return memoryMap(ctx.params.seed, t.va, scenarioId(ctx.scenario)); };
 const oracles = new Map();
-/** machine.mjs's page-table model holding the same virtual → physical mapping (its own table frames). */
-function oracle(mem, handled) {
-  const k = `${mem.seed}|${mem.vpn}|${mem.faultFrame}|${handled}|${mem.swapSlot}`;
+/** machine.mjs's page-table model holding the same virtual → physical mapping as one program (its own table frames). */
+function oracle(mem, handled, who = "A") {
+  const k = `${mem.seed}|${mem.vpn}|${mem.faultFrame}|${handled}|${mem.swapSlot}|${who}|${mem.other.cr3}`;
   if (oracles.has(k)) return oracles.get(k);
   const pt = pageTable();
-  for (const [vpn, pg] of mem.pages) {
+  for (const [vpn, pg] of who === "B" ? mem.other.pages : mem.pages) {
     const pfn = pg.pfn ?? (handled && vpn === mem.vpn ? mem.faultFrame : null);
     if (pfn !== null) pt.map(vpn * 4096, pfn * 4096);
   }
@@ -738,25 +823,29 @@ const readBits = (snap, id, width) => {
   return v;
 };
 const handledIn = (snap) => !!stateOf(snap, "kernel")?.handled;
+const runningIn = (snap) => stateOf(snap, "cr3")?.program ?? "A";
 
 export const invariants = {
-  // the physical address on screen is what an independent page-table model says this virtual address maps to
+  // the physical address on screen is what an independent page-table model says this virtual address maps to,
+  // for the program that is running
   "physical address = reference translation": (snap, ctx) => {
     const va = readBits(snap, "va", 48), pa = readBits(snap, "pa", PA_BITS);
     if (va === null || pa === null) return "the address strips are missing";
     if (pa >> 12n === 0n) return true;                                 // the frame part is not known yet
-    const want = oracle(refOf(ctx), handledIn(snap)).translate(Number(va));
-    if (want === null) return `PA ${paHex(Number(pa))} is shown for ${vaHex(Number(va))}, which the reference says faults`;
-    return BigInt(want) === pa || `PA ${paHex(Number(pa))} is shown for ${vaHex(Number(va))}; the reference says ${paHex(want)}`;
+    const who = runningIn(snap);
+    const want = oracle(refOf(ctx), handledIn(snap), who).translate(Number(va));
+    if (want === null) return `PA ${paHex(Number(pa))} is shown for ${vaHex(Number(va))}, which the reference says faults (program ${who})`;
+    return BigInt(want) === pa || `PA ${paHex(Number(pa))} is shown for ${vaHex(Number(va))}; the reference says ${paHex(want)} (program ${who})`;
   },
-  // every completed walk read exactly the entries the address bits select, each pointing at the next table
+  // every completed walk read exactly the entries the address bits select, from its program's CR3, each pointing
+  // at the next table
   "each walk follows the address bits": (snap, ctx) => {
-    const loads = stateOf(snap, "page")?.loads ?? [];
-    const cr3 = BigInt(refOf(ctx).cr3) << 12n;
+    const ref = refOf(ctx);
+    const loads = [...(stateOf(snap, "page")?.loads ?? []), ...(stateOf(snap, "pageB")?.loads ?? [])];
     for (const ld of loads) {
       if (!ld.path) continue;
       const va = BigInt(ld.va.replaceAll("_", ""));
-      let table = cr3;
+      let table = BigInt(ld.who === "B" ? ref.other.cr3 : ref.cr3) << 12n;
       for (let L = 0; L < 4; L++) {
         const st = ld.path[L], e = BigInt(st.entry.replaceAll("_", ""));
         if (BigInt(st.table.replaceAll("_", "")) !== table) return `${ld.va}: level ${LEVELS[L]} read table ${st.table}, expected ${hx(table, 10)}`;
@@ -766,12 +855,14 @@ export const invariants = {
       }
       const pa = table | (va & 0xfffn);
       if (pa !== BigInt(ld.pa.replaceAll("_", ""))) return `${ld.va}: the walk ends at ${hx(pa, 8)} but the load used ${ld.pa}`;
+      const want = oracle(ref, true, ld.who ?? "A").translate(Number(va));
+      if (want !== null && BigInt(want) !== pa) return `${ld.va} (program ${ld.who}): the walk ends at ${hx(pa, 8)}, the reference says ${paHex(want)}`;
     }
     return true;
   },
-  // the TLB is a cache of the page tables: every entry it holds is a translation the tables really contain
+  // the TLB is a cache of the running program's page tables: every entry it holds is a translation they contain
   "TLB agrees with the page tables": (snap, ctx) => {
-    const ref = oracle(refOf(ctx), handledIn(snap));
+    const ref = oracle(refOf(ctx), handledIn(snap), runningIn(snap));
     const seen = new Set();
     for (let k = 0; k < 8; k++) {
       const st = stateOf(snap, `tlb.v${k}`);
