@@ -1,7 +1,7 @@
 // node --test engine/gfx/skin.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { skin, SKIN_KINDS, toneColors, bezier, inkOn } from "./skin.mjs";
+import { skin, SKIN_KINDS, toneColors, bezier, inkOn, chevron } from "./skin.mjs";
 import { DrawList } from "../contracts.mjs";
 import { PALETTE, SIZE, MOTION, ACCENT, GLOW, keyColor } from "../tokens.mjs";
 import { galleryScene } from "./gallery-scene.mjs";
@@ -325,4 +325,33 @@ test("tile sub-labels print at a readable size and strength; a ghost that says s
   assert.equal(g.label.color, P.inkMuted);
   const [b] = run([{ id: "b", kind: "bit", x: 0, y: 0, text: "0" }]).slabs;
   assert.equal(b.label.color, P.inkFaint);
+});
+
+test("trace arrows: an inlaid chevron at the receiving port, in the trace's own groove and light", () => {
+  const pts = [[0, 0], [100, 0]];
+  const base = { id: "p", kind: "trace", points: pts, key: 2, tone: "key" };
+  assert.equal(run([base]).grooves.length, 1, "no arrow unless asked");
+  const dl = run([{ ...base, arrow: "end" }]);
+  assert.equal(dl.grooves.length, 2);
+  const [line, ch] = dl.grooves;
+  assert.equal(ch.points.length, 3);
+  assert.equal(ch.style, line.style); assert.equal(ch.width, line.width); assert.equal(ch.glowColor, line.glowColor);
+  const [a1, tip, a2] = ch.points;
+  assert.ok(tip[0] < 100 && tip[0] > 96 && Math.abs(tip[1]) < 1e-9, "the tip stands just off the port");
+  assert.ok(a1[0] < tip[0] && a2[0] < tip[0] && a1[1] * a2[1] < 0, "the arms sweep back on both sides");
+  assert.ok(ch.glow >= line.glow);
+  // both ends, and the chevron grows in only as the trace finishes growing
+  assert.equal(run([{ ...base, arrow: "both" }]).grooves.length, 3);
+  const start = chevron(pts, 0);
+  assert.ok(start.tip[0] > 0 && start.tip[0] < 4 && start.dir[0] < 0);
+  assert.equal(run([{ ...base, arrow: "end", grow: 0.5 }]).grooves.length, 1);
+  // a packet landing lights it; a short stub has none; it reads at small scales (min px size)
+  const landing = run([{ ...base, arrow: "end", pulses: [{ s0: 40, s1: 98, key: 2, intensity: 1 }] }]).grooves[1];
+  assert.ok(landing.glow > ch.glow);
+  assert.equal(chevron([[0, 0], [6, 0]], 1), null);
+  const far = chevron(pts, 1, 0.5), near = chevron(pts, 1, 2);
+  assert.ok(Math.hypot(far.points[0][0] - far.tip[0], far.points[0][1] - far.tip[1]) > Math.hypot(near.points[0][0] - near.tip[0], near.points[0][1] - near.tip[1]));
+  // direction follows the last stretch of a rounded path
+  const up = chevron([[0, 100], [0, 20], [2, 6], [8, 1], [20, 0], [60, 0]], 1);
+  assert.ok(up.dir[0] > 0.99);
 });

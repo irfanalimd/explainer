@@ -423,6 +423,7 @@ export function createSampler(tl) {
   function emitConnection(inc, rec, t, pose) {
     const g = geomAt(inc, t);
     pose.style = rec.style ?? "groove"; pose.dashed = !!rec.dashed;
+    if (rec.kind === "trace") pose.arrow = rec.arrow ?? null;
     pose.x = 0; pose.y = 0; pose.z = 0; pose.h = 0;
     pose.glow = 0;
     pose.pulses = [];

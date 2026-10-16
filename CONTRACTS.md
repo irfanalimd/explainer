@@ -168,7 +168,8 @@ Housings act as containers: `in: "m0"` puts a tile in m0's tray. A container lay
 
 **Connections**:
 ```js
-s.trace(id, from, to, { route: "auto" | "straight" | "orth", fromSide, toSide /* "left"|"right"|"top"|"bottom" */, style })
+s.trace(id, from, to, { route: "auto" | "straight" | "orth", fromSide, toSide /* "left"|"right"|"top"|"bottom" */, style, key, tone, dashed,
+                        arrow /* true | "end" | "both": an inlaid chevron at the receiving port */ })   // from === to: a self-loop
 s.bus(id, { from: [ids], to: [ids], via /* spacer or gap */ })   // one trunk + branches, PCB style (shuffles, broadcasts)
 s.lanes(id, { for: [entity ids], in, at, length, scale /* u per sim ms */, label, unit = "ms" })
                                       // a space-time board: one rail per entity; `lane:true` sends draw diagonals on it
@@ -246,7 +247,7 @@ Implement every transition in `DESIGN.md` section 8: move along traces (lift, po
   tone /* "neutral" | "key" | "ok" | "busy" | "warn" | "fail" | "idle" | "ghost" */, key /* index | null */,
   text, sub, textOut, roll /* 0..1 */,
   title, led, meter, tray /* {x, y, w, d} local to the housing centre */,
-  points /* [[x,y]…] for trace/bus/lane/bracket */, pulses /* [{s0, s1, key, intensity}] */, grow, style, dashed,
+  points /* [[x,y]…] for trace/bus/lane/bracket */, pulses /* [{s0, s1, key, intensity}] */, grow, style, dashed, arrow /* trace: "end" | "both" | null */,
   t /* lane mark time */, label }
 ```
 

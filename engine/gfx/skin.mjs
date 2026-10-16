@@ -349,16 +349,68 @@ function trace(p, dl, ctx, width) {
   const toned = !print && !message && p.tone && p.tone !== "key" && p.tone !== "neutral" && keyC;
   const glow = Math.max(clamp(num(p.glow, pulses.length ? 0.6 : 0), 0, 1), toned ? 0.35 : 0) * GLOW.trace * (1 - dim);
   const w = print ? 1.3 : message ? Math.min(width, 2.6) : width;
-  for (const pts of polylines(p.points)) {
+  const opacity = num(p.opacity, 1) * (1 - 0.5 * dim) * (print ? 0.85 : 1);
+  const lines = polylines(p.points);
+  for (const pts of lines) {
     if (!pts || pts.length < 2) continue;
     dl.groove({
       id: p.id, points: pts, width: w, style, pulses, grow: p.grow,
       glow, glowColor: keyC,
       dash: p.dashed ? [6, 5] : undefined, flow: p.dashed ? 16 : undefined,
-      opacity: num(p.opacity, 1) * (1 - 0.5 * dim) * (print ? 0.85 : 1),
+      opacity,
       color: print ? keyC ?? P.inkFaint : undefined,
     });
   }
+  // direction: an inlaid chevron cut at the receiving port (both ports for "both"), in the trace's own groove and
+  // light; it lights up as something arrives through it
+  const arrow = p.kind === "trace" && !print && !message ? p.arrow : null;
+  const pts = lines[lines.length - 1];
+  if ((arrow === "end" || arrow === "both" || arrow === true) && pts && pts.length >= 2) {
+    const grown = p.grow == null ? 1 : clamp((num(p.grow, 1) - 0.86) / 0.14, 0, 1);
+    if (grown > 0) {
+      const ends = arrow === "both" ? [1, 0] : [1];
+      for (const end of ends) {
+        const ch = chevron(pts, end, ctx.pxPerUnit, w);
+        if (!ch) continue;
+        // a pulse whose head is near this end lights the chevron as it lands
+        let land = 0;
+        for (const q of pulses) {
+          const head = end ? q.s1 : ch.total - q.s1;
+          land = Math.max(land, q.intensity * clamp(1 - Math.abs(ch.total - head) / ARROW.landing, 0, 1));
+        }
+        dl.groove({
+          id: p.id, points: ch.points, width: w, style, glowColor: keyC ?? pulses[0]?.color,
+          glow: Math.min(4, glow * ARROW.glow + land * 0.6),
+          opacity: opacity * grown,
+        });
+      }
+    }
+  }
+}
+
+// the chevron's size in u: big enough to read at the frame's scale, never a clip-art triangle
+const ARROW = { len: 6.2, minPx: 8, maxLen: 10, spread: 0.78, back: 1.6, glow: 1.35, landing: 26 };
+/** Chevron polyline at one end of a polyline (end 1: the last point, 0: the first), pointing out of the line. */
+export function chevron(pts, end, pxPerUnit = 1, width = SIZE.trace.w) {
+  let total = 0;
+  for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const L = clamp(Math.max(ARROW.len, ARROW.minPx / Math.max(pxPerUnit, 1e-3)), ARROW.len, ARROW.maxLen);
+  if (total < L * 1.6) return null;
+  // the direction of travel over the last stretch (rounded corners make the final segments short)
+  const seq = end ? pts : pts.slice().reverse();
+  const tip0 = seq[seq.length - 1];
+  let k = seq.length - 2, back = 0;
+  while (k > 0 && back < L) { back += Math.hypot(seq[k + 1][0] - seq[k][0], seq[k + 1][1] - seq[k][1]); k--; }
+  let dx = tip0[0] - seq[k][0], dy = tip0[1] - seq[k][1];
+  const dl = Math.hypot(dx, dy);
+  if (dl < 1e-6) return null;
+  dx /= dl; dy /= dl;
+  const nx = -dy, ny = dx;
+  // the tip stands just off the housing's wall, the arms sweep back at about 38 degrees
+  const tb = ARROW.back + width * 0.5;
+  const tip = [tip0[0] - dx * tb, tip0[1] - dy * tb];
+  const ax = tip[0] - dx * L, ay = tip[1] - dy * L, h = L * ARROW.spread;
+  return { points: [[ax + nx * h, ay + ny * h], tip, [ax - nx * h, ay - ny * h]], tip, dir: [dx, dy], total };
 }
 
 // a bus: the trunk, its branches, and rounded tees where a branch meets the trunk side-on

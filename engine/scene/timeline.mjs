@@ -573,7 +573,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
       }
       case "set": {
         const pr = op.props, prev = op.prev;
-        const visible = ["text", "sub", "key", "tone", "led", "title", "meter", "dim", "variant", "label", "size", "around", "dashed"].some((k) => pr[k] !== undefined && pr[k] !== prev[k]);
+        const visible = ["text", "sub", "key", "tone", "led", "title", "meter", "dim", "variant", "label", "size", "around", "dashed", "arrow"].some((k) => pr[k] !== undefined && pr[k] !== prev[k]);
         p.visual = visible;
         p.nd = pr.text !== undefined && pr.text !== prev.text ? MOTION.roll + 0.32 : 0.5;
         if (pr.led === "fail" || pr.tone === "fail") p.events.push("fail");

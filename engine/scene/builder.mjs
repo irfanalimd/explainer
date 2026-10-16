@@ -9,9 +9,11 @@ import { rng as localRng } from "./rng.mjs";
 export const ROOT = "@root";
 const OFS = new Set(["tile", "record", "bit", "page"]);
 const VARIANTS = new Set(["node", "client", "store", "queue", "chip"]);
-const SET_PROPS = new Set(["text", "sub", "key", "tone", "led", "title", "meter", "dim", "state", "variant", "label", "size", "around", "dashed"]);
+const SET_PROPS = new Set(["text", "sub", "key", "tone", "led", "title", "meter", "dim", "state", "variant", "label", "size", "around", "dashed", "arrow"]);
+// a trace's direction cue: an inlaid chevron at the `to` end (true / "end"), at both ends ("both"), or none
+const arrowOf = (v) => (v === true || v === "end" ? "end" : v === "both" ? "both" : null);
 // connections only draw these; anything else set on them would be silently ignored, so it is a problem
-const KIND_PROPS = { trace: new Set(["tone", "dashed", "dim", "state"]), bus: new Set(["tone", "dim", "state"]) };
+const KIND_PROPS = { trace: new Set(["tone", "key", "dashed", "dim", "state", "arrow"]), bus: new Set(["tone", "dim", "state"]) };
 
 const idOf = (x) => (x && typeof x === "object" ? x.id : x);
 
@@ -218,6 +220,7 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
       create({
         id, kind: "trace", parent: null, from: idOf(from), to: idOf(to), route: o.route ?? "auto",
         fromSide: o.fromSide ?? null, toSide: o.toSide ?? null, style: o.style ?? "groove", dashed: !!o.dashed, tone: o.tone ?? null,
+        key: o.key ?? null, keyIndex: keyOf(o.key), arrow: arrowOf(o.arrow),
       });
       return { id };
     },
@@ -300,6 +303,7 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
         else if (k === "variant") p.variant = VARIANTS.has(v) ? v : rec.variant;
         else if (k === "around") p.around = Object.freeze((v ?? []).map(idOf).filter((x) => need(x, `set "${rec.id}" around`)));
         else if (k === "dashed") p.dashed = !!v;
+        else if (k === "arrow") p.arrow = arrowOf(v);
         else p[k] = v;
       }
       record({ op: "set", id: rec.id, props: Object.freeze(p), prev: rec });
