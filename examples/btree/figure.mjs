@@ -3,6 +3,22 @@
 // root (one page read per level), lands in the one leaf where the key belongs, and an overflowing page splits: a leaf
 // copies its right half's first key up, an inner page pushes its middle key up, and a root split grows the tree a
 // level at the top. A range scan at the end descends once and then walks the leaf chain.
+//
+// Lesson plan (references/teaching.md)
+//   Reader      knows arrays, sorting and dictionaries; has never met an index or a page.
+//   Level       core.
+//   Hook        how does a database find one row by reading three or four pages instead of every row?
+//   Picture     a library: books in a pile (a table with no index) must be checked spine by spine; shelves of 3
+//               books in order (leaf pages), signposts that say which aisle (inner pages and their separators),
+//               the signpost at the door (the root), walking from the door to one shelf (the descent, one page per
+//               level), a crowded shelf becoming two (a split), shelves side by side (the leaf chain).
+//   Problem     chapter 1 checks the arriving ids one by one until the target turns up, for real.
+//   Ladder      Without an index · One page · Leaf split · Descend · Root split (two stories) · Range scan
+//   Misconception "a search checks every page" (predicted at Descend) and "the tree grows at the bottom"
+//               (predicted at the root split).
+//   Stories     Ids in any order · Ids that only grow · The top page fills up
+// Each question sits on its chapter's first step (the range scan's on its second), because the HUD withholds a
+// chapter's about until its predictions are revealed.
 
 import { rng } from "../../sim/rng.mjs";
 import * as fmt from "../../sim/fmt.mjs";
@@ -10,46 +26,72 @@ import { stateOf } from "../../sim/inspect.mjs";
 
 export const meta = {
   title: "B+ tree",
-  subtitle: "Inserting keys, splitting pages, growing at the root",
+  subtitle: "How a database finds one row without reading them all",
   kicker: "Databases",
   fig: 7,
+  level: "core",
   cite: { text: "D. Comer, “The Ubiquitous B-Tree”, ACM Computing Surveys, 1979", url: "https://doi.org/10.1145/356770.356776" },
   theme: "dark",
+  hook: "A table of a million orders. How does a database find one order in three or four reads, instead of checking every row?",
+  terms: {
+    index: "a sorted guide that says where each row is, like the tabs of a phone book",
+    page: "a fixed-size block that the disk reads in one go; here it holds a few ids",
+    root: "the top block of the tree, where every search starts",
+    leaf: "a block at the bottom of the tree, holding the ids themselves",
+    separator: "an id in an upper block that says which way to go: smaller ids go left",
+  },
+  recap: [
+    "Without an index, finding one id meant checking them one by one.",
+    "The tree keeps ids sorted in pages; a full page splits in two.",
+    "Signposts in the upper pages lead each search down, one page per level.",
+    "The bottom pages are linked, so a range is a walk along them.",
+  ],
+  takeaway: "A B+ tree finds any id by reading one page per level, and stays shallow because full pages split and it grows at the top.",
 };
 
 export const params = {
-  order: { label: "Max keys per page", type: "int", min: 3, max: 5, value: 3 },
-  n: { label: "Keys to insert", type: "int", min: 4, max: 14, value: 10 },
-  pattern: {
-    label: "Insert order", type: "select", value: "random",
-    options: [{ value: "random", label: "Random ids" }, { value: "sequential", label: "Auto-increment ids" }],
-  },
-  input: { label: "Keys (overrides)", type: "text", value: "" },
-  scan: { label: "Range scan at the end", type: "bool", value: true },
+  order: { label: "Ids per page", type: "int", min: 3, max: 5, value: 3 },
+  n: { label: "How many ids", type: "int", min: 4, max: 14, value: 10 },
+  input: { label: "Your own ids (optional)", type: "text", value: "" },
+  scan: { label: "Finish with a range search", type: "bool", value: true },
   seed: { label: "Seed", type: "int", value: 7 },
 };
 
 export const scenarios = [
-  { id: "random", label: "Random inserts", params: { pattern: "random" },
-    description: "Keys arrive in random order, land in leaves all over the tree, and full pages split to make room." },
-  { id: "sequential", label: "Sequential inserts", params: { pattern: "sequential" },
-    description: "Ids arrive in increasing order, so every insert takes the rightmost path and splits leave half-full leaves behind." },
+  { id: "random", label: "Ids in any order", params: { pattern: "random" }, whatIf: "the ids arrive in any order",
+    description: "Ids arrive in random order, land in pages all over the tree, and full pages split in two." },
+  { id: "sequential", label: "Ids that only grow", params: { pattern: "sequential" }, whatIf: "every new id is bigger than the last",
+    description: "Each new id is bigger than the last, so every insert goes to the far right and leaves half-full pages behind.",
+    takeaway: "Ids that only grow fill only the right edge: each split leaves a half-full page behind that never fills again.",
+    recap: [
+      "Every new id was the biggest so far, so it went to the far right.",
+      "Each split left a half-full page behind that no later id would reach.",
+      "The tree grew taller and emptier than it needed to be.",
+    ] },
   // chosen so every split leaves two half-full leaves: the fifth leaf overflows the root at the 10th insert
-  { id: "rootsplit", label: "Root split", params: { order: 3, input: "41 18 63 29 75 52 11 24 84 89 57 35" },
-    description: "Small pages fill fast: a leaf split overflows the root, and the tree grows a new level at the top." },
+  { id: "rootsplit", label: "The top page fills up", params: { order: 3, input: "41 18 63 29 75 52 11 24 84 89 57 35" }, whatIf: "the top page fills up too",
+    description: "Small pages fill fast, until the top page itself is full and the tree grows a new level on top.",
+    takeaway: "When the top page fills, it splits and a new top page appears above it, so every bottom page stays equally deep.",
+    recap: [
+      "Full pages split, and each split sent one id up to the page above.",
+      "When the top page filled, it split too, and a new top page appeared.",
+      "The tree grew at the top, so every search still reads one page per level.",
+    ] },
 ];
 
 export const counters = {
-  height: { label: "tree height", short: "height", format: "int", primary: true,
-    hint: "Levels from the root down to the leaves. Every lookup reads one page per level." },
+  height: { label: "levels", format: "int", primary: true,
+    hint: "Pages from the top of the tree to the bottom. Every search reads one page per level." },
   pages: { label: "pages", format: "int",
-    hint: "Pages the tree uses, inner pages and leaves together." },
-  reads: { label: "page reads", format: "int",
-    hint: "Pages read to find where each key belongs: one per level, for every insert." },
-  splits: { label: "page splits", short: "splits", format: "int", primary: true,
-    hint: "Times a full page split in two to make room for a key." },
-  fill: { label: "leaf fullness", short: "leaf fill", format: "pct", primary: ["sequential"],
-    hint: "How full the leaf pages are on average. Emptier leaves waste disk space and cache." },
+    hint: "Pages the tree uses, signpost pages and bottom pages together." },
+  reads: { label: "pages read", format: "int",
+    hint: "Pages read to find where each id belongs: one per level, for every insert." },
+  splits: { label: "pages split in two", short: "splits", format: "int", primary: true,
+    hint: "Times a full page split into two half-full ones to make room." },
+  fill: { label: "how full the bottom pages are", short: "fullness", format: "pct", primary: ["sequential"],
+    hint: "How full the bottom pages are on average. Emptier pages waste disk space and memory." },
+  scanned: { label: "ids checked one by one", short: "checked", format: "int",
+    hint: "Without an index, finding one id means checking each until it turns up." },
 };
 
 export const code = {
@@ -223,7 +265,7 @@ function run(s, p, scenario, env, keys, dry) {
   const page = (leaf, level) => ({ id: `p${++pageNo}`, leaf, level, keys: [], kids: [], next: null, over: false });
   const height = () => root.level + 1;
   const leaves = () => { const out = []; let n = root; while (!n.leaf) n = n.kids[0]; for (; n; n = n.next) out.push(n); return out; };
-  const subOf = (n) => (n === root ? (n.leaf ? "root · leaf" : "root") : n.leaf ? "leaf" : "inner");
+  const subOf = (n) => (n === root ? (n.leaf ? "root · leaf" : "root") : n.leaf ? "leaf" : "signposts");
   const state = (n) => ({ page: n.id, leaf: n.leaf, level: n.level, keys: n.keys.slice(), children: n.kids.map((c) => c.id), next: n.next ? n.next.id : null, over: n.over });
   const sync = (...ns) => { for (const n of ns) s.set(n.id, { state: state(n), sub: subOf(n) }); };
   const syncTree = () => s.set("inserts", { state: { root: root.id, order: M, height: height(), inserted: inserted.slice(), pending: pending.slice() } });
@@ -248,8 +290,8 @@ function run(s, p, scenario, env, keys, dry) {
   const step = (caption) => { s.focus("world"); s.step(caption); };
   s.column("world", { gap: portrait ? 40 : 54, align: "center" });
   s.housing("inserts", {
-    in: "world", variant: "queue", title: sequential ? "insert · auto-increment" : "insert",
-    sub: `${keys.length} keys`, tray: { cols: portrait ? Math.ceil(keys.length / 2) : keys.length, of: "tile" },
+    in: "world", variant: "queue", title: sequential ? "new ids · growing" : "new ids",
+    sub: `${keys.length} ids`, tray: { cols: portrait ? Math.ceil(keys.length / 2) : keys.length, of: "tile" },
   });
   for (const k of keys) s.tile(`k${k}`, { in: "inserts", text: k, key: band(k), state: { key: k } });
   const housing = (n, index) => s.housing(n.id, { in: `lvl${n.level}`, index, title: n.id, sub: subOf(n), tray, led: "ok", state: state(n) });
@@ -265,13 +307,26 @@ function run(s, p, scenario, env, keys, dry) {
   feed();
   syncTree();
   gauges();
-  s.phase("One page", { about: `An empty tree is a single page that is both the root and a leaf. A page here fits ${M} keys; until it is full, an insert only keeps the page sorted.` });
+  // ---- the problem first: with no index, finding one id means checking them one by one ----
+  s.phase("Without an index", { about: "Think of a library with no signs and no order: to find one book, you check every spine. A table with no {term:index} works the same way." });
   step(sequential
-    ? `An index on \`orders.id\`: ${keys.length} auto-increment ids to insert, ${M} keys per page`
-    : `An index on \`orders.id\`: ${keys.length} ids to insert into a B+ tree with ${M} keys per page`);
+    ? `${keys.length} orders arrive, each id one bigger than the last. Nothing sorts them yet.`
+    : `${keys.length} orders arrive, their ids in no order, like books dropped in a pile.`);
+  const tIdx = Math.min(keys.length - 1, Math.floor(keys.length * 0.7)), target = keys[tIdx], checks = tIdx + 1;
+  // a marker walks the pile, one id per beat, until the target turns up
+  s.pointer("scan", { at: `k${keys[0]}`, text: "check", tone: "busy" });
+  for (let k = 1; k <= tIdx; k++) { s.beat(); s.point("scan", `k${keys[k]}`); }
+  s.lit(`k${target}`);
+  s.tag(`k${target}`, `found: ${fmt.plural(checks, "check")}`);
+  s.count("scanned", checks);
+  s.focus("inserts");
+  s.step(`Without an index, finding ${chip(target)} means checking ids one by one: ${fmt.plural(checks, "check")}.`);
+
+  s.remove("scan", { style: "fade" });
+  s.phase("One page", { about: `A B+ tree keeps ids sorted in {term:page|pages}, like books on a shelf. A page here holds ${M} ids. The first page is also the {term:root}, where every search starts.` });
 
   // ---- one insert: descend, comparing against separators, then land in the leaf in sorted order ----
-  let splitPhase = false, insertPhase = false, innerPhase = false, asked = 0;
+  let splitPhase = false, insertPhase = false, innerPhase = false;
   function insert(k) {
     const path = [];
     let n = root;
@@ -289,21 +344,21 @@ function run(s, p, scenario, env, keys, dry) {
     s.move(`k${k}`, n.id, { index: pos });
     s.count("reads", path.length + 1);
     n.over = n.keys.length > M;
-    if (n.over) { s.set(n.id, { led: "warn" }); s.tag(n.id, `${n.keys.length} keys > ${M}`, { tone: "warn" }); }
+    if (n.over) { s.set(n.id, { led: "warn" }); s.tag(n.id, `${n.keys.length} ids, room for ${M}`, { tone: "warn" }); }
     sync(n);
     syncTree();
     gauges();
     s.line(path.length ? 3 : 6, 6);
     const where = pos === 0 ? (n.keys.length > 1 ? `in front of ${n.keys[1]}` : "") : pos === n.keys.length - 1 ? `after ${n.keys[pos - 1]}` : `between ${n.keys[pos - 1]} and ${n.keys[pos + 1]}`;
-    const tail = n.over ? `, and ${ref(n)} {tone:warn|overflows} to ${n.keys.length} keys` : where ? `, ${where}` : "";
+    const tail = n.over ? `, now {tone:warn|over-full}` : where ? `, ${where}` : "";
     if (!path.length) {
-      step(`Insert ${chip(k)}: the root is the only page, so it goes straight in${tail}`);
+      step(`Insert ${chip(k)}: it goes straight into the only page${tail}`);
     } else {
       const cmp = path.map(({ n: a, ci }) => {
         const c = ci === 0 ? `${k} < ${a.keys[0]}` : ci === a.keys.length ? `${k} ≥ ${a.keys[ci - 1]}` : `${a.keys[ci - 1]} ≤ ${k} < ${a.keys[ci]}`;
         return `\`${c}\` at ${ref(a)}`;
       });
-      step(`Insert ${chip(k)}: ${cmp.join(", ")}; it lands in leaf ${ref(n)}${tail}`);
+      step(`Insert ${chip(k)}: ${cmp.join(", ")}, so into leaf ${ref(n)}${tail}`);
     }
     return { leaf: n, path: path.map((e) => e.n) };
   }
@@ -379,18 +434,18 @@ function run(s, p, scenario, env, keys, dry) {
     else s.move(`sep${sep}`, P.id, { index: si });
     P.over = P.keys.length > M;
     s.set(x.id, { led: "ok" });
-    if (P.over) { s.set(P.id, { led: "warn" }); s.tag(P.id, `${P.keys.length} keys > ${M}`, { tone: "warn" }); }
+    if (P.over) { s.set(P.id, { led: "warn" }); s.tag(P.id, `${P.keys.length} ids, room for ${M}`, { tone: "warn" }); }
     else if (growing) s.tag(G.id, `height ${height() - 1} → ${height()}`, { tone: "ok" });
     sync(x, R, P);
     syncTree();
     gauges();
     s.line(leaf ? 9 : 14, leaf ? 12 : 17);
 
-    const half = `${list(R.keys)} ${R.keys.length === 1 ? "moves" : "move"} to new ${leaf ? "leaf" : "page"} ${ref(R)}`;
-    const up = leaf ? `${chip(sep)} is **copied** up` : `${chip(sep)} is **pushed** up`;
-    const dest = growing ? `into new root ${ref(G)}: ${height()} levels now` : `to ${ref(P)}`;
-    const over = P.over ? `, which {tone:warn|overflows}` : "";
-    step(`${ref(x)} splits: ${half}; ${up} ${dest}${over}`);
+    // a leaf keeps its ids and sends a copy up; a signpost page hands its middle id up and keeps it no more
+    const half = `${fmt.and(R.keys.map(String))} ${R.keys.length === 1 ? "moves" : "move"} to ${leaf ? "leaf" : "page"} ${ref(R)}`;
+    const up = leaf ? `${chip(sep)} is copied up` : `${chip(sep)} moves up`;
+    const over = P.over ? `, now {tone:warn|over-full}` : "";
+    step(`${ref(x)} splits: ${half}; ${up} ${growing ? "into a new root" : `to ${ref(P)}`}${over}.`);
     return P;
   }
 
@@ -399,29 +454,39 @@ function run(s, p, scenario, env, keys, dry) {
   for (const k of keys) {
     if (splitPhase && !insertPhase) {
       insertPhase = true;
-      s.phase("Descend", { about: sequential
-        ? "Each insert reads one page per level, comparing the key with the separators. Ascending ids always take the rightmost path, so only the right edge of the tree ever fills."
-        : "Each insert reads one page per level, comparing the key with the separators to choose a child, until it reaches the one leaf where the key belongs." });
+      s.phase("Descend", { about: "To insert an id, start at the root and follow its signposts down, one page per level, to the one leaf where the id belongs." +
+        (sequential ? " Ids that only grow always take the rightmost path, so only the right edge fills." : "") });
+      // the misconception: "a search checks every page"
+      if (pageNo > height()) {
+        s.ask(`Where does ${k} go? How many pages must be read to find out?`,
+          [`${height()}: one page per level`, `All ${pageNo} pages, to be sure`, "Only 1: it goes straight to a leaf"], 0,
+          { why: `The root's signposts point to exactly one page below it, so the search reads one page per level: ${height()} here.` });
+      }
     }
     const { leaf, path } = insert(k);
     let x = leaf;
     while (x.over) {
       if (x.leaf && !splitPhase) {
         splitPhase = true;
-        s.phase("Leaf split", { about: "A full leaf splits into two half-full pages. The right page's smallest key is copied up to the parent as a separator, and the leaf chain is relinked around the new page." });
-        if (!willInnerSplit && !asked) {
-          asked++;
-          s.ask(`${x.id} holds ${x.keys.length} keys, but a page fits ${M}. What happens to it?`,
-            ["It splits into two half-full leaves", "The extra key goes to an overflow page", "The page grows to make room"], 0);
+        s.phase("Leaf split", { about: "A full {term:leaf} splits into two half-full leaves, like one crowded shelf becoming two. The right leaf's first id is copied up as a signpost, a {term:separator}: smaller ids go left, the rest right." });
+        if (!willInnerSplit) {
+          s.ask(`${x.id} holds ${x.keys.length} ids, but a page fits ${M}. What happens to it?`,
+            ["It splits into two half-full pages", "The new id gets a page of its own", `The page grows to fit ${x.keys.length}`], 0,
+            { why: "A page has a fixed size on disk, so it cannot grow. Splitting it in half leaves room in both halves for later ids." });
         }
       }
       if (!x.leaf && !innerPhase) {
         innerPhase = true;
-        s.phase(x === root ? "Root split" : "Inner split", { about: "An inner page that overflows splits too, but its middle key is pushed up rather than copied: separators only route searches. When the root splits, a new root appears above it and the tree grows one level, at the top." });
-        if (asked < 2) {
-          asked++;
-          s.ask(`${x.id} now holds ${x.keys.length} separators, one too many. What happens?`,
-            [`It splits and pushes its middle key up${x === root ? " into a new root" : ""}`, "It splits and copies its middle key up, like a leaf", "It keeps the extra key in an overflow page"], 0);
+        s.phase(x === root ? "Root split" : "Signpost split", { about: "A signpost page that is over-full splits too, and its middle id moves up out of it. When the root splits, a new root appears on top: the tree grows at the top, never at the bottom." });
+        // the misconception: "the tree grows at the bottom"
+        if (x === root) {
+          s.ask(`${x.id} is the top page, and it is over-full too. Where does the tree get its new level?`,
+            ["At the bottom: the leaves go a level deeper", "At the top: a new root appears above it", `Nowhere: ${x.id} just keeps ${x.keys.length} ids`], 1,
+            { why: `${x.id} splits and its middle id moves up into a brand-new root. So every leaf stays equally deep.` });
+        } else {
+          s.ask(`${x.id} is a signpost page, and it is over-full too. What happens to it?`,
+            ["It splits, and its middle id moves up to the page above", "Its extra id moves down into a leaf", `Nothing: it just keeps ${x.keys.length} ids`], 0,
+            { why: "Signpost pages split like leaves. Their middle id moves up instead of being copied, since the leaves already hold every id." });
         }
       }
       x = split(x, path);
@@ -436,9 +501,9 @@ function run(s, p, scenario, env, keys, dry) {
   s.line(null);
   const minLeaf = Math.floor((M + 1) / 2);
   const thin = ls.slice(0, -1).filter((n) => n.keys.length === minLeaf).length;
-  step(sequential && ls.length > 2
-    ? `All ${keys.length} ids are in: ${height()} levels, ${pageNo} pages. ${thin} of ${ls.length} leaves were left half full and never fill again: ${fill}% on average`
-    : `All ${keys.length} keys are in: ${height()} levels, ${pageNo} pages, ${ls.length} leaves ${fill}% full on average`);
+  step(sequential && ls.length > 2 && thin > 0
+    ? `All ${keys.length} ids are in, but ${thin} of ${ls.length} leaves sit half full: new ids never land there.`
+    : `All ${keys.length} ids are in. Finding any one now reads ${fmt.plural(height(), "page")}; the pile took ${fmt.plural(checks, "check")}.`);
 
   if (!p.scan) return { ...stats };
 
@@ -447,8 +512,8 @@ function run(s, p, scenario, env, keys, dry) {
   const i0 = Math.floor(sorted.length * 0.3), i1 = Math.min(sorted.length - 1, i0 + 4);
   const lo = Math.max(i0 > 0 ? sorted[i0 - 1] + 1 : 1, Math.floor(sorted[i0] / 5) * 5);
   const hi = Math.min(i1 < sorted.length - 1 ? sorted[i1 + 1] - 1 : 99, Math.ceil(sorted[i1] / 5) * 5);
-  s.phase("Range scan", { about: "Leaves are linked left to right, so a range query descends once, to the leaf where its first key would be, then walks the leaf chain sideways instead of climbing back up the tree." });
-  s.set("inserts", { title: "query", sub: `id ${lo}–${hi}` });
+  s.phase("Range scan", { about: "To find every id in a range, go down once, to the first one. The leaves are linked left to right, like shelves side by side, so the search then walks along them." });
+  s.set("inserts", { title: "find", sub: `ids ${lo}–${hi}` });
   const path = [];
   let n = root;
   while (!n.leaf) { const ci = upper(n.keys, lo); path.push({ n, ci }); n = n.kids[ci]; }
@@ -469,15 +534,15 @@ function run(s, p, scenario, env, keys, dry) {
   s.beat();
   let r = take(n);
   s.line(28);
-  step(`\`WHERE id BETWEEN ${lo} AND ${hi}\`: one descent of ${fmt.plural(path.length + 1, "page read")} reaches leaf ${ref(n)}` +
+  step(`Find ids ${lo} to ${hi}: going down reads ${fmt.plural(path.length + 1, "page")} to leaf ${ref(n)}` +
     (r.hits.length ? `, where ${list(r.hits)} match` : `, where nothing matches yet`));
   let hop = 0;
   while (!r.done) {
     const next = n.next;
-    if (!hop++ && asked < 2) {
-      asked++;
-      s.ask(`${ref(n)} is used up and the range goes on. How does the scan reach the next keys?`,
-        ["It follows the leaf chain sideways", "It climbs back up to the parent", "It descends again from the root"], 0);
+    if (!hop++) {
+      s.ask(`${n.id} is used up, and the range goes on. How does the search reach the next ids?`,
+        ["It walks along to the next leaf", "It climbs back up to the page above", "It starts again from the root"], 0,
+        { why: "Each leaf keeps a link to the next one, so the search walks sideways and never re-reads the pages above." });
     }
     s.send(s.uid("q"), n.id, next.id, { key: band(lo) });
     s.beat();
@@ -488,13 +553,13 @@ function run(s, p, scenario, env, keys, dry) {
     r = take(n);
     s.line(29, 33);
     const stop = n.keys.find((k) => k > hi);
-    step(`The chain leads to ${ref(n)}` + (r.hits.length ? `: ${list(r.hits)} match` : "") +
-      (stop !== undefined ? `${r.hits.length ? "; " : ": "}${stop} > ${hi}, so the scan stops` : !n.next ? ", the last leaf" : ""));
+    step(`Walk on to leaf ${ref(n)}` + (r.hits.length ? `: ${list(r.hits)} match` : "") +
+      (stop !== undefined ? `${r.hits.length ? "; " : ": "}${stop} is past ${hi}, so the search stops` : !n.next ? ", the last leaf" : ""));
   }
   for (const l of leaves()) for (const k of l.keys) if (!found.includes(k)) s.set(`k${k}`, { dim: true });
   s.focus("world");
   s.lit(...found.map((k) => `k${k}`));
   s.line(null);
-  step(`${fmt.plural(found.length, "key")} found with ${fmt.plural(reads, "page read")}: ${path.length + 1} down the tree, ${reads - path.length - 1} along the chain`);
+  step(`${fmt.plural(found.length, "id")} found with ${fmt.plural(reads, "page read")}: ${path.length + 1} going down, ${reads - path.length - 1} walking along the leaves.`);
   return { ...stats };
 }

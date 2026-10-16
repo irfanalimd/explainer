@@ -1,35 +1,49 @@
-# B+ tree: insert and split
+# B+ tree: how a database finds one row without reading them all
 
-A real B+ tree (Comer, "The Ubiquitous B-Tree", ACM Computing Surveys 11(2), 1979, section 3) indexes `orders.id`.
-Keys live only in the leaves; inner pages hold separators that only route searches; leaves are chained left to
-right. Each page is a housing, each key a tile coloured by its value band (10–19, 20–29, …), so sorted order and a
-range read as runs of colour. The reader should come away knowing:
+A real B+ tree (Comer, "The Ubiquitous B-Tree", ACM Computing Surveys 11(2), 1979, section 3) indexes `orders.id`,
+written for a beginner who knows arrays and sorting but has never met an index (`meta.level: "core"`). Ids live only
+in the bottom pages (the leaves); upper pages hold signposts (separators) that only route searches; leaves are linked
+left to right. Each page is a housing, each id a tile coloured by its value band (10–19, 20–29, …), so sorted order
+and a range read as runs of colour.
 
-- An insert reads one page per level: at each inner page, `bisect_right(keys, key)` picks the child.
-- A full leaf splits in half. The right half's first key is **copied** up: it stays in the leaf and becomes a
-  separator in the parent. The leaf chain is relinked around the new page.
-- An inner page that overflows splits too, but its middle key is **pushed** up and leaves the page.
-- When the root splits, a new root appears above it: a B+ tree grows at the top, so every leaf stays at the same
-  depth.
-- A range query descends once, then walks the leaf chain sideways.
+**The lesson** (the plan sits at the top of `figure.mjs`):
 
-- **What is real:** the whole algorithm, at the knob's page size (3–5 keys). Leaves split `ceil((m+1)/2)` left and
-  the rest right; an inner page of m+1 keys keeps `floor((m+1)/2)`, pushes the next up and moves the rest right.
-  Page reads are counted as one per page visited. The range bounds are picked from the inserted keys.
-- **Simplifications:** keys are unique; no deletes, no latches, no write-ahead log; pages hold keys only (no record
+- **Hook:** a table of a million orders. How does a database find one order in three or four reads, instead of
+  checking every row?
+- **Picture:** a library. Books in a pile (a table with no index) must be checked spine by spine. Shelves of 3 books
+  in order are leaf pages; signposts saying which aisle are the upper pages and their separators; the signpost at the
+  door is the root; walking from the door to one shelf is the descent, one page per level; a crowded shelf becoming
+  two is a split; shelves side by side are the leaf chain.
+- **Problem first:** chapter 1 checks the arriving ids one by one, a "check" marker walking the pile, until the
+  target turns up (8 checks for 10 ids). The summary compares: any id now takes one page read per level.
+- **Chapters:** Without an index · One page · Leaf split · Descend · Root split (in two stories) · Range scan.
+- **Misconceptions:** "a search checks every page" (predicted at the first descent: 2 pages, one per level) and
+  "the tree grows at the bottom" (predicted at the root split: a new root appears on top).
+- **Words:** index, page, root, leaf, separator, each defined at first use.
+
+Every predict question sits on its chapter's first step (the range scan's on its second), because the HUD withholds
+a chapter's about until its predictions are revealed.
+
+- **What is real:** the whole algorithm, at the knob's page size (3–5 ids). Leaves split `ceil((m+1)/2)` left and
+  the rest right; an inner page of m+1 ids keeps `floor((m+1)/2)`, sends the next up and moves the rest right.
+  Page reads are counted as one per page visited. The range bounds are picked from the inserted ids. The opening
+  scan really checks the arriving ids in order until it reaches the target.
+- **Simplifications:** ids are unique; no deletes, no latches, no write-ahead log; pages hold ids only (no record
   pointers); every rightmost split is a plain half split. Real engines special-case it (InnoDB splits at the insert
-  point; PostgreSQL fills the rightmost leaf to its fillfactor) precisely because of what "Sequential inserts" shows.
+  point; PostgreSQL fills the rightmost leaf to its fillfactor) precisely because of what "Ids that only grow" shows.
 
-## Scenarios
+## Stories
 
-| tab | story | what it teaches |
+| Story | What happens | What it teaches |
 |---|---|---|
-| Random inserts | 10 random two-digit ids, 3 keys per page. | Leaf splits copy a separator up; the tree stays 2 levels with leaves 83 % full. Predict: what happens to a page with 4 keys? Then a range scan follows the chain. |
-| Sequential inserts | 10 auto-increment ids. | Every insert takes the rightmost path; each split leaves a half-full leaf behind that never fills again (67 %), and the tree reaches 3 levels with the same 10 keys. |
-| Root split | `41 18 63 29 75 52 11 24 84 89 57 35`, chosen so every split leaves two half-full leaves. | The fifth leaf overflows the root at the 10th insert: the root splits, pushes 63 up into a new root, and the tree grows a level. Predict: push or copy? Two more inserts then descend 3 levels. |
+| Ids in any order | 10 random two-digit ids, 3 per page. Predicts: what happens to a page with 4 ids? How many pages does finding 15's place read? How does the range search reach the next ids? | Leaf splits copy a signpost up; the tree stays 2 levels with leaves 83 % full; a range search goes down once and walks along the leaves. |
+| Ids that only grow | 10 ids, each one bigger than the last. | Every insert takes the rightmost path; each split leaves a half-full leaf behind that never fills again (67 %), and the tree reaches 3 levels with the same 10 ids. |
+| The top page fills up | `41 18 63 29 75 52 11 24 84 89 57 35`, chosen so every split leaves two half-full leaves. | The fifth leaf overflows the root at the 10th insert. Predict: where does the new level go? The root splits, 63 moves up into a new root, and the tree grows at the top. Two more inserts then descend 3 levels. |
 
-Knobs: max keys per page (3–5), keys to insert (4–14), insert order, a typed key list, range scan on or off, seed.
-Counters: height, pages, page reads, splits, leaf fill.
+Knobs: ids per page (3–5), how many ids (4–14), your own ids, finish with a range search, seed. The old "Insert
+order" knob is gone: the stories set it (`pattern` is a hidden scenario param).
+Numbers: levels and pages split in two (in the dock), how full the bottom pages are (in the dock for "Ids that only
+grow"), pages, pages read, ids checked one by one.
 
 Layout: landscape draws one row per level, root on top, leaf chain along the bottom. A portrait phone draws the
 tree on its side (root on the left, one column per level, the leaf chain running down) so pages stay legible.
@@ -47,7 +61,8 @@ tree on its side (root on the left, one column per level, the leaf chain running
 ## Commands
 
 ```sh
-node ../../scripts/verify.mjs figure.mjs                 # 18 runs, 0 failing
+node ../../scripts/lesson.mjs figure.mjs --all           # the lesson as text, then the teaching checks
+node ../../scripts/verify.mjs figure.mjs                 # 17 runs, 0 failing
 node ../../scripts/build.mjs figure.mjs                  # b-tree.html
 node ../../scripts/shoot.mjs b-tree.html --scenario all
 node ../../scripts/audit.mjs b-tree.html --scenario all
