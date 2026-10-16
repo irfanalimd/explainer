@@ -160,7 +160,7 @@ s.container(id, { in, at, of, cols, rows, axis: "x" | "y" | "z", label, indices:
                                       // a tray-less arrangement on the floor: an array, a queue, a stack (axis z piles up)
 s.tile(id, { in /* container or housing */, index, of = "tile", text, sub, key, tone, state })
 s.array(id, values, { in, at, label, indices = true, of = "tile", keyOf })   // -> { id, cells: [tileId…], cell(i) }
-s.bits(id, { in, at, width, value, fields: [{ name, from, to, key }] })   // -> { id, cells } bit i = cell(i), msb first
+s.bits(id, { in, at, width, value, fields: [{ name, from, to, key, label }] })   // -> { id, cells } bit i = cell(i), msb first
 s.pointer(id, { at /* tile id */, text, tone })
 s.text(id, { in, at, text, size, tone })                      // floor text
 ```

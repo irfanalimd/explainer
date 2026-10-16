@@ -183,7 +183,7 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
     },
     bits(id, o = {}) {
       const width = o.width ?? 8;
-      const fields = (o.fields ?? []).map((f) => ({ name: f.name, from: Math.min(f.from, f.to), to: Math.max(f.from, f.to), key: f.key ?? null }));
+      const fields = (o.fields ?? []).map((f) => ({ name: f.name, label: f.label ?? null, from: Math.min(f.from, f.to), to: Math.max(f.from, f.to), key: f.key ?? null }));
       s.container(id, { in: o.in, at: o.at, of: "bit", axis: "x", capacity: width, fields, label: o.label ?? null });
       const v = BigInt(Math.trunc(Number(o.value ?? 0)));
       const byBit = [];

@@ -227,10 +227,11 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
   tile per value.
   - It returns `{ id, cells, cell(i) }`. Cell ids are `` `${id}[${i}]` ``.
   - Each cell's `state` is `{ value }`.
-- `s.bits(id, { in, at, width = 8, value, fields: [{ name, from, to, key }] })` makes a row of bit tiles, **msb first**.
+- `s.bits(id, { in, at, width = 8, value, fields: [{ name, from, to, key, label }] })` makes a row of bit tiles, **msb first**.
   - `cell(i)` is bit i (0 = lsb), and `cells` is the visual order (msb first).
-  - `from` and `to` are bit numbers, inclusive. Each field is printed as a floor bracket with its name, and its bits take
-    the field's key.
+  - `from` and `to` are bit numbers, inclusive. Each field is printed as a floor bracket with its name (or its `label`,
+    such as `"PML4 · bits 47–39"`), and its bits take the field's key. The bracket is the field's only label: do not add
+    floor text of your own under the row (the audit reports a bracket name that runs into another print).
   - A bit whose text is `"0"` draws as a ghost.
 - `s.pointer(id, { at: tileId, text = id, tone, follow = "slot" })` is a rod with a flag, standing in front of a slot.
   - `follow: "slot"` (the default) keeps it on the **slot** when values swap under it. Use this for index variables like

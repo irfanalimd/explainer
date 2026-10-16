@@ -166,7 +166,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
         const kl = width - 1 - f.to, kr = width - 1 - f.from;
         if (kl < 0 || kr >= width) return null;
         const xl = sx(kl) - sw / 2 + 1, xr = sx(kr) + sw / 2 - 1;
-        return { name: f.name, key: f.key === null || f.key === undefined ? null : keyIndexOf(f.key), lx: (xl + xr) / 2, ly: yt + 12, points: [[xl, yt], [xl, yt + 4], [xr, yt + 4], [xr, yt]] };
+        return { name: f.name, label: f.label ?? f.name, key: f.key === null || f.key === undefined ? null : keyIndexOf(f.key), lx: (xl + xr) / 2, ly: yt + 12, points: [[xl, yt], [xl, yt + 4], [xr, yt + 4], [xr, yt]] };
       }).filter(Boolean);
     }
     return out;

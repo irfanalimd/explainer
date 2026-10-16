@@ -376,7 +376,7 @@ export function createSampler(tl) {
         const dy = top < front ? front - top : 0;
         poses.push({
           id: `${inc.id}#${br.name}`, kind: "bracket", x: pose.x + br.lx, y: pose.y + br.ly + dy, z: 0,
-          points: br.points.map(([x, y]) => [pose.x + x, pose.y + y + dy]), label: br.name, text: br.name, key: br.key, tone: br.key !== null ? "key" : "neutral", opacity: pose.opacity, dim: pose.dim,
+          points: br.points.map(([x, y]) => [pose.x + x, pose.y + y + dy]), label: br.label ?? br.name, text: br.label ?? br.name, key: br.key, tone: br.key !== null ? "key" : "neutral", opacity: pose.opacity, dim: pose.dim,
         });
       }
     }

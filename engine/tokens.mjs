@@ -139,6 +139,7 @@ export const SIZE = {
   lane:    { w: 4, tickMinor: 10, tickMajor: 50, label: 7, gap: 56 },
   zone:    { r: 20, pad: 28, title: 10 },
   pointer: { h: 26, rod: 1.4, flag: 11, label: 8 },
+  bracket: { label: 6.5, dy: 7, tracking: 0.06 },  // a bitfield bracket's name, printed under it on the floor
   meter:   { h: 4, r: 2 },
 
   gutter: 84,    // default gap between columns / boards

@@ -573,7 +573,7 @@ function bracket(p, dl, ctx) {
   const pts = [[x0, y - hook], [x0, y - rr], [x0 + rr * 0.3, y - rr * 0.3], [x0 + rr, y], [x1 - rr, y], [x1 - rr * 0.3, y - rr * 0.3], [x1, y - rr], [x1, y - hook]];
   dl.groove({ id: p.id, z: num(p.z, 0) + 0.06, points: pts, width: 0.85, style: "print", color: col, opacity: 0.9 * op });
   const name = p.text ?? p.label ?? p.title;
-  if (name) dl.text({ z: num(p.z, 0) + 0.06, x: (x0 + x1) / 2, y: y + 6.5, text: name, font: "mono", weight: 500, size: 5.8, upper: true, tracking: 0.06, color: col, opacity: op });
+  if (name) dl.text({ z: num(p.z, 0) + 0.06, x: (x0 + x1) / 2, y: y + SIZE.bracket.dy, text: name, font: "mono", weight: 600, size: SIZE.bracket.label, upper: true, tracking: SIZE.bracket.tracking, color: col, opacity: op });
 }
 
 function pointer(p, dl, ctx) {
