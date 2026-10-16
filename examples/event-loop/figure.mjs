@@ -330,7 +330,8 @@ export function build(s, p, scenario, env) {
   const cfg = settings(p);
   const portrait = !!env?.portrait;
   const chunky = sc === "starve" || sc === "yield";
-  const vm = machine(s, cfg, sc);
+  // the lesson is things moving between the boxes, so every step frames the whole runtime, on every screen
+  const vm = machine(s, cfg, sc, { whole: "rt" });
 
   // ---- the world ----
   if (portrait) {
@@ -377,7 +378,7 @@ export function build(s, p, scenario, env) {
 // The event loop machine. It owns the model (queues, stack, timers, promises) and narrates every change through `s`.
 // A callback is one tile for its whole life: registered (spawned from the caller's frame into Web APIs, promise
 // reactions or the microtask queue), queued, run (it becomes the frame on the stack), returned (it sinks).
-function machine(s, cfg, sc) {
+function machine(s, cfg, sc, view = {}) {
   const chunky = sc === "starve" || sc === "yield";
   const starve = sc === "starve";
   let now = 0, uid = 0, nlines = 0;
@@ -405,12 +406,17 @@ function machine(s, cfg, sc) {
   const phase = (name) => { if (!seen.has(name)) { seen.add(name); s.phase(name, { about: about(name) }); } };
 
   // ---------- narration ----------
+  // every step frames the whole runtime (view.whole), unless a step names its own focus (the payoff: the console)
+  let focused = false;
+  const focus = (...ids) => { focused = true; s.focus(...ids); };
   let shown = { sub: "idle", led: "idle" };
   function loop(sub = shown.sub) {
     const led = stack.length ? "busy" : "idle";
     if (sub !== shown.sub || led !== shown.led) { s.set("stack", { sub, led }); shown = { sub, led }; }
   }
   function step(caption) {
+    if (view.whole && !focused) s.focus(view.whole);
+    focused = false;
     s.gauge("now", round(now));
     s.set("stack", { state: { frames: stack.map((f) => f.label), began } });
     s.step(caption, { t: now });
@@ -677,7 +683,6 @@ function machine(s, cfg, sc) {
         // clean up after running script: the stack is empty, so a microtask checkpoint is performed
         loop(micro.length ? "microtasks" : "idle");
         if (askAfterScript) askAfterScript();
-        s.focus("stack", "micro", "tasks");
         step(micro.length
           ? "The script ends and leaves the stack. The thread is free: what runs next?"
           : "The script ends and leaves the stack. No microtask waits, so the loop takes a task");
@@ -854,7 +859,7 @@ function machine(s, cfg, sc) {
         if (tasks.length) { runTask(tasks.shift()); continue; }
         if (!idle()) break;
       }
-      s.focus(...(chunky ? ["console", "page"] : ["console"]));   // the payoff: what the program printed (and painted)
+      focus(...(chunky ? ["console", "page"] : ["console"]));   // the payoff: what the program printed (and painted)
       s.line(null);
       step(finale());
     },
