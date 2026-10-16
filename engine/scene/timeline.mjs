@@ -630,7 +630,8 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
 
   // a route between two boxes: a named trace/bus, or the trace/bus that connects them
   function routeBetween(a, b, via, RP, RN) {
-    if (!a || !b || a === b) return null;
+    // a send from a box to itself only has a way to go along a named trace (a self-loop)
+    if (!a || !b || (a === b && !(via && via !== "auto" && via !== "air"))) return null;
     const pick = (R) => {
       if (!R) return null;
       const tr = (r) => {
@@ -676,7 +677,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     const pa = placesS?.get(fromId), pb = placesS?.get(toId);
     const ax = pa ? pa.wx : A?.x ?? 0, ay = pa ? pa.wy : A?.y ?? 0, bx = pb ? pb.wx : B?.x ?? 0, by = pb ? pb.wy : B?.y ?? 0;
     const L0 = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / L0, uy = (by - ay) / L0;
-    const edge = (b, dx, dy) => { if (!b) return 0; if (b.round) return b.w / 2; const tx = Math.abs(dx) > 1e-6 ? b.w / 2 / Math.abs(dx) : Infinity, ty = Math.abs(dy) > 1e-6 ? b.d / 2 / Math.abs(dy) : Infinity; return Math.min(tx, ty); };
+    const edge = (b, dx, dy) => { if (!b) return 0; if (b.round) return b.w / 2; const tx = Math.abs(dx) > 1e-6 ? b.w / 2 / Math.abs(dx) : Infinity, ty = Math.abs(dy) > 1e-6 ? b.d / 2 / Math.abs(dy) : Infinity; const m = Math.min(tx, ty); return Number.isFinite(m) ? m : 0; };
     const ea = A && (!pa || pa.mode === "world") ? edge(A, ux, uy) : 6, eb = B && (!pb || pb.mode === "world") ? edge(B, ux, uy) : 6;
     const s = [ax + ux * ea, ay + uy * ea], e = [bx - ux * eb, by - uy * eb];
     const path = new Path([s, e]);

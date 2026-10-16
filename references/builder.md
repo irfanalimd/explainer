@@ -244,8 +244,16 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
 
 ## 5. Connections and time boards
 
-- `s.trace(id, from, to, { route = "auto", fromSide, toSide, style, dashed, tone })` is an inlaid groove from port to
-  port.
+- `s.trace(id, from, to, { route = "auto", fromSide, toSide, style, dashed, tone, key, arrow })` is an inlaid groove from
+  port to port.
+  - `key` tints it with an identity colour (a faint idle glow; `s.set(id, { key })` changes it). Use it when the line
+    *is* data: a pointer drawn in the colour of the node it leads to.
+  - `arrow: true` cuts a small chevron into the floor at the `to` port, in the trace's own groove and light (it lights
+    up as something lands through it); `arrow: "both"` marks both ends. Use it when direction is the point and must
+    read in a still frame: a pointer ("12 points at 42"), a one-way flow (input → map, queue → stack). Leave it off
+    for links that carry traffic both ways (Raft peers) and for plain wiring. `s.set(id, { arrow })` changes it.
+  - `from` may equal `to`: a self-loop (a node that points at itself) leaves the right edge, wraps the corner and
+    comes back in through the front (`fromSide` / `toSide` pick other edges); a send `via` it flies the loop.
   - It is routed orthogonally, with rounded corners, through gutters, and detours around housings.
   - Ports spread when several traces share an edge.
   - `route: "straight"` draws a straight line, for rings; `"auto"` is already straight between members of a `ring`.

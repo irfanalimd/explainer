@@ -11,6 +11,8 @@ export const R = {
   clear: 12,                                              // keep-out around solids
   stub: 18,                                               // first run straight out of a port
   bend: 60,                                               // search cost of one bend, in u
+  loop: 26,                                               // how far a self-loop stands off its housing
+  align: 6,                                               // facing ports straighten when their edges share this much
 };
 
 const DIRS = { left: [-1, 0], right: [1, 0], top: [0, -1], bottom: [0, 1] };
@@ -165,13 +167,18 @@ export function routeAll(layout, state) {
     if (rec.kind === "trace") {
       const A = endBox(layout, state, rec.from), B = endBox(layout, state, rec.to);
       if (!A || !B) { problems.push({ kind: "unroutable", message: `trace "${rec.id}": an endpoint has no place in the layout`, id: rec.id }); continue; }
-      const straight = rec.route === "straight" || (rec.route === "auto" && ringOf(rec.from) && ringOf(rec.to));
-      const [sa0, sb0] = autoSides(A, B);
-      const c = { rec, A, B, sa: rec.fromSide ?? sa0, sb: rec.toSide ?? sb0, straight };
+      const loop = A === B;
+      const straight = !loop && (rec.route === "straight" || (rec.route === "auto" && ringOf(rec.from) && ringOf(rec.to)));
+      // a self-loop (a node pointing at itself) leaves its right edge and comes back in through the front
+      const [sa0, sb0] = loop ? ["right", "bottom"] : autoSides(A, B);
+      const c = { rec, A, B, sa: rec.fromSide ?? sa0, sb: rec.toSide ?? sb0, straight, loop };
+      if (loop && c.sa === c.sb) c.sb = c.sa === "bottom" ? "right" : "bottom";
       conns.push(c);
       if (straight) continue;
-      addEnd(A, c.sa, { c, end: "a", key: () => (c.sa === "left" || c.sa === "right" ? B.y + (B.tray?.y ?? 0) : B.x) });
-      addEnd(B, c.sb, { c, end: "b", key: () => (c.sb === "left" || c.sb === "right" ? A.y + (A.tray?.y ?? 0) : A.x) });
+      // a loop's two ends sort toward the corner they wrap round
+      const toward = (side, other) => (DIRS[other][side === "left" || side === "right" ? 1 : 0] > 0 ? 1e9 : -1e9);
+      addEnd(A, c.sa, { c, end: "a", key: () => (loop ? toward(c.sa, c.sb) : c.sa === "left" || c.sa === "right" ? B.y + (B.tray?.y ?? 0) : B.x) });
+      addEnd(B, c.sb, { c, end: "b", key: () => (loop ? toward(c.sb, c.sa) : c.sb === "left" || c.sb === "right" ? A.y + (A.tray?.y ?? 0) : A.x) });
     } else if (rec.kind === "bus") {
       const F = rec.from.map((id) => endBox(layout, state, id)).filter(Boolean), T = rec.to.map((id) => endBox(layout, state, id)).filter(Boolean);
       if (!F.length || !T.length) { problems.push({ kind: "unroutable", message: `bus "${rec.id}" needs boxes on both sides`, id: rec.id }); continue; }
@@ -204,9 +211,15 @@ export function routeAll(layout, state) {
     const box = layout.boxes.get(boxId);
     const along = spreadPorts(box, side, list.map((e) => e.key()));
     list.forEach((e, i) => {
-      const p = portPoint(box, side, along[i]);
-      if (e.end === "a") e.c.pa = p;
-      else if (e.end === "b") e.c.pb = p;
+      let at = along[i];
+      // a lone loop end moves halfway toward the corner it wraps, so the loop stays compact
+      if (list.length === 1 && e.c.loop) {
+        const { anchor, lo, hi } = sideRange(box, side);
+        at = anchor + ((e.key() > 0 ? hi : lo) - anchor) * 0.5;
+      }
+      const p = portPoint(box, side, at);
+      if (e.end === "a") { e.c.pa = p; e.c.aloneA = list.length === 1; }
+      else if (e.end === "b") { e.c.pb = p; e.c.aloneB = list.length === 1; }
       else e.c.branches.push({ box, side, p, kind: e.end === "f" ? "from" : "to" });
     });
   }
@@ -225,6 +238,7 @@ export function routeAll(layout, state) {
       continue;
     }
     const { pa, pb, sa, sb } = c;
+    if (c.loop) { c.raw = loopRoute(pa, sa, pb, sb) ?? searchRoute(pa, sa, pb, sb, obstacles.filter((o) => o.id !== c.A.id)) ?? [pa, pb]; continue; }
     const skip = new Set([c.A.id, c.B.id]);
     let raw = null;
     const horiz = (sa === "left" || sa === "right") && (sb === "left" || sb === "right");
@@ -302,6 +316,16 @@ export function routeAll(layout, state) {
     });
   }
   return { traces, buses, problems };
+}
+
+/** A self-loop round its own housing: out of one edge, round the corner, back in through the other. */
+function loopRoute(pa, sa, pb, sb) {
+  const da = DIRS[sa], db = DIRS[sb], D = R.loop;
+  const p1 = [pa[0] + da[0] * D, pa[1] + da[1] * D], p3 = [pb[0] + db[0] * D, pb[1] + db[1] * D];
+  if (sa === sb) return [pa, p1, sa === "left" || sa === "right" ? [p1[0], p3[1]] : [p3[0], p1[1]], p3, pb].filter((q, i, a) => i === 0 || Math.hypot(q[0] - a[i - 1][0], q[1] - a[i - 1][1]) > 1e-6);
+  if (sa === OPP[sb]) return null;
+  const corner = sa === "left" || sa === "right" ? [p1[0], p3[1]] : [p3[0], p1[1]];
+  return [pa, p1, corner, p3, pb];
 }
 
 /**
