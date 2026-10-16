@@ -329,8 +329,17 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     batch: Math.max(2, 2 * jitter),
     // deaths at the partition join the next step (the senders' captions name them); on a very lossy network so do
     // random drops: each still dies visibly with its fail tag, but not every second step narrates a loss
-    quiet: (p.drop ?? 0) > 0.1 ? ["partition", "drop"] : ["partition"],
-    text: (m) => (m.type === "AppendEntries" ? (m.body.entries.length ? `AppendEntries ×${m.body.entries.length}` : "heartbeat") : m.type),
+    quiet: drop > 0.1 ? ["partition", "drop"] : ["partition"],
+    // the runtime's own sentences, in this lesson's words (servers, the network splitting and joining up)
+    describe: {
+      heal: "The network is {tone:ok|whole again}: every server can reach every other",
+      // a random loss, said plainly: "Update from S1 to S3 is lost" (losses at a crashed server keep the default)
+      lost: (g) => (g.reason === "drop" ? `${g.name} from ${fmt.and(g.from.map((id) => fmt.ref(id)))} to ${fmt.and(g.to.map((id) => fmt.ref(id)))} is {tone:fail|lost}` : null),
+    },
+    text: (m) => (m.type === MSG.update ? (m.body.entries.length ? `copy ×${m.body.entries.length}` : "heartbeat")
+      : m.type === MSG.voteReply ? (m.body.granted ? "vote: yes" : "vote: no")
+      : m.type === MSG.updateReply ? (m.body.success ? "got it" : "missing")
+      : m.type === MSG.command ? m.body.cmd : m.type === MSG.vote ? "vote for me?" : m.type.toLowerCase()),
     key: (m) => (m.body && m.body.term !== undefined ? termKey(m.body.term) : undefined),
     state: (id) => (id === "client"
       ? { client: true, leader: null, pending: {}, acked: [] }
