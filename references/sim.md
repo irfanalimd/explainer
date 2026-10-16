@@ -218,10 +218,36 @@ leaves every step at the builder's default.
   - Sentences marked `ctx.say(markup, { minor: true })` or `ctx.chorus(key, fn, subject, { minor: true })` are dropped
     whenever the same step has news.
 - `zones` (default on) draws the smaller side of a partition as a dashed, fail-toned `s.zone`, on builders that have one.
+- `describe` puts the runtime's own sentences in the figure's words (below).
 - Lost packets are delivered with `{ remove: true, lost: true }`, so they die in flight where the engine supports that.
 - A loss gets at most one chip per step, and quiet losses get none.
 - "…is lost: n3 is down" is said once per outage, then only when nothing else happens.
 - `net.stepStart` and `net.stepSerial` let a chorus tell "in this very step" from "earlier".
+
+**The runtime's own words** (`describe`). A few captions and labels come from the runtime, not a handler: the
+split and heal captions, the "cut off" zone title, and the generated captions of lost messages, which name the raw
+message type. Each can be replaced; a function that returns `null` or `undefined` keeps the default, and without
+`describe` nothing changes.
+
+```js
+network(s, { …, describe: {
+  split: (groups) => "The network breaks in two",                        // default "The network splits: … on one side, … on the other"
+  heal: "The network is {tone:ok|whole again}: every server can reach every other",   // a string or (groups) => markup
+  zone: "on their own",                                                    // the zone title: a string, (groups) => string, or false
+  message: "text",                                                         // name messages by their packet labels (below)
+  lost: (g) => (g.reason === "drop" ? `${g.name} from ${fmt.ref(g.from[0])} is {tone:fail|lost}` : null),
+} });
+net.partition([["n1"], ["n2", "n3"]], { at: 200, until: 300, caption: "The cable to n1 is cut", title: "alone", heal: "The cable is fixed" });
+net.heal({ at: 400, caption: "Everyone can talk again" });                 // or heal(at, { caption })
+```
+
+- `lost(g)` gets `{ reason: "drop" | "partition" | "down", type, name, from: [ids], to: [ids] }` for one caption
+  (a batch can merge several losses), where `name` is what `message` calls the message.
+- `message` names messages in every generated caption (receives, sends, losses): `(type, items) => markup`, or
+  `"text"` to use the packets' own labels (the send's `{ text }` or `opts.text`) when every message in the caption
+  shares one; otherwise the type.
+- Per call, `partition(groups, at, until, { caption, title, heal })` (or `partition(groups, { at, until, … })`) and
+  `heal(at, { caption })` override `describe` for that split and heal; `title: false` draws the zone without a title.
 
 **Running.** `run({ until, maxSteps, stopWhen, intro, compress, batch, drain })`. Start hooks run first and belong to
 the opening step (`intro`). When the run stops, `drain` (default on) keeps delivering the messages still in flight,

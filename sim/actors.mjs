@@ -103,6 +103,17 @@ const R = (id) => fmt.ref(id);
  *   focus       ids (or (net) => ids) the camera frames on every step, e.g. the whole cluster (default: what moved)
  *   quiet       loss reasons ("partition", "drop", "down") whose deaths join the next step (default none)
  *   zones       draw a partition's smaller side as a dashed fail zone when the builder has s.zone (default true)
+ *   describe    the runtime's own words, for a figure that wants them in its reader's language (each optional; a
+ *               function returning null or undefined keeps the default):
+ *                 split(groups) -> caption when the network splits ("The network splits: … on one side, …")
+ *                 heal(groups)  -> caption when it heals ("The partition heals: every node can reach every other again")
+ *                 zone          the cut-off zone's title, a string or (groups) => string ("cut off"; false: no title)
+ *                 message       how generated captions name a message: (type, items) => markup, or "text" for the
+ *                               packets' own labels (the send's { text } or opts.text) when they all share one
+ *                               (default: the message type)
+ *                 lost(g)       -> a lost message's caption; g = { reason: "drop" | "partition" | "down", type, name,
+ *                               from: [ids], to: [ids] } (name: what `message` calls it)
+ *               net.partition(groups, { caption, title, heal }) and net.heal({ caption }) override them per call.
  */
 export function network(s, opts = {}) {
   const netId = opts.id ?? "net";
@@ -220,12 +231,13 @@ export function network(s, opts = {}) {
     if (opts.fifo) { const l = K(from, to); at = Math.max(at, round1((lastOnLink.get(l) ?? -Infinity) + 0.1)); lastOnLink.set(l, at); }
     const msg = { id, type, from, to, body, sent: now, due: at, latency: round1(at - now) };
     const so = { text: o.text ?? textOf(msg), deliver: "hold", via: o.via ?? viaOf(from, to) };
+    msg.text = so.text;
     const k = o.key !== undefined ? o.key : keyOf(msg);
     if (k !== undefined) so.key = k;
     if (src.lane && dst.lane) so.lane = true;
     s.send(id, from, to, so);
     if (batchSent) batchSent.add(id);
-    stepSends.push({ from, to, type });
+    stepSends.push({ from, to, type, text: so.text });
     stats.sent++; bump("sent");
     inFlight.set(id, msg);
     const drop = dropRate > 0 && dropRng.chance(dropRate);
@@ -322,10 +334,22 @@ export function network(s, opts = {}) {
   const uniq = (xs) => [...new Set(xs)];
   const who = (ids) => fmt.and(ids.map(R));
   // generated narration for a group of message events of one kind, fanning out (one sender) or in (one receiver)
+  const describe = opts.describe ?? {};
+  // what a generated caption calls a message group: its type, or what describe.message says
+  function nameOf(type, items) {
+    const m = describe.message;
+    if (m === "text") { const ls = uniq(items.map((x) => x.text)); if (ls.length === 1 && ls[0] != null && ls[0] !== "") return fmt.escape(String(ls[0])); }
+    else if (typeof m === "function") { const r = m(type, items); if (r != null) return String(r); }
+    return fmt.escape(type);
+  }
   function told(g) {
-    const T = fmt.escape(g.type), froms = uniq(g.items.map((x) => x.from)), tos = uniq(g.items.map((x) => x.to));
+    const T = nameOf(g.type, g.items), froms = uniq(g.items.map((x) => x.from)), tos = uniq(g.items.map((x) => x.to));
     const out = froms.length === 1, n = (out ? tos : froms).length;
     const pair = out ? [R(froms[0]), who(tos)] : [who(froms), R(tos[0])];
+    if ((g.gen === "drop" || g.gen === "partition" || g.gen === "down") && typeof describe.lost === "function") {
+      const r = describe.lost({ reason: g.gen, type: g.type, name: T, from: froms, to: tos });
+      if (r != null) return String(r);
+    }
     switch (g.gen) {
       case "recv": return out ? `${pair[1]} ${n > 1 ? "receive" : "receives"} ${T} from ${pair[0]}` : `${pair[1]} receives ${T} from ${pair[0]}`;
       case "drop": return `The network {tone:fail|drops} ${T} from ${pair[0]} to ${pair[1]}`;
@@ -388,7 +412,7 @@ export function network(s, opts = {}) {
     if (reason === "drop") stats.dropped++;
     else if (reason === "partition") stats.cut++;
     else stats.toDown++;
-    return { gen: reason, type: msg.type, from: msg.from, to: msg.to };
+    return { gen: reason, type: msg.type, from: msg.from, to: msg.to, text: msg.text };
   }
 
   // the narration item an event makes when its handlers say nothing, or null when it makes no step
@@ -404,7 +428,7 @@ export function network(s, opts = {}) {
         const fn = findMsg(msg.to, msg.type);
         const view = { id: msg.id, type: msg.type, from: msg.from, to: msg.to, body: msg.body, sent: msg.sent, at: now, latency: msg.latency };
         if (fn) fn(view, ctxFor(dst));
-        return { gen: "recv", type: msg.type, from: msg.from, to: msg.to };
+        return { gen: "recv", type: msg.type, from: msg.from, to: msg.to, text: msg.text };
       }
       case "lost": return lose(ev.msg, ev.reason);
       case "timer": {
@@ -450,13 +474,18 @@ export function network(s, opts = {}) {
           if (zoneId && s.has(zoneId)) s.remove(zoneId);
           const small = ev.groups.reduce((a, g) => (g.length < a.length ? g : a), ev.groups[0]);
           zoneId = `${netId}.cut${++zoneSeq}`;
-          s.zone(zoneId, { around: small.slice(), title: "cut off", tone: "fail", dashed: true });
+          const zt = ev.o.title !== undefined ? ev.o.title : typeof describe.zone === "function" ? describe.zone(ev.groups) ?? "cut off" : describe.zone !== undefined ? describe.zone : "cut off";
+          const zo = { around: small.slice(), tone: "fail", dashed: true };
+          if (zt !== false && zt != null) zo.title = String(zt);
+          s.zone(zoneId, zo);
         }
         const names = "ABCDEFGH";
         ev.groups.forEach((g, i) => g.forEach((id) => {
           s.tag(id, `side ${names[i] ?? i + 1}`, { tone: "warn" });
           if (nodes.get(id).lane) s.mark(id, { t: now, text: "split", tone: "warn" });
         }));
+        const own = ev.o.caption ?? (typeof describe.split === "function" ? describe.split(ev.groups.map((g) => g.slice())) : null);
+        if (own != null) return { say: String(own) };
         const list = ev.groups.map((g) => fmt.and(g.map(R)));
         return { say: ev.groups.length === 2 ? `The network splits: ${list[0]} on one side, ${list[1]} on the other` : `The network splits into ${ev.groups.length} sides: ${list.join("; ")}` };
       }
@@ -467,7 +496,8 @@ export function network(s, opts = {}) {
         if (zoneId && s.has(zoneId)) s.remove(zoneId);
         zoneId = null;
         for (const g of was.groups) for (const id of g) if (nodes.get(id).lane) s.mark(id, { t: now, text: "heal", tone: "ok" });
-        return { say: `The partition {tone:ok|heals}: every node can reach every other again` };
+        const own = ev.o.caption ?? (typeof describe.heal === "function" ? describe.heal(was.groups.map((g) => g.slice())) : typeof describe.heal === "string" ? describe.heal : null);
+        return { say: own != null ? String(own) : `The partition {tone:ok|heals}: every node can reach every other again` };
       }
       case "rate": dropRate = ev.rate; return null;
       case "at": {
@@ -558,7 +588,7 @@ export function network(s, opts = {}) {
     if (!items.length) {
       // a quiet event that still sent or showed something gets a generated caption instead of leaking into a later step
       if (stepSends.length === sendsBefore && stepOps === opsBefore) return false;
-      for (const x of stepSends.slice(sendsBefore)) items.push({ gen: "sent", type: x.type, from: x.from, to: x.to });
+      for (const x of stepSends.slice(sendsBefore)) items.push({ gen: "sent", type: x.type, from: x.from, to: x.to, text: x.text });
       if (!items.length) items.push({ say: `At ${fmt.ms(now)}` });
     }
     let text = compose(items);
@@ -593,15 +623,26 @@ export function network(s, opts = {}) {
     at(ms, fn, o = {}) { schedule(ms, "at", { fn, quiet: !!o.quiet }); return api; },
     crash(node, at = now) { known(node, "crash"); schedule(at, "crash", { node }); return api; },
     recover(node, at = now) { known(node, "recover"); schedule(at, "recover", { node }); return api; },
-    /** groups: [[a, b], [c, d, e]]; nodes in different groups cannot talk; unlisted nodes reach everyone */
-    partition(groups, at = now, until) {
+    /**
+     * groups: [[a, b], [c, d, e]]; nodes in different groups cannot talk; unlisted nodes reach everyone.
+     * partition(groups, at, until, o) or partition(groups, { at, until, ...o }); o: { caption (the split's),
+     * title (the cut-off zone's; false: none), heal (the caption of the heal at `until`) }
+     */
+    partition(groups, at = now, until, o = {}) {
+      if (at && typeof at === "object") { o = at; at = o.at ?? now; until = o.until; }
+      else if (until && typeof until === "object") { o = until; until = o.until; }
       const seen = new Set();
       for (const g of groups) for (const id of g) { known(id, "partition"); if (seen.has(id)) throw new Error(`network.partition: ${id} is in two groups`); seen.add(id); }
-      schedule(at, "partition", { groups: groups.map((g) => g.slice()) });
-      if (until !== undefined) schedule(until, "heal", {});
+      schedule(at, "partition", { groups: groups.map((g) => g.slice()), o: { caption: o.caption, title: o.title } });
+      if (until !== undefined) schedule(until, "heal", { o: { caption: o.heal } });
       return api;
     },
-    heal(at = now) { schedule(at, "heal", {}); return api; },
+    /** heal(at, { caption }) or heal({ at, caption }) */
+    heal(at = now, o = {}) {
+      if (at && typeof at === "object") { o = at; at = o.at ?? now; }
+      schedule(at, "heal", { o: { caption: o.caption } });
+      return api;
+    },
     /** set the random drop probability, now or from sim time `at` */
     drop(rate, at) {
       if (!(rate >= 0 && rate <= 1)) throw new RangeError(`network.drop: rate must be in 0..1`);

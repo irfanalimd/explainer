@@ -167,6 +167,54 @@ test("partitions cut links between sides, at send time and in flight; unlisted n
   assert.deepEqual(s.$.finish(), []);
 });
 
+// the runtime's own words can be the figure's: describe on the network, or per call
+function splitRun(netOpts = {}, call) {
+  const s = stubScene();
+  const net = network(s, { nodes: ["a", "b", "c", "d"], latency: { mean: 10, jitter: 0 }, seed: 1, ...netOpts });
+  net.on("*", "M", () => {});
+  net.at(20, (n) => { n.send("a", "c", "M", {}, { text: "copy ×1" }); n.send("d", "c", "M", {}); n.say("sends during the split"); });
+  call(net);
+  net.run({ intro: "Four nodes." });
+  const zones = s.$.steps.flatMap((st, i) => s.$.ops(i, "zone").map((c) => c.args[1]));
+  return { caps: s.$.captions().map(plain), zones, problems: s.$.finish() };
+}
+
+test("describe: the split and heal captions, the zone title and lost-message captions, per network or per call", () => {
+  // defaults unchanged
+  const d = splitRun({}, (net) => net.partition([["a", "b"], ["c"]], 5, 50));
+  assert.ok(d.caps.includes("The partition heals: every node can reach every other again."));
+  assert.ok(d.caps.includes("M from a to c cannot cross the partition."));
+  assert.equal(d.zones[0].title, "cut off");
+  // on the network
+  const n = splitRun({ describe: {
+    split: (groups) => `The network breaks: ${groups[0].join(" and ")} cannot hear ${groups[1].join(" and ")}`,
+    heal: () => "The network is whole again: every server can reach every other",
+    zone: (groups) => `${groups.reduce((a, g) => (g.length < a.length ? g : a)).length} alone`,
+    message: "text",
+    lost: (g) => (g.reason === "partition" ? `${g.name} from ${g.from.join(", ")} never reaches ${g.to.join(", ")}: the network is broken` : null),
+  } }, (net) => net.partition([["a", "b"], ["c"]], 5, 50));
+  assert.ok(n.caps.includes("The network breaks: a and b cannot hear c."), n.caps.join(" | "));
+  assert.ok(n.caps.includes("The network is whole again: every server can reach every other."));
+  assert.ok(n.caps.includes("copy ×1 from a never reaches c: the network is broken."), "the packet's own label, not the raw type");
+  assert.ok(!n.caps.some((c) => /partition|cut off/.test(c)));
+  assert.equal(n.zones[0].title, "1 alone");
+  // per call, over the network's: a caption, a zone title (false: none), and the heal caption at `until`
+  const c = splitRun({ describe: { heal: "never used" } }, (net) => net.partition([["a", "b"], ["c"]], { at: 5, until: 50, caption: "The cable is cut", title: false, heal: "The cable is fixed" }));
+  assert.ok(c.caps.includes("The cable is cut.") && c.caps.includes("The cable is fixed."), c.caps.join(" | "));
+  assert.equal(c.zones[0].title, undefined);
+  const h = splitRun({}, (net) => { net.partition([["a", "b"], ["c"]], 5, undefined, { title: "on its own" }); net.heal({ at: 50, caption: "Back together" }); });
+  assert.ok(h.caps.includes("Back together."));
+  assert.equal(h.zones[0].title, "on its own");
+  const h2 = splitRun({}, (net) => { net.partition([["a", "b"], ["c"]], 5); net.heal(50, { caption: "Joined" }); });
+  assert.ok(h2.caps.includes("Joined."));
+  // a describe.message function names messages in every generated caption; "text" falls back to the type when labels differ
+  const m = splitRun({ describe: { message: (type) => `a ${type.toLowerCase()} note` } }, (net) => net.partition([["a", "b"], ["c"]], 5, 50));
+  assert.ok(m.caps.includes("a m note from a to c cannot cross the partition."), m.caps.join(" | "));
+  const t = splitRun({ describe: { message: "text" }, batch: 5 }, (net) => net.partition([["a", "b", "d"], ["c"]], 5, 50));
+  assert.ok(t.caps.includes("M from a and d to c cannot cross the partition."), t.caps.join(" | "));
+  for (const r of [d, n, c, h, h2, m, t]) assert.deepEqual(r.problems, []);
+});
+
 test("pacing: builder pacing by default, explicit durations on request, both from the gap to the next step", () => {
   let prev = 0;
   for (let g = 0; g <= 5000; g += 7) { const d = pace(g, { ref: 12 }); assert.ok(d >= prev - 1e-9); prev = d; }
