@@ -384,9 +384,10 @@ export function build(s, p, scenario, env = {}) {
   }
   s.trace("va-tlb", "va", "tlb");
   s.trace("miss", "tlb", "cr3");
-  s.trace("w0", "cr3", "t0");
-  for (let L = 1; L < 4; L++) s.trace(`w${L}`, `t${L - 1}`, `t${L}`);
-  s.trace("w4", "t3", "page");
+  // the walk is a chain of pointers, CR3 to each table to the page, followed one way: the arrows say which
+  s.trace("w0", "cr3", "t0", { arrow: true });
+  for (let L = 1; L < 4; L++) s.trace(`w${L}`, `t${L - 1}`, `t${L}`, { arrow: true });
+  s.trace("w4", "t3", "page", { arrow: true });
   if (fault) s.trace("swap-in", "ssd", "page");
 
   // ---- helpers that narrate the real run ----
@@ -773,7 +774,7 @@ export function build(s, p, scenario, env = {}) {
   s.housing("pageB", { in: "dram", title: "B's page", sub: paHex(pfnB * 4096), tray: { cols: 1, rows: 3, of: "record" }, led: "idle", state: { frame: pfnHex(pfnB), base: paHex(pfnB * 4096), program: "B", loads: [] } });
   const winB = Math.max(0, Math.min(4093, off0 - 1));
   for (let k = 0; k < 3; k++) s.tile(`pageB.b${k}`, { in: "pageB", of: "record", ...byteContent(vpn0, winB + k, "B") });
-  s.trace("w4b", "t3", "pageB");
+  s.trace("w4b", "t3", "pageB", { arrow: true });
   s.beat();
   const wB = quickWalk(va0, (reads, cost) => `B's own directory, read line by line (${cost} cycles), leads to room ${c(pfnHex(Number(reads[3].next >> 12n)))}, not ${c(pfnHex(pfn0))}.`);
   const paB = formPA(va0, wB.frame, "walk", { page: "pageB", via: "w4b",
