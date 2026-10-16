@@ -1258,13 +1258,35 @@
 .ix-ex-about.ix-ex-withheld { font-style: italic; color: var(--ix-ink-faint); }
 .ix-ex-head:empty { display: none; }
 .ix-ex-head:not(:empty) ~ :is(.ix-ex-now, .ix-ex-ask:not(:empty)) { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ix-hair); }
-.ix-ex-ask:not(:empty) ~ .ix-ex-now { border-top: 0; padding-top: 0; }
+/* under a revealed card its own hairline is the divider (the head's rule would draw a second one) */
+.ix-ex-ask:not(:empty) ~ .ix-ex-now, .ix-ex-head ~ .ix-ex-ask:not(:empty) ~ .ix-ex-now { border-top: 0; padding-top: 0; }
 .ix-ex-ask:empty { display: none; }
 .ix-ex-now[hidden] { display: none; }
 /* the prediction in the panel: the same card, without a second pane of glass */
 .ix-explain .ix-predict { width: auto; padding: 0; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 0; }
 .ix-explain .ix-predict-q { font-size: 15px; line-height: 23px; }
 .ix-explain .ix-predict.ix-revealed { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--ix-hair); }
+/* a question is open: the about is one line with a quiet "More"; definitions wait in their tooltips (explain.mjs) */
+.ix-ex-aboutrow { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.ix-ex-clamp .ix-ex-about, .ix-ex-about.ix-ex-oneline { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ix-ex-clamp.ix-ex-expanded .ix-ex-about { white-space: normal; overflow: visible; }
+.ix-ex-aboutbtn {
+  flex: none; margin: 0 -6px 0 0; padding: 0 6px; height: 20px; border: 0; border-radius: 6px; background: none; cursor: pointer;
+  font: 500 12px/20px var(--ix-font-sans); color: var(--ix-ink-faint); transition: color var(--ix-dur-fast) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-aboutbtn:hover { color: var(--ix-ink); background: var(--ix-hover); }
+.ix-ex-aboutbtn:focus-visible { outline: 1.5px solid rgb(var(--ix-ink-rgb) / 0.6); outline-offset: 2px; }
+.ix-ex-aboutbtn[hidden], .ix-ex-defs[hidden] { display: none; }
+/* the backstop, in order, until the card fits: definitions, the about, Earlier, then a tighter card */
+.ix-explain.ix-ex-fit-defs .ix-ex-defs { display: none; }
+.ix-explain.ix-ex-fit-about .ix-ex-head { display: none; }
+.ix-explain.ix-ex-fit-about .ix-ex-head ~ .ix-ex-ask:not(:empty) { margin-top: 0; padding-top: 0; border-top: 0; }
+.ix-explain.ix-ex-fit-earlier .ix-ex-earlier { display: none; }
+.ix-explain.ix-ex-fit-tight .ix-predict-head { margin-bottom: 6px; }
+.ix-explain.ix-ex-fit-tight .ix-predict-q { font-size: 14px; line-height: 20px; margin-bottom: 8px; }
+.ix-explain.ix-ex-fit-tight .ix-opts { gap: 4px; }
+.ix-explain.ix-ex-fit-tight .ix-opt { min-height: 32px; padding-block: 4px; font-size: 13px; }
+.ix-explain.ix-ex-fit-tight .ix-predict-why { margin-top: 8px; font-size: 13px; line-height: 19px; }
 
 /* the current step: a step number in a left gutter, then the caption in clear reading type */
 .ix-ex-now { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; align-items: start; }

@@ -51,6 +51,7 @@ const check = (name, ok, detail) => results.push({ name, ok: !!ok, ...(ok ? {} :
 const take = (name) => { const r = calls.filter((c) => c[0] === name); return r; };
 const reset = () => { calls.length = 0; };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const FITS = ["ix-ex-fit-defs", "ix-ex-fit-about", "ix-ex-fit-earlier", "ix-ex-fit-tight"];
 const frameWait = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 const key = (k, o = {}, target = document.body) => target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...o }));
 const ptr = (el, type, x, y, o = {}) => el.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: o.id ?? 1, pointerType: o.pointerType ?? "mouse", button: o.button ?? 0, buttons: o.buttons ?? 1, shiftKey: !!o.shift }));
@@ -975,6 +976,103 @@ window.__results = (async () => {
     hO.destroy();
     rO.remove();
   }
+
+  // a predict question keeps the explain panel calm: one-line about (with More), definitions once, no step until the
+  // reveal (then its caption under the why, its new words in tooltips only), no Earlier; and the card always fits
+  for (const [width, height, heavy] of [[1440, 900, false], [1280, 720, false], [1280, 720, true], [390, 844, false], [390, 844, true]]) {
+    const rC = document.createElement("div");
+    rC.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:${height}px;visibility:hidden`;
+    rC.append(document.createElement("canvas"));
+    document.body.append(rC);
+    const metaC = { title: "The event loop", level: "intro",
+      terms: { task: "One job waiting its turn on the main to-do line: the script, a timer's callback, a network reply.",
+        microtask: "A small job that must run as soon as the current code ends, before any new task.",
+        callback: "A function you hand over, to be called later.",
+        "Web APIs": "The browser's own helpers, like timers and the network, which work in the background." } };
+    const hC = createHud(rC, { meta: metaC, hash: false, storage: false }, cb);
+    const more = heavy ? " Each of those helpers works in the background while the page keeps going, and none of them can touch the page directly." : "";
+    const optsC = heavy
+      ? ["Yes: 0 ms means right away, so the timer's callback cuts in front of the rest of the script", "No: it waits until the script is done and the call stack is empty again",
+        "Only if the browser is not busy with anything else at that very moment", "It depends on how fast the machine running the page happens to be today"]
+      : ["Yes: 0 ms means right away", "No: it waits until the script is done"];
+    const askC = { question: heavy ? "`setTimeout` asks to run its {term:callback} after 0 ms, while the script is still running on the call stack. Does `timeout` print now, before the rest of the script?" : "`setTimeout` asks to run its {term:callback} after 0 ms. Does `timeout` print now?",
+      options: optsC, answer: 1,
+      why: "setTimeout only hands the callback to the browser's timer. Then it must wait its turn in the task queue, behind the script that is still running." + more };
+    const stC = [
+      { caption: "The page's `<script>` is the first order on the rail.", phase: "The script" },
+      { caption: "The loop takes the script and runs it on the call stack.", phase: "The script" },
+      { caption: "The script calls `setTimeout`.", phase: "Timers" },
+      { caption: "`setTimeout` hands {key:timeout} to the browser's timer, one of the {term:Web APIs}, and returns. Nothing prints.", phase: "Timers", ask: askC },
+      { caption: "The script logs `script`.", phase: "Timers" },
+    ].map((x, i) => ({ index: i, t0: i * 2, t1: i * 2 + 2, dur: 2, ...x }));
+    const aboutC = "Think of one cook with an order rail. Orders wait their turn on the rail, the {term:task} queue. Notes marked “before the next order” go in the {term:microtask} queue, checked after every dish." + more;
+    hC.setTimeline({ steps: stC, duration: 10, events: [], keys: [{ name: "timeout", index: 1 }], counters: {},
+      phases: [{ name: "The script", step: 0, t0: 0, t1: 4, about: "The browser runs one piece of work at a time. Each piece is a {term:task}, and the page's script is the first." },
+        { name: "Timers", step: 2, t0: 4, t1: 10, about: aboutC }] });
+    const fC = (t) => { const k = Math.min(4, Math.floor(t / 2)); return { time: t, step: k, u: (t / 2) % 1, caption: stC[k].caption, phase: stC[k].phase, tags: [], counters: {}, entities: new Map(), poses: [{ key: 1, opacity: 1 }] }; };
+    const tag = `calm ${width}x${height}${heavy ? " (long words)" : ""}`;
+    const docked = width >= 1200;
+    const pC = rC.querySelector(".ix-explain");
+    const shownDefs = () => [...pC.querySelectorAll(".ix-ex-defs")].filter((e) => e.getClientRects().length).map((e) => [...e.querySelectorAll("dt")].map((d) => d.textContent).join(",")).join("|");
+    // the card (question, options, why) sits wholly inside the visible part of its box, with nothing scrolled
+    const fits = () => {
+      const card = rC.querySelector(".ix-predict.ix-open");
+      if (!card) return "no card";
+      const box = docked ? pC.querySelector(".ix-ex-body") : rC;
+      const b = box.getBoundingClientRect(), last = card.querySelector(".ix-predict-why") ?? card.querySelector(".ix-opts");
+      const top = card.querySelector(".ix-predict-q").getBoundingClientRect().top, bottom = last.getBoundingClientRect().bottom;
+      const lo = docked ? b.top : hC.insets.top, hi = docked ? b.bottom : (rC.querySelector(".ix-transport")?.getBoundingClientRect().top ?? height);
+      return (docked ? box.scrollTop === 0 : true) && top >= lo - 0.5 && bottom <= hi + 0.5 ? "" : `card ${Math.round(top)}..${Math.round(bottom)} in ${Math.round(lo)}..${Math.round(hi)}`;
+    };
+    if (docked && !heavy) {
+      hC.update(fC(1), { time: 1, playing: false, speed: 1 });
+      await frameWait();
+      check(`${tag}: the about's new words are defined on the chapter's first step`, shownDefs() === "task", shownDefs());
+      hC.update(fC(3), { time: 3, playing: false, speed: 1 });
+      await frameWait();
+      check(`${tag}: and only there: later steps keep the tooltips, with no second block`, shownDefs() === "" && pC.querySelector(".ix-ex-about .ix-term")?.dataset.tip === metaC.terms.task, shownDefs());
+    }
+    hC.update(fC(5.99), { time: 5.99, playing: false, speed: 1 });
+    hC.ask({ ...askC, step: 3 });
+    await frameWait();
+    if (docked) {
+      check(`${tag}: asked: the question alone, no step row, no Earlier, no definition blocks, the about one withheld line`,
+        pC.querySelector(".ix-ex-now").hidden && pC.querySelector(".ix-ex-earlier").hidden && shownDefs() === ""
+        && (heavy || pC.querySelector(".ix-ex-about.ix-ex-withheld")?.getBoundingClientRect().height <= 21),
+        [pC.querySelector(".ix-ex-now").hidden, pC.querySelector(".ix-ex-earlier").hidden, shownDefs(), pC.querySelector(".ix-ex-about.ix-ex-withheld")?.getBoundingClientRect().height]);
+    }
+    check(`${tag}: asked: the question and its options are in view without scrolling`, fits() === "", fits());
+    rC.querySelectorAll(".ix-predict .ix-opt")[0].click();
+    hC.update(fC(7.6), { time: 7.6, playing: false, speed: 1 });
+    await frameWait();
+    check(`${tag}: revealed: the question, its options and its why are in view without scrolling`, !!rC.querySelector(".ix-predict.ix-revealed .ix-predict-why") && fits() === "", fits());
+    if (docked) {
+      const nowC = pC.querySelector(".ix-ex-now"), aboutP = pC.querySelector(".ix-ex-about"), btn = pC.querySelector(".ix-ex-aboutbtn");
+      const card = pC.querySelector(".ix-predict");
+      check(`${tag}: revealed: the step's caption comes back under the why, its new word in a tooltip, never a block`,
+        !nowC.hidden && !!(card.compareDocumentPosition(nowC) & Node.DOCUMENT_POSITION_FOLLOWING) && shownDefs() === ""
+        && nowC.querySelector(".ix-term")?.dataset.tip === metaC.terms["Web APIs"] && pC.querySelector(".ix-ex-earlier").hidden, shownDefs());
+      if (!heavy) {
+        check(`${tag}: revealed: the about stays one clamped line with a quiet More`, !pC.classList.contains("ix-ex-fit-about") && aboutP.getBoundingClientRect().height <= 21
+          && !btn.hidden && btn.textContent === "More" && btn.getAttribute("aria-expanded") === "false", [aboutP.getBoundingClientRect().height, btn?.hidden]);
+        btn.click();
+        check(`${tag}: More opens the whole about, Less folds it again`, aboutP.getBoundingClientRect().height > 40 && btn.textContent === "Less" && btn.getAttribute("aria-expanded") === "true");
+        btn.click();
+        check(`${tag}: folded again`, aboutP.getBoundingClientRect().height <= 21 && btn.textContent === "More");
+        check(`${tag}: nothing had to be dropped to fit`, !FITS.some((c) => pC.classList.contains(c)), pC.className);
+      } else {
+        check(`${tag}: the backstop dropped what it had to, in order`, pC.classList.contains("ix-ex-fit-defs") && (!pC.classList.contains("ix-ex-fit-earlier") || pC.classList.contains("ix-ex-fit-about")), pC.className);
+      }
+    }
+    // the card leaves: the panel is whole again (Earlier back, the about unclamped)
+    rC.querySelector(".ix-predict .ix-close")?.click();
+    await frameWait();
+    if (docked) check(`${tag}: once the card leaves, Earlier and the full about come back`, !pC.querySelector(".ix-ex-earlier").hidden && !pC.querySelector(".ix-ex-clamp")
+      && !FITS.some((c) => pC.classList.contains(c)), pC.className);
+    hC.destroy();
+    rC.remove();
+  }
+
   // reduced motion: counters snap, no caption rise; destroy removes everything
   const root2 = document.createElement("div");
   root2.style.cssText = "position:fixed;left:0;top:0;width:800px;height:600px;visibility:hidden";

@@ -216,8 +216,20 @@ export function createExplain(ctx) {
       posEl.textContent = S.phases.length > 1 ? `${S.ph + 1} of ${S.phases.length}` : "";
       posEl.hidden = S.phases.length < 2;
       const about = ph.about ? (withhold ? h("p", { class: "ix-ex-about ix-ex-withheld", text: WITHHELD }) : h("p", { class: "ix-ex-about" }, markup(ph.about))) : null;
-      head.replaceChildren(...(about ? [h("div", { class: fresh("ix-ex-headin", instant) }, about)] : []));
+      const aboutDefs = ph.about && !withhold ? defs(ph.about, { step: first, about: true }) : null;
+      // a question is open: the about (once revealed) is one clamped line with a quiet "More"
+      const clamp = !!S.askEl && !!about && !withhold;
+      if (S.askEl && withhold) about?.classList.add("ix-ex-oneline");
+      S.aboutOpen = false;
+      const moreBtn = clamp ? h("button", { class: "ix-ex-aboutbtn", type: "button", "aria-expanded": "false", text: "More",
+        onclick: () => { S.aboutOpen = !S.aboutOpen; syncAbout(); fit(); } }) : null;
+      head.replaceChildren(...(about ? [h("div", { class: fresh(clamp ? "ix-ex-headin ix-ex-clamp" : "ix-ex-headin", instant) },
+        clamp ? h("div", { class: "ix-ex-aboutrow" }, about, moreBtn) : about, aboutDefs)] : []));
+      S.aboutDefs = aboutDefs; S.aboutFirst = first; S.aboutMore = moreBtn;
+      syncAbout();
     }
+    // the about's new words are defined on the chapter's first step only, and never beside an open question
+    if (S.aboutDefs) S.aboutDefs.hidden = S.step !== S.aboutFirst || !!S.askEl;
     const st = S.steps[S.step];
     const held = S.held, n = S.step - first + 1;
     const veiled = veil.step === S.step && S.step >= 0;
@@ -266,8 +278,38 @@ export function createExplain(ctx) {
         h("span", { class: "ix-ex-n", html: ICON.up }), h("span", { class: "ix-ex-t", text: "Start of chapter" }))));
     }
     list.replaceChildren(...items);
-    earlier.hidden = !items.length;
+    // an open question hides the way back: nothing below the card but the step it asks about
+    earlier.hidden = !items.length || !!S.askEl;
     S.shown = { step: S.step, ph: S.ph, tl: S.tl, sig };
+    fit();
+  }
+
+  // the clamped about: "More" only when the line is cut, "Less" once it is open
+  function syncAbout() {
+    const btn = S.aboutMore, row = btn?.parentNode;
+    if (!btn || !row?.isConnected) return;
+    row.parentNode.classList.toggle("ix-ex-expanded", S.aboutOpen);
+    btn.textContent = S.aboutOpen ? "Less" : "More";
+    btn.setAttribute("aria-expanded", String(S.aboutOpen));
+    btn.setAttribute("aria-label", S.aboutOpen ? "Show less of the chapter's introduction" : "Show the chapter's whole introduction");
+    const p = row.firstChild;
+    btn.hidden = !S.aboutOpen && p.scrollWidth <= p.clientWidth + 1;
+  }
+  // The backstop: while a question is open in the panel, the card (question, options, why) must fit without scrolling.
+  // Drop what is left above and below it, in order, until it does: definitions, the about, Earlier, then a tighter card.
+  const FIT = ["ix-ex-fit-defs", "ix-ex-fit-about", "ix-ex-fit-earlier", "ix-ex-fit-tight"];
+  function fit() {
+    panel.classList.remove(...FIT);
+    if (!S.askEl || !docked() || !askSlot.isConnected || !body.clientHeight) return;
+    body.scrollTop = 0;
+    // layout boxes (offsets), not rects: the card's rise animation must not count
+    const over = () => askSlot.offsetTop - body.offsetTop + askSlot.offsetHeight > body.clientHeight + 0.5;
+    for (const cls of FIT) {
+      if (!over()) break;
+      // the reader asked for the whole about ("More"): keep it, and let the panel scroll for once
+      if (cls === "ix-ex-fit-about" && S.aboutOpen) continue;
+      panel.classList.add(cls);
+    }
   }
 
   /** A pause ({ kind: "chapter" | "end", phase }) or null; the panel shows the recap or the payoff. */
