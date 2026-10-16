@@ -336,7 +336,7 @@ export function build(s, p, scenario, env) {
   if (portrait) {
     // a portrait phone: everything in one tall column, the queues one above the other
     s.column("rt", { gap: 34, align: "center" });
-    s.row("host", { in: "rt", gap: 30 });
+    s.row("host", { in: "rt", gap: 24 });
     s.column("queues", { in: "rt", gap: 28 });
     s.row("engine", { in: "rt", gap: 30 });
   } else {
@@ -345,8 +345,11 @@ export function build(s, p, scenario, env) {
     s.column("queues", { in: "rt", gap: 36 });
     s.column("engine", { in: "rt", gap: 36 });
   }
-  s.housing("webapis", { in: "host", title: "Web APIs", sub: sc === "order" ? "timers · network" : sc === "await" ? "network" : "timers", tray: { cols: 1, of: "record" }, led: "idle" });
-  if (!chunky) s.housing("pending", { in: "host", title: "waiting on a promise", sub: "not ready", tray: { cols: 1, of: "record" } });
+  // a phone's top row holds both host housings side by side: without their sub-labels it is no wider than the
+  // queues under it, so the camera never cuts "waiting on a promise" at the screen edge
+  const phone = !!env?.phone && portrait;
+  s.housing("webapis", { in: "host", title: "Web APIs", sub: phone ? undefined : sc === "order" ? "timers · network" : sc === "await" ? "network" : "timers", tray: { cols: 1, of: "record" }, led: "idle" });
+  if (!chunky) s.housing("pending", { in: "host", title: "waiting on a promise", sub: phone ? undefined : "not ready", tray: { cols: 1, of: "record" } });
   s.housing("tasks", { in: "queues", variant: "queue", title: "task queue", sub: chunky ? "timer · render" : "timer · network", tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
   s.housing("micro", { in: "queues", variant: "queue", title: "microtask queue", sub: "promise jobs", tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
   s.housing("stack", { in: "engine", title: "call stack", sub: "idle", led: "idle", tray: { cols: 1, of: "record", order: "stack" }, state: { frames: [], begin: null } });
