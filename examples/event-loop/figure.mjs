@@ -835,7 +835,9 @@ function machine(s, cfg, sc, view = {}) {
     if (sc === "starve") return paints.length === 1
       ? `The 0 ms timer ran at ${ms(timeoutAt)}. The screen jumped from 0/${cfg.chunks} to ${cfg.chunks}/${cfg.chunks}: no progress`
       : `The 0 ms timer ran at ${ms(timeoutAt)}, and the screen updated only ${fmt.plural(paints.length, "time")}`;
-    const shown = paints.length > 1 ? `${fmt.plural(paints.length, "repaint")} showed progress: ${paints.map((x) => `${x}/${cfg.chunks}`).join(", ")}` : "the work ended before the first repaint";
+    // a long run of repaints names only the first and the last, so the caption stays short
+    const shown = paints.length > 3 ? `${paints.length} repaints showed progress, ${paints[0]}/${cfg.chunks} to ${paints[paints.length - 1]}/${cfg.chunks}`
+      : paints.length > 1 ? `${fmt.plural(paints.length, "repaint")} showed progress: ${paints.map((x) => `${x}/${cfg.chunks}`).join(", ")}` : "the work ended before the first repaint";
     return `${C("timeout")} ran at ${ms(timeoutAt)}, and ${shown}` + (clampIdle > 0 ? `. Timer limit: ${ms(clampIdle)} idle` : "");
   }
   return {
