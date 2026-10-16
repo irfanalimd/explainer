@@ -358,12 +358,14 @@ export function build(s, p, scenario, env) {
   }
   s.housing("console", { in: out, title: "console", sub: "0 lines", tray: { cols: portrait ? (chunky ? 3 : 2) : vm.consoleCols, of: "record", order: "row" } });
 
-  s.trace("t-api-tasks", "webapis", "tasks");
-  if (!chunky) s.trace("t-pending-micro", "pending", "micro");
-  s.trace("t-tasks-stack", "tasks", "stack");
-  s.trace("t-micro-stack", "micro", "stack");
-  s.trace("t-stack-console", "stack", "console");
-  if (chunky) s.trace("t-stack-page", "stack", "page");
+  // work flows one way: into the queues, from the queues onto the stack, from the stack to the console
+  const one = { arrow: true };
+  s.trace("t-api-tasks", "webapis", "tasks", one);
+  if (!chunky) s.trace("t-pending-micro", "pending", "micro", one);
+  s.trace("t-tasks-stack", "tasks", "stack", one);
+  s.trace("t-micro-stack", "micro", "stack", one);
+  s.trace("t-stack-console", "stack", "console", one);
+  if (chunky) s.trace("t-stack-page", "stack", "page", one);
 
   vm.start();
 }
