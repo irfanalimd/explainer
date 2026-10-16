@@ -143,7 +143,7 @@ export function inputFor(p) {
   return order === "sorted" ? sortedCopy(distinct) : distinct;
 }
 
-export function build(s, p, scenario) {
+export function build(s, p, scenario, env = {}) {
   const input = inputFor(p);
   const n = input.length;
   const typed = typedOf(p).length >= 2;
@@ -167,7 +167,7 @@ export function build(s, p, scenario) {
 
   // every caption is written here, in plain words; the tracked array only does the operations and the counting
   // a phone frames the whole line every step, so a close-up on a few tiles never cuts off the end of the array
-  const step = (caption, o) => { a.caption(); s.step(caption, o); };
+  const step = (caption, o) => { a.caption(); if (env.phone) s.focus("a", "rods"); s.step(caption, o); };
   const chip = (k) => fmt.ref(a.tile(k), a.show(a.values()[k]));   // the number in slot k, lit on hover
   const sideOf = (side, parent) => (side ? `${side === "left" ? "Left" : "Right"} of ${parent}` : "");
 
