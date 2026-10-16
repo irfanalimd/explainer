@@ -118,7 +118,7 @@ there is one instance per module); everything else is served byte for byte.
 
 ## shoot.mjs
 
-`node scripts/shoot.mjs <page | figure.mjs | url> [--at phases|all|steps|<list>] [--themes dark,light] [--sizes 1440x900,390x844] [--scenario id|all] [--out dir] [--dpr 1] [--camera settled|auto] [--clean] [--no-sheet]`
+`node scripts/shoot.mjs <page | figure.mjs | url> [--at phases|all|steps|none|<list>] [--teach] [--themes dark,light] [--sizes 1440x900,390x844] [--scenario id|all] [--out dir] [--dpr 1] [--camera settled|auto] [--clean] [--no-sheet]`
 
 - `--at phases` (default): mid-phase and end-of-phase for every phase. `all`: mid and end of every step. `steps`:
   end of every step. A list mixes step indices (mid and end), times (`12.5s`) and `end`: `--at 0,7,12.5s,end`.
@@ -130,6 +130,16 @@ there is one instance per module); everything else is served byte for byte.
   and audit problems grouped by finding, with the steps and shots where each occurs.
 - Size presets: `desktop` (1440x900), `phone` (390x844), `1080p`, `720p`, `vertical`, `square`. Use `--dpr 2` to
   judge text crispness.
+- `--teach` adds the teaching cards, which frozen capture never shows (it drops pauses and predictions). After the
+  phase shots it plays the page live, on its own tab, in every theme, size and scenario:
+  - each predict question, asked (`<scenario>-<theme>-<w>x<h>-<step>-ask.png`), then answered with the first wrong
+    option and revealed with its why (`…-<step>-why.png`). A question in the shared opening of several stories is shot
+    once per theme and size.
+  - the end card, scrolled to the recap, takeaway and what-ifs (`…-<last step>-end-card.png`). On a narrow screen,
+    where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
+  The shots join the contact sheet; a question that never opens or reveals is reported as a page error. Live play
+  takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
+  shoots the cards alone.
 
 ## audit.mjs
 

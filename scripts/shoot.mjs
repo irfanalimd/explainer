@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Deterministic screenshots of a figure page through window.__internals (freeze + renderAt, settled camera),
 // across themes, sizes and scenarios, plus a contact sheet. Reports page errors and audit problems per shot.
+// --teach also plays the page live to catch what frozen capture never shows: each predict card (asked, then revealed
+// with its why) and the end card with the recap, the takeaway and the what-ifs.
 import "./lib/websocket.mjs";                // Node 20/21: re-run with --experimental-websocket
 import { mkdirSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
@@ -20,9 +22,14 @@ usage: node scripts/shoot.mjs <page.html | figure.mjs | url> [options]
   --dpr <n>            device pixel ratio (default 1; use 2 to judge text crispness)
   --camera <mode>      settled (default) | auto
   --runtime <file>     runtime for a figure-module target (default engine/runtime.mjs)
+  --teach              also play the page live and shoot every predict card (asked, then revealed with its why)
+                       and the end card (recap, takeaway, what-ifs), in every theme, size and scenario
   --clean              delete existing PNGs in the output directory first
   --no-sheet           skip the contact sheet
+  --at none            no phase shots (with --teach: the teaching cards only)
 Files: <scenario>-<theme>-<w>x<h>-<step>-<mid|end|tN.NNs>.png, contact.png (contact-2.png… when long).
+--teach adds <scenario>-<theme>-<w>x<h>-<step>-ask.png and -why.png per question, and
+<scenario>-<theme>-<w>x<h>-end-card.png (narrow screens: -end-caption.png too, the caption before the card opens).
 `;
 
 export async function shoot(target, o = {}) {
@@ -46,7 +53,7 @@ export async function shoot(target, o = {}) {
       for (const id of ids) {
         if (o.scenario || list.length > 1) if (id !== "default") await fp.setScenario(id);
         const info = await fp.info();
-        const times = shotTimes(info, o.at ?? "phases");
+        const times = o.at === "none" ? [] : shotTimes(info, o.at ?? "phases");
         for (const theme of themes) {
           await fp.setTheme(theme);
           await fp.freeze();
@@ -66,6 +73,7 @@ export async function shoot(target, o = {}) {
       }
       for (const e of fp.errors) if (!errors.some((x) => x.text === e.text)) errors.push({ ...e, shot: `boot ${size.width}x${size.height}` });
       await fp.close();
+      if (o.teach) await teachShots(browser, t.url, size, { ...o, themes, outDir, shots, errors });
     }
     let sheets = [];
     if (o.sheet !== false && shots.length) sheets = await contactSheet(browser, outDir, shots, title || t.name);
@@ -74,6 +82,91 @@ export async function shoot(target, o = {}) {
     browser.close();
     t.stop();
   }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
+// asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
+// is revealed, shoot again; then play into the end and shoot the end card. A question in a story's shared opening is
+// shot once per theme and size, not again for every story that repeats it.
+async function teachShots(browser, url, size, o) {
+  const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
+  const ev = (js) => fp.page.evaluate(js);
+  const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
+  const settle = () => sleep(1400);   // panel fades and camera springs come to rest
+  const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
+  try {
+    await ev("__internals.intro(false), true");
+    const list = (await fp.scenarios()) ?? [];
+    let ids = !o.scenario || o.scenario === "all" ? (list.length ? list.map((s) => s.id) : ["default"]) : [o.scenario];
+    for (const theme of o.themes) {
+      await fp.setTheme(theme);
+      const seen = new Set();
+      for (const id of ids) {
+        if (id !== "default") await fp.setScenario(id);
+        await ev("__internals.intro(false), __internals.setSpeed(1), true");
+        const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
+          question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
+        const errBefore = fp.errors.length;
+        // a clean slate: playing from the end restarts and forgets earlier answers
+        await ev("(() => { const I = __internals; I.seek(I.timeline.duration); I.play(); I.pause(); return true; })()");
+        for (const a of asks) {
+          const key = `${a.step}|${a.question}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          await ev(`(() => { __internals.seek(Math.max(0, ${a.t0} - 0.25)); __internals.play(); return true; })()`);
+          // a chapter pause can come first when the question opens a chapter: carry on through it
+          const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play();
+            return document.querySelector("#ix").classList.contains("ix-asking") && !!document.querySelector(".ix-predict.ix-open"); })()`, 15000);
+          if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
+          await settle();
+          const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
+          await fp.page.shot(join(o.outDir, `${base}-ask.png`));
+          o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
+          const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
+          await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
+          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
+          await ev("__internals.pause(), true");
+          if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
+          await settle();
+          await fp.page.shot(join(o.outDir, `${base}-why.png`));
+          o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
+          await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
+        }
+        // the end: play the last moment and let the run finish on its own (that is what holds the end card)
+        await ev("(() => { const I = __internals, d = I.timeline.duration; I.seek(Math.max(0, d - 0.4)); I.play(); return true; })()");
+        const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play();
+          const q = document.querySelector(".ix-predict.ix-open:not(.ix-locked) .ix-opt"); if (q) q.click();
+          return !!(I.held && I.held.kind === "end"); })()`, 15000);
+        const info = await fp.info();
+        const last = info.steps.length - 1, endBase = `${tag(id, theme)}-${String(last).padStart(3, "0")}`;
+        const entry = (file, tg) => ({ file, scenario: id, theme, size, step: last, tag: tg, t: info.duration, phase: info.steps[last]?.phase ?? "", caption: info.steps[last]?.caption ?? "" });
+        if (!ended) o.errors.push({ type: "teach", text: "the run never reached its end card", shot: tag(id, theme), step: last });
+        else {
+          await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
+          await settle();
+          // a long card: scroll it so the run's end (the recap, the takeaway and the what-ifs) is in view
+          const scrollEnd = `(() => { const b = document.querySelector(".ix-explain .ix-ex-body"), n = b && b.querySelector(".ix-ex-now:not([hidden])");
+            if (n) b.scrollTop += n.getBoundingClientRect().top - b.getBoundingClientRect().top - 4; return true; })()`;
+          await ev(scrollEnd);
+          // narrow screens: the caption carries the takeaway; the Explain card opens from it with the recap
+          const sheet = await ev(`document.querySelector("#ix").classList.contains("ix-ex-sheet")`);
+          if (sheet) {
+            await fp.page.shot(join(o.outDir, `${endBase}-end-caption.png`));
+            o.shots.push(entry(`${endBase}-end-caption.png`, "end-caption"));
+            await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.click(); return !!b; })()`);
+            await settle();
+            await ev(scrollEnd);
+          }
+          await fp.page.shot(join(o.outDir, `${endBase}-end-card.png`));
+          o.shots.push(entry(`${endBase}-end-card.png`, "end-card"));
+          if (sheet) await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.getAttribute("aria-expanded") === "true" && b.click(); return true; })()`);
+        }
+        for (const e of fp.errors.slice(errBefore)) o.errors.push({ ...e, shot: `teach ${tag(id, theme)}` });
+      }
+    }
+  } finally { await fp.close(); }
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -155,7 +248,7 @@ export function report(r, { cwd = process.cwd() } = {}) {
 }
 
 if (isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { at: "string", themes: "list", sizes: "list", scenario: "string", out: "string", dpr: "number", camera: "string", runtime: "string", clean: "boolean", sheet: "boolean" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { at: "string", themes: "list", sizes: "list", scenario: "string", out: "string", dpr: "number", camera: "string", runtime: "string", clean: "boolean", sheet: "boolean", teach: "boolean" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
   try {
     const r = await shoot(a._[0], a);
