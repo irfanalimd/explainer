@@ -1,7 +1,7 @@
 // node --test engine/gfx/skin.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { skin, SKIN_KINDS, toneColors, bezier } from "./skin.mjs";
+import { skin, SKIN_KINDS, toneColors, bezier, inkOn } from "./skin.mjs";
 import { DrawList } from "../contracts.mjs";
 import { PALETTE, SIZE, MOTION, ACCENT, GLOW, keyColor } from "../tokens.mjs";
 import { galleryScene } from "./gallery-scene.mjs";
@@ -297,4 +297,32 @@ test("bus: only the parts that carry data glow; tiles that flash or light carry 
   const [t] = run([{ id: "t", kind: "tile", x: 0, y: 0, z: 9.5, text: "a", key: 2, flash: 0.6 }]).slabs;
   assert.ok(t.ping && t.ping.flash === 0.6 && t.ping.color === keyColor("dark", 2));
   assert.equal(run([{ id: "t", kind: "tile", x: 0, y: 0, text: "a" }]).slabs[0].ping, undefined);
+});
+
+test("ink on identity colours: whichever of near-black and white contrasts more (WCAG), so every key takes dark ink", () => {
+  const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  const L = (h) => { const n = parseInt(h.slice(1), 16); return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); };
+  const cr = (a, b) => (Math.max(L(a), L(b)) + 0.05) / (Math.min(L(a), L(b)) + 0.05);
+  for (const theme of ["dark", "light"]) {
+    const T = PALETTE[theme];
+    for (const [i, c] of T.keys.entries()) {
+      const ink = inkOn(c, T);
+      assert.ok(cr(c, ink) >= cr(c, ink === "#FFFFFF" ? T.keyInk : "#FFFFFF"), `${theme} key ${i}: ${ink} on ${c} is not the stronger ink`);
+      assert.ok(cr(c, ink) >= 4.5, `${theme} key ${i}: ${ink} on ${c} is only ${cr(c, ink).toFixed(2)}:1`);
+      const [t] = skin([{ id: "t", kind: "tile", x: 0, y: 0, text: "12", key: i }], new DrawList(), { theme }).slabs;
+      assert.equal(t.label.color, ink);
+    }
+  }
+  // a deep body still takes white
+  assert.equal(inkOn("#1B2340", P), "#FFFFFF");
+});
+
+test("tile sub-labels print at a readable size and strength; a ghost that says something uses muted ink", () => {
+  const [t] = run([{ id: "t", kind: "tile", x: 0, y: 0, w: 76, text: "12", sub: "value", key: 1 }]).slabs;
+  assert.equal(t.label2.text, "value");
+  assert.ok(t.label2.size > SIZE.tile.sub && t.label2.opacity >= 0.85 && t.label2.weight >= 500);
+  const [g] = run([{ id: "t", kind: "tile", x: 0, y: 0, w: 76, text: "null", sub: "next", tone: "ghost" }]).slabs;
+  assert.equal(g.label.color, P.inkMuted);
+  const [b] = run([{ id: "b", kind: "bit", x: 0, y: 0, text: "0" }]).slabs;
+  assert.equal(b.label.color, P.inkFaint);
 });

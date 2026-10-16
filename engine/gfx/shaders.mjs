@@ -290,6 +290,7 @@ void main() {
   vec3 alb = t3.rgb;
   vec3 emis = vec3(0.0);
   float inkA = 0.0;                      // printed ink covers the glowing body
+  float inkZone = 0.0;                   // inside a dark label's box: the body there sends no bloom over it
   float wellShadow = 1.0, ao = 1.0;
   bool hasWell = t6.z > 0.001;
   vec2 hc = t6.xy, hh = t6.zw; float hr = t7.x, dep = t7.y, lip = t7.z;
@@ -341,9 +342,16 @@ void main() {
       vec2 uv = mix(uvr.xy, uvr.zw, rel);
       vec2 uvPerU = (uvr.zw - uvr.xy) / (2.0 * qd.zw);
       float texPerU = uvPerU.x * uAtlasSize;
-      float aa = max(texPerU * uPerPx / (2.0 * uSpreadPx) * 0.85, 0.003);
+      float sdPx = texPerU * uPerPx / (2.0 * uSpreadPx);        // SDF units per screen pixel
+      float aa = max(sdPx * 0.85, 0.003);
       float sd = textureLod(uAtlas, uv, 0.0).r;
-      float a = smoothstep(0.5 - aa, 0.5 + aa, sd) * col.a * faceMask;
+      // dark ink on a bright body: linear-light coverage thins dark strokes to a grey hairline, so small
+      // dark text is dilated (stem darkening, up to ~0.4 px) and blended in sRGB below
+      float darkInk = ex.x > 0.5 ? 0.0 : smoothstep(0.03, 0.2, luma(alb) - luma(col.rgb));
+      inkZone = max(inkZone, darkInk * col.a);
+      float smallTxt = 1.0 - smoothstep(18.0, 54.0, 2.0 * qd.w / uPerPx);
+      float grow = darkInk * min(sdPx * (0.18 + 0.24 * smallTxt), 0.12);
+      float a = smoothstep(0.5 - grow - aa, 0.5 - grow + aa, sd) * col.a * faceMask;
       // clip box for rolling values (y window in face coords)
       a *= (1.0 - smoothstep(ex.z - uPerPx, ex.z, abs(lp.y - ex.w)));
       if (ex.x > 0.5) {
@@ -359,7 +367,10 @@ void main() {
         vec3 c = fillC * (1.0 - 0.36 * shade) + fillC * 0.3 * catchL * (1.0 - shade);
         alb = mix(alb, c, a);
       } else {
-        alb = mix(alb, col.rgb, a);
+        // light ink keeps linear coverage (it already reads bold); dark ink mixes in sRGB, as a print would
+        vec3 linMix = mix(alb, col.rgb, a);
+        vec3 srgbMix = toLin(mix(toSrgb(alb), toSrgb(col.rgb), a));
+        alb = mix(linMix, srgbMix, darkInk);
       }
       inkA = max(inkA, a);
     }
@@ -439,13 +450,14 @@ void main() {
   float specOcc = mix(0.35, 1.0, vis) * ao;
   vec3 env = studioEnv(Rv, M.x);
   // flat tops keep their token colour legible: a satin sheen there, the crisp catch-lights live on bevels
-  float topK = vLocalN.z > 0.999 ? 0.35 : 1.0;
+  // printed ink is matte: the glaze's sheen over a label would lift dark ink toward grey
+  float topK = vLocalN.z > 0.999 ? 0.35 * (1.0 - 0.85 * inkA) : 1.0;
   col += env * mix(F, 0.55 + 0.45 * F, M.w) * specTint * specOcc * topK;
   vec3 Hk = normalize(uKeyDir + V);
   float a2 = max(M.x * M.x, 0.02); a2 *= a2;
   float nh = max(dot(N, Hk), 0.0);
   float D = a2 / (3.14159 * pow(nh * nh * (a2 - 1.0) + 1.0, 2.0));
-  col += uKey * uNorm * vis * max(NdK, 0.0) * D * F * M.y * 0.25 * specTint;
+  col += uKey * uNorm * vis * max(NdK, 0.0) * D * F * M.y * 0.25 * specTint * (1.0 - 0.85 * inkA);
   // material rim: a fresnel lift on silhouettes (environment)
   col += uEnvTint * uEnvGain.x * pow(1.0 - NdV, 4.0) * M.z * 0.5 * ao;
 
@@ -489,6 +501,8 @@ void main() {
     }
   }
   float op = t5.y;
+  // a glowing keycap still glows round its label, but its own halo would fill thin dark strokes with light
+  emis *= 1.0 - 0.85 * inkZone;
   oColor = vec4(col, op);
   oEmis = vec4(emis, op);
 }

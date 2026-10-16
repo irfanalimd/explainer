@@ -216,9 +216,10 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
     address in a pointer field (`w: 76` fits `0x7f3a_2c10`). Its tray column grows to fit it. `sub` prints a small
     second line under the text: a field name (`value`, `next`).
 - `key` (any string or number) gives the tile its **identity colour**, in first-seen order; there are at most 8 before
-  colours repeat. Use it for the data the reader tracks.
+  colours repeat. Use it for the data the reader tracks. The engine inks every label in whichever of near-black and
+  white contrasts more with the body (every identity colour takes near-black, like a keycap), so you never pick ink.
 - `tone` gives a status colour (`ok`, `busy`, `warn`, `fail`, `idle`) or `"ghost"` (an empty or placeholder slot).
-  `tone` wins over `key`.
+  `tone` wins over `key`. A ghost that still says something (`null`) prints it in muted ink.
 
 ### Arrays, bits, pointers, floor text
 

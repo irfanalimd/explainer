@@ -27,13 +27,15 @@ export function bezier([x1, y1, x2, y2]) {
 }
 const ease = bezier(MOTION.ease);
 
+const SUB = { size: 1.08, opacity: 0.9 };   // a tile's sub-label, relative to SIZE.*.sub
 const STATUS = new Set(["ok", "busy", "warn", "fail", "idle"]);
 
 /** Body colour and ink for a tile-like pose. */
 export function toneColors(theme, pose) {
   const P = PALETTE[theme];
   const tone = pose.tone ?? (pose.key != null ? "key" : "neutral");
-  if (tone === "ghost") return { body: P.ghost, ink: P.inkFaint, keyed: false, ghost: true };
+  // a ghost is an empty slot; one that still says something (null, 0) prints it in muted ink so it reads
+  if (tone === "ghost") return { body: P.ghost, ink: pose.kind === "bit" ? P.inkFaint : P.inkMuted, keyed: false, ghost: true };
   if (STATUS.has(tone)) { const body = tone === "idle" ? P.idle : P[tone]; return { body, ink: inkOn(body, P), keyed: true }; }
   if (tone === "key" && pose.key != null) {
     const k = typeof pose.key === "number" ? pose.key : hashKey(pose.key);
@@ -271,7 +273,8 @@ function tileLike(p, dl, ctx) {
     const dy = hasSub ? -d * 0.1 : 0;
     if (p.text != null && p.text !== "") labels.push(...rollingLabels({ font: "mono", weight: 500, size, color: tc.ink, align: "center", dx: 0, dy },
       String(p.text), p.textOut == null ? null : String(p.textOut), p.roll, size));
-    if (hasSub) labels.push({ text: String(p.sub), font: "mono", weight: 400, size: S.sub, color: tc.ink, opacity: 0.62, align: "center", dx: 0, dy: d * 0.26 });
+    // the field name under the value (value, next): quieter than the value, but still a readable print
+    if (hasSub) labels.push({ text: String(p.sub), font: "mono", weight: 500, size: S.sub * SUB.size, color: tc.ink, opacity: tc.ghost ? 0.8 : SUB.opacity, align: "center", dx: 0, dy: d * 0.27 });
   }
   assignLabels(slab, labels.slice(0, 3));
   attention(p, slab, theme, tc);
@@ -317,13 +320,19 @@ function polylines(points) {
   return Array.isArray(points[0][0]) ? points : [points];
 }
 
-// ink that reads on a coloured body: white on deep hues, near-black on light ones (WCAG relative luminance)
-function inkOn(hexc, P) {
+// ink that reads on a coloured body: whichever of near-black (keyInk) and white has the higher WCAG contrast
+// on it. The crossover sits near relative luminance 0.18, so every identity colour takes dark ink, like a keycap.
+export function inkOn(hexc, P) {
+  const L = relLum(hexc);
+  const dark = P.keyInk ?? "#0B0C0F";
+  return contrast(L, relLum(dark)) >= contrast(L, 1) ? dark : "#FFFFFF";
+}
+function relLum(hexc) {
   const n = parseInt(String(hexc).slice(1), 16);
   const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
-  return L > 0.33 ? P.keyInk : "#FFFFFF";
+  return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
 }
+const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
 function trace(p, dl, ctx, width) {
   const { theme } = ctx;
