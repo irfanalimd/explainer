@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prism real frame</title>
+<style>
+  @font-face { font-family: "Geist"; src: url("../../assets/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Geist Mono"; src: url("../../assets/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0B0C0F; }
+  html.light, html.light body { background: #EEEDE8; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #hud { position: fixed; left: 16px; bottom: 14px; font: 500 11px/1.4 "Geist Mono", ui-monospace, monospace; color: #8D929B; white-space: pre; pointer-events: none; }
+  html.light #hud { color: #686C74; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<div id="hud"></div>
+<script type="module">
+// A real compiled figure frame through skin + renderer, with a fixed camera (no runtime, director or HUD).
+//   ?fixture=mapreduce|stress|heartbeat  ?scenario=id  ?t=19 (seconds; omit to play)  ?theme=light
+//   ?frame=world|focus  ?zoom=x,y,z,span (close-up)  ?yaw= ?pitch=  ?info=1
+import { compile } from "../scene/index.mjs";
+import { createRenderer } from "./renderer.mjs";
+import { skin } from "./skin.mjs";
+import { DrawList } from "../contracts.mjs";
+import { CAMERA } from "../tokens.mjs";
+import { fitDistance } from "./math.mjs";
+
+const q = new URLSearchParams(location.search);
+const theme = q.get("theme") === "light" ? "light" : "dark";
+document.documentElement.classList.toggle("light", theme === "light");
+const fig = await import(`../scene/fixtures/${q.get("fixture") || "mapreduce"}.mjs`);
+const tl = compile(fig, { scenario: q.get("scenario") || undefined });
+const canvas = document.getElementById("stage");
+const r = createRenderer(canvas, { theme });
+r.resize(innerWidth, innerHeight, devicePixelRatio);
+const dl = new DrawList();
+
+function camera(frame) {
+  const base = { yaw: Number(q.get("yaw") ?? CAMERA.yaw), pitch: Number(q.get("pitch") ?? CAMERA.pitch), fov: CAMERA.fov };
+  if (q.get("zoom")) {
+    const [x, y, z, span] = q.get("zoom").split(",").map(Number);
+    return { ...base, target: [x, y, z], distance: span / (2 * Math.tan(base.fov * Math.PI / 360)) };
+  }
+  const b = q.get("frame") === "focus" ? frame.focus : frame.world;
+  const box = { ...b, minZ: 0, maxZ: b.maxZ ?? 20 };
+  const cam = { ...base, target: [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, 0] };
+  cam.distance = fitDistance(cam, box, innerWidth, innerHeight, CAMERA.margin);
+  return cam;
+}
+
+function draw(t) {
+  const frame = tl.sample(t, { pxPerUnit: 1 });
+  dl.clear();
+  if (frame.world) dl.bounds = frame.world;
+  skin(frame.poses, dl, { theme, time: t, pxPerUnit: 1 });
+  r.render(dl, camera(frame), { time: t });
+  if (q.get("info") === "1") {
+    const s = r.stats();
+    document.getElementById("hud").textContent = `t ${t.toFixed(2)} / ${tl.duration.toFixed(1)}  step ${frame.step}  ${frame.phase}  ${frame.poses.length} poses  ${s.slabs} slabs  ${s.ms.toFixed(2)} ms`;
+  }
+  return frame;
+}
+
+window.__renderer = r;
+window.__draw = draw;
+window.__timeline = tl;
+window.__ready = (async () => {
+  await r.ready;
+  const t = q.has("t") ? Number(q.get("t")) : 0;
+  const f = draw(t);
+  await new Promise(requestAnimationFrame);
+  draw(t);
+  if (!q.has("t")) {
+    const t0 = performance.now();
+    const loop = () => { draw(((performance.now() - t0) / 1000) % tl.duration); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+  return { phase: f.phase, step: f.step, poses: f.poses.length };
+})();
+</script>
+</body>
+</html>

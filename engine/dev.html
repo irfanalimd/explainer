@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Explainer · dev</title>
+<!-- Dev harness: mounts a figure from source through scripts/serve.mjs.
+     http://127.0.0.1:5173/engine/dev.html?fig=/examples/mapreduce/figure.mjs&theme=light -->
+<style>
+  @font-face { font-family: "Geist"; font-style: normal; font-weight: 300 700; font-display: block; src: url(../assets/fonts/Geist-latin.woff2) format("woff2"); }
+  @font-face { font-family: "Geist Mono"; font-style: normal; font-weight: 400 700; font-display: block; src: url(../assets/fonts/GeistMono-latin.woff2) format("woff2"); }
+  html, body { margin: 0; height: 100%; background: #0B0C0F; overflow: hidden; }
+  #ix { position: fixed; inset: 0; }
+</style>
+<link rel="stylesheet" href="./hud/hud.css">
+</head>
+<body>
+<div id="ix" class="ix" data-theme="dark"><canvas class="ix-canvas"></canvas></div>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const theme = q.get("theme") ?? undefined;
+  const src = q.get("fig") ?? "/engine/scene/fixtures/mapreduce.mjs";
+  window.__ready = (async () => {
+    const [{ mount }, figure] = await Promise.all([import("./runtime.mjs"), import(src)]);
+    if (theme) document.getElementById("ix").dataset.theme = theme;
+    document.body.style.background = (theme ?? figure.meta?.theme) === "light" ? "#EEEDE8" : "#0B0C0F";
+    return mount(document.getElementById("ix"), figure, { theme: theme ?? figure.meta?.theme, scenario: q.get("scenario") ?? undefined, autoplay: q.get("autoplay") !== "0" });
+  })().catch((err) => { console.error(err); throw err; });
+</script>
+</body>
+</html>

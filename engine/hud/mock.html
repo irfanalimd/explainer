@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HUD mock</title>
+<style>
+  @font-face { font-family: "Geist"; src: url("../../assets/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Geist Mono"; src: url("../../assets/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  #ix { position: fixed; inset: 0; }
+</style>
+<link rel="stylesheet" href="hud.css">
+</head>
+<body>
+<div id="ix" class="ix" data-theme="dark"><canvas class="ix-canvas"></canvas></div>
+<script type="module">
+// HUD mock: the complete HUD over a placeholder 2D stage, driven by a small, honest MapReduce word count
+// (it really splits, maps, partitions, sorts and folds the input), so every caption and counter is true.
+//   ?theme=light   ?open=settings|inspector|code|help|ask|reveal|preview|speed|tags   ?at=<seconds>   ?scenario=crash
+//   ?motion=reduce   ?compare=1 (meters race the run with and without a combiner)   ?capture=1|chrome
+import { createHud } from "./hud.mjs";
+import { PALETTE, MOTION, keyColor } from "../tokens.mjs";
+
+const Q = new URLSearchParams(location.search);
+const root = document.getElementById("ix");
+const canvas = root.querySelector("canvas");
+const ctx = canvas.getContext("2d");
+let theme = Q.get("theme") === "light" ? "light" : "dark";
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+// ---------------- figure definition ----------------
+const meta = {
+  title: "MapReduce", subtitle: "Counting words across a cluster", kicker: "Distributed systems", fig: 1,
+  cite: { text: "Dean & Ghemawat, OSDI 2004", url: "https://research.google/pubs/pub62/" }, theme: "dark",
+};
+const params = {
+  mappers: { label: "Mappers", type: "int", min: 1, max: 6, value: 3 },
+  reducers: { label: "Reducers", type: "int", min: 1, max: 4, value: 2 },
+  combiner: { label: "Combiner", type: "bool", value: false },
+  partitioner: { label: "Partitioner", type: "select", value: "hash", options: [{ value: "hash", label: "hash(key) % R" }, { value: "range", label: "Key range (a–z split)" }] },
+  latency: { label: "Network latency", type: "float", min: 0.5, max: 20, step: 0.5, value: 4, unit: "ms" },
+  input: { label: "Input", type: "text", value: "the quick brown fox jumps over the lazy dog the fox" },
+  seed: { label: "Seed", type: "int", value: 7 },
+};
+const scenarios = [
+  { id: "happy", label: "Happy path" },
+  { id: "crash", label: "Worker dies", params: { crash: 1 } },
+  { id: "skew", label: "Skewed keys", params: { input: "the cat and the dog and the bird and the fish and the end" } },
+];
+// ?compare=1 races the same job with and without a combiner (both runs are computed; values come from each run)
+const COMPARE = Q.has("compare");
+const counters = COMPARE ? {
+  records: { label: "records emitted", short: "emitted", format: "int" },
+  tasks: { label: "tasks done", format: "int" },
+  "plain.sent": { label: "records shuffled", short: "shuffled", group: "no combiner", better: "lower" },
+  "comb.sent": { label: "records shuffled", short: "shuffled", group: "combiner", better: "lower" },
+  "plain.bytes": { label: "bytes over the network", short: "bytes", group: "no combiner", format: "bytes", better: "lower" },
+  "comb.bytes": { label: "bytes over the network", short: "bytes", group: "combiner", format: "bytes", better: "lower" },
+} : {
+  records: { label: "records emitted", short: "emitted", format: "int" },
+  bytes: { label: "shuffled", format: "bytes" },
+  tasks: { label: "tasks done", short: "tasks", format: "int" },
+  time: { label: "sim time", format: "ms" },
+};
+const code = {
+  lang: "python",
+  source: [
+    "def map_task(split):", "    for word in split.split():", "        emit(word, 1)", "",
+    "def partition(key, R):", "    return hash(key) % R", "",
+    "def reduce_task(key, counts):", "    total = 0", "    for c in counts:", "        total += c", "    emit(key, total)",
+  ].join("\n"),
+};
+
+// ---------------- a tiny honest run, recorded as steps ----------------
+function fnv(s, seed) { let h = (2166136261 ^ (seed * 2654435761)) >>> 0; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; }
+function rng(seed) { let a = seed >>> 0 || 1; return () => { a ^= a << 13; a ^= a >>> 17; a ^= a << 5; return ((a >>> 0) % 100000) / 100000; }; }
+
+function build(p, scenarioId) {
+  const sc = scenarios.find((s) => s.id === scenarioId) ?? scenarios[0];
+  const crash = !!sc.params?.crash;
+  const words = String(p.input).toLowerCase().split(/[^a-z0-9']+/).filter(Boolean).slice(0, 28);
+  if (!words.length) words.push("empty");
+  const M = clamp(Math.round(p.mappers), 1, 6), R = clamp(Math.round(p.reducers), 1, 4);
+  const rand = rng(p.seed * 97 + 13);
+  const partOf = (w) => (p.partitioner === "range" ? clamp(Math.floor(((w.charCodeAt(0) - 97) / 26) * R), 0, R - 1) : fnv(w, p.seed) % R);
+  const hashTag = (w) => (p.partitioner === "range" ? `"${w[0]}" → range ${partOf(w)}` : `hash("${w}") % ${R} = ${partOf(w)}`);
+  const keyIdx = new Map();
+  for (const w of words) if (!keyIdx.has(w)) keyIdx.set(w, keyIdx.size);
+  const per = Math.ceil(words.length / M);
+  const splits = Array.from({ length: M }, (_, i) => words.slice(i * per, (i + 1) * per)).filter((s) => s.length);
+  const mapIds = splits.map((_, i) => `m${i}`), redIds = Array.from({ length: R }, (_, i) => `r${i}`);
+  const fmtB = (b) => (b < 1024 ? `${b} B` : `${(b / 1024).toFixed(1)} KB`);
+  const list = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+  const K = (w, n) => `{key:${w}${n != null ? `|${w} · ${n}` : ""}}`;
+  const ref = (id, text) => `{ref:${id}|${text}}`;
+
+  const boxes = { input: { id: "input", kind: "store", title: "Input" }, out: { id: "out", kind: "store", title: "Output" } };
+  mapIds.forEach((id, i) => { boxes[id] = { id, kind: "node", title: `Mapper ${i}`, addr: `192.0.2.${11 + i}` }; });
+  redIds.forEach((id, i) => { boxes[id] = { id, kind: "node", title: `Reducer ${i}`, addr: `198.51.100.${21 + i}` }; });
+
+  const st = { slots: {}, items: {}, led: {}, dim: {} };
+  for (const id in boxes) { st.slots[id] = []; st.led[id] = id === "input" || id === "out" ? "ok" : "idle"; st.dim[id] = false; }
+  const C = { records: 0, bytes: 0, tasks: 0, time: 0, sent: 0 };
+  const steps = [];
+  let phase = "", ops;
+  const fresh = () => ({ moves: [], spawns: [], removes: [], tags: [], lit: [], kinds: [] });
+  ops = fresh();
+  const snap = () => ({ slots: Object.fromEntries(Object.entries(st.slots).map(([k, v]) => [k, v.slice()])), items: JSON.parse(JSON.stringify(st.items)), led: { ...st.led }, dim: { ...st.dim } });
+  const opening = { ...snap(), counters: { ...C } };
+  const at = (id) => Object.keys(st.slots).find((b) => st.slots[b].includes(id));
+  const spawn = (id, box, item, from = box) => { st.items[id] = { id, ...item }; st.slots[box].push(id); ops.spawns.push({ id, from }); };
+  const move = (id, box) => { const b = at(id); st.slots[b].splice(st.slots[b].indexOf(id), 1); st.slots[box].push(id); ops.moves.push(id); };
+  const remove = (id, into) => { const b = at(id); st.slots[b].splice(st.slots[b].indexOf(id), 1); ops.removes.push({ id, into, item: st.items[id] }); delete st.items[id]; };
+  const step = (caption, o = {}) => {
+    C.time += o.sim ?? 0.6;
+    steps.push({ caption, phase, ...snap(), counters: { ...C }, line: o.line ?? null, vars: o.vars ?? null, ask: o.ask ?? null, dur: o.dur ?? 1.35, ops });
+    ops = fresh();
+  };
+  const net = () => p.latency * (0.75 + 0.5 * rand());
+  const rec = (w, n = 1) => ({ kind: "record", word: w, key: keyIdx.get(w), n, part: partOf(w), text: `${w} · ${n}` });
+
+  // Split
+  phase = "Split";
+  st.items.in = { id: "in", kind: "page", text: `input · ${words.join(" ").length} B` };
+  st.slots.input.push("in");
+  opening.slots = snap().slots; opening.items = snap().items;
+  const shown = words.join(" ");
+  step(`The job's input is one line of text, \`${shown.length > 54 ? shown.slice(0, 52) + "…" : shown}\`: **${words.length} words** in all.`, { dur: 1.8 });
+  remove("in");
+  splits.forEach((s, i) => spawn(`s${i}`, "input", { kind: "page", text: `split ${i} · ${s.length}w` }));
+  ops.kinds.push("spawn");
+  step(splits.length > 1 ? `The master cuts it into **${splits.length} splits**, one per mapper, so they can all work at once.` : "The input is small enough for a **single split**.", { sim: 1.2 });
+  ops.lit.push(...splits.map((_, i) => `s${i}`));
+  step(`Split 0 is \`${splits[0].join(" ")}\`${splits[1] ? `, split 1 is \`${splits[1].join(" ")}\`` : ""}${splits.length > 2 ? ", and so on" : ""}.`, { dur: 1.8 });
+
+  // Map
+  phase = "Map";
+  const mapRun = (si, mi, words2, rerun) => {
+    const m = mapIds[mi], page = rerun ? `s${si}r` : `s${si}`;
+    if (rerun) { spawn(page, "input", { kind: "page", text: `split ${si} · ${words2.length}w` }); ops.spawns.length = 0; ops.spawns.push({ id: page, from: "input" }); }
+    move(page, m); st.led[m] = "busy"; ops.kinds.push("send");
+    if (!rerun) {
+      step(si === 0 ? `The master assigns split 0 to ${ref(m, "mapper 0")}; the page travels along its trace.` : `Split ${si} goes to ${ref(m, `mapper ${mi}`)}.`, { line: [1, 1], sim: net() });
+    }
+    const chunk = si === 0 && !rerun ? 1 : 2;
+    let emitted = 0;
+    for (let j = 0; j < words2.length; j += chunk) {
+      const ws = words2.slice(j, j + chunk);
+      ws.forEach((w, k) => { spawn(`k${si}${rerun ? "r" : ""}_${j + k}`, m, rec(w)); C.records++; emitted++; });
+      ops.kinds.push("spawn");
+      if (crash && si === 1 && !rerun && emitted >= Math.min(2, words2.length - 1) && mapIds.length > 1) {
+        step(`${ref(m, `Mapper ${mi}`)} emits ${ws.map((w) => K(w, 1)).join(" and ")}.`, { line: [2, 3], vars: { word: ws[ws.length - 1] }, sim: 0.8 });
+        st.led[m] = "fail"; st.dim[m] = true; ops.kinds.push("crash");
+        ops.tags.push({ id: "hb", text: "heartbeat missed · 3 × 1 s", tone: "fail", box: m });
+        step(`${ref(m, `Mapper ${mi}`)} stops answering heartbeats. The master marks its task {tone:fail|failed}.`, { sim: 3000 });
+        return "crashed";
+      }
+      const last = j + chunk >= words2.length;
+      const lead = si === 0 && j === 0 && !rerun ? `${ref(m, "Mapper 0")} runs \`map()\` on its split and emits ${K(ws[0], 1)}.`
+        : si === 0 && j === 1 && !rerun ? `Then ${K(ws[0], 1)}: one record per word, keyed by the word.`
+        : `${j === 0 && !rerun ? "It emits" : rerun && j === 0 ? `${ref(m, `Mapper ${mi}`)} emits` : "Then"} ${ws.map((w) => K(w, 1)).join(" and ")}${!last ? "." : ""}`;
+      if (last) {
+        remove(page); st.led[m] = "ok"; C.tasks++; ops.kinds.push("done");
+        step(`${lead}${lead.endsWith(".") ? "" : "."} ${ref(m, `Mapper ${mi}`)} is {tone:ok|done}${rerun ? " with the re-run" : ""}: ${st.slots[m].length} records in its tray.`, { line: [2, 3], vars: { word: ws[ws.length - 1] }, sim: 0.8 * ws.length });
+      } else step(lead, { line: [2, 3], vars: { word: ws[ws.length - 1] }, sim: 0.8 * ws.length });
+    }
+    if (p.combiner) {
+      const groups = new Map();
+      for (const id of st.slots[m]) { const it = st.items[id]; if (!groups.has(it.word)) groups.set(it.word, []); groups.get(it.word).push(id); }
+      const dup = [...groups].filter(([, ids]) => ids.length > 1);
+      if (dup.length) {
+        for (const [w, ids] of dup) {
+          const keep = ids[0]; let n = st.items[keep].n;
+          for (const id of ids.slice(1)) { n += st.items[id].n; remove(id, keep); }
+          Object.assign(st.items[keep], { n, text: `${w} · ${n}` }); ops.lit.push(keep);
+        }
+        step(`The combiner folds equal words inside ${ref(m, `mapper ${mi}`)} before the shuffle: ${list(dup.map(([w, ids]) => K(w, ids.length)))}.`, { line: [9, 11], sim: 0.5 });
+      }
+    }
+    return "ok";
+  };
+  let crashed = null;
+  splits.forEach((s, i) => {
+    const r = mapRun(i, i, s, false);
+    if (r === "crashed") {
+      crashed = i;
+      const lost = st.slots[mapIds[i]].filter((id) => st.items[id].kind === "record");
+      lost.forEach((id) => remove(id));
+      remove(`s${i}`);
+      const helper = 0;
+      ops.kinds.push("retry");
+      step(`Its ${lost.length} records are lost with it. The master re-runs split ${i} on ${ref(mapIds[helper], `mapper ${helper}`)}, which is idle.`, { sim: net() });
+      mapRun(i, helper, s, true);
+    }
+  });
+  const inTrays = mapIds.reduce((n, m) => n + st.slots[m].length, 0);
+  step(`All ${splits.length} map tasks are {tone:ok|done}${crashed != null ? ", one of them twice" : ""}. **${inTrays} records** wait in the mapper trays.`, { dur: 1.6, sim: 0.4 });
+
+  // Shuffle
+  phase = "Shuffle";
+  const queue = [];
+  mapIds.forEach((m) => st.slots[m].forEach((id) => queue.push(id)));
+  const holders = new Map();
+  for (const id of queue) { const w = st.items[id].word; if (!holders.has(w)) holders.set(w, new Set()); holders.get(w).add(at(id)); }
+  const askWord = [...holders].find(([, s]) => s.size === 2)?.[0] ?? [...holders].find(([, s]) => s.size > 2)?.[0];
+  const ship = (ids) => {
+    for (const id of ids) {
+      const it = st.items[id]; const r = partOf(it.word);
+      move(id, redIds[r]); C.bytes += it.word.length + 4; C.sent++;
+      ops.tags.push({ id: `t-${id}`, text: hashTag(it.word), item: id });
+    }
+    ops.kinds.push("send");
+  };
+  let shipped = 0;
+  if (askWord) {
+    const ids = queue.filter((id) => st.items[id].word === askWord);
+    const r = partOf(askWord), n = holders.get(askWord).size;
+    ship(ids);
+    step(`Every record of ${K(askWord)} lands on ${ref(redIds[r], `reducer ${r}`)}: \`${hashTag(askWord)}\` on every machine.`, {
+      line: [5, 6], vars: { key: askWord, R }, sim: net(),
+      ask: { question: `${n === 2 ? "Two" : n} mappers each hold a ${K(askWord, 1)}. Where do those records end up?`, options: ["On the same reducer", "On different reducers, one each", "On whichever reducer is free first"], answer: 0 },
+    });
+    shipped++;
+  }
+  const rest = queue.filter((id) => st.items[id].word !== askWord);
+  for (let i = 0; i < rest.length;) {
+    const take = shipped < 4 ? 1 : 2;
+    const ids = rest.slice(i, i + take); i += take;
+    const ws = ids.map((id) => st.items[id].word), rs = ws.map(partOf);
+    ship(ids);
+    const text = shipped === 1 || (!askWord && shipped === 0)
+      ? `Each record crosses the shuffle bus to reducer \`${p.partitioner === "range" ? "range(key)" : `hash(key) % ${R}`}\`. ${K(ws[0])} goes to ${ref(redIds[rs[0]], `reducer ${rs[0]}`)}.`
+      : ids.length === 1 ? `${K(ws[0])} ${p.partitioner === "range" ? "falls in range" : "hashes to"} ${rs[0]}, so it crosses to ${ref(redIds[rs[0]], `reducer ${rs[0]}`)}.`
+      : `${K(ws[0])} goes to reducer ${rs[0]}, ${K(ws[1])} to reducer ${rs[1]}.`;
+    step(text, { line: [5, 6], vars: { key: ws[ws.length - 1], R }, sim: net() });
+    shipped++;
+  }
+  step(`The shuffle moved **${fmtB(C.bytes)}** in ${queue.length} records: each is its key plus 4 bytes for the count.`, { dur: 1.8, sim: 0.3 });
+
+  // Reduce
+  phase = "Reduce";
+  redIds.forEach((r) => { st.led[r] = "busy"; });
+  step(`${redIds.map((r, i) => `${ref(r, `${i === 0 ? "Reducer" : "reducer"} ${i}`)} holds ${st.slots[r].length}`).join(redIds.length > 2 ? ", " : " and ")} records.`, { line: [8, 8], sim: 0.4 });
+  for (const r of redIds) st.slots[r].sort((a, b) => st.items[a].word.localeCompare(st.items[b].word));
+  ops.moves.push(...redIds.flatMap((r) => st.slots[r]));
+  step("Each reducer sorts its records by key, so equal words sit side by side.", { line: [8, 8], sim: 1.1 });
+  redIds.forEach((r, ri) => {
+    const runs = new Map();
+    for (const id of st.slots[r]) { const w = st.items[id].word; if (!runs.has(w)) runs.set(w, []); runs.get(w).push(id); }
+    const singles = [];
+    for (const [w, ids] of runs) {
+      if (ids.length === 1 && st.items[ids[0]].n === 1) { singles.push(w); continue; }
+      const keep = ids[0]; let n = 0;
+      for (const id of ids) n += st.items[id].n;
+      for (const id of ids.slice(1)) remove(id, keep);
+      Object.assign(st.items[keep], { n, text: `${w} · ${n}` }); ops.lit.push(keep); ops.kinds.push("merge");
+      step(`${ref(r, `Reducer ${ri}`)} folds the run of ${ids.length > 1 ? ids.length : "one"} ${K(w)} record${ids.length > 1 ? "s" : ""} into ${K(w, n)}.`, { line: [9, 11], vars: { key: w, total: n }, sim: 0.6 });
+    }
+    st.led[r] = "ok"; C.tasks++; ops.kinds.push("done");
+    const one = singles.length === 1;
+    step(`${singles.length ? `${list(singles.map((w) => K(w)))} ${one ? "is a run" : "are runs"} of one, so ${one ? "its total stays" : "their totals stay"} 1. ` : ""}${ref(r, `Reducer ${ri}`)} is {tone:ok|done}.`, { line: [12, 12], sim: 0.5 });
+  });
+
+  // Output
+  phase = "Output";
+  redIds.forEach((r, ri) => {
+    const ids = st.slots[r].slice();
+    for (let i = 0; i < ids.length; i += 2) {
+      const two = ids.slice(i, i + 2);
+      two.forEach((id) => move(id, "out")); ops.kinds.push("send");
+      step(`${ref(r, `Reducer ${ri}`)} writes ${two.map((id) => K(st.items[id].word, st.items[id].n)).join(" and ")} to ${ref("out", "the output")}.`, { sim: net() });
+    }
+  });
+  const total = st.slots.out.reduce((n, id) => n + st.items[id].n, 0);
+  ops.lit.push("out");
+  step(`The output holds **${st.slots.out.length} distinct words**; their counts sum to ${total}, the number of words in the input.`, { dur: 2, sim: 0.2 });
+  step("That is MapReduce: **map** emits pairs, the **shuffle** groups them by key, and **reduce** folds each group.", { dur: 2.6, sim: 0 });
+
+  return { steps, opening, boxes, mapIds, redIds, keyIdx, words };
+}
+
+// ---------------- timeline (the shape of CONTRACTS.md 4.3) ----------------
+function compile(values, scenarioId) {
+  const run = build(values, scenarioId);
+  let t = 0;
+  const steps = run.steps.map((s, index) => { const st = { ...s, index, t0: t, t1: t + s.dur, kinds: s.ops.kinds }; t += s.dur; return st; });
+  const phases = [];
+  steps.forEach((s, i) => { if (!phases.length || phases[phases.length - 1].name !== s.phase) phases.push({ name: s.phase, step: i, t0: s.t0, t1: s.t1 }); else phases[phases.length - 1].t1 = s.t1; });
+  const events = steps.flatMap((s) => s.kinds.map((kind) => ({ t: s.t0 + s.dur * 0.15, kind, step: s.index })));
+  const keys = [...run.keyIdx].map(([name, index]) => ({ name, index }));
+  if (COMPARE) {
+    // align the two runs by phase: step k of a phase maps to the same fraction of that phase in each run
+    const runs = { plain: build({ ...values, combiner: false }, scenarioId), comb: build({ ...values, combiner: true }, scenarioId) };
+    const byPhase = (list) => { const m = new Map(); list.forEach((x) => { if (!m.has(x.phase)) m.set(x.phase, []); m.get(x.phase).push(x); }); return m; };
+    const mine = byPhase(steps), theirs = Object.fromEntries(Object.entries(runs).map(([k, r]) => [k, byPhase(r.steps)]));
+    for (const st of steps) {
+      const list = mine.get(st.phase), f = (list.indexOf(st) + 1) / list.length;
+      for (const [k, ph] of Object.entries(theirs)) {
+        const other = ph.get(st.phase) ?? [];
+        const o = other[Math.max(0, Math.ceil(f * other.length) - 1)];
+        st.counters = { ...st.counters, [`${k}.sent`]: o?.counters.sent ?? 0, [`${k}.bytes`]: o?.counters.bytes ?? 0 };
+      }
+    }
+  }
+  const zero = { records: 0, bytes: 0, tasks: 0, time: 0, sent: 0 };
+  return {
+    run, steps, phases, events, keys, counters, duration: t,
+    snapshot: (i) => ({ counters: i <= 0 ? zero : steps[i - 1].counters }),
+    get final() { return { counters: steps[steps.length - 1].counters }; },
+  };
+}
+
+// ---------------- layout (world units) ----------------
+const REC = { w: 84, h: 22, gap: 6 }, PAGE = { w: 84, h: 22 };
+function layout(tl) {
+  const { run } = tl;
+  const occ = {};
+  for (const s of [run.opening, ...tl.steps]) for (const b in s.slots) occ[b] = Math.max(occ[b] ?? 0, s.slots[b].length);
+  const L = {};
+  const boxH = (rows, rowH) => 30 + 10 + rows * rowH + (rows - 1) * REC.gap + 12;
+  const col = (ids, x, w, rows, rowH) => {
+    const hs = ids.map((id) => boxH(rows(id), rowH));
+    const totalH = hs.reduce((a, b) => a + b, 0) + (ids.length - 1) * 22;
+    let y = -totalH / 2;
+    ids.forEach((id, i) => { L[id] = { x, y: y + hs[i] / 2, w, h: hs[i], cols: id.startsWith("m") || id.startsWith("r") ? 2 : 1, rowH }; y += hs[i] + 22; });
+  };
+  col(["input"], -500, 120, () => Math.max(3, occ.input ?? 1), PAGE.h);
+  col(run.mapIds, -248, 196, (id) => Math.max(1, Math.ceil((occ[id] ?? 1) / 2)), REC.h);
+  col(run.redIds, 248, 196, (id) => Math.max(2, Math.ceil((occ[id] ?? 1) / 2)), REC.h);
+  col(["out"], 500, 136, () => Math.max(3, occ.out ?? 1), REC.h);
+  return L;
+}
+function slotPos(L, box, i, kind) {
+  const b = L[box];
+  if (!b) return { x: 0, y: 0 };
+  const top = b.y - b.h / 2 + 30 + 10;
+  if (b.cols === 2) {
+    const c = i % 2, r = Math.floor(i / 2);
+    return { x: b.x + (c === 0 ? -1 : 1) * (REC.w / 2 + REC.gap / 2), y: top + r * (REC.h + REC.gap) + REC.h / 2 };
+  }
+  const h = kind === "page" ? PAGE.h : REC.h;
+  return { x: b.x, y: top + i * (b.rowH + REC.gap) + h / 2 };
+}
+
+// ---------------- the mock runtime ----------------
+let values = Object.fromEntries(Object.entries(params).map(([k, d]) => [k, d.value]));
+let scenario = scenarios.some((s) => s.id === Q.get("scenario")) ? Q.get("scenario") : "happy";
+let tl, L;
+let time = 0, playing = !Q.has("at") && !Q.has("kind"), speed = 1, stopAt = null;
+const asked = new Set();
+let pendingAsk = null;
+const cam = { panX: 0, panY: 0, zoom: 1, yaw: 0, tilt: 1, fit: 1 };
+const camTarget = { ...cam };
+let refLit = null, hoverId = null;
+const reduced = Q.get("motion") === "reduce" ? true : undefined;
+
+let hud;
+function recompile(keepPhase) {
+  const old = tl && keepPhase ? { phase: tl.steps[stepIndex(time)]?.phase, frac: phaseFrac() } : null;
+  tl = compile({ ...values, ...(scenarios.find((s) => s.id === scenario)?.params ?? {}) }, scenario);
+  L = layout(tl);
+  hud?.setTimeline(tl);
+  if (old) {
+    const ph = tl.phases.find((p) => p.name === old.phase) ?? tl.phases[0];
+    time = ph.t0 + (ph.t1 - ph.t0) * old.frac;
+  }
+  time = clamp(time, 0, tl.duration);
+  asked.clear();
+}
+function phaseFrac() { const ph = tl.phases.find((p) => time >= p.t0 && time < p.t1) ?? tl.phases[tl.phases.length - 1]; return clamp((time - ph.t0) / (ph.t1 - ph.t0), 0, 0.999); }
+function stepIndex(t) { let i = 0; for (const s of tl.steps) { if (s.t0 <= t + 1e-9) i = s.index; else break; } return i; }
+
+function setScenarioParams(id) {
+  const base = Object.fromEntries(Object.entries(params).map(([k, d]) => [k, d.value]));
+  values = { ...base, ...Object.fromEntries(Object.entries(scenarios.find((s) => s.id === id)?.params ?? {}).filter(([k]) => k in params)) };
+}
+
+const cb = {
+  onToggle() { if (pendingAsk) return; if (!playing && time >= tl.duration - 1e-6) time = 0; playing = !playing; stopAt = null; },
+  onPlay() { playing = true; }, onPause() { playing = false; },
+  onSeek(t, o) { time = clamp(t, 0, tl.duration); stopAt = null; if (pendingAsk) { pendingAsk = null; hud.ask(null); } if (o?.scrubbing) playing = false; },
+  onStep(d) {
+    const i = stepIndex(time), s = tl.steps[i];
+    if (pendingAsk) return;
+    if (d > 0) {
+      const done = time >= s.t1 - 0.02;
+      const target = done ? tl.steps[Math.min(i + 1, tl.steps.length - 1)] : s;
+      if (done && i + 1 < tl.steps.length) time = target.t0;
+      stopAt = target.t1 - 0.001; playing = true;
+    } else { const prev = tl.steps[Math.max(0, time - s.t0 < 0.3 ? i - 1 : i)]; time = prev.t1 - 0.001; playing = false; stopAt = null; }
+  },
+  onPhase(d) {
+    const i = tl.phases.findIndex((p) => time >= p.t0 - 1e-6 && time < p.t1);
+    const j = clamp((i < 0 ? tl.phases.length - 1 : i) + d, 0, tl.phases.length - 1);
+    time = tl.phases[j].t0; stopAt = null;
+  },
+  onSpeed(x) { speed = x; },
+  onScenario(id) { scenario = id; setScenarioParams(id); hud.setValues(values); recompile(true); hud.notice(`Re-ran “${scenarios.find((s) => s.id === id).label}”`); },
+  onParams(v) { values = { ...v }; recompile(true); },
+  onTheme(t) { theme = t; },
+  onFit() { Object.assign(camTarget, { panX: 0, panY: 0, zoom: 1, yaw: 0, tilt: 1 }); },
+  onRestart() { time = 0; playing = true; asked.clear(); },
+  onHover(x, y) { if (x == null) { hoverId = null; hud.inspect(null); return; } const hit = pick(x, y); hoverId = hit; hud.inspect(hit ? info(hit) : null, { x, y }); },
+  onSelect(x, y) { const hit = pick(x, y); if (hit) hud.inspect(info(hit), { x, y, pinned: true }); else hud.inspect(null, { pinned: true }); },
+  onRefHover(id) { refLit = id; },
+  onGesture(g) {
+    if (g.type === "orbit") { camTarget.yaw = clamp(camTarget.yaw + g.dx * 0.12, -24, 24); camTarget.tilt = clamp(camTarget.tilt - g.dy * 0.0025, 0.62, 1); }
+    else if (g.type === "pan") { camTarget.panX += g.dx; camTarget.panY += g.dy; }
+    else if (g.type === "zoom") camTarget.zoom = clamp(camTarget.zoom * g.scale, 0.5, 2.6);
+    else if (g.type === "focus") { const hit = pick(g.x, g.y); camTarget.zoom = hit ? 1.6 : 1; if (!hit) { camTarget.panX = 0; camTarget.panY = 0; } }
+    Object.assign(cam, { yaw: camTarget.yaw, tilt: camTarget.tilt, panX: camTarget.panX, panY: camTarget.panY });
+  },
+  onAnswer() { if (pendingAsk) { asked.add(pendingAsk.index); pendingAsk = null; playing = true; } },
+};
+
+hud = createHud(root, { meta, params, values, scenarios, scenario, counters, code, theme, reducedMotion: reduced }, cb);
+const link = hud.initialState();
+if (link.scenario) { scenario = link.scenario; setScenarioParams(scenario); }
+Object.assign(values, link.params);
+hud.setScenario(scenario); hud.setValues(values);
+recompile(false);
+if (link.time != null) { time = link.time; playing = false; }
+if (Q.has("at")) time = clamp(+Q.get("at"), 0, tl.duration);
+if (Q.has("kind")) { const s = tl.steps.find((x) => x.kinds.includes(Q.get("kind"))); if (s) { time = s.t0 + s.dur * 0.6; playing = false; } }
+
+// ---------------- sampling a frame ----------------
+function itemState(stepSnap, id) { return stepSnap.items[id]; }
+function posOf(snap, id) {
+  for (const b in snap.slots) { const i = snap.slots[b].indexOf(id); if (i >= 0) return { ...slotPos(L, b, i, snap.items[id]?.kind), box: b }; }
+  return null;
+}
+function sample(t) {
+  const i = stepIndex(t), s = tl.steps[i], prev = i > 0 ? tl.steps[i - 1] : tl.run.opening;
+  const u = clamp((t - s.t0) / s.dur, 0, 1);
+  const draw = [];
+  const ids = new Set([...Object.keys(prev.items), ...Object.keys(s.items)]);
+  const movers = [...s.ops.moves, ...s.ops.spawns.map((x) => x.id)];
+  for (const id of ids) {
+    const a = posOf(prev, id), b = posOf(s, id);
+    const it = s.items[id] ?? prev.items[id];
+    const k = movers.indexOf(id);
+    const delay = k >= 0 ? Math.min(0.35, k * 0.09) : 0;
+    const v = clamp((u - delay) / (1 - delay - 0.1), 0, 1);
+    const e = easeIO(v);
+    if (a && b) {
+      const dist = Math.hypot(b.x - a.x, b.y - a.y);
+      draw.push({ id, it, x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, lift: a.box !== b.box ? Math.sin(Math.PI * e) * clamp(dist * 0.08, 0, 14) : 0, op: 1, fly: a.box !== b.box && v > 0 && v < 1 });
+    } else if (b) {
+      const sp = s.ops.spawns.find((x) => x.id === id);
+      const src = sp && L[sp.from] ? L[sp.from] : b;
+      const from = sp && sp.from !== b.box ? { x: src.x, y: src.y } : b;
+      draw.push({ id, it, x: from.x + (b.x - from.x) * e, y: from.y + (b.y - from.y) * e, lift: 0, op: easeOut(v), scale: 0.86 + 0.14 * easeOut(v), fly: sp && sp.from !== b.box && v > 0 && v < 1 });
+    } else if (a) {
+      const rm = s.ops.removes.find((x) => x.id === id);
+      const into = rm?.into ? posOf(s, rm.into) : null;
+      const w = easeIO(clamp(u / 0.8, 0, 1));
+      draw.push({ id, it: rm?.item ?? it, x: into ? a.x + (into.x - a.x) * w : a.x, y: into ? a.y + (into.y - a.y) * w : a.y, lift: 0, op: 1 - w, scale: 1 - 0.1 * w });
+    }
+  }
+  const tagOp = clamp(u / 0.12, 0, 1) * clamp((1 - u) / 0.08, 0, 1);
+  const tags = s.ops.tags.map((tg) => {
+    let x, y;
+    if (tg.item) { const d = draw.find((q) => q.id === tg.item); if (!d) return null; x = d.x; y = d.y - REC.h / 2 - (d.lift ?? 0); }
+    else { const b = L[tg.box]; x = b.x; y = b.y - b.h / 2; }
+    return { id: tg.id, text: tg.text, tone: tg.tone, at: [x, y, 0], opacity: tagOp };
+  }).filter(Boolean);
+  const entities = new Map();
+  for (const [id, b] of Object.entries(tl.run.boxes)) {
+    const n = s.slots[id]?.length ?? 0;
+    entities.set(id, { kind: b.kind === "store" ? "store" : "housing", title: b.title, tone: s.led[id], state: {
+      ...(b.addr ? { addr: `${b.addr}:7077` } : {}), status: s.led[id], records: n,
+      ...(id.startsWith("m") ? { task: n || s.led[id] === "ok" ? `map ${id.slice(1)}` : "—" } : {}),
+      ...(id.startsWith("r") ? { partition: +id.slice(1), keys: [...new Set(s.slots[id].map((x) => s.items[x]?.word))] } : {}),
+    } });
+  }
+  for (const d of draw) {
+    const it = d.it;
+    entities.set(d.id, { kind: it.kind, title: it.text, state: it.kind === "record" ? { key: it.word, value: it.n, bytes: it.word.length + 4, partition: it.part } : { words: it.text } });
+  }
+  const counters2 = u < 0.35 && i > 0 ? prev.counters : s.counters;
+  return {
+    time: t, step: i, u, caption: s.caption, phase: s.phase, tags, counters: counters2, line: s.line, vars: s.vars, entities,
+    poses: draw.map((d) => ({ key: d.it.key ?? null, opacity: d.op })), ask: null, draw, snap: s, lit: s.ops.lit,
+  };
+}
+
+// ---------------- the placeholder stage ----------------
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  W = root.clientWidth; H = root.clientHeight; dpr = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+}
+new ResizeObserver(resize).observe(root);
+resize();
+
+function camMatrix() {
+  const ins = hud.insets;
+  const free = { x: 0, y: ins.top, w: W, h: Math.max(160, H - ins.top - ins.bottom) };
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const b of Object.values(L)) { x0 = Math.min(x0, b.x - b.w / 2); x1 = Math.max(x1, b.x + b.w / 2); y0 = Math.min(y0, b.y - b.h / 2); y1 = Math.max(y1, b.y + b.h / 2); }
+  const worldW = x1 - x0 + 60, worldH = y1 - y0 + 60;
+  const fit = Math.min((free.w * 0.9) / worldW, (free.h * 0.94) / worldH, 1.25);
+  const z = fit * cam.zoom, c = Math.cos((cam.yaw * Math.PI) / 180), sn = Math.sin((cam.yaw * Math.PI) / 180);
+  const cx = free.x + free.w / 2 + cam.panX, cy = free.y + free.h / 2 + cam.panY;
+  return { a: c * z, b: sn * z, c: -sn * z * cam.tilt, d: c * z * cam.tilt, e: cx, f: cy, z };
+}
+function toScreen(m, x, y) { return [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]; }
+function toWorld(m, X, Y) { const det = m.a * m.d - m.b * m.c; const x = X - m.e, y = Y - m.f; return [(m.d * x - m.c * y) / det, (-m.b * x + m.a * y) / det]; }
+let lastFrame = null, lastM = null;
+function pick(X, Y) {
+  if (!lastFrame || !lastM) return null;
+  const [x, y] = toWorld(lastM, X, Y);
+  for (const d of lastFrame.draw) { const w = d.it.kind === "page" ? PAGE.w : REC.w, h = d.it.kind === "page" ? PAGE.h : REC.h; if (Math.abs(x - d.x) < w / 2 && Math.abs(y - d.y) < h / 2 && d.op > 0.5) return d.id; }
+  for (const [id, b] of Object.entries(L)) if (Math.abs(x - b.x) < b.w / 2 && Math.abs(y - b.y) < b.h / 2) return id;
+  return null;
+}
+function info(id) { const e = lastFrame?.entities.get(id); return e ? { id, kind: e.kind, title: e.title, tone: e.tone, state: e.state } : null; }
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x - w / 2, y - h / 2, w, h, r); };
+function draw(fr) {
+  const P = PALETTE[theme];
+  const m = camMatrix(); lastM = m;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // studio sweep
+  const [ox, oy] = toScreen(m, 0, 0);
+  const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, Math.max(W, H) * 0.75);
+  g.addColorStop(0, P.stageLift); g.addColorStop(0.55, P.stage); g.addColorStop(1, P.stageEdge);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // soft coloured light so the glass has something to blur
+  const tt = fr.time * 0.35;
+  ctx.globalCompositeOperation = theme === "dark" ? "lighter" : "source-over";
+  for (let i = 0; i < 6; i++) {
+    const bx = ox + Math.cos(tt * (0.6 + i * 0.13) + i * 2.1) * W * (0.28 + 0.06 * i), by = oy + Math.sin(tt * (0.5 + i * 0.11) + i * 1.3) * H * 0.3;
+    const rad = Math.max(W, H) * (0.16 + 0.03 * (i % 3));
+    const bg = ctx.createRadialGradient(bx, by, 0, bx, by, rad);
+    const col = keyColor(theme, i * 3 % 8);
+    bg.addColorStop(0, col + (theme === "dark" ? "2a" : "26")); bg.addColorStop(1, col + "00");
+    ctx.fillStyle = bg; ctx.fillRect(bx - rad, by - rad, rad * 2, rad * 2);
+  }
+  ctx.globalCompositeOperation = "source-over";
+  // dot grid
+  const grid = 16 * m.z, gc = P.grid;
+  ctx.fillStyle = `rgba(${gc[0] * 255},${gc[1] * 255},${gc[2] * 255},1)`;
+  const R0 = Math.max(W, H) * 0.6;
+  for (let gx = ((ox % grid) + grid) % grid; gx < W; gx += grid) for (let gy = ((oy % grid) + grid) % grid; gy < H; gy += grid) {
+    const f = 1 - Math.hypot(gx - ox, gy - oy) / R0; if (f <= 0) continue;
+    ctx.globalAlpha = gc[3] * f * 1.6; ctx.fillRect(gx - 0.6, gy - 0.6, 1.2, 1.2);
+  }
+  ctx.globalAlpha = 1;
+  // world
+  ctx.setTransform(m.a * dpr, m.b * dpr, m.c * dpr, m.d * dpr, m.e * dpr, m.f * dpr);
+  // traces
+  const groove = (pts, w = 3.2) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.lineWidth = w + 1.2; ctx.strokeStyle = P.grooveRim; ctx.lineJoin = "round"; ctx.stroke(); ctx.lineWidth = w; ctx.strokeStyle = P.groove; ctx.stroke(); };
+  const inp = L.input, out = L.out;
+  for (const id of tl.run.mapIds) { const b = L[id]; groove([[inp.x + inp.w / 2, b.y], [b.x - b.w / 2, b.y]]); groove([[b.x + b.w / 2, b.y], [-20, b.y]]); }
+  for (const id of tl.run.redIds) { const b = L[id]; groove([[20, b.y], [b.x - b.w / 2, b.y]]); groove([[b.x + b.w / 2, b.y], [out.x - out.w / 2, b.y]]); }
+  const ys = [...tl.run.mapIds, ...tl.run.redIds].map((id) => L[id].y);
+  groove([[-20, Math.min(...ys)], [-20, Math.max(...ys)]], 5); groove([[20, Math.min(...ys)], [20, Math.max(...ys)]], 5);
+  groove([[-20, 0], [20, 0]], 5);
+  // housings
+  ctx.textBaseline = "middle";
+  for (const [id, b] of Object.entries(L)) {
+    const lit = refLit === id || hoverId === id || fr.lit.includes(id);
+    const dim = fr.snap.dim[id];
+    ctx.save();
+    ctx.shadowColor = theme === "dark" ? "rgba(0,0,0,0.55)" : "rgba(40,30,10,0.16)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 10;
+    rr(b.x, b.y, b.w, b.h, 11); ctx.fillStyle = id === "input" || id === "out" ? P.housingAlt : P.housing; ctx.fill();
+    ctx.restore();
+    if (lit) { rr(b.x, b.y, b.w + 6, b.h + 6, 14); ctx.strokeStyle = theme === "dark" ? "rgba(255,246,232,0.55)" : "rgba(20,21,25,0.5)"; ctx.lineWidth = 1.5; ctx.stroke(); }
+    rr(b.x, b.y, b.w, b.h, 11); ctx.strokeStyle = theme === "dark" ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)"; ctx.lineWidth = 1; ctx.stroke();
+    rr(b.x, b.y + 14, b.w - 16, b.h - 40, 7); ctx.fillStyle = P.well; ctx.fill();
+    ctx.font = "600 9px 'Geist Mono'"; ctx.fillStyle = P.engrave; ctx.textAlign = "left";
+    ctx.fillText(tl.run.boxes[id].title.toUpperCase().split("").join(String.fromCharCode(8202)), b.x - b.w / 2 + 12, b.y - b.h / 2 + 15);
+    const led = fr.snap.led[id]; const lc = P[led] ?? P.idle;
+    ctx.beginPath(); ctx.arc(b.x + b.w / 2 - 14, b.y - b.h / 2 + 15, 3, 0, Math.PI * 2);
+    ctx.save(); if (led !== "idle") { ctx.shadowColor = lc; ctx.shadowBlur = 10; } ctx.fillStyle = led === "fail" && Math.floor(fr.time * 3.2) % 2 ? P.off : lc; ctx.fill(); ctx.restore();
+    if (dim) { rr(b.x, b.y, b.w, b.h, 11); ctx.fillStyle = theme === "dark" ? "rgba(11,12,15,0.45)" : "rgba(238,237,232,0.5)"; ctx.fill(); }
+  }
+  // tiles
+  const items = fr.draw.slice().sort((a, b) => (a.fly ? 1 : 0) - (b.fly ? 1 : 0));
+  for (const d of items) {
+    const it = d.it, page = it.kind === "page";
+    const w = page ? PAGE.w : REC.w, h = page ? PAGE.h : REC.h, sc = d.scale ?? 1;
+    const col = page ? P.tile : keyColor(theme, it.key ?? 0);
+    const lit = refLit === d.id || hoverId === d.id || fr.lit.includes(d.id);
+    ctx.save();
+    ctx.globalAlpha = d.op;
+    ctx.translate(d.x, d.y - (d.lift ?? 0)); ctx.scale(sc, sc);
+    if (d.fly || lit) { ctx.shadowColor = page ? P.lit : col; ctx.shadowBlur = d.fly ? 26 : 14; } else { ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2; }
+    rr(0, 0, w, h, 5); ctx.fillStyle = col; ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.font = "500 10px 'Geist Mono'"; ctx.textAlign = "center"; ctx.fillStyle = page ? P.tileInk : P.keyInk;
+    ctx.fillText(it.text, 0, 0.5);
+    ctx.restore();
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return m;
+}
+
+// ---------------- loop ----------------
+const perf = { update: [], tags: [] };
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (playing && !pendingAsk) {
+    let next = time + dt * speed;
+    const k = tl.steps.find((s) => s.ask && !asked.has(s.index) && time < s.t0 && next >= s.t0);
+    if (k) { next = k.t0 - 0.0005; playing = false; pendingAsk = k; hud.ask(k.ask); }
+    if (stopAt != null && next >= stopAt) { next = stopAt; playing = false; stopAt = null; }
+    if (next >= tl.duration) { next = tl.duration; playing = false; }
+    time = next;
+  }
+  for (const k of ["panX", "panY", "zoom", "yaw", "tilt"]) cam[k] += (camTarget[k] - cam[k]) * (reduced ? 1 : 0.12);
+  const fr = sample(time);
+  lastFrame = fr;
+  const m = draw(fr);
+  const t0 = performance.now();
+  hud.update(fr, { time, playing, speed });
+  const t1 = performance.now();
+  hud.placeTags(fr.tags.map((tg) => { const [x, y] = toScreen(m, tg.at[0], tg.at[1]); return { id: tg.id, text: tg.text, tone: tg.tone, x, y, opacity: tg.opacity }; }));
+  const t2 = performance.now();
+  perf.update.push(t1 - t0); perf.tags.push(t2 - t1);
+  if (perf.update.length > 600) { perf.update.shift(); perf.tags.shift(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const stats = (a) => { const s = a.slice().sort((x, y) => x - y); return { avg: +(s.reduce((x, y) => x + y, 0) / (s.length || 1)).toFixed(4), p95: +(s[Math.floor(s.length * 0.95)] ?? 0).toFixed(4), max: +(s[s.length - 1] ?? 0).toFixed(4), n: s.length }; };
+window.__hudPerf = () => ({ update: stats(perf.update), tags: stats(perf.tags) });
+window.__mock = { hud, get time() { return time; }, set time(t) { time = t; }, play() { playing = true; }, pause() { playing = false; }, tl: () => tl };
+
+// ---------------- screenshot states ----------------
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+window.__ready = (async () => {
+  await document.fonts.ready;
+  await wait(120);
+  const open = Q.get("open");
+  const askStep = tl.steps.find((s) => s.ask);
+  const box = (id) => { const b = L[id]; const m = lastM ?? camMatrix(); const [x, y] = toScreen(m, b.x + b.w * 0.2, b.y - b.h * 0.1); return { x, y }; };
+  if (open === "settings") hud.open("settings");
+  if (open === "code") { hud.open("code"); }
+  if (open === "help") hud.open("help");
+  if (open === "speed") hud.open("speed");
+  if (open === "readout" || open === "legend" || open === "about") { await wait(120); hud.open(open); }
+  if (open === "inspector") {
+    await wait(50);
+    const p = box("r1"); hud.inspect(info("r1"), { ...p, pinned: true });
+    const rec = lastFrame.draw.find((d) => d.it.kind === "record" && d.op > 0.9);
+    if (rec && Q.get("size") !== "phone") { const [x, y] = toScreen(lastM, rec.x + 10, rec.y + 4); hoverId = rec.id; hud.inspect(info(rec.id), { x, y }); }
+  }
+  if (open === "tip") {
+    await wait(50);
+    root.querySelectorAll(".ix-tools .ix-btn")[1].dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    await wait(600);
+  }
+  if (Q.has("capture")) hud.setCapture(true, { chrome: Q.get("capture") === "chrome" });
+  if (open === "notice") hud.notice("WebGL is unavailable in this browser. The captions, controls and readout still work.", { duration: 0 });
+  if (open === "focus") { root.querySelector(Q.get("sel") || ".ix-play").focus(); await wait(60); }
+  if ((open === "ask" || open === "reveal") && askStep) {
+    time = askStep.t0 - 0.0005; playing = false; pendingAsk = askStep; hud.ask(askStep.ask);
+    if (open === "reveal") {
+      await wait(60);
+      root.querySelector(".ix-opt:nth-child(2)")?.click();
+      time = askStep.t0 + askStep.dur * 0.82; playing = false;
+    }
+  }
+  if (open === "preview") {
+    const sc = root.querySelector(".ix-scrub"), r = sc.getBoundingClientRect();
+    sc.dispatchEvent(new PointerEvent("pointermove", { clientX: r.left + r.width * 0.46, clientY: r.top + r.height / 2, bubbles: true, pointerType: "mouse" }));
+  }
+  await wait(Q.has("at") || Q.has("kind") ? 700 : 200);
+})();
+</script>
+</body>
+</html>

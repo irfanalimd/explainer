@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prism gallery</title>
+<style>
+  @font-face { font-family: "Geist"; src: url("../../assets/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  @font-face { font-family: "Geist Mono"; src: url("../../assets/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0B0C0F; }
+  html.light, html.light body { background: #EEEDE8; }
+  canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+  #hud { position: fixed; left: 16px; bottom: 14px; font: 500 11px/1.4 "Geist Mono", ui-monospace, monospace; color: #8D929B; letter-spacing: .02em; pointer-events: none; white-space: pre; }
+  html.light #hud { color: #686C74; }
+  #hud:empty { display: none; }
+</style>
+</head>
+<body>
+<canvas id="stage" role="img" aria-label="Prism renderer gallery: housings with trays of records, a store, traces carrying a packet, a bus, a space-time board, an array with a pointer and a bitfield"></canvas>
+<div id="hud"></div>
+<script type="module">
+// The renderer's beauty scene. Query: ?theme=light  ?t=2.4 (freeze at a time)  ?still=1 (no animation)
+//   ?layout=wide|tall (default by aspect)  ?zoom=housing|tiles|packet|lane|bits|roll|lit (close-ups)
+//   ?yaw= ?pitch= ?quality=high|medium|low  ?stats=1
+import { createRenderer } from "./renderer.mjs";
+import { skin } from "./skin.mjs";
+import { galleryScene } from "./gallery-scene.mjs";
+import { DrawList } from "../contracts.mjs";
+import { CAMERA } from "../tokens.mjs";
+import { fitDistance, cameraState } from "./math.mjs";
+
+const q = new URLSearchParams(location.search);
+const theme = q.get("theme") === "light" ? "light" : "dark";
+document.documentElement.classList.toggle("light", theme === "light");
+const frozen = q.has("t") ? Number(q.get("t")) : null;
+const still = q.get("still") === "1" || frozen != null;
+const zoom = q.get("zoom");
+const canvas = document.getElementById("stage");
+const r = createRenderer(canvas, { theme, quality: q.get("quality") || "high", maxDpr: Number(q.get("maxDpr") || 2), timing: q.get("stats") === "1" });
+const dl = new DrawList();
+let cssW = innerWidth, cssH = innerHeight;
+r.resize(cssW, cssH, devicePixelRatio);
+addEventListener("resize", () => { cssW = innerWidth; cssH = innerHeight; r.resize(cssW, cssH, devicePixelRatio); });
+const layout = q.get("layout") || (cssW / cssH < 0.9 ? "tall" : "wide");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function camera(scene, time) {
+  const base = { yaw: Number(q.get("yaw") ?? CAMERA.yaw), pitch: Number(q.get("pitch") ?? CAMERA.pitch), fov: CAMERA.fov };
+  if (zoom && scene.spots[zoom]) {
+    const s = scene.spots[zoom];
+    const span = { housing: 300, tiles: 250, packet: 120, lane: 330, bits: 160, roll: 70, lit: 90, hop: 110, bus: 90 }[zoom] ?? 200;
+    return { ...base, target: s, distance: span / (2 * Math.tan(base.fov * Math.PI / 360)) * Math.max(1, (cssH / cssW) * 1.6) };
+  }
+  const b = scene.bounds;
+  const drift = still || reduced ? 0 : Math.sin(time * 0.11) * CAMERA.drift;
+  const cam = { ...base, yaw: base.yaw + drift, target: [(b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, 0] };
+  cam.distance = fitDistance({ ...cam, yaw: base.yaw }, b, cssW, cssH, layout === "tall" ? 0.035 : 0.06);
+  // centre the projected composition vertically (perspective puts the bounds centre off-centre)
+  for (let i = 0; i < 3; i++) {
+    const s = cameraState({ ...cam, yaw: base.yaw }, cssW, cssH);
+    let y0 = Infinity, y1 = -Infinity;
+    for (let k = 0; k < 8; k++) {
+      const pt = [k & 1 ? b.maxX : b.minX, k & 2 ? b.maxY : b.minY, k & 4 ? 12 : 0];
+      const pr = s.project(pt); y0 = Math.min(y0, pr[1]); y1 = Math.max(y1, pr[1]);
+    }
+    const dy = (y0 + y1) / 2 - cssH / 2;
+    const a = s.unproject(cssW / 2, cssH / 2), c = s.unproject(cssW / 2, cssH / 2 + dy);
+    cam.target = [cam.target[0], cam.target[1] + (c[1] - a[1]), 0];
+    cam.distance = fitDistance({ ...cam, yaw: base.yaw }, b, cssW, cssH, layout === "tall" ? 0.035 : 0.06);
+  }
+  return cam;
+}
+
+// ?stress=N: N copies of the scene in a grid (performance budget checks)
+const stress = Math.max(0, Number(q.get("stress") || 0));
+function stressed(time) {
+  const one = galleryScene(time, { layout });
+  if (!stress) return one;
+  const cols = Math.ceil(Math.sqrt(stress)), b = one.bounds, sw = b.maxX - b.minX + 120, sh = b.maxY - b.minY + 120;
+  const poses = [];
+  for (let k = 0; k < stress; k++) {
+    const ox = (k % cols) * sw, oy = Math.floor(k / cols) * sh;
+    const sc = k ? galleryScene(time + k * 0.37, { layout }) : one;
+    for (const p of sc.poses) {
+      const c = { ...p, id: p.id + "#" + k };
+      if (c.x != null) { c.x += ox; c.y += oy; }
+      if (c.points) c.points = (Array.isArray(c.points[0][0]) ? c.points.map((l) => l.map(([x, y]) => [x + ox, y + oy])) : c.points.map(([x, y]) => [x + ox, y + oy]));
+      poses.push(c);
+    }
+  }
+  const rows = Math.ceil(stress / cols);
+  return { poses, spots: one.spots, bounds: { minX: b.minX, minY: b.minY, maxX: b.minX + cols * sw - 120, maxY: b.minY + rows * sh - 120, minZ: 0, maxZ: 30 } };
+}
+
+function frame(time, capture) {
+  const scene = stressed(time);
+  dl.clear();
+  skin(scene.poses, dl, { theme, time, pxPerUnit: 1 });
+  r.render(dl, camera(scene, time), { time, reducedMotion: reduced, capture });
+  if (q.get("stats") === "1") {
+    const s = r.stats();
+    document.getElementById("hud").textContent = `${s.ms.toFixed(2)} ms cpu  ${(s.gpuMs ?? 0).toFixed(2)} ms gpu  ${s.drawCalls} calls  ${s.slabs} slabs  ${s.instances} instances  ${s.lights} lights  ${(s.triangles / 1000).toFixed(0)}k tris`;
+  }
+}
+
+window.__renderer = r; window.__stressed = (t) => stressed(t);
+// back-to-back frames keep the GPU clocked up; one readback at the end syncs, so wall / n is the true frame cost
+window.__throughput = (n = 60) => {
+  const gl = canvas.getContext("webgl2");
+  const scenes = [];
+  for (let i = 0; i < n; i++) scenes.push(stressed(i / 60));
+  const px = new Uint8Array(4);
+  const run = () => {
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      const t = i / 60;
+      dl.clear(); skin(scenes[i].poses, dl, { theme, time: t });
+      r.render(dl, camera(scenes[i], t), { time: t });
+    }
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    return (performance.now() - t0) / n;
+  };
+  run();
+  const ms = run();
+  const s = r.stats();
+  return { msPerFrame: +ms.toFixed(2), slabs: s.slabs, instances: s.instances, drawCalls: s.drawCalls, ktris: Math.round(s.triangles / 1000), renderCpuMs: +s.ms.toFixed(2), size: r.size };
+};
+window.__bench = async (n = 90) => {
+  const cpu = [], gpu = [], skinMs = [], t0 = performance.now();
+  for (let i = 0; i < n; i++) {
+    const t = i / 60;
+    const a = performance.now();
+    const scene = stressed(t);
+    dl.clear(); skin(scene.poses, dl, { theme, time: t });
+    const b = performance.now();
+    r.render(dl, camera(scene, t), { time: t });
+    skinMs.push(b - a); cpu.push(r.stats().ms); gpu.push(r.stats().gpuMs);
+    await new Promise(requestAnimationFrame);
+  }
+  const avg = (a) => a.slice(10).reduce((x, y) => x + y, 0) / (a.length - 10);
+  const s = r.stats();
+  return { frames: n, wall: (performance.now() - t0) / n, sceneAndSkinMs: avg(skinMs), renderCpuMs: avg(cpu), gpuMs: avg(gpu.filter((x) => x > 0).concat([0]).slice(0, -1)), slabs: s.slabs, instances: s.instances, drawCalls: s.drawCalls, triangles: s.triangles, poses: stressed(0).poses.length };
+};
+if (q.get("bloom") === "0") r.debug.bloom = false;
+window.__frame = frame;
+window.__ready = (async () => {
+  await r.ready;
+  const t = frozen ?? 0;
+  for (let i = 0; i < 3; i++) { frame(t, true); await new Promise(requestAnimationFrame); }
+  if (!still) {
+    const t0 = performance.now();
+    const loop = () => { frame((performance.now() - t0) / 1000, false); requestAnimationFrame(loop); };
+    requestAnimationFrame(loop);
+  }
+  return r.stats();
+})();
+</script>
+</body>
+</html>

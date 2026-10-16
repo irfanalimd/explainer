@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HUD browser tests</title>
+<link rel="stylesheet" href="hud.css">
+<style>html, body { margin: 0; height: 100%; overflow: hidden; } #ix { position: fixed; inset: 0; }</style>
+</head>
+<body>
+<div id="ix" class="ix"><canvas class="ix-canvas"></canvas></div>
+<script type="module">
+// Browser checks for the HUD: input routing, keyboard map, scrubbing, throttling, diffed updates, tags, deep links, perf.
+// node scripts/snap.mjs engine/hud/test.html --out /tmp/t.png --eval "window.__results"
+import { createHud } from "./hud.mjs";
+
+history.replaceState(null, "", "#s=crash&t=3.5&p=mappers:5,input:a%2Cb,combiner:1");
+try { for (const k of Object.keys(localStorage)) if (k.startsWith("ix:")) localStorage.removeItem(k); } catch {}
+const calls = [];
+const spy = new Proxy({}, { get: (_, name) => (...args) => { calls.push([name, ...args]); } });
+const cb = {};
+for (const n of ["onPlay", "onPause", "onToggle", "onSeek", "onStep", "onPhase", "onSpeed", "onScenario", "onParams", "onTheme", "onFit", "onFullscreen", "onRestart", "onHover", "onSelect", "onRefHover", "onGesture", "onAnswer", "onUnpin", "onStart", "onIntro", "onContinue", "onGuided", "onRefSelect"]) cb[n] = spy[n];
+const params = {
+  mappers: { label: "Mappers", type: "int", min: 1, max: 6, value: 3 },
+  combiner: { label: "Combiner", type: "bool", value: false },
+  input: { label: "Input", type: "text", value: "the fox" },
+  seed: { label: "Seed", type: "int", value: 7 },
+};
+const scenarios = [{ id: "happy", label: "Happy path", description: "Every machine stays healthy." },
+  { id: "crash", label: "Worker dies", params: { crash: 1 }, description: "A mapper dies mid-task and its split runs again." }];
+const root = document.getElementById("ix");
+const hud = createHud(root, {
+  meta: { title: "MapReduce", subtitle: "Counting words", kicker: "Distributed systems", fig: 1, cite: { text: "Dean & Ghemawat" } },
+  params, values: { mappers: 3, combiner: false, input: "the fox", seed: 7 }, scenarios, scenario: "happy",
+  counters: { bytes: { label: "shuffled", format: "bytes" }, tasks: { label: "tasks", format: "int" } },
+  code: { lang: "python", source: "def f(x):\n    return x\n" }, theme: "dark",
+}, cb);
+const steps = Array.from({ length: 20 }, (_, i) => ({ index: i, t0: i, t1: i + 1, dur: 1, caption: `Step ${i} moves {key:fox} to {ref:m${i % 3}|mapper ${i % 3}}`, phase: i < 10 ? "Map" : "Reduce", ask: i === 12 ? { question: "Where?", options: ["Here", "There"], answer: 1 } : null }));
+const tl = {
+  steps, duration: 20, phases: [{ name: "Map", step: 0, t0: 0, t1: 10 }, { name: "Reduce", step: 10, t0: 10, t1: 20 }],
+  events: steps.map((s) => ({ t: s.t0 + 0.2, kind: s.index === 4 ? "crash" : "send", step: s.index })),
+  keys: [{ name: "fox", index: 3 }, { name: "the", index: 0 }],
+  counters: { bytes: { label: "shuffled", format: "bytes" }, tasks: { label: "tasks", format: "int" } },
+};
+hud.setTimeline(tl);
+const entities = new Map([["m0", { title: "Mapper 0" }], ["m1", { title: "Mapper 1" }], ["m2", { title: "Mapper 2" }]]);
+const frame = (t, extra = {}) => ({ time: t, step: Math.min(19, Math.floor(t)), u: t % 1, caption: steps[Math.min(19, Math.floor(t))].caption, phase: "Map", tags: [], counters: { bytes: 1400, tasks: 2 }, line: [2, 2], entities, poses: [{ key: 3, opacity: 1 }, { key: 0, opacity: 1 }], ...extra });
+
+const results = [];
+const check = (name, ok, detail) => results.push({ name, ok: !!ok, ...(ok ? {} : { detail }) });
+const take = (name) => { const r = calls.filter((c) => c[0] === name); return r; };
+const reset = () => { calls.length = 0; };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const frameWait = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+const key = (k, o = {}, target = document.body) => target.dispatchEvent(new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...o }));
+const ptr = (el, type, x, y, o = {}) => el.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true, pointerId: o.id ?? 1, pointerType: o.pointerType ?? "mouse", button: o.button ?? 0, buttons: o.buttons ?? 1, shiftKey: !!o.shift }));
+
+window.__results = (async () => {
+  await document.fonts.ready;
+  hud.update(frame(3.5), { time: 3.5, playing: false, speed: 1 });
+  await frameWait();
+
+  // structure
+  check("title rendered", root.querySelector(".ix-heading").textContent === "MapReduce");
+  check("no kicker or citation line in the title block", !root.querySelector(".ix-title .ix-kicker, .ix-title .ix-cite, .ix-about .ix-kicker"));
+  check("title is plain text without a paper url", !root.querySelector(".ix-heading a"));
+  {
+    const meta0 = { title: "MapReduce", subtitle: "Counting words", kicker: "Distributed systems", fig: 1, cite: { text: "Dean & Ghemawat" } };
+    hud.setMeta({ ...meta0, cite: { text: "Dean & Ghemawat, OSDI 2004", url: "https://example.org/mr.pdf" } });
+    const a = root.querySelector(".ix-heading a.ix-title-link");
+    check("title links to the paper in a new tab", !!a && a.href === "https://example.org/mr.pdf" && a.target === "_blank" && a.rel === "noopener"
+      && a.getAttribute("aria-label") === "MapReduce — read the paper: Dean & Ghemawat, OSDI 2004" && a.title === a.getAttribute("aria-label")
+      && root.querySelector(".ix-heading").textContent === "MapReduce");
+    check("hover arrow hidden at rest", getComputedStyle(a.querySelector(".ix-title-arrow")).opacity === "0");
+    hud.setMeta(meta0);
+  }
+  // stories: no tab strip in the toolbar; a labelled picker under the title names the story and opens the list
+  const storyBtn = root.querySelector(".ix-story");
+  check("no scenario tabs in the toolbar; the story picker sits under the title", !root.querySelector(".ix-tab, .ix-tabs, .ix-select-wrap")
+    && !!root.querySelector(".ix-title .ix-story-row .ix-story") && root.querySelectorAll(".ix-toolbar > *").length === 1);
+  check("the pill is compact: Story · its name, no position (the menu numbers them); its accessible name keeps the position",
+    storyBtn.textContent.replace(/\s+/g, " ").trim() === "StoryHappy path" && !/of 2/.test(storyBtn.textContent)
+    && getComputedStyle(root.querySelector(".ix-story-k"), "::after").content === '"·"'
+    && storyBtn.getAttribute("aria-label") === "Story 1 of 2: Happy path. Choose another story" && storyBtn.getAttribute("aria-haspopup") === "menu", storyBtn.textContent);
+  check("the header is the title and the pill only: no subtitle or story description beside them",
+    !root.querySelector(".ix-subtitle, .ix-story-desc, .ix-story-pos") && !root.querySelector(".ix-title").textContent.includes("Counting words")
+    && !root.querySelector(".ix-title").textContent.includes("Every machine stays healthy")
+    && [...root.querySelector(".ix-head-row").children].every((e) => e.matches(".ix-heading, .ix-about-btn")));
+  {
+    const note = root.querySelector(".ix-story-note");
+    check("the story note is a polite status line, hidden at rest", note?.getAttribute("role") === "status" && note.getAttribute("aria-live") === "polite"
+      && !note.classList.contains("ix-show") && getComputedStyle(note).visibility === "hidden" && getComputedStyle(note).position === "absolute");
+  }
+  check("canvas labelled", root.querySelector("canvas").getAttribute("role") === "img" && /MapReduce/.test(root.querySelector("canvas").getAttribute("aria-label")));
+  check("chapter segments", root.querySelectorAll(".ix-segs-fill .ix-seg").length === 2);
+  check("crash tick coloured", root.querySelectorAll(".ix-tick-fail").length === 1 && root.querySelectorAll(".ix-tick-ask").length === 1);
+  check("step counter", root.querySelector(".ix-count-cur").textContent === "4" && root.querySelector(".ix-count-tot").textContent === "20");
+  const chip = root.querySelector(".ix-cap .ix-key");
+  check("caption key chip uses identity var", chip && chip.style.getPropertyValue("--k") === "var(--ix-key-3)");
+  check("caption ref chip text", root.querySelector(".ix-cap .ix-ref")?.textContent === "mapper 0");
+  check("legend shows present keys", root.querySelectorAll(".ix-legend-item").length === 2);
+
+  // deep link
+  const init = hud.initialState();
+  check("deep link parsed", init.scenario === "crash" && init.time === 3.5 && init.params.mappers === 5 && init.params.input === "a,b" && init.params.combiner === true, init);
+
+  // diffed update: an identical frame touches nothing
+  const mo = new MutationObserver(() => {}); mo.observe(root, { subtree: true, childList: true, attributes: true, characterData: true });
+  mo.takeRecords();
+  const f = frame(3.5);
+  hud.update(f, { time: 3.5, playing: false, speed: 1 });
+  hud.update(f, { time: 3.5, playing: false, speed: 1 });
+  const muts = mo.takeRecords().length;
+  check("identical frames cause no DOM mutations", muts === 0, { muts });
+  hud.update(frame(3.6), { time: 3.6, playing: false, speed: 1 });
+  const m2 = mo.takeRecords();
+  check("a time change only moves the playhead", m2.length <= 2 && m2.every((r) => r.type === "attributes" && r.attributeName === "style"), m2.map((r) => r.target.className + ":" + r.attributeName));
+  mo.disconnect();
+
+  // keyboard map
+  reset();
+  key(" "); key("ArrowRight"); key("ArrowLeft", { shiftKey: true }); key("Home"); key("End"); key("]"); key("["); key("2"); key("f"); key("r");
+  check("space toggles", take("onToggle").length === 1);
+  check("arrow steps", take("onStep")[0]?.[1] === 1);
+  check("shift-arrow phases", take("onPhase")[0]?.[1] === -1);
+  const seeks = take("onSeek");
+  check("home and end seek", seeks[0]?.[1] === 0 && seeks[1]?.[1] === 20, seeks);
+  const sp = take("onSpeed").map((c) => c[1]);
+  check("] and [ change speed through MOTION.speeds", sp[0] === 1.5 && sp[1] === 1, sp);
+  check("digit picks scenario", take("onScenario")[0]?.[1] === "crash");
+  check("F fits, R restarts", take("onFit").length === 1 && take("onRestart").length === 1);
+  reset();
+  key("t");
+  check("T toggles theme", take("onTheme")[0]?.[1] === "light" && root.dataset.theme === "light");
+  key("t");
+  key("c");
+  check("C opens code", root.querySelector(".ix-code").classList.contains("ix-open"));
+  key("c");
+  key("?");
+  check("? opens help", root.querySelector(".ix-help").classList.contains("ix-open"));
+  key("Escape", {}, document.activeElement);
+  check("Esc closes help", !root.querySelector(".ix-help").classList.contains("ix-open"));
+  reset();
+  key(" ", { metaKey: true });
+  check("modified keys are left to the browser", take("onToggle").length === 0);
+
+  // typing in settings is not hijacked
+  hud.open("settings", true);
+  await wait(30);
+  const text = root.querySelector(".ix-textarea");
+  text.focus();
+  reset();
+  key(" ", {}, text); key("ArrowRight", {}, text); key("t", {}, text);
+  check("keys inside inputs are ignored", calls.length === 0, calls);
+  key("Escape", {}, text);
+  check("Esc in an input closes the drawer", !root.querySelector(".ix-drawer").classList.contains("ix-open"));
+
+  // sliders: throttled while dragging, final value always sent
+  hud.open("settings", true);
+  const range = root.querySelector(".ix-range");
+  reset();
+  for (let i = 0; i < 25; i++) { range.value = String(1 + (i % 6)); range.dispatchEvent(new Event("input", { bubbles: true })); }
+  range.value = "5"; range.dispatchEvent(new Event("input", { bubbles: true }));
+  const during = take("onParams").length;
+  range.dispatchEvent(new Event("change", { bubbles: true }));
+  const sent = take("onParams");
+  check("slider input is throttled", during <= 2, { during });
+  check("slider release sends the final value", sent[sent.length - 1]?.[1]?.mappers === 5, sent.map((c) => c[1].mappers));
+  check("slider shows the live value", root.querySelector(".ix-knob-val").textContent === "5");
+  reset();
+  root.querySelector(".ix-switch").click();
+  check("switch sends params", take("onParams")[0]?.[1]?.combiner === true);
+  reset();
+  root.querySelector(".ix-btn-field").click();
+  const seed = take("onParams")[0]?.[1]?.seed;
+  check("seed reroll sends a new seed", Number.isInteger(seed) && seed !== 7, { seed });
+  hud.open("settings", false);
+  hud.setValues({ mappers: 2 });
+  check("setValues reflects without firing", take("onParams").length === 1 && root.querySelector(".ix-knob-val").textContent === "2");
+
+  // scrubbing
+  const scrub = root.querySelector(".ix-scrub");
+  const r = scrub.getBoundingClientRect();
+  reset();
+  ptr(scrub, "pointerdown", r.left + r.width * 0.25, r.top + 20);
+  ptr(scrub, "pointermove", r.left + r.width * 0.5, r.top + 20);
+  await frameWait();
+  ptr(scrub, "pointermove", r.left + r.width * 0.75, r.top + 20);
+  await frameWait();
+  ptr(scrub, "pointerup", r.left + r.width * 0.75, r.top + 20);
+  const sk = take("onSeek");
+  const last = sk[sk.length - 1];
+  check("scrub seeks continuously, then once with scrubbing:false", sk.length >= 3 && sk.slice(0, -1).every((c) => c[2].scrubbing === true) && last[2].scrubbing === false && Math.abs(last[1] - 15) < 0.2, sk.map((c) => [c[1].toFixed(2), c[2].scrubbing]));
+  ptr(scrub, "pointermove", r.left + r.width * 0.62, r.top + 20, { buttons: 0 });
+  check("hover preview shows step and caption", root.querySelector(".ix-preview").classList.contains("ix-show") && /Step 13 of 20/.test(root.querySelector(".ix-preview-meta").textContent));
+  ptr(scrub, "pointerleave", 0, 0, { buttons: 0 });
+  reset();
+  scrub.focus();
+  key("ArrowRight", {}, scrub); key("PageDown", {}, scrub);
+  check("scrubber keys", take("onStep")[0]?.[1] === 1 && take("onPhase")[0]?.[1] === 1);
+
+  // stage pointer
+  const stage = root.querySelector(".ix-stage");
+  reset();
+  ptr(stage, "pointermove", 400, 300, { buttons: 0 });
+  await frameWait();
+  check("hover reports root coordinates", take("onHover")[0]?.[1] === 400 && take("onHover")[0]?.[2] === 300);
+  reset();
+  ptr(stage, "pointerdown", 400, 300); ptr(stage, "pointerup", 400, 300);
+  check("click selects", take("onSelect")[0]?.[1] === 400);
+  await wait(400);
+  reset();
+  ptr(stage, "pointerdown", 400, 300); ptr(stage, "pointermove", 420, 310); ptr(stage, "pointermove", 450, 320); await frameWait(); ptr(stage, "pointerup", 450, 320);
+  const g = take("onGesture");
+  const dx = g.filter((c) => c[1].type === "orbit").reduce((a, c) => a + c[1].dx, 0);
+  check("drag orbits, no select", dx === 50 && take("onSelect").length === 0, g.map((c) => c[1]));
+  reset();
+  ptr(stage, "pointerdown", 400, 300, { shift: true }); ptr(stage, "pointermove", 430, 300, { shift: true }); await frameWait(); ptr(stage, "pointerup", 430, 300);
+  check("shift-drag pans", take("onGesture").some((c) => c[1].type === "pan" && c[1].dx === 30));
+  reset();
+  stage.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, clientX: 500, clientY: 300, bubbles: true, cancelable: true }));
+  await frameWait();
+  const z = take("onGesture").find((c) => c[1].type === "zoom");
+  check("wheel zooms in", z && z[1].scale > 1, z);
+  await wait(400);
+  reset();
+  ptr(stage, "pointerdown", 300, 200); ptr(stage, "pointerup", 300, 200);
+  ptr(stage, "pointerdown", 301, 200); ptr(stage, "pointerup", 301, 200);
+  check("double-click focuses", take("onGesture").some((c) => c[1].type === "focus"));
+
+  // caption ref hover
+  reset();
+  const ref = root.querySelector(".ix-cap .ix-ref");
+  ref.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  root.querySelector(".ix-caption").dispatchEvent(new PointerEvent("pointerleave"));
+  const rh = take("onRefHover").map((c) => c[1]);
+  check("ref chip hover lights and clears", rh[0] === "m0" && rh[1] === null, rh);
+
+  // counters count up to the formatted value
+  hud.update(frame(4.2, { counters: { bytes: 4096, tasks: 3 } }), { time: 4.2, playing: true, speed: 1 });
+  await wait(700);
+  const vals = [...root.querySelectorAll(".ix-meter-val")].map((e) => e.textContent);
+  check("meters format and settle", vals[0] === "4KB" && vals[1] === "3", vals);
+
+  // tags never overlap
+  hud.placeTags([
+    { id: "a", text: 'hash("fox") % 2 = 1', x: 600, y: 400, opacity: 1 },
+    { id: "b", text: 'hash("fox") % 2 = 1', x: 640, y: 405, opacity: 1 },
+    { id: "c", text: "heartbeat missed", tone: "fail", x: 620, y: 395, opacity: 1 },
+  ]);
+  for (let i = 0; i < 30; i++) { hud.placeTags([
+    { id: "a", text: 'hash("fox") % 2 = 1', x: 600, y: 400, opacity: 1 },
+    { id: "b", text: 'hash("fox") % 2 = 1', x: 640, y: 405, opacity: 1 },
+    { id: "c", text: "heartbeat missed", tone: "fail", x: 620, y: 395, opacity: 1 },
+  ]); }
+  const rects = [...root.querySelectorAll(".ix-tag")].map((e) => e.getBoundingClientRect());
+  const overlap = rects.some((a, i) => rects.some((b, j) => j > i && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top));
+  check("tags do not overlap", rects.length === 3 && !overlap, rects.map((q) => [q.left, q.top, q.width, q.height].map(Math.round)));
+  hud.placeTags([]);
+
+  // inspector
+  hud.inspect({ id: "m1", kind: "housing", title: "Mapper 1", state: { status: "ok", records: 4 } }, { x: 300, y: 300 });
+  check("hover inspector shows", root.querySelector(".ix-inspector:not(.ix-pinned)").classList.contains("ix-show"));
+  hud.inspect({ id: "m1", kind: "housing", title: "Mapper 1", state: { status: "ok", records: 4 } }, { x: 300, y: 300, pinned: true });
+  check("pinning the hovered entity replaces the hover card", root.querySelector(".ix-pinned").classList.contains("ix-show") && !root.querySelector(".ix-inspector:not(.ix-pinned)").classList.contains("ix-show"));
+  reset();
+  root.querySelector(".ix-pinned .ix-close").click();
+  check("unpin button", !root.querySelector(".ix-pinned").classList.contains("ix-show") && take("onUnpin").length === 1);
+  check("no stray null text", !/null|undefined/.test(root.querySelector(".ix-hud").textContent + root.querySelector(".ix-pinned").textContent));
+
+  // predict
+  hud.ask(steps[12].ask);
+  hud.ask(steps[12].ask);
+  check("ask shows once", root.querySelectorAll(".ix-opt").length === 2 && root.querySelector(".ix-predict").classList.contains("ix-open"));
+  reset();
+  root.querySelectorAll(".ix-opt")[0].click();
+  check("answer callback", take("onAnswer")[0]?.[1] === 0);
+  hud.ask(null);
+  check("ask(null) keeps an answered card for its reveal", root.querySelector(".ix-predict").classList.contains("ix-open"));
+  hud.update(frame(12.8), { time: 12.8, playing: false, speed: 1 });
+  check("reveal marks right and wrong", root.querySelector(".ix-opt.ix-correct") === root.querySelectorAll(".ix-opt")[1] && root.querySelector(".ix-opt.ix-wrong") === root.querySelectorAll(".ix-opt")[0]);
+  key("Escape");
+  check("Esc dismisses the revealed card", !root.querySelector(".ix-predict").classList.contains("ix-open"));
+
+  // deep link write-back while playing (debounced)
+  history.replaceState(null, "", "#");
+  for (let i = 0; i < 10; i++) hud.update(frame(5 + i * 0.1), { time: 5 + i * 0.1, playing: true, speed: 1 });
+  await wait(650);
+  check("hash written while playing", /t=5\.9/.test(location.hash) && /p=mappers:2/.test(location.hash), location.hash);
+
+  // perf: a playing frame
+  const N = 2000;
+  const t0 = performance.now();
+  for (let i = 0; i < N; i++) { const t = 6 + i * 0.004; hud.update(frame(t, { counters: { bytes: 1400 + i, tasks: 3 } }), { time: t, playing: true, speed: 1 }); }
+  const per = (performance.now() - t0) / N;
+  check("update cost under 0.5 ms", per < 0.5, { per });
+  const tags = Array.from({ length: 8 }, (_, i) => ({ id: "p" + i, text: `tag ${i}`, x: 200 + i * 90, y: 300 + (i % 3) * 8, opacity: 1 }));
+  const t1 = performance.now();
+  for (let i = 0; i < 500; i++) { for (const tg of tags) tg.x += 0.1; hud.placeTags(tags); }
+  const perTags = (performance.now() - t1) / 500;
+  check("placeTags cost under 0.3 ms for 8 tags", perTags < 0.3, { perTags });
+
+  // tags keep clear of panels: lifted just above one, faded when they would sit under it (the dock here)
+  const mr = root.querySelector(".ix-bar").getBoundingClientRect();
+  const under = { id: "u", text: "under the dock", x: mr.left + mr.width * 0.7, y: mr.bottom - 4, opacity: 1 };
+  const edge = { id: "e", text: "near the dock", x: mr.left + mr.width * 0.7, y: mr.top + 10, opacity: 1 };
+  for (let i = 0; i < 40; i++) hud.placeTags([under, edge]);
+  const tu = [...root.querySelectorAll(".ix-tag")].find((e) => e.textContent === "under the dock");
+  const te = [...root.querySelectorAll(".ix-tag")].find((e) => e.textContent === "near the dock");
+  const ter = te.getBoundingClientRect();
+  check("a tag under a panel fades out", +tu.style.opacity === 0, tu.style.opacity);
+  check("a tag at a panel's edge lifts clear of it", +te.style.opacity === 1 && ter.bottom <= mr.top + 1, { bottom: ter.bottom, top: mr.top, op: te.style.opacity });
+  hud.placeTags([]);
+
+  // the dock's readout strip opens the full readout (sparklines) as a popover; the world's insets do not move
+  const ins0 = hud.insets;
+  const statsBtn = root.querySelector(".ix-stats");
+  check("readout strip shows every counter compactly", root.querySelectorAll(".ix-stat").length === 2 && root.querySelector(".ix-stat-num").textContent === root.querySelector(".ix-meter-num").textContent);
+  statsBtn.click();
+  check("clicking the strip pins the full readout", root.querySelector(".ix-meters").classList.contains("ix-open") && statsBtn.getAttribute("aria-expanded") === "true" && root.querySelectorAll(".ix-meters .ix-spark").length === 2);
+  check("opening the readout leaves the insets alone", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
+  key("Escape");
+  check("Esc closes the readout", !root.querySelector(".ix-meters").classList.contains("ix-open") && statsBtn.getAttribute("aria-expanded") === "false");
+  root.querySelector(".ix-legend-btn").click();
+  check("the legend chip opens the key names", root.querySelector(".ix-legend").classList.contains("ix-open") && /2 keys/.test(root.querySelector(".ix-legend-btn").textContent));
+  root.querySelector(".ix-legend-btn").click();
+  check("and closes them again", !root.querySelector(".ix-legend").classList.contains("ix-open"));
+
+  // readable controls: words on the transport, names and shortcuts on every icon button, a labelled speed
+  check("transport shows Back, Play and Next", [".ix-back", ".ix-play", ".ix-next"].map((c) => root.querySelector(`${c} .ix-tp-label`)).every((e) => e && getComputedStyle(e).display !== "none")
+    && root.querySelector(".ix-back").getAttribute("aria-label").startsWith("Back") && root.querySelector(".ix-next").getAttribute("aria-label").startsWith("Next"));
+  check("every icon button has a name and a tooltip", [...root.querySelectorAll(".ix-tools .ix-btn")].every((b) => b.getAttribute("aria-label") && b.dataset.tip));
+  check("transport and tools carry their shortcut", root.querySelector(".ix-play").dataset.kbd === "Space" && root.querySelector(".ix-next").dataset.kbd === "→" && root.querySelector('.ix-tools [data-tip="Settings"]').dataset.kbd === "S");
+  check("speed is labelled and shows its value", /^Speed\s*1(\.5)?×/.test(root.querySelector(".ix-speed").textContent) && /^Speed, /.test(root.querySelector(".ix-speed").getAttribute("aria-label")));
+  check("speed leads the dock: the first control of the transport, with its name", root.querySelector(".ix-transport").firstElementChild.classList.contains("ix-speed-wrap")
+    && getComputedStyle(root.querySelector(".ix-speed-label")).display !== "none");
+  {
+    hud.setScenario("happy");   // the digit check above picked "crash"
+    reset();
+    storyBtn.focus();
+    storyBtn.click();
+    await frameWait();
+    const menu = root.querySelector(".ix-story-menu"), items = [...menu.querySelectorAll(".ix-story-item")];
+    check("the story menu lists every story with its description, the current one checked and focused", menu.classList.contains("ix-open")
+      && storyBtn.getAttribute("aria-expanded") === "true" && items.length === 2 && items[1].querySelector(".ix-story-text")?.textContent === "A mapper dies mid-task and its split runs again."
+      && items[0].getAttribute("aria-checked") === "true" && items[0].getAttribute("role") === "menuitemradio" && document.activeElement === items[0],
+      [menu.className, storyBtn.getAttribute("aria-expanded"), items.length, items[1]?.textContent, items[0]?.getAttribute("aria-checked"), document.activeElement?.className]);
+    const mr = menu.getBoundingClientRect(), br = storyBtn.getBoundingClientRect();
+    check("the menu drops from the picker and fits its items", mr.top >= br.bottom && mr.height < 260, [mr.top, br.bottom, mr.height]);
+    key("ArrowDown", {}, document.activeElement);
+    check("arrow keys move through the stories", document.activeElement === items[1]);
+    key("Escape", {}, document.activeElement);
+    check("Esc closes the menu and returns focus to the picker", !menu.classList.contains("ix-open") && document.activeElement === storyBtn && take("onScenario").length === 0);
+    key("ArrowDown", {}, storyBtn);
+    check("ArrowDown on the picker opens the menu", menu.classList.contains("ix-open") && menu.contains(document.activeElement));
+    items[1].click();
+    check("picking a story switches scenario and closes the menu", take("onScenario")[0]?.[1] === "crash" && !menu.classList.contains("ix-open")
+      && /Worker dies/.test(storyBtn.textContent), [take("onScenario"), menu.className, storyBtn.textContent]);
+    const note = root.querySelector(".ix-story-note"), insNote = JSON.stringify(hud.insets);
+    await frameWait();
+    check("switching story shows its description once under the pill, without moving the world", note.classList.contains("ix-show")
+      && note.textContent === "A mapper dies mid-task and its split runs again." && note.getBoundingClientRect().top >= storyBtn.getBoundingClientRect().bottom
+      && JSON.stringify(hud.insets) === insNote, [note.className, note.textContent, insNote, hud.insets]);
+    storyBtn.click();
+    check("opening the menu clears the note (the menu carries every description)", !note.classList.contains("ix-show"));
+    key("Escape", {}, document.activeElement);
+    hud.setScenario("happy");
+    reset();
+  }
+  {
+    // every number explains itself: a two-line tooltip on the strip, and its hint in the readout
+    const st = root.querySelector(".ix-stat");
+    st.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    await wait(520);
+    const tipEl = root.querySelector(".ix-tip");
+    check("a stat without a hint shows no tooltip", !tipEl.classList.contains("ix-show"));
+  }
+  reset();
+  const refChip = root.querySelector(".ix-cap .ix-ref");
+  refChip.click();
+  check("clicking an entity chip asks to inspect it", take("onRefSelect")[0]?.[1] === refChip.dataset.ref && typeof take("onRefSelect")[0]?.[2]?.x === "number" && refChip.getAttribute("role") === "button");
+  reset();
+  key("s");
+  check("S opens settings", root.querySelector(".ix-drawer").classList.contains("ix-open"));
+  root.querySelector(".ix-prefs .ix-switch").click();
+  check("Pause between chapters is a preference, not a param", take("onGuided")[0]?.[1] === false && hud.guided === false && take("onParams").length === 0 && localStorage.getItem("ix:guided") === "0");
+  root.querySelector(".ix-prefs .ix-switch").click();
+  check("and switches back on", hud.guided === true);
+  key("Escape");
+
+  // start card
+  root.querySelector(".ix-coach-ok")?.click();
+  reset();
+  check("start card is not seen yet", hud.introSeen === false);
+  hud.intro(true);
+  await frameWait();
+  const introEl = root.querySelector(".ix-intro");
+  check("without a hook the start card falls back to the subtitle", introEl.querySelector(".ix-intro-sub").textContent === "Counting words" && !introEl.querySelector(".ix-intro-hook"));
+  hud.setMeta({ title: "MapReduce", subtitle: "Counting words", hook: "No machine sees the whole text. How is every word still counted?", kicker: "Distributed systems", fig: 1, cite: { text: "Dean & Ghemawat" } });
+  hud.intro(false); hud.intro(true);
+  await frameWait();
+  check("start card asks the hook instead of repeating the subtitle, shows no chapter preview and offers two ways in", introEl.classList.contains("ix-open") && introEl.querySelector(".ix-intro-title").textContent === "MapReduce"
+    && introEl.querySelector(".ix-intro-sub.ix-intro-hook")?.textContent === "No machine sees the whole text. How is every word still counted?" && !introEl.textContent.includes("Counting words")
+    && (!introEl.querySelector(".ix-intro-path") || introEl.querySelector(".ix-intro-path").hidden)
+    && !introEl.querySelector(".ix-chapter, .ix-chip-btn, .ix-intro-kicker, .ix-intro-meta") && !/chapters|figure|fig \d/i.test(introEl.textContent)
+    && !!introEl.querySelector(".ix-cta") && introEl.querySelector(".ix-cta-2")?.textContent === "Step through it yourself", introEl.textContent);
+  check("start card is a modal: the HUD behind is inert and it has focus", root.querySelector(".ix-hud").hasAttribute("inert") && introEl.getAttribute("aria-modal") === "true" && introEl.contains(document.activeElement)
+    && take("onIntro")[0]?.[1] === true);
+  reset();
+  key("ArrowRight", {}, introEl);
+  check("other keys do nothing while it is open", take("onStep").length === 0);
+  key("Enter", {}, introEl);
+  check("Enter plays and closes it, remembered per figure", take("onStart")[0]?.[1] === "play" && !introEl.classList.contains("ix-open") && hud.introSeen === true && !root.querySelector(".ix-hud").hasAttribute("inert"));
+  hud.intro(true); reset();
+  introEl.querySelector(".ix-cta-2").click();
+  check("Step through starts step mode", take("onStart")[0]?.[1] === "step");
+  hud.intro(true); reset();
+  key("Escape", {}, introEl);
+  check("Esc dismisses it", take("onStart")[0]?.[1] === "dismiss" && !introEl.classList.contains("ix-open"));
+  hud.intro(true); reset();
+  hud.intro(false);
+  check("hiding it from code is silent", take("onStart").length === 0 && !introEl.classList.contains("ix-open"));
+  hud.intro(true);
+  hud.setCapture(true);
+  check("capture closes the start card", !introEl.classList.contains("ix-open") && getComputedStyle(introEl).display === "none");
+  hud.intro(true);
+  check("capture never reopens it", !introEl.classList.contains("ix-open"));
+  hud.setCapture(false);
+  key("?");
+  const guide = root.querySelectorAll(".ix-help .ix-guide-item");
+  check("help explains the interface in plain words", guide.length >= 6 && /Drag anywhere on it to rewind/.test(root.querySelector(".ix-help").textContent));
+  [...root.querySelectorAll(".ix-help button")].find((b) => /Replay intro/.test(b.textContent)).click();
+  check("Replay intro reopens the start card from help", introEl.classList.contains("ix-open") && !root.querySelector(".ix-help").classList.contains("ix-open"));
+  hud.intro(false);
+
+  // pauses: no card over the world. The primary button says what comes next; the panel carries the recap and payoff
+  reset();
+  const playEl = root.querySelector(".ix-play"), againEl = root.querySelector(".ix-again"), panelEl = root.querySelector(".ix-explain");
+  hud.update(frame(9.999), { time: 9.999, playing: false, speed: 1, held: { kind: "chapter", phase: 0 } });
+  check("a chapter pause floats no card: the primary button reads Continue with the next chapter", !root.querySelector(".ix-held")
+    && playEl.textContent === "Continue: Reduce↵" && playEl.querySelector(".ix-tp-kbd") && playEl.getAttribute("aria-label") === "Continue with Reduce" && playEl.classList.contains("ix-continue")
+    && !againEl.hidden && getComputedStyle(againEl).display !== "none");
+  check("the panel's current step becomes the chapter's recap, with the chapter named once", panelEl.querySelector(".ix-ex-recap .ix-ex-done")?.textContent === "Map complete"
+    && panelEl.querySelector(".ix-ex-recap .ix-ex-text")?.textContent.startsWith("Step 9") && panelEl.querySelector(".ix-ex-title").textContent === "Map"
+    && panelEl.querySelector(".ix-ex-pos").textContent === "1 of 2" && !/chapter \d of/i.test(root.textContent));
+  check("the pause never moves the world", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
+  {
+    await wait(260);   // the button's colour transition settles
+    const probe = document.createElement("i"); probe.style.background = "var(--ix-accent)"; root.append(probe);
+    const accent = getComputedStyle(probe).backgroundColor; probe.remove();
+    const ring = getComputedStyle(playEl, "::after");
+    check("Continue wears the accent and calls with a ring three times, then rests", getComputedStyle(playEl).backgroundColor === accent && accent !== "rgba(0, 0, 0, 0)"
+      && ring.animationName === "ix-continue-call" && ring.animationIterationCount === "3", [getComputedStyle(playEl).backgroundColor, accent, ring.animationName, ring.animationIterationCount]);
+  }
+  key("Enter");
+  check("Enter continues", take("onContinue").length === 1);
+  reset();
+  againEl.click();
+  check("Replay replays the chapter from its start", take("onSeek")[0]?.[1] === 0 && take("onPlay").length === 1);
+  const mo2 = new MutationObserver(() => {}); mo2.observe(root.querySelector(".ix-bottom"), { subtree: true, childList: true, attributes: true, characterData: true });
+  hud.update(frame(9.999), { time: 9.999, playing: false, speed: 1, held: { kind: "chapter", phase: 0 } });
+  const recs2 = mo2.takeRecords();
+  check("the same pause re-renders nothing", recs2.length === 0, recs2.map((r) => `${r.target.className}:${r.type}:${r.attributeName}`)); mo2.disconnect();
+  hud.update(frame(10.2), { time: 10.2, playing: true, speed: 1, held: null });
+  check("playback moving on restores Pause and the step", playEl.textContent === "Pause" && againEl.hidden && !panelEl.querySelector(".ix-ex-recap") && !playEl.classList.contains("ix-continue"));
+  reset();
+  hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
+  check("at the end the button reads Replay and the panel holds the payoff: no takeaway without one, what-ifs for the other scenarios",
+    playEl.textContent === "Replay" && againEl.hidden && panelEl.querySelector(".ix-ex-done")?.textContent === "All chapters done"
+    && !panelEl.querySelector(".ix-takeaway") && panelEl.querySelector(".ix-whatif-label")?.textContent === "What if…"
+    && panelEl.querySelectorAll(".ix-whatif .ix-chip-btn").length === scenarios.length - 1);
+  check("the end's Replay stays calm (no accent) and the next story is the suggested what-if", !playEl.classList.contains("ix-continue")
+    && panelEl.querySelector(".ix-whatif .ix-chip-next")?.dataset.id === "crash");
+  hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: null });
+  hud.setMeta({ title: "MapReduce", subtitle: "Counting words", takeaway: "No machine saw the whole input, yet every count is exact.", fig: 1 });
+  hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
+  check("the takeaway is the one sentence worth remembering", panelEl.querySelector(".ix-takeaway")?.textContent === "No machine saw the whole input, yet every count is exact.");
+  playEl.click();
+  check("Replay restarts", take("onRestart").length === 1);
+  reset();
+  const whatChip = panelEl.querySelector(".ix-whatif .ix-chip-btn");
+  whatChip.click();
+  check("a what-if chip switches scenario", take("onScenario")[0]?.[1] === whatChip.dataset.id && !!whatChip.dataset.id);
+  hud.setScenario("happy");
+  hud.setCapture(true);
+  hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
+  check("capture shows no pause chrome", playEl.textContent === "Play" && !root.classList.contains("ix-held-open"));
+  hud.setCapture(false);
+  hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: null });
+
+  // step mode and coach hints
+  hud.update(frame(3.2), { time: 3.2, playing: false, speed: 1, stepMode: true });
+  check("step mode makes Next the primary action", root.classList.contains("ix-stepmode"));
+  hud.update(frame(3.2), { time: 3.2, playing: false, speed: 1, stepMode: false });
+  check("and leaves when playback runs on its own", !root.classList.contains("ix-stepmode"));
+  root.querySelector(".ix-coach-ok")?.click();
+  const shown = hud.hint("probe", "Drag to rewind", { x: 400, y: 500 }, { sub: "Every step is replayable." });
+  const coachEl = root.querySelector(".ix-coach");
+  check("a coach hint shows once, near its anchor", shown && coachEl.classList.contains("ix-open") && /Drag to rewind/.test(coachEl.textContent) && hud.hint("probe2", "x", { x: 1, y: 1 }) === false);
+  coachEl.querySelector(".ix-coach-ok").click();
+  check("Got it dismisses it, and it never comes back", !coachEl.classList.contains("ix-open") && hud.hint("probe", "again", { x: 400, y: 500 }) === false && localStorage.getItem("ix:hint:probe") === "1");
+
+  // capture mode
+  const tp = root.querySelector(".ix-transport");
+  hud.setCapture(true);
+  await frameWait();
+  check("capture hides the transport and toolbar", getComputedStyle(tp).display === "none" && getComputedStyle(root.querySelector(".ix-toolbar")).display === "none");
+  check("capture keeps the caption, meters and title", getComputedStyle(root.querySelector(".ix-caption")).display !== "none" && getComputedStyle(root.querySelector(".ix-stats")).display !== "none" && getComputedStyle(root.querySelector(".ix-title")).display !== "none");
+  check("capture disables transitions", getComputedStyle(root.querySelector(".ix-cap")).transitionProperty === "none" && getComputedStyle(root.querySelector(".ix-playhead")).transitionProperty === "none");
+  hud.update(frame(7.5, { counters: { bytes: 9000, tasks: 4 } }), { time: 7.5, playing: true, speed: 1 });
+  check("capture swaps captions and counters instantly", root.querySelectorAll(".ix-cap").length === 1 && !root.querySelector(".ix-cap.ix-enter") && root.querySelector(".ix-meter-num").textContent === "8.8",
+    { caps: root.querySelectorAll(".ix-cap").length, enter: !!root.querySelector(".ix-cap.ix-enter"), num: root.querySelector(".ix-meter-num").textContent });
+  hud.setCapture(true, { chrome: true });
+  await frameWait();
+  check("capture with chrome keeps the controls", getComputedStyle(tp).display !== "none");
+  hud.setCapture(false);
+  document.documentElement.classList.add("ix-capture");
+  await frameWait();
+  check("tooling's <html> capture class freezes transitions but leaves chrome to the tool", getComputedStyle(tp).display !== "none" && getComputedStyle(root.querySelector(".ix-playhead")).transitionProperty === "none");
+  document.documentElement.classList.remove("ix-capture");
+
+  // explain panel (explain.mjs): docked on wide screens, a card from the caption on narrow ones
+  {
+    const tlA = { ...tl, phases: [{ ...tl.phases[0], about: "Each {ref:m0|mapper} reads its own split." }, tl.phases[1]] };
+    hud.setTimeline(tlA);
+    hud.update(frame(3.5), { time: 3.5, playing: false, speed: 1 });
+    const panel = root.querySelector(".ix-explain"), capEl = root.querySelector(".ix-caption");
+    check("explain docks on a wide screen and frames the world beside it", root.classList.contains("ix-ex-docked") && getComputedStyle(panel).display === "flex"
+      && hud.insets.right === root.clientWidth - panel.offsetLeft && hud.insets.right >= 320, hud.insets);
+    check("explain names the chapter once and says what it is for", !panel.querySelector(".ix-ex-kicker") && panel.querySelector(".ix-ex-pos").textContent === "1 of 2" && panel.querySelector(".ix-ex-title")?.textContent === "Map"
+      && panel.querySelector(".ix-ex-about")?.textContent === "Each mapper reads its own split.");
+    check("explain shows the current step with its markup", panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "4" && panel.querySelector(".ix-ex-text .ix-key")?.textContent === "fox"
+      && panel.querySelector(".ix-ex-text .ix-ref")?.textContent === "mapper 0");
+    const items = [...panel.querySelectorAll(".ix-ex-item")];
+    check("earlier steps of the chapter, newest first, with their chips (quiet ones)", items.length === 3 && items[0].querySelector(".ix-ex-t .ix-key") && !items[0].querySelector('[role="button"]') && items.map((b) => b.querySelector(".ix-ex-n").textContent).join() === "3,2,1"
+      && items[0].querySelector(".ix-ex-t").textContent === "Step 2 moves fox to mapper 2", items.map((b) => b.textContent));
+    check("the bottom caption steps aside while the panel is open", getComputedStyle(capEl).display === "none");
+    reset();
+    items[1].click();
+    const js = take("onSeek");
+    check("an earlier step jumps back to its start, paused", take("onPause").length === 1 && js[0]?.[1] === 1 && js[0]?.[2]?.scrubbing === false, calls);
+    const mo = new MutationObserver(() => {}); mo.observe(panel, { subtree: true, childList: true, characterData: true, attributes: true });
+    hud.update(frame(3.6), { time: 3.6, playing: true, speed: 1 });
+    hud.update(frame(3.7), { time: 3.7, playing: true, speed: 1 });
+    const same = mo.takeRecords().length;
+    hud.update(frame(4.1), { time: 4.1, playing: true, speed: 1 });
+    const moved = mo.takeRecords().length;
+    mo.disconnect();
+    check("explain touches the DOM only on a step change", same === 0 && moved > 0 && panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "5", { same, moved });
+    hud.update(frame(10.5), { time: 10.5, playing: true, speed: 1 });
+    check("a new chapter resets the list and drops a missing about", panel.querySelector(".ix-ex-pos").textContent === "2 of 2" && panel.querySelector(".ix-ex-title").textContent === "Reduce"
+      && !panel.querySelector(".ix-ex-about") && panel.querySelector(".ix-ex-earlier").hidden === true);
+    reset();
+    panel.querySelector(".ix-ex-text .ix-ref").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    check("ref chips in the panel light their entity", take("onRefHover")[0]?.[1] === "m1", calls);
+    panel.dispatchEvent(new PointerEvent("pointerleave"));
+    key("e");
+    await frameWait();
+    check("E collapses it to a tab, gives the room back and remembers", root.classList.contains("ix-ex-tabbed") && getComputedStyle(panel).display === "none"
+      && getComputedStyle(root.querySelector(".ix-explain-tab")).display !== "none" && hud.insets.right === 0 && getComputedStyle(capEl).display !== "none"
+      && localStorage.getItem("ix:explain") === "0", hud.insets);
+    root.querySelector(".ix-explain-tab").click();
+    await frameWait();
+    check("the tab opens it again", root.classList.contains("ix-ex-docked") && hud.insets.right >= 320 && localStorage.getItem("ix:explain") === "1");
+    hud.setCapture(true);
+    check("capture hides the panel and brings the caption back", getComputedStyle(panel).display === "none" && getComputedStyle(capEl).display !== "none" && hud.insets.right === 0);
+    hud.setCapture(false);
+    hud.setTimeline(tl);
+    hud.update(frame(3.5), { time: 3.5, playing: false, speed: 1 });
+
+    const root4 = document.createElement("div");
+    root4.style.cssText = "position:fixed;left:0;top:0;width:820px;height:900px;visibility:hidden";
+    root4.append(document.createElement("canvas"));
+    document.body.append(root4);
+    const hud4 = createHud(root4, { meta: { title: "Narrow" }, hash: false }, cb);
+    hud4.setTimeline(tlA);
+    hud4.update(frame(2.5), { time: 2.5, playing: false, speed: 1 });
+    await frameWait();
+    const p4 = root4.querySelector(".ix-explain"), btn4 = root4.querySelector(".ix-ex-capbtn");
+    check("narrow screens: no side panel, an Explain button in the caption", root4.classList.contains("ix-ex-sheet") && getComputedStyle(p4).display === "none"
+      && getComputedStyle(btn4).display !== "none" && btn4.parentElement === root4.querySelector(".ix-caption") && hud4.insets.right === 0);
+    btn4.click();
+    await frameWait();
+    const capB = root4.querySelector(".ix-caption").getBoundingClientRect().top, bar4 = root4.querySelector(".ix-bar").getBoundingClientRect().top, pr = p4.getBoundingClientRect();
+    check("the button opens the chapter and its earlier steps above the dock, never the current step a second time", getComputedStyle(p4).display === "flex" && btn4.getAttribute("aria-expanded") === "true"
+      && p4.querySelector(".ix-ex-now").hidden && p4.querySelectorAll(".ix-ex-item").length === 2 && p4.querySelector(".ix-ex-title").textContent === "Map"
+      && pr.bottom <= bar4 && hud4.insets.right === 0, { pr: [pr.top, pr.bottom], bar4, capB });
+    p4.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    check("Esc closes the card", getComputedStyle(p4).display === "none" && btn4.getAttribute("aria-expanded") === "false");
+    hud4.destroy();
+    check("destroy removes the explain panel", !root4.querySelector(".ix-explain, .ix-explain-tab, .ix-ex-capbtn") && !root4.classList.contains("ix-ex-sheet"));
+    root4.remove();
+  }
+
+  // spoilers: nothing on screen may answer a prediction before its reveal: not the panel (step text, chapter about,
+  // earlier list), not the caption, not the step's tags, not the legend. Wide (docked panel) and narrow (caption).
+  for (const width of [1440, 820]) {
+    const rootS = document.createElement("div");
+    rootS.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:900px;visibility:hidden`;
+    rootS.append(document.createElement("canvas"));
+    document.body.append(rootS);
+    const cbS = { onAnswer: () => {} };
+    const hudS = createHud(rootS, { meta: { title: "Spoilers" }, hash: false, storage: false }, cbS);
+    const ANSWER = ["cannot commit", "never commit", "majority lost", "stranded"];
+    const qS = { question: "S1 holds y←7 on 2 of 5 servers. Can it commit?", options: ["Yes, it leads", "No"], answer: 1 };
+    const stS = [
+      { caption: "Five servers elect {ref:s1|S1}.", phase: "Setup" },
+      { caption: "{ref:s1|S1} replicates `x←3`.", phase: "Setup" },
+      { caption: "A partition splits the cluster.", phase: "Twist" },
+      { caption: "{ref:s1|S1} appends `y←7` and sends it on.", phase: "Twist" },
+      { caption: "Two of five is no majority: {ref:s1|S1} {tone:fail|cannot commit} `y←7`, now {key:stranded}.", phase: "Twist", ask: qS },
+      { caption: "The partition heals.", phase: "Twist" },
+    ].map((x, i) => ({ index: i, t0: i, t1: i + 1, dur: 1, ...x }));
+    hudS.setTimeline({ steps: stS, duration: 6, events: [], counters: {},
+      phases: [{ name: "Setup", step: 0, t0: 0, t1: 2 }, { name: "Twist", step: 2, t0: 2, t1: 6, about: "The leader is cut off in a minority, so it can never commit." }],
+      keys: [{ name: "term 1", index: 0 }, { name: "stranded", index: 5 }] });
+    const fS = (t) => { const k = Math.min(5, Math.floor(t)); return { time: t, step: k, u: t % 1, caption: stS[k].caption, phase: stS[k].phase, tags: [], counters: {}, entities: new Map(),
+      poses: [{ key: 0, opacity: 1 }, ...(k >= 4 ? [{ key: 5, opacity: 1 }] : [])] }; };
+    // every word in the HUD (the live region included), except tags, which count only while visible
+    const shown = () => rootS.textContent.replace(rootS.querySelector(".ix-tags").textContent, "") + [...rootS.querySelectorAll(".ix-tag")].filter((e) => +e.style.opacity > 0).map((e) => e.textContent).join(" ");
+    const leaks = () => ANSWER.filter((w) => shown().includes(w));
+    const docked = width >= 1200;
+    const capText = () => rootS.querySelector(".ix-cap:last-child .ix-cap-text")?.textContent ?? "";
+    hudS.update(fS(2.5), { time: 2.5, playing: true, speed: 1 });
+    check(`${width}px: a chapter that asks later withholds its about line from its first step`, leaks().length === 0
+      && (!docked || rootS.querySelector(".ix-ex-about.ix-ex-withheld")), leaks());
+    hudS.update(fS(3.999), { time: 3.999, playing: false, speed: 1 });
+    const insBefore = JSON.stringify(hudS.insets);
+    hudS.ask(qS);
+    await frameWait();
+    check(`${width}px: the question is asked with nothing giving it away`, leaks().length === 0 && rootS.querySelector(".ix-predict.ix-open") && capText() !== "", leaks());
+    if (docked) check(`${width}px: the question sits in the explain panel, so the world neither shrinks nor is covered`,
+      !!rootS.querySelector(".ix-explain .ix-predict.ix-open") && rootS.querySelector(".ix-explain .ix-ex-now").hidden && JSON.stringify(hudS.insets) === insBefore, [insBefore, hudS.insets]);
+    rootS.querySelectorAll(".ix-opt")[0].click();
+    hudS.update(fS(4.2), { time: 4.2, playing: true, speed: 1 });
+    for (let i = 0; i < 8; i++) hudS.update(fS(4.2 + i * 0.01), { time: 4.2 + i * 0.01, playing: true, speed: 1 });
+    for (let i = 0; i < 20; i++) hudS.placeTags([{ id: "t4", text: "majority lost", x: 400, y: 400, opacity: 1 }]);
+    check(`${width}px: answered but not yet revealed: the step's caption is veiled, its tags and new keys wait`, leaks().length === 0 && capText() === "…"
+      && ![...rootS.querySelectorAll(".ix-legend-item")].some((e) => e.textContent === "stranded"), { leaks: leaks(), cap: capText() });
+    hudS.update(fS(4.8), { time: 4.8, playing: true, speed: 1 });
+    for (let i = 0; i < 7; i++) hudS.update(fS(4.81 + i * 0.01), { time: 4.81 + i * 0.01, playing: true, speed: 1 });
+    for (let i = 0; i < 20; i++) hudS.placeTags([{ id: "t4", text: "majority lost", x: 400, y: 400, opacity: 1 }]);
+    const after = shown();
+    check(`${width}px: the reveal brings the caption, the about line, the tag and the key`, rootS.querySelector(".ix-predict.ix-revealed")
+      && after.includes("cannot commit") && (!docked || after.includes("never commit")) && after.includes("majority lost")
+      && [...rootS.querySelectorAll(".ix-legend-item")].some((e) => e.textContent === "stranded"), after.slice(0, 400));
+    hudS.destroy();
+    rootS.remove();
+  }
+
+  // compare mode: same label in different groups is one row; the better value leads; bars race
+  const root3 = document.createElement("div");
+  root3.style.cssText = "position:fixed;left:0;top:0;width:1200px;height:800px;visibility:hidden";
+  root3.append(document.createElement("canvas"));
+  document.body.append(root3);
+  const cdefs = {
+    "quick.compares": { label: "comparisons", group: "quicksort", better: "lower" },
+    "merge.compares": { label: "comparisons", group: "merge sort", better: "lower" },
+    "quick.swaps": { label: "swaps", group: "quicksort" },
+    "merge.writes": { label: "array writes", group: "merge sort", better: "lower" },
+    steps: { label: "steps", short: "st" },
+  };
+  const hud3 = createHud(root3, { meta: { title: "Sorts" }, counters: cdefs, hash: false }, {});
+  hud3.setTimeline({ ...tl, counters: cdefs });
+  hud3.update(frame(1, { counters: { "quick.compares": 4, "merge.compares": 4, "quick.swaps": 2, "merge.writes": 3, steps: 1 } }), { time: 1, playing: true, speed: 1 });
+  check("compare table: groups as columns, one row per label", [...root3.querySelectorAll(".ix-cmp-group")].map((e) => e.textContent).join("|") === "quicksort|merge sort"
+    && root3.querySelectorAll(".ix-cmp-label").length === 3 && root3.querySelectorAll(".ix-cmp-empty").length === 2 && root3.querySelectorAll(".ix-meter").length === 1);
+  check("a tie has no leader", !root3.querySelector(".ix-lead"));
+  hud3.update(frame(2, { counters: { "quick.compares": 23, "merge.compares": 31, "quick.swaps": 9, "merge.writes": 14, steps: 2 } }), { time: 2, playing: true, speed: 1 });
+  const cells = [...root3.querySelectorAll(".ix-cmp-cell:not(.ix-cmp-empty)")];
+  check("the lower value leads when better is lower", cells[0].classList.contains("ix-lead") && cells[1].classList.contains("ix-trail"));
+  check("rows without better emphasise nothing", !cells[2].classList.contains("ix-lead") && !cells[2].classList.contains("ix-trail"));
+  await wait(700);
+  const sx = (c) => +/scaleX\(([\d.]+)\)/.exec(c.querySelector(".ix-cmp-bar > i").style.transform)[1];
+  check("bars race in proportion", Math.abs(sx(cells[0]) - 23 / 31) < 0.01 && sx(cells[1]) === 1, [sx(cells[0]), sx(cells[1])]);
+  check("compare values count up and settle", cells[0].querySelector(".ix-meter-num").textContent === "23" && cells[1].querySelector(".ix-meter-num").textContent === "31");
+  check("short labels are carried for tight layouts", root3.querySelector(".ix-meter .ix-ml-short")?.textContent === "st");
+  hud3.destroy(); root3.remove();
+
+  // primary numbers: only they sit in the dock (per story when primary is a list); every number keeps its hint
+  {
+    const root5 = document.createElement("div");
+    root5.style.cssText = "position:fixed;left:0;top:0;width:1440px;height:900px;visibility:hidden";
+    root5.append(document.createElement("canvas"));
+    document.body.append(root5);
+    const pdefs = {
+      records: { label: "words mapped", format: "int", primary: true, hint: "One record per word a mapper reads." },
+      bytes: { label: "sent between machines", short: "sent", format: "bytes", primary: true, hint: "Bytes the shuffle moves." },
+      skew: { label: "busiest reducer's load", format: "x", primary: ["crash"], hint: "Busiest over average." },
+      tasks: { label: "tasks finished", format: "int", hint: "Tasks completed." },
+    };
+    const hud5 = createHud(root5, { meta: { title: "MR" }, scenarios, scenario: "happy", counters: pdefs, hash: false }, {});
+    hud5.setTimeline({ ...tl, counters: pdefs });
+    hud5.update(frame(1, { counters: { records: 4, bytes: 30, skew: 1.2, tasks: 1 } }), { time: 1, playing: false, speed: 1 });
+    await frameWait();
+    const shownNames = () => [...root5.querySelectorAll(".ix-stat:not([hidden])")].map((e) => e.querySelector(".ix-ml-full").textContent).join("|");
+    check("the dock shows only the primary numbers", shownNames() === "words mapped|sent between machines", shownNames());
+    hud5.setScenario("crash");
+    check("a story-specific primary joins the dock in its story", shownNames() === "words mapped|sent between machines|busiest reducer's load", shownNames());
+    hud5.setScenario("happy");
+    check("labels are plain words in sentence case, not code-like capitals", getComputedStyle(root5.querySelector(".ix-stat-label")).textTransform === "none");
+    const st5 = root5.querySelector(".ix-stat");
+    check("each stat carries its hint for the tooltip", st5.dataset.tip === "One record per word a mapper reads." && st5.dataset.tipHead === "words mapped");
+    root5.style.visibility = "visible";
+    st5.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, pointerType: "mouse" }));
+    await wait(520);
+    const tip5 = root5.querySelector(".ix-tip");
+    check("pointing at a stat explains it in a two-line tooltip", tip5.classList.contains("ix-show") && tip5.classList.contains("ix-tip-rich")
+      && tip5.querySelector(".ix-tip-head")?.textContent === "words mapped" && tip5.querySelector(".ix-tip-body")?.textContent === "One record per word a mapper reads.");
+    root5.style.visibility = "hidden";
+    root5.querySelector(".ix-stats").click();
+    check("the readout lists every number with what it means", root5.querySelectorAll(".ix-meters .ix-meter").length === 4
+      && [...root5.querySelectorAll(".ix-meters .ix-meter-hint")].map((e) => e.textContent).join("|") === "One record per word a mapper reads.|Bytes the shuffle moves.|Busiest over average.|Tasks completed."
+      && root5.querySelector(".ix-meters-title").textContent === "Numbers from this run");
+    key("Escape");
+    root5.querySelector(".ix-stats").dispatchEvent(new PointerEvent("pointerenter", { pointerType: "mouse" }));
+    await wait(320);
+    check("hovering the strip no longer pops the readout over the world", !root5.querySelector(".ix-meters").classList.contains("ix-open"));
+    hud5.destroy(); root5.remove();
+  }
+
+  // header geometry: desktop is the title row (32) + 8 + the pill (32) = 72 px, left edges aligned, insets.top exact;
+  // a single-story figure shows no pill; phones keep the one-line title (tap opens the about card) over a 28 px pill
+  for (const [w, hgt, sc] of [[1440, 900, scenarios], [1440, 900, [scenarios[0]]], [390, 844, scenarios]]) {
+    const rH = document.createElement("div");
+    rH.style.cssText = `position:fixed;left:0;top:0;width:${w}px;height:${hgt}px;visibility:hidden`;
+    rH.append(document.createElement("canvas"));
+    document.body.append(rH);
+    const hH = createHud(rH, { meta: { title: "Quicksort", subtitle: "Lomuto partitioning", cite: { text: "Hoare 1962", url: "https://example.org/q.pdf" } },
+      scenarios: sc, scenario: sc[0].id, hash: false, storage: false }, {});
+    hH.setTimeline(tl);
+    hH.update(frame(1), { time: 1, playing: false, speed: 1 });
+    await frameWait();
+    const tag = `${w}px, ${sc.length} ${sc.length > 1 ? "stories" : "story"}`;
+    const top = rH.querySelector(".ix-top").getBoundingClientRect(), title = rH.querySelector(".ix-title").getBoundingClientRect();
+    const head = rH.querySelector(".ix-head-row").getBoundingClientRect(), row = rH.querySelector(".ix-story-row"), pill = rH.querySelector(".ix-story").getBoundingClientRect();
+    const phone = rH.dataset.size === "phone";
+    check(`${tag}: insets.top is the header's bottom edge`, hH.insets.top === Math.round(top.bottom), [hH.insets.top, top.bottom]);
+    if (sc.length < 2) {
+      check(`${tag}: no pill, the header is the title row alone`, row.hidden && getComputedStyle(row).display === "none" && Math.round(title.height) === 32, title.height);
+    } else if (!phone) {
+      check(`${tag}: title row 32, 8 px gap, pill 32: 72 px, left edges aligned`, Math.round(head.height) === 32 && Math.round(pill.top - head.bottom) === 8
+        && Math.round(pill.height) === 32 && Math.round(title.height) === 72 && Math.round(pill.left) === Math.round(head.left), [head.height, pill.top - head.bottom, pill.height, title.height, pill.left, head.left]);
+    } else {
+      check(`${tag}: one-line title (36) over a 28 px pill, 4 px apart, left edges aligned`, Math.round(head.height) === 36 && Math.round(pill.height) === 28
+        && Math.round(pill.top - head.bottom) === 4 && Math.round(pill.left) === Math.round(head.left), [head.height, pill.height, pill.top - head.bottom]);
+      rH.querySelector(".ix-heading").click();
+      check(`${tag}: a tap on the title still opens the about card with the subtitle and paper link`, rH.querySelector(".ix-about").classList.contains("ix-open")
+        && rH.querySelector(".ix-about-sub").textContent === "Lomuto partitioning" && !rH.querySelector(".ix-about-link").hidden);
+    }
+    hH.destroy(); rH.remove();
+  }
+
+  // reduced motion: counters snap, no caption rise; destroy removes everything
+  const root2 = document.createElement("div");
+  root2.style.cssText = "position:fixed;left:0;top:0;width:800px;height:600px;visibility:hidden";
+  root2.append(document.createElement("canvas"));
+  document.body.append(root2);
+  const hud2 = createHud(root2, { meta: { title: "T" }, counters: { n: { label: "n", format: "int" } }, reducedMotion: true, hash: false }, {});
+  hud2.setTimeline({ ...tl, counters: { n: { label: "n", format: "int" } } });
+  hud2.update(frame(1, { counters: { n: 0 } }), { time: 1, playing: true, speed: 1 });
+  hud2.update(frame(2, { counters: { n: 900 } }), { time: 2, playing: true, speed: 1 });
+  check("reduced motion is exposed and snaps counters", hud2.reducedMotion === true && root2.classList.contains("ix-reduced") && root2.querySelector(".ix-meter-num").textContent === "900");
+  hud2.update(frame(9.999), { time: 9.999, playing: false, speed: 1, held: { kind: "chapter", phase: 0 } });
+  const p2 = root2.querySelector(".ix-play");
+  check("reduced motion: Continue keeps its steady highlight but never pulses", p2.classList.contains("ix-continue")
+    && getComputedStyle(p2, "::after").animationName === "none" && getComputedStyle(p2).animationName === "none" && getComputedStyle(p2).boxShadow !== "none");
+  const capT = getComputedStyle(root2.querySelector(".ix-cap")).transitionProperty;
+  check("reduced motion captions only fade", !/transform/.test(capT), capT);
+  hud2.destroy();
+  check("destroy leaves only the canvas", root2.children.length === 1 && root2.firstChild.tagName === "CANVAS");
+  root2.remove();
+
+  return { pass: results.filter((r) => r.ok).length, fail: results.filter((r) => !r.ok), perUpdateMs: +per.toFixed(4), perTagsMs: +perTags.toFixed(4) };
+})();
+window.__ready = window.__results;
+</script>
+</body>
+</html>

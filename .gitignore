@@ -1,0 +1,18 @@
+# screenshots, frames and videos from shoot.mjs and record.mjs
+shots/
+frames/
+*.webm
+*.mp4
+*.gif
+
+# dev pages from build.mjs --dev / --serve
+*.dev.html
+
+# built example pages (build them with scripts/build.mjs)
+examples/*/*.html
+
+# test scratch output
+scripts/test/out/
+
+node_modules/
+.DS_Store

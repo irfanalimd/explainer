@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scene preview</title>
+<style>
+  @font-face { font-family: "Geist Mono"; src: url("../../assets/fonts/GeistMono-latin.woff2") format("woff2"); font-weight: 100 900; }
+  @font-face { font-family: "Geist"; src: url("../../assets/fonts/Geist-latin.woff2") format("woff2"); font-weight: 100 900; }
+  :root { --bg: #0B0C0F; --ink: #EDEEF1; --muted: #8D929B; --faint: #5A5F69; --glass: rgba(18,19,23,.72); --border: rgba(255,255,255,.08); }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.4 "Geist", ui-sans-serif, system-ui, sans-serif; overflow: hidden; }
+  #stage { position: absolute; inset: 0 0 112px 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #title { position: absolute; left: 20px; top: 14px; pointer-events: none; }
+  #title .k { font: 500 11px "Geist Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  #title .t { font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+  #title .s { font-size: 12.5px; color: var(--muted); }
+  #readout { position: absolute; right: 16px; top: 14px; background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font: 12px "Geist Mono", monospace; min-width: 190px; }
+  #readout div { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; }
+  #readout .l { color: var(--muted); }
+  #caption { position: absolute; left: 50%; bottom: 124px; transform: translateX(-50%); max-width: 64ch; text-align: center; font-size: 16px; line-height: 24px; text-shadow: 0 1px 8px #000; }
+  #caption .key { padding: 0 5px; border-radius: 4px; color: #0B0C0F; font: 500 13px "Geist Mono", monospace; }
+  #caption .ref { border-bottom: 1px solid var(--muted); }
+  #caption code { font: 13px "Geist Mono", monospace; background: rgba(255,255,255,.07); padding: 0 4px; border-radius: 4px; }
+  #bar { position: absolute; left: 12px; right: 12px; bottom: 12px; height: 88px; background: var(--glass); border: 1px solid var(--border); border-radius: 14px; display: grid; grid-template-columns: auto 1fr auto; grid-template-rows: 40px 40px; gap: 0 12px; padding: 4px 14px; box-sizing: border-box; }
+  #bar button { background: rgba(255,255,255,.06); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; height: 30px; min-width: 34px; font: 13px "Geist Mono", monospace; cursor: pointer; }
+  #controls { display: flex; gap: 6px; align-items: center; }
+  #scrubwrap { position: relative; align-self: center; height: 34px; }
+  #chapters { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #scrub { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; margin: 0; opacity: 0; height: 34px; cursor: pointer; }
+  #info { align-self: center; font: 12px "Geist Mono", monospace; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  #knobs { grid-column: 1 / 4; display: flex; gap: 14px; align-items: center; font: 12px "Geist Mono", monospace; color: var(--muted); overflow-x: auto; white-space: nowrap; }
+  #knobs label { display: inline-flex; gap: 6px; align-items: center; }
+  #knobs input[type=number] { width: 46px; background: #15171c; color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 2px 4px; font: inherit; }
+  #knobs input[type=text] { width: 260px; background: #15171c; color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font: inherit; }
+  #knobs select { background: #15171c; color: var(--ink); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  #problems { position: absolute; left: 20px; top: 84px; max-width: 520px; font: 11.5px "Geist Mono", monospace; color: #FFB224; white-space: pre-wrap; pointer-events: none; }
+</style>
+<script>window.__ready = new Promise((ok, fail) => { window.__readyOk = ok; window.__readyFail = fail; });</script>
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+<div id="title"><div class="k" id="kicker"></div><div class="t" id="ttl"></div><div class="s" id="sub"></div></div>
+<div id="readout"></div>
+<div id="problems"></div>
+<div id="caption"></div>
+<div id="bar">
+  <div id="controls"><button id="back" title="step back">◁</button><button id="play" title="play">▶</button><button id="fwd" title="step forward">▷</button></div>
+  <div id="scrubwrap"><canvas id="chapters"></canvas><input id="scrub" type="range" min="0" max="1" step="0.001" value="0"></div>
+  <div id="info"></div>
+  <div id="knobs"></div>
+</div>
+<script type="module">
+import { compile, checkInvariants, envOf } from "./index.mjs";
+import { tokens } from "./narrate.mjs";
+import { PALETTE, SIZE, keyColor } from "../tokens.mjs";
+
+const Q = new URLSearchParams(location.search);
+const C = PALETTE[Q.get("theme") === "light" ? "light" : "dark"];
+const rgba = (c, a = 1) => { if (Array.isArray(c)) return `rgba(${c[0] * 255},${c[1] * 255},${c[2] * 255},${(c[3] ?? 1) * a})`; const n = parseInt(c.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+const toneColor = (t) => ({ ok: C.ok, busy: C.busy, warn: C.warn, fail: C.fail, idle: C.idle, off: C.off })[t] ?? C.idle;
+document.documentElement.style.setProperty("--bg", C.stage);
+
+const figPath = Q.get("fig") ?? "fixtures/mapreduce.mjs";
+const fig = await import(new URL(figPath, location.href).href);
+let scenario = Q.get("scenario") ?? fig.scenarios?.[0]?.id ?? null;
+let values = {};
+for (const kv of (Q.get("p") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split(":"); values[k] = isNaN(+v) ? (v === "true" ? true : v === "false" ? false : v) : +v; }
+let tl, time = +(Q.get("t") ?? 0), playing = Q.get("play") === "1", speed = +(Q.get("speed") ?? 1), frame;
+const showFocus = Q.get("focus") === "1";
+
+const cv = document.getElementById("c"), g = cv.getContext("2d");
+const chap = document.getElementById("chapters"), gc = chap.getContext("2d");
+const scrub = document.getElementById("scrub");
+
+function rebuild() {
+  const t0 = performance.now();
+  tl = compile(fig, { scenario, params: values, env: envOf(innerWidth, innerHeight) });
+  const ms = performance.now() - t0;
+  const inv = checkInvariants(fig, tl);
+  document.getElementById("problems").textContent = [...tl.problems.map((p) => `! ${p.kind}: ${p.message.split("\n")[0]}`), ...inv.map((f) => `! invariant "${f.name}" @${f.step}: ${f.message}`)].join("\n");
+  scrub.max = String(tl.duration);
+  time = Math.min(time, tl.duration);
+  window.preview.tl = tl;
+  window.preview.compileMs = ms;
+  drawChapters();
+  render();
+}
+
+// ---------- view transform: fit the stable world bounds ----------
+let view = { s: 1, ox: 0, oy: 0, W: 0, H: 0, dpr: 1 };
+function fit() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const w = tl.world, pad = 70;
+  const s = Math.min((r.width - 2 * pad) / (w.maxX - w.minX), (r.height - 2 * pad - 60) / (w.maxY - w.minY));
+  view = { s, ox: r.width / 2 - ((w.minX + w.maxX) / 2) * s, oy: r.height / 2 + 24 - ((w.minY + w.maxY) / 2) * s, W: r.width, H: r.height, dpr };
+}
+const X = (x) => view.ox + x * view.s, Y = (y) => view.oy + y * view.s, S = (u) => u * view.s;
+
+function rr(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+function poly(pts, grow = 1) {
+  g.beginPath();
+  if (!pts?.length) return;
+  let total = 0; for (let i = 1; i < pts.length; i++) total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+  const lim = total * grow; let acc = 0;
+  g.moveTo(X(pts[0][0]), Y(pts[0][1]));
+  for (let i = 1; i < pts.length; i++) {
+    const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (acc + L >= lim) { const k = (lim - acc) / (L || 1); g.lineTo(X(pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k), Y(pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k)); break; }
+    g.lineTo(X(pts[i][0]), Y(pts[i][1])); acc += L;
+  }
+}
+// a sub-path between arc lengths s0..s1 drawn in small pieces with an intensity ramp (pulse trail)
+function pulse(pts, p, color) {
+  const lo = Math.min(p.s0, p.s1), hi = Math.max(p.s0, p.s1);
+  if (hi - lo < 0.5) return;
+  const N = 14;
+  let cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const at = (s) => { let i = 1; while (i < pts.length - 1 && cum[i] < s) i++; const k = (s - cum[i - 1]) / ((cum[i] - cum[i - 1]) || 1); return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k]; };
+  for (let k = 0; k < N; k++) {
+    const a = p.s0 + (p.s1 - p.s0) * (k / N), b = p.s0 + (p.s1 - p.s0) * ((k + 1) / N);
+    const f = (p.a0 ?? 0) + ((p.a1 ?? 1) - (p.a0 ?? 0)) * ((k + 0.5) / N);
+    const A = at(a), B = at(b);
+    g.strokeStyle = rgba(color, Math.min(1, f * f * (p.intensity ?? 1)));
+    g.beginPath(); g.moveTo(X(A[0]), Y(A[1])); g.lineTo(X(B[0]), Y(B[1])); g.stroke();
+  }
+}
+const colorOf = (p) => p.tone === "key" && p.key !== null ? keyColor("dark", p.key) : p.tone === "ghost" ? C.ghost : ["ok", "busy", "warn", "fail", "idle"].includes(p.tone) ? toneColor(p.tone) : C.tile;
+const mono = (px, w = 500) => `${w} ${Math.max(1, px)}px "Geist Mono", ui-monospace, monospace`;
+
+function drawTile(p) {
+  const lift = Math.max(0, p.z - 14);
+  const sc = (p.scale ?? 1) * (1 + Math.max(0, p.z - 14) / 160);
+  const w = p.w * sc, d = p.d * sc;
+  const x = p.x - w / 2, y = p.y - d / 2;
+  g.globalAlpha = p.opacity * (1 - 0.55 * p.dim);
+  if (p.z > 3) { g.fillStyle = "rgba(0,0,0,.45)"; rr(X(x + p.z * 0.25), Y(y + p.z * 0.4), S(w), S(d), S(5)); g.fill(); }
+  const col = colorOf(p);
+  rr(X(x), Y(y - lift * 0.15), S(w), S(d), S(p.kind === "bit" ? 2.5 : 5));
+  g.fillStyle = col; g.fill();
+  if (p.lit > 0.01) { g.strokeStyle = rgba(C.lit, 0.9 * p.lit); g.lineWidth = S(1.6); g.stroke(); g.shadowBlur = 0; }
+  if (p.flash > 0.01) { g.fillStyle = rgba("#FFFFFF", 0.55 * p.flash); g.fill(); }
+  const ink = p.tone === "key" ? C.keyInk : C.tileInk;
+  const sz = p.kind === "record" ? SIZE.record.label : p.kind === "page" ? SIZE.page.label : p.kind === "bit" ? SIZE.bit.label : SIZE.tile.label;
+  g.fillStyle = ink; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = mono(S(sz));
+  g.save(); rr(X(x), Y(y - lift * 0.15), S(w), S(d), S(5)); g.clip();
+  const cy = p.y - lift * 0.15 - (p.sub ? 4 : 0);
+  if (p.textOut !== null && p.textOut !== undefined && p.roll < 1) {
+    g.globalAlpha = p.opacity * (1 - p.roll); g.fillText(p.textOut, X(p.x), Y(cy - d * 0.6 * p.roll));
+    g.globalAlpha = p.opacity * p.roll; g.fillText(p.text ?? "", X(p.x), Y(cy + d * 0.6 * (1 - p.roll)));
+    g.globalAlpha = p.opacity;
+  } else g.fillText(p.text ?? "", X(p.x), Y(cy));
+  if (p.sub) { g.font = mono(S(SIZE.tile.sub), 400); g.globalAlpha = p.opacity * 0.7; g.fillText(p.sub, X(p.x), Y(cy + 9)); }
+  g.restore();
+  g.globalAlpha = 1;
+}
+
+function drawHousing(p) {
+  const x = p.x - p.w / 2, y = p.y - p.d / 2;
+  g.globalAlpha = p.opacity * (1 - 0.45 * p.dim);
+  g.fillStyle = "rgba(0,0,0,.5)"; const round = p.variant === "store";
+  const shape = (dx, dy) => { if (round) { g.beginPath(); g.arc(X(p.x + dx), Y(p.y + dy), S(p.w / 2), 0, Math.PI * 2); } else rr(X(x + dx), Y(y + dy), S(p.w), S(p.d), S(p.r ?? 11)); };
+  shape(4, 7); g.fill();
+  shape(0, 0); g.fillStyle = p.variant === "store" ? C.housingAlt : C.housing; g.fill();
+  g.strokeStyle = p.lit > 0.01 ? rgba(C.lit, 0.6 * p.lit + 0.1) : "rgba(255,255,255,.06)"; g.lineWidth = S(1); g.stroke();
+  if (p.flash > 0.01) { g.fillStyle = rgba("#FFFFFF", 0.18 * p.flash); g.fill(); }
+  if (p.tray) {
+    const t = p.tray;
+    if (t.round) { g.beginPath(); g.arc(X(p.x + t.x), Y(p.y + t.y), S(t.w / 2), 0, Math.PI * 2); }
+    else rr(X(p.x + t.x - t.w / 2), Y(p.y + t.y - t.d / 2), S(t.w), S(t.d), S(SIZE.well.r));
+    g.fillStyle = C.well; g.fill();
+  }
+  // title, sub, LED
+  g.fillStyle = C.engrave; g.font = mono(S(SIZE.housing.title), 600); g.textBaseline = "middle";
+  const ty = round ? p.y - p.w / 2 + 11 : y + SIZE.housing.header / 2;
+  g.textAlign = round ? "center" : "left";
+  g.fillText((p.title ?? "").toUpperCase(), round ? X(p.x) : X(x + 10), Y(ty));
+  if (p.sub) { g.font = mono(S(SIZE.housing.sub), 400); g.textAlign = round ? "center" : "right"; g.fillText(p.sub, round ? X(p.x) : X(x + p.w - 20), Y(round ? p.y + p.w / 2 - 10 : ty)); }
+  if (p.led) {
+    const lx = round ? p.x + p.w * 0.3 : x + p.w - 10, ly = round ? p.y - p.w * 0.36 : ty;
+    let a = 1; if (p.led === "fail") a = 0.45 + 0.55 * (0.5 + 0.5 * Math.cos(time * Math.PI * 2 * 1.6));
+    g.beginPath(); g.arc(X(lx), Y(ly), S(SIZE.housing.led), 0, Math.PI * 2); g.fillStyle = rgba(toneColor(p.led), a); g.fill();
+    g.beginPath(); g.arc(X(lx), Y(ly), S(SIZE.housing.led * 3), 0, Math.PI * 2); g.fillStyle = rgba(toneColor(p.led), 0.12 * a); g.fill();
+  }
+  if (p.meter !== null && p.meter !== undefined) { rr(X(x + 10), Y(y + p.d - 6), S((p.w - 20) * p.meter), S(3), S(1.5)); g.fillStyle = rgba(C.busy, 0.9); g.fill(); }
+  g.globalAlpha = 1;
+}
+
+function drawLine(pts, width, color, alpha = 1, grow = 1, dash) {
+  g.lineCap = "round"; g.lineJoin = "round"; g.lineWidth = S(width); g.strokeStyle = rgba(color, alpha);
+  g.setLineDash(dash ? dash.map(S) : []); poly(pts, grow); g.stroke(); g.setLineDash([]);
+}
+
+function render() {
+  if (!tl) return;
+  fit();
+  const ppu = view.s;
+  const t0 = performance.now();
+  frame = tl.sample(time, { pxPerUnit: ppu, reducedMotion: Q.get("rm") === "1" });
+  const sampleMs = performance.now() - t0;
+  window.preview.frame = frame; window.preview.sampleMs = sampleMs;
+  g.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+  // stage + dot grid
+  g.fillStyle = C.stage; g.fillRect(0, 0, view.W, view.H);
+  const grd = g.createRadialGradient(X((tl.world.minX + tl.world.maxX) / 2), Y((tl.world.minY + tl.world.maxY) / 2), 0, X((tl.world.minX + tl.world.maxX) / 2), Y((tl.world.minY + tl.world.maxY) / 2), S(Math.max(tl.world.maxX - tl.world.minX, tl.world.maxY - tl.world.minY)) * 0.8);
+  grd.addColorStop(0, C.stageLift); grd.addColorStop(1, C.stage); g.fillStyle = grd; g.fillRect(0, 0, view.W, view.H);
+  g.fillStyle = rgba(C.grid); const step = SIZE.grid;
+  for (let gx = Math.floor((tl.world.minX - 200) / step) * step; gx < tl.world.maxX + 200; gx += step)
+    for (let gy = Math.floor((tl.world.minY - 160) / step) * step; gy < tl.world.maxY + 160; gy += step) {
+      g.fillStyle = rgba(gx % SIZE.gridMajor === 0 && gy % SIZE.gridMajor === 0 ? C.gridMajor : C.grid); g.fillRect(X(gx) - 0.6, Y(gy) - 0.6, 1.2, 1.2);
+    }
+  const P = frame.poses;
+  const of = (k) => P.filter((p) => p.kind === k);
+  // zones
+  for (const z of of("zone")) {
+    rr(X(z.x - z.w / 2), Y(z.y - z.d / 2), S(z.w), S(z.d), S(SIZE.zone.r));
+    g.globalAlpha = z.opacity; g.fillStyle = rgba(C.zoneFill); g.fill();
+    g.setLineDash(z.dashed ? [S(6), S(5)] : []); g.strokeStyle = z.tone === "fail" ? rgba(C.fail, 0.7) : rgba(C.zoneBorder); g.lineWidth = 1; g.stroke(); g.setLineDash([]);
+    g.fillStyle = C.engrave; g.font = mono(S(SIZE.zone.title), 600); g.textAlign = "left"; g.textBaseline = "middle";
+    g.fillText((z.title ?? "").toUpperCase(), X(z.x - z.w / 2 + 12), Y(z.y - z.d / 2 + 12)); g.globalAlpha = 1;
+  }
+  // lanes
+  for (const l of of("lane")) {
+    drawLine(l.points, SIZE.lane.w, C.grooveRim, l.opacity);
+    g.fillStyle = C.inkMuted; g.font = mono(S(SIZE.lane.label), 500); g.textAlign = "left"; g.textBaseline = "middle";
+    g.fillText(l.label, X(l.labelAt[0]), Y(l.labelAt[1]));
+    const [a, b] = l.points; g.strokeStyle = rgba(C.inkFaint, 0.6); g.lineWidth = 1;
+    const tk = l.ticks ?? { minor: SIZE.lane.tickMinor, major: SIZE.lane.tickMajor }; for (let k = 0, s = 0; s <= l.length + 0.01; k++, s = k * tk.minor) { const mj = k % Math.round(tk.major / tk.minor) === 0; g.beginPath(); g.moveTo(X(a[0] + s), Y(a[1] + 4)); g.lineTo(X(a[0] + s), Y(a[1] + (mj ? 9 : 6))); g.stroke(); }
+    if (l.labels) { g.fillStyle = C.inkFaint; g.font = mono(S(6.5), 400); g.textAlign = "center"; for (const lb of l.labels) g.fillText(lb.text, X(lb.x), Y(lb.y + 2)); }
+  }
+  // traces, buses, prints, lane messages
+  for (const t of P.filter((p) => p.kind === "trace" || p.kind === "bus")) {
+    const col = t.key !== null && t.key !== undefined ? keyColor("dark", t.key) : C.lit;
+    if (t.variant === "print") { drawLine(t.points, 1.4, col, 0.55 * t.opacity, t.grow, [3, 4]); continue; }
+    if (t.variant === "message") { drawLine(t.points, 2.2, col, (1 - t.dim * 0.75) * 0.9 * t.opacity, t.grow, t.dashed ? [4, 4] : null); continue; }
+    const w = t.kind === "bus" ? SIZE.trace.bus : SIZE.trace.w;
+    const lines = t.kind === "bus" ? [{ points: t.points, pulses: t.pulses, w }, ...t.branches.map((b) => ({ points: b.points, pulses: b.pulses, w: SIZE.trace.w }))] : [{ points: t.points, pulses: t.pulses, w }];
+    for (const L of lines) { drawLine(L.points, L.w + 1.6, C.grooveRim, 0.9 * t.opacity, t.grow); drawLine(L.points, L.w, C.groove, t.opacity, t.grow); }
+    if (t.glow > 0) for (const L of lines) drawLine(L.points, L.w * 0.7, col, 0.22 * t.glow, t.grow);
+    g.lineWidth = S(w * 0.9); g.lineCap = "round";
+    for (const L of lines) for (const pu of L.pulses ?? []) pulse(L.points, pu, pu.key !== null && pu.key !== undefined ? keyColor("dark", pu.key) : C.lit);
+  }
+  for (const c of of("container")) { g.globalAlpha = c.opacity; rr(X(c.x - c.w / 2), Y(c.y - c.d / 2), S(c.w), S(c.d), S(SIZE.plate.r)); g.fillStyle = C.housingAlt; g.fill(); g.globalAlpha = 1; }
+  for (const b of of("bracket")) { drawLine(b.points, 1, b.key !== null ? keyColor("dark", b.key) : C.inkMuted, b.opacity); g.fillStyle = C.inkMuted; g.font = mono(S(6.5)); g.textAlign = "center"; g.fillText(b.label, X(b.x), Y(b.y)); }
+  for (const h of of("housing")) drawHousing(h);
+  for (const m of of("mark")) { g.beginPath(); g.arc(X(m.x), Y(m.y), S(3.5), 0, Math.PI * 2); g.fillStyle = m.tone ? toneColor(m.tone) : C.metal; g.globalAlpha = m.opacity; g.fill(); g.globalAlpha = 1; }
+  for (const t of of("text")) { g.globalAlpha = t.opacity; g.fillStyle = t.variant === "index" ? C.inkFaint : C.inkMuted; g.font = mono(S(t.size ?? 8)); g.textAlign = t.align ?? "center"; g.textBaseline = "middle"; g.fillText(t.text, X(t.x), Y(t.y)); g.globalAlpha = 1; }
+  const solids = P.filter((p) => ["tile", "record", "bit", "page"].includes(p.kind)).sort((a, b) => a.z - b.z);
+  for (const s of solids) drawTile(s);
+  for (const k of of("packet")) {
+    const col = k.key !== null ? keyColor("dark", k.key) : C.lit;
+    g.save(); g.translate(X(k.x), Y(k.y - k.z * 0.15)); g.rotate((k.yaw ?? 0) * Math.PI / 180); g.scale(k.scale, k.scale);
+    g.globalAlpha = k.opacity; g.shadowColor = col; g.shadowBlur = 14; rr(-S(k.w / 2), -S(k.d / 2), S(k.w), S(k.d), S(k.d / 2)); g.fillStyle = col; g.fill(); g.restore();
+  }
+  for (const p of of("pointer")) {
+    g.globalAlpha = p.opacity; g.fillStyle = C.metal; g.beginPath(); g.arc(X(p.x), Y(p.y - 6), S(1.4), 0, Math.PI * 2); g.fill();
+    rr(X(p.x - 7), Y(p.y - 2), S(14), S(10), S(2)); g.fillStyle = p.tone ? toneColor(p.tone) : C.tile; g.fill();
+    g.fillStyle = C.tileInk; g.font = mono(S(SIZE.pointer.label)); g.textAlign = "center"; g.fillText(p.text, X(p.x), Y(p.y + 3)); g.globalAlpha = 1;
+  }
+  for (const h of of("playhead")) drawLine(h.points, 1, C.lit, 0.8 * h.opacity);
+  // tags: glass chips above their anchors
+  for (const tg of frame.tags) {
+    g.globalAlpha = tg.opacity; g.font = mono(11, 500);
+    const w = g.measureText(tg.text).width + 16, x = X(tg.at[0]) - w / 2, y = Y(tg.at[1]) - S(tg.at[2]) * 0.6 - 34;
+    rr(x, y, w, 22, 8); g.fillStyle = "rgba(20,22,27,.88)"; g.fill(); g.strokeStyle = tg.tone ? rgba(toneColor(tg.tone), 0.8) : "rgba(255,255,255,.14)"; g.lineWidth = 1; g.stroke();
+    g.fillStyle = C.ink; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(tg.text, x + w / 2, y + 11.5); g.globalAlpha = 1;
+  }
+  if (showFocus && frame.focus) { g.setLineDash([4, 4]); g.strokeStyle = "rgba(255,178,36,.6)"; g.lineWidth = 1; g.strokeRect(X(frame.focus.minX), Y(frame.focus.minY), S(frame.focus.maxX - frame.focus.minX), S(frame.focus.maxY - frame.focus.minY)); g.setLineDash([]); }
+  hud();
+}
+
+function captionHtml(src) {
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  const walk = (list) => list.map((t) => {
+    if (t.type === "text") return esc(t.text);
+    if (t.type === "code") return `<code>${esc(t.text)}</code>`;
+    if (t.type === "bold") return `<b>${walk(t.children)}</b>`;
+    if (t.type === "key") { const k = tl.keys.find((x) => x.name === t.name); return `<span class="key" style="background:${k ? keyColor("dark", k.index) : C.tile}">${esc(t.text)}</span>`; }
+    if (t.type === "ref") { const r = frame.entities.get(t.id); return `<span class="ref">${esc(t.text ?? r?.title ?? t.id)}</span>`; }
+    if (t.type === "tone") return `<span style="color:${toneColor(t.tone)}">${esc(t.text)}</span>`;
+    return "";
+  }).join("");
+  return walk(tokens(src));
+}
+
+function hud() {
+  document.getElementById("caption").innerHTML = captionHtml(frame.caption);
+  const defs = tl.counters;
+  document.getElementById("readout").innerHTML = Object.entries(defs).map(([k, d]) => {
+    const v = frame.counters[k] ?? 0;
+    const txt = d.format === "bytes" ? (v >= 1000 ? (v / 1000).toFixed(1) + " KB" : v + " B") : String(v);
+    return `<div><span class="l">${d.label}</span><span>${txt}</span></div>`;
+  }).join("") + `<div><span class="l">sample</span><span>${window.preview.sampleMs.toFixed(2)} ms</span></div>`;
+  document.getElementById("info").textContent = `${frame.phase.toUpperCase() || "—"}  step ${frame.step + 1}/${tl.steps.length}  beat ${frame.beat + 1}  ${time.toFixed(2)} / ${tl.duration.toFixed(1)} s  ${speed}×`;
+  scrub.value = String(time);
+  drawPlayhead();
+}
+
+function drawChapters() {
+  const r = chap.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  chap.width = r.width * dpr; chap.height = r.height * dpr; gc.setTransform(dpr, 0, 0, dpr, 0, 0);
+  chap._r = r;
+  drawPlayhead();
+}
+function drawPlayhead() {
+  const r = chap._r; if (!r || !tl) return;
+  gc.clearRect(0, 0, r.width, r.height);
+  const xt = (t) => (t / tl.duration) * r.width;
+  for (const ph of tl.phases) {
+    const a = xt(ph.t0) + 1, b = xt(ph.t1) - 1;
+    gc.fillStyle = "rgba(255,255,255,.10)"; gc.fillRect(a, 22, b - a, 4);
+    gc.fillStyle = "rgba(255,255,255,.55)"; gc.fillRect(a, 22, Math.max(0, Math.min(b, xt(time)) - a), 4);
+    gc.fillStyle = C.inkMuted; gc.font = '500 10px "Geist Mono", monospace'; gc.textBaseline = "top"; gc.fillText(ph.name.toUpperCase(), a, 4);
+  }
+  for (const e of tl.events) { gc.fillStyle = e.kind === "fail" ? C.fail : e.kind === "ask" ? C.warn : e.kind === "recover" ? C.ok : "rgba(255,255,255,.35)"; gc.fillRect(xt(e.t), 29, 1.5, 4); }
+  gc.fillStyle = C.ink; gc.beginPath(); gc.arc(xt(time), 24, 5, 0, Math.PI * 2); gc.fill();
+}
+
+function knobs() {
+  const el = document.getElementById("knobs");
+  el.innerHTML = "";
+  if (fig.scenarios?.length) {
+    const sel = document.createElement("select");
+    for (const s of fig.scenarios) sel.add(new Option(s.label, s.id, false, s.id === scenario));
+    sel.onchange = () => { scenario = sel.value; rebuild(); };
+    const lab = document.createElement("label"); lab.append("scenario", sel); el.append(lab);
+  }
+  for (const [k, d] of Object.entries(fig.params ?? {})) {
+    const lab = document.createElement("label"); lab.append(d.label ?? k);
+    const inp = document.createElement("input");
+    const cur = values[k] ?? d.value;
+    if (d.type === "bool") { inp.type = "checkbox"; inp.checked = !!cur; inp.onchange = () => { values[k] = inp.checked; rebuild(); }; }
+    else if (d.type === "text") { inp.type = "text"; inp.value = cur; inp.onchange = () => { values[k] = inp.value; rebuild(); }; }
+    else { inp.type = "number"; inp.value = cur; if (d.min !== undefined) inp.min = d.min; if (d.max !== undefined) inp.max = d.max; inp.onchange = () => { values[k] = +inp.value; rebuild(); }; }
+    lab.append(inp); el.append(lab);
+  }
+}
+
+let last = 0;
+function loop(ts) {
+  if (playing) { const dt = Math.min(0.1, (ts - last) / 1000); time = Math.min(tl.duration, time + dt * speed); if (time >= tl.duration) playing = false; render(); }
+  last = ts;
+  requestAnimationFrame(loop);
+}
+
+window.preview = {
+  seek(t) { time = Math.max(0, Math.min(tl.duration, +t)); render(); return { step: frame.step, u: +frame.u.toFixed(3), caption: frame.caption }; },
+  seekStep(i, u = 0) { return this.seek(tl.timeOf(i, u)); },
+  play() { playing = true; }, pause() { playing = false; },
+  setScenario(id) { scenario = id; rebuild(); knobs(); },
+  setParams(v) { Object.assign(values, v); rebuild(); knobs(); },
+  bench(n = 400) { const t0 = performance.now(); for (let k = 0; k < n; k++) tl.sample((k / n) * tl.duration, { pxPerUnit: 1 }); return (performance.now() - t0) / n; },
+};
+document.getElementById("play").onclick = () => { if (time >= tl.duration) time = 0; playing = !playing; };
+document.getElementById("back").onclick = () => { playing = false; window.preview.seekStep(Math.max(0, tl.stepAt(time) - (time - tl.steps[tl.stepAt(time)].t0 < 0.05 ? 1 : 0))); };
+document.getElementById("fwd").onclick = () => { playing = false; window.preview.seekStep(Math.min(tl.steps.length - 1, tl.stepAt(time) + 1)); };
+scrub.oninput = () => { playing = false; time = +scrub.value; render(); };
+addEventListener("keydown", (e) => { if (e.key === " ") { playing = !playing; e.preventDefault(); } if (e.key === "ArrowRight") document.getElementById("fwd").click(); if (e.key === "ArrowLeft") document.getElementById("back").click(); });
+addEventListener("resize", () => { drawChapters(); render(); });
+
+const m = fig.meta ?? {};
+document.getElementById("kicker").textContent = `${m.kicker ?? ""}${m.fig ? " · FIG " + m.fig : ""}  ·  scene preview`;
+document.getElementById("ttl").textContent = m.title ?? figPath;
+document.getElementById("sub").textContent = m.subtitle ?? "";
+await document.fonts.load('500 12px "Geist Mono"').catch(() => {});
+rebuild(); knobs();
+requestAnimationFrame(loop);
+window.__readyOk(true);
+</script>
+</body>
+</html>
