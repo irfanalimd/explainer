@@ -166,6 +166,7 @@ Before delivering, all of these must be true:
 
 - `DESIGN.md`: the art direction (the look, motion, HUD and anti-patterns).
 - `CONTRACTS.md`: the engine architecture, if you need to go deeper.
+- `references/teaching.md`: the teaching standard: the reader, the lesson plan, words and jargon, sizing by level, a worked linked-list plan, a before/after MapReduce rewrite, the cold-read rubric and what the teaching lint checks.
 - `references/builder.md`: the full builder API: groups, housings, containers, tiles, traces, buses, lanes, zones, step ops, pacing, held messages, narration markup, pitfalls.
 - `references/sim.md`: the runtimes: `rng`, `fmt`, `tracked`, `actors`, `lockstep`, `machine`.
 - `references/tooling.md`: every script and flag: verify, build, serve, shoot, audit, record, new.
