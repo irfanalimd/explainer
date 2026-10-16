@@ -823,6 +823,86 @@ window.__results = (async () => {
     hH.destroy(); rH.remove();
   }
 
+  // teaching: glossary words ({term:…} + meta.terms), the predict "why", and the end's recap (meta.recap)
+  for (const width of [1440, 820]) {
+    const rT = document.createElement("div");
+    rT.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:900px;visibility:hidden`;
+    rT.append(document.createElement("canvas"));
+    document.body.append(rT);
+    const metaT = { title: "Linked list", level: "intro", takeaway: "Reaching an item means following arrows from the front.",
+      terms: { pointer: "an arrow that says where the next box lives" },
+      recap: ["Each box keeps a value and an arrow to the next box.", "To reach a box you follow the arrows from the front."] };
+    const hT = createHud(rT, { meta: metaT, hash: false }, cb);
+    const stT = [
+      { index: 0, t0: 0, t1: 2, dur: 2, caption: "Three boxes in a row.", phase: "Boxes" },
+      { index: 1, t0: 2, t1: 4, dur: 2, caption: "Each box keeps a {term:pointer} to the next box.", phase: "Boxes" },
+      { index: 2, t0: 4, t1: 6, dur: 2, caption: "Follow the {term:pointer|pointers} from the front.", phase: "Walk",
+        ask: { question: "How many arrows to reach the 3rd box?", options: ["1", "2", "3"], answer: 1, why: "You start at the first box, so two arrows take you to the third." } },
+      { index: 3, t0: 6, t1: 8, dur: 2, caption: "Two arrows later we are there.", phase: "Walk" },
+    ];
+    hT.setTimeline({ steps: stT, duration: 8, phases: [{ name: "Boxes", step: 0, t0: 0, t1: 4, about: "Think of a treasure hunt." }, { name: "Walk", step: 2, t0: 4, t1: 8, about: "Walking the list." }],
+      events: [], keys: [], counters: {} });
+    const fT = (t, extra = {}) => ({ ...frame(t), step: Math.min(3, Math.floor(t / 2)), caption: stT[Math.min(3, Math.floor(t / 2))].caption, counters: {}, poses: [], ...extra });
+    const tag = `${width}px`;
+    hT.update(fT(3), { time: 3, playing: false, speed: 1 });
+    await frameWait();
+    const capTerm = rT.querySelector(".ix-caption .ix-term");
+    if (width >= 1200) {
+      const pT = rT.querySelector(".ix-explain");
+      const pTerm = pT.querySelector(".ix-ex-text .ix-term");
+      check(`${tag}: a {term:…} is an underlined, focusable word that carries its plain definition`, !!pTerm && pTerm.textContent === "pointer" && pTerm.tabIndex === 0
+        && pTerm.dataset.tip === metaT.terms.pointer && /dotted/.test(getComputedStyle(pTerm).textDecorationStyle + getComputedStyle(pTerm).textDecoration));
+      check(`${tag}: its first use prints the definition under the step`, pT.querySelector(".ix-ex-now .ix-ex-def dt")?.textContent === "pointer"
+        && pT.querySelector(".ix-ex-now .ix-ex-def dd")?.textContent === metaT.terms.pointer && !/null/.test(pT.textContent));
+      pTerm.click();
+      await wait(60);
+      const tipEl = rT.querySelector(".ix-tip");
+      check(`${tag}: a click (or tap) on the word shows its definition`, tipEl.classList.contains("ix-show") && tipEl.querySelector(".ix-tip-head")?.textContent === "pointer"
+        && tipEl.querySelector(".ix-tip-body")?.textContent === metaT.terms.pointer);
+      hT.update(fT(7), { time: 7, playing: false, speed: 1 });
+      await wait(500);
+      check(`${tag}: later uses keep the tooltip but print no second definition; the tip leaves with its word`, !pT.querySelector(".ix-ex-def") && !tipEl.classList.contains("ix-show"));
+    } else {
+      check(`${tag}: the caption's {term:…} carries its definition`, capTerm?.dataset.tip === metaT.terms.pointer);
+      rT.querySelector(".ix-ex-capbtn").click();
+      await frameWait();
+      check(`${tag}: the Explain card defines the step's new word without repeating the step`, rT.querySelector(".ix-ex-new .ix-ex-def dt")?.textContent === "pointer"
+        && rT.querySelector(".ix-ex-now").hidden);
+      rT.querySelector(".ix-ex-capbtn").click();
+      capTerm.click();
+      await wait(60);
+      check(`${tag}: a tap on the word shows its definition, phone-sized screens included`, rT.querySelector(".ix-tip").classList.contains("ix-show"));
+    }
+    // the predict card says why its answer is right once it is revealed
+    hT.update(fT(3.99), { time: 3.99, playing: false, speed: 1 });
+    hT.ask({ ...stT[2].ask, step: 2 });
+    rT.querySelectorAll(".ix-predict .ix-opt")[1].click();
+    hT.update(fT(5.6), { time: 5.6, playing: true, speed: 1 });
+    await frameWait();
+    const why = rT.querySelector(".ix-predict-why");
+    check(`${tag}: after the reveal the card says why the answer is right`, rT.querySelector(".ix-predict").classList.contains("ix-revealed")
+      && why?.querySelector(".ix-predict-why-label")?.textContent === "Why" && why.querySelector(".ix-predict-why-text")?.textContent === stT[2].ask.why
+      && !rT.querySelector(".ix-predict-foot"));
+    hT.ask(null);
+    rT.querySelector(".ix-predict .ix-close")?.click();
+    // the end: the recap above the takeaway
+    hT.update(fT(7.99), { time: 8, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
+    await frameWait();
+    if (width >= 1200) {
+      const pay = rT.querySelector(".ix-explain .ix-payoff-panel");
+      const items = [...(pay?.querySelectorAll(".ix-recap-list li") ?? [])].map((x) => x.textContent);
+      check(`${tag}: the end shows the recap above the takeaway`, items.length === 2 && items[0] === metaT.recap[0]
+        && !!(pay.querySelector(".ix-recap").compareDocumentPosition(pay.querySelector(".ix-takeaway")) & Node.DOCUMENT_POSITION_FOLLOWING), items);
+    } else {
+      rT.querySelector(".ix-ex-capbtn").click();
+      await frameWait();
+      const card = rT.querySelector(".ix-explain");
+      check(`${tag}: at the end the Explain card carries the recap and the takeaway`, card.querySelectorAll(".ix-recap-list li").length === 2
+        && card.querySelector(".ix-payoff-sheet .ix-takeaway")?.textContent === metaT.takeaway && !card.querySelector(".ix-ex-now").hidden);
+    }
+    hT.destroy();
+    rT.remove();
+  }
   // reduced motion: counters snap, no caption rise; destroy removes everything
   const root2 = document.createElement("div");
   root2.style.cssText = "position:fixed;left:0;top:0;width:800px;height:600px;visibility:hidden";

@@ -1040,11 +1040,23 @@ export function createHud(root, opts = {}, cb = {}) {
     fire("onPlay");
   }
   // the payoff block: one sentence worth remembering, then quiet invitations to break it another way
+  // meta.recap (or a scenario's own recap): 2–4 short lines on what the run showed, above the takeaway
+  const recapLines = () => {
+    const r = scenarioDef()?.recap ?? S.meta.recap;
+    return (Array.isArray(r) ? r : r ? [r] : []).map((x) => String(x ?? "").trim()).filter(Boolean);
+  };
+  function recapNode() {
+    const lines = recapLines();
+    if (!lines.length) return null;
+    return h("div", { class: "ix-recap" }, h("span", { class: "ix-recap-label", text: "What you saw" }),
+      h("ol", { class: "ix-recap-list" }, lines.map((x) => h("li", null, toDOM(parse(x), doc, markupOpts)))));
+  }
   function payoffNode(chips, cls, withTakeaway = true) {
     fillChips(chips);
     const t = withTakeaway ? takeaway() : "", others = chips.childElementCount > 0;
-    if (!t && !others) return null;
-    return h("div", { class: `ix-payoff ${cls}` },
+    const recap = withTakeaway ? recapNode() : null;
+    if (!t && !others && !recap) return null;
+    return h("div", { class: `ix-payoff ${cls}` }, recap,
       t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null,
       others ? h("div", { class: "ix-whatif" }, h("span", { class: "ix-whatif-label", text: "What if…" }), chips) : null);
   }
@@ -1480,6 +1492,11 @@ export function createHud(root, opts = {}, cb = {}) {
     veil: () => ({ step: veilStep(), about: aboutWithheld }),
     revealed: () => !!(Q.q && Q.revealed),
     payoff: () => payoffNode(endChipsPanel, "ix-payoff-panel"),
+    // narrow screens: the end's card (it hides the caption while open) carries the recap and the takeaway
+    recap: () => {
+      const r = recapNode(), t = takeaway();
+      return r || t ? h("div", { class: "ix-payoff ix-payoff-sheet" }, r, t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null) : null;
+    },
     onDock: () => hostPredict(),
     onJump: (i) => { const st = S.steps[i]; if (st) { fire("onPause"); fire("onSeek", st.t0, { scrubbing: false }); } },
     onLayout: () => { obstaclesDirty = true; updateInsets(); } });

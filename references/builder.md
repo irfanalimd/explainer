@@ -82,7 +82,10 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
   - `meta.takeaway` is the one sentence worth remembering, shown with the result when the run ends (in the explain
     panel, or in the caption on narrow screens), above "What if…" invitations to the other scenarios. A scenario's own
     `takeaway` replaces it there, and its `whatIf` ("a worker dies") is the invitation's wording (default: `label`).
-  - Both must be true of what the run shows, in every scenario they apply to and at any knob setting: state the
+  - `meta.recap` is 2–4 short lines (markup allowed) on what the run showed, in order, shown at the end above the
+    takeaway under "What you saw" (the explain panel; on narrow screens the Explain card). A scenario's own `recap`
+    replaces it.
+  - All three must be true of what the run shows, in every scenario they apply to and at any knob setting: state the
     principle, not numbers that a knob can change.
 - **`env`**, the 4th argument of `build`, describes the viewer's frame: `{ width, height, aspect, portrait, phone }`.
   Use it only to choose a *layout*; never let it change the simulation itself. The runtime recompiles, keeping the

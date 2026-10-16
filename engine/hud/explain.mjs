@@ -35,7 +35,7 @@ export const WITHHELD = "Explained once you have made your prediction.";
 
 /**
  * ctx: { root, doc, h, parent, caption, bar, store, markupOpts, instant(): bool, onJump(stepIndex), onLayout(),
- *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, revealed(): bool }
+ *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, recap(): Node | null, revealed(): bool }
  */
 
 /** The glossary terms a piece of markup uses, in order, without repeats. */
@@ -222,7 +222,14 @@ export function createExplain(ctx) {
     const held = S.held, n = S.step - first + 1;
     const veiled = veil.step === S.step && S.step >= 0;
     now.classList.toggle("ix-ex-recap", !!held);
-    if (held) {
+    // narrow screens: the caption carries the end's takeaway, so the card adds only the recap (never the step again)
+    const sheetRecap = held?.kind === "end" && S.mode !== "docked" ? ctx.recap?.() ?? null : null;
+    if (sheetRecap) {
+      nowN.innerHTML = ICON.check;
+      nowN.setAttribute("aria-label", "Run complete");
+      nowBody.replaceChildren(h("div", { class: fresh("ix-ex-recapin", instant) },
+        h("div", { class: "ix-ex-done", text: S.phases.length > 1 ? "All chapters done" : "Done" }), sheetRecap));
+    } else if (held) {
       // a pause: the step that ended the chapter becomes its recap, with a check mark
       nowN.innerHTML = ICON.check;
       nowN.setAttribute("aria-label", held.kind === "end" ? "Run complete" : `${name} complete`);
@@ -244,7 +251,7 @@ export function createExplain(ctx) {
     }
     if (held) newWords.replaceChildren();
     // a prediction takes the current step's place; once revealed the step's words come back under it
-    now.hidden = S.mode !== "docked" || (!!S.askEl && !ctx.revealed?.());
+    now.hidden = (S.mode !== "docked" && !sheetRecap) || (!!S.askEl && !ctx.revealed?.());
     // earlier steps of this chapter, newest first: quiet, but with their chips, each a way back
     const items = [];
     for (let k = S.step - 1; k >= first && items.length < EARLIER; k--) {
