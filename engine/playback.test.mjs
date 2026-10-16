@@ -102,7 +102,14 @@ test("forkOf on the real figures: Raft crash starts at the crash, MapReduce cras
   const [mh, mc] = await run("mapreduce", ["happy", "crash"]);
   const g = forkOf(mh, mc);
   assert.ok(g && mc.steps[g.step].phase === "Map", JSON.stringify(g));
-  // folding the shuffle shortens the happy path by at least a fifth
+  // folding speeds through the shuffle's repeats. A beginner lesson plays every pattern's first two occurrences, its
+  // `keep` steps, its question and the step after it at full length, and most of its chapters (Split, Reduce, Output)
+  // never repeat, so the gain is measured on the chapter that does: the shuffle plays in well under 90 % of its
+  // length (the whole run still gets shorter)
   const plan = foldPlan(mh.steps);
-  assert.ok(foldedDuration(plan, mh.duration) < 0.8 * mh.duration);
+  const k = mh.phases.findIndex((p) => p.name === "Shuffle");
+  const t0 = mh.phases[k].t0, t1 = mh.phases[k + 1]?.t0 ?? mh.duration;
+  assert.ok(plan.regions.some((r) => mh.steps[r.first].phase === "Shuffle"), "the shuffle has a folded run");
+  assert.ok(foldedDuration(plan, t1, t0) < 0.85 * (t1 - t0), `the shuffle folds to ${(foldedDuration(plan, t1, t0) / (t1 - t0)).toFixed(3)} of its length`);
+  assert.ok(foldedDuration(plan, mh.duration) < 0.95 * mh.duration);
 });
