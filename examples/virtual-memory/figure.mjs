@@ -156,18 +156,20 @@ const DATA = TABLE | F.NX;                            // a user data page: no ex
 const TEXT = F.P | F.US | F.A;                        // a user code page: read + execute
 const FRAME_MASK = 0x000f_ffff_ffff_f000n;            // bits 51:12
 
+// each field's bracket prints its name and its bits ("PML4 · bits 47–39")
+const named = (f) => ({ ...f, label: `${f.name} · bits ${f.to}–${f.from}` });
 const VA_FIELDS = [
   { name: "PML4", from: 39, to: 47, key: "PML4" },
   { name: "PDPT", from: 30, to: 38, key: "PDPT" },
   { name: "PD", from: 21, to: 29, key: "PD" },
   { name: "PT", from: 12, to: 20, key: "PT" },
   { name: "offset", from: 0, to: 11, key: "offset" },
-];
+].map(named);
 const PA_BITS = 39;                                    // "address sizes: 39 bits physical, 48 bits virtual"
 const PA_FIELDS = [
   { name: "frame number", from: 12, to: PA_BITS - 1, key: "frame" },
   { name: "offset", from: 0, to: 11, key: "offset" },
-];
+].map(named);
 
 // pages a running process has mapped besides the one we load from (realistic x86-64 Linux layout)
 const RESIDENTS = [
@@ -294,24 +296,10 @@ export function build(s, p, scenario, env = {}) {
 
   // ---- the opening picture ----
   s.column("addr", { align: "end", gap: 4 });
-  // field names printed on the floor under each strip, centred on their bits (the engine's own bracket prints sit
-  // under the strip's base plate and do not show; see README)
-  const fieldNames = (id, width, fields) => {
-    const W = width * 14 + 12;                                        // the strip's plate: 12 u bits on a 14 u pitch, 7 u pad
-    s.free(`${id}.names`, { in: "addr" });
-    s.spacer(`${id}.names.w`, { in: `${id}.names`, at: [0, 0], w: W, d: 12 });
-    for (const f of fields) {
-      const x0 = -W / 2 + 8 + (width - 1 - f.to) * 14, x1 = x0 + (f.to - f.from + 1) * 14 - 4;
-      const span = f.to - f.from + 1;
-      s.text(`${id}.names.${f.key}`, { in: `${id}.names`, at: [(x0 + x1) / 2, 0], text: span > 9 ? `${f.name} · bits ${f.to}–${f.from}` : `${f.name} · ${f.to}–${f.from}`, size: 7 });
-    }
-  };
   const vaLabel = (v) => `the program's address (virtual) · ${vaHex(v)}`;
   s.bits("va", { in: "addr", width: 48, value: va0, fields: VA_FIELDS, label: vaLabel(va0) });
-  fieldNames("va", 48, VA_FIELDS);
   s.spacer("addr.gap", { in: "addr", d: 14 });
   s.bits("pa", { in: "addr", width: PA_BITS, value: 0, fields: PA_FIELDS, label: "the real address (physical) · not known yet" });
-  fieldNames("pa", PA_BITS, PA_FIELDS);
 
   // wide screens: CPU beside DRAM, one long row; portrait phones: CPU above DRAM, so the world is about square
   (portrait ? s.column : s.row)("machine", { gap: portrait ? 56 : 76 });
