@@ -296,8 +296,10 @@ function run(s, p, scenario, env, keys, dry) {
   for (const k of keys) s.tile(`k${k}`, { in: "inserts", text: k, key: band(k), state: { key: k } });
   const housing = (n, index) => s.housing(n.id, { in: `lvl${n.level}`, index, title: n.id, sub: subOf(n), tray, led: "ok", state: state(n) });
   const edge = (a, b) => s.trace(`e-${a.id}-${b.id}`, a.id, b.id, down);
-  const link = (a, b) => s.trace(`ln-${a.id}-${b.id}`, a.id, b.id, along);
-  const feed = () => s.trace(`feed-${root.id}`, "inserts", root.id, { fromSide: "bottom", toSide: "top" });
+  // one-way lines get a chevron at the receiving end: each leaf links to the next (the range scan walks it), and new
+  // ids enter at the root
+  const link = (a, b) => s.trace(`ln-${a.id}-${b.id}`, a.id, b.id, { ...along, arrow: true });
+  const feed = () => s.trace(`feed-${root.id}`, "inserts", root.id, { fromSide: "bottom", toSide: "top", arrow: true });
 
   root = page(true, 0);
   rows[0] = [root.id];
