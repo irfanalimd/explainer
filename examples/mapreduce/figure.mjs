@@ -188,9 +188,10 @@ export function build(s, p, scenario, env = {}) {
   stage("reduce", { in: "job", title: "reduce", gap: 18, align: portrait ? "start" : "center" });
   for (let r = 0; r < R; r++) s.housing(`r${r}`, { in: "reduce", title: `reduce ${r}`, sub: ip(20, r), tray: { cols, of: "record" }, led: "idle", state: { host: ip(20, r), partition: r } });
   s.housing("output", { in: "job", variant: "store", title: "output", sub: "part-r-0000*", tray: { cols: 2, of: "record" } });
-  for (let k = 0; k < M; k++) s.trace(`in-m${k}`, "input", `m${k}`, sides);
+  // the job flows one way, input to mappers and reducers to output: those traces end in arrows
+  for (let k = 0; k < M; k++) s.trace(`in-m${k}`, "input", `m${k}`, { ...sides, arrow: true });
   s.bus("shuffle-bus", { from: Array.from({ length: M }, (_, k) => `m${k}`), to: Array.from({ length: R }, (_, r) => `r${r}`), via: "shuffle" });
-  for (let r = 0; r < R; r++) s.trace(`r${r}-out`, `r${r}`, "output", sides);
+  for (let r = 0; r < R; r++) s.trace(`r${r}-out`, `r${r}`, "output", { ...sides, arrow: true });
 
   // ---- Split: the parts, and the slow way first ----
   s.phase("Split", { about: skewed
