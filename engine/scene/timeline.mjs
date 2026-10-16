@@ -193,7 +193,8 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     const key = cid + "#" + index;
     const k = ptrCount.get(key) ?? 0;
     ptrCount.set(key, k + 1);
-    const floor = cb.kind === "container";
+    // a rod stands on the floor in front of its container, or in front of the housing whose tray holds the tile
+    const floor = cb.kind === "container" || cb.kind === "housing";
     const y = floor ? cb.d / 2 + PTR.gap + k * PTR.pitch : sl.y + sl.d / 2 + 4 + k * PTR.pitch;
     const z = floor ? 0 : sl.z;
     return { mode: "local", parent: live.get(cid), pid: cid, x: sl.x, y, z, w: SIZE.pointer.flag, d: SIZE.pointer.flag, h: SIZE.pointer.h, wx: cb.x + sl.x, wy: cb.y + y, wz: z };

@@ -235,6 +235,8 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
   - `follow: "slot"` (the default) keeps it on the **slot** when values swap under it. Use this for index variables like
     `i`, `lo` and `hi`.
   - `follow: "tile"` makes it ride along with the tile, for `head` of a moving node.
+  - On a tile in a housing's tray, the rod stands on the floor in front of the housing, under that tile (a cursor
+    over nodes: `examples/linked-list`).
   - Move it with `s.point(id, tileId)`.
 - `s.text(id, { in, at, text, size = 8, tone, align })` is floor text, laid out like a member. Prefer `title`, `sub` and
   `label`: words belong on surfaces.
