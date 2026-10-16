@@ -2,66 +2,112 @@
 // A real run: the input really is split, the mappers really emit (word, 1), the shuffle really partitions by
 // hash(word) % R, the reducers really sort and sum. Scenarios: a worker dies and its task is re-run; a straggler
 // is beaten by a backup task (Dean & Ghemawat, section 3.6); a skewed key overloads one reducer.
+//
+// The lesson (references/teaching.md), for a reader who knows loops and dictionaries but not MapReduce:
+//   Level        core
+//   Hook         each machine reads only part of the text; how is every word still counted exactly?
+//   Picture      counting the words of a library with a team. A shelf = a split; the coordinator = the master;
+//                a helper tallying their shelf = a mapper; a tally slip "fox: 1" = a record (fox, 1); "all slips
+//                for one word go to one person" = the hash rule; the person adding them up = a reducer; the
+//                noticeboard = the output. Where it stops matching: machines pick the counter with a hash, not by
+//                choosing.
+//   Problem      one machine alone reads every word, one after another (the opening caption and the split's tag).
+//   Ladder       Split (the parts, the naive way) · Map (the basic move) · Shuffle (the payoff) · Reduce · Output.
+//   Misconception "the pieces are counted apart and one machine adds it all up at the end": the predict question
+//                at the first word that comes back a second time, in the shuffle (the aha step).
+//   Stories      Everything works · One machine crashes · One machine is slow · One word is very common.
 
 export const meta = {
   title: "MapReduce",
-  subtitle: "Counting words across a cluster",
+  subtitle: "Counting words with a team of machines",
   kicker: "Distributed systems",
   fig: 1,
+  level: "core",
   cite: { text: "Dean & Ghemawat, OSDI 2004", url: "https://research.google/pubs/pub62/" },
   theme: "dark",
-  hook: "No machine ever sees the whole text. How does the cluster still count every word exactly?",
-  takeaway: "No machine saw the whole input, yet every count is exact: hashing sends every copy of a word to the same reducer.",
+  hook: "Each machine reads only part of the text. How do they still count every word exactly, none missed or counted twice?",
+  terms: {
+    master: "The coordinator: it hands each machine a piece of the work and notices when one fails.",
+    split: "One piece of the text, read by one machine, like one shelf of a library.",
+    mapper: "A reading machine: it reads one piece and writes a slip like (fox, 1) for every word.",
+    hash: "A function that turns a word into a big number. The same word always gives the same number.",
+    shuffle: "The step where every slip travels to the machine that adds up its word.",
+    reducer: "A counting machine: it adds up all the slips for its share of the words.",
+    straggler: "A machine that is much slower than the rest, so everyone ends up waiting for it.",
+  },
+  recap: [
+    "The text was cut into pieces, and each machine read one.",
+    "Each reader wrote a slip for every word, like (fox, 1).",
+    "A hash sent every copy of a word to the same counting machine.",
+    "Each counter added up its words; together they hold every count.",
+  ],
+  takeaway: "Each machine read only its piece, yet every count is exact: every copy of a word went to the same counter.",
 };
 
 export const params = {
-  mappers: { label: "Mappers", type: "int", min: 1, max: 6, value: 3 },
-  reducers: { label: "Reducers", type: "int", min: 1, max: 4, value: 2 },
-  combiner: { label: "Combiner", type: "bool", value: false },
-  input: { label: "Input", type: "text", value: "the quick brown fox jumps over the lazy dog the fox" },
+  mappers: { label: "Reading machines", type: "int", min: 1, max: 6, value: 3 },
+  reducers: { label: "Counting machines", type: "int", min: 1, max: 4, value: 2 },
+  combiner: { label: "Add up repeats first", type: "bool", value: false },
+  input: { label: "Text to count", type: "text", value: "the quick brown fox jumps over the lazy dog the fox" },
   seed: { label: "Seed", type: "int", value: 7 },
 };
 
 export const scenarios = [
-  { id: "happy", label: "Normal run", whatIf: "nothing goes wrong",
-    description: "Every machine stays healthy: the whole job, from splitting the text to the final counts." },
-  { id: "crash", label: "Worker dies", params: { crash: 1 }, whatIf: "a worker dies",
-    description: "A mapper crashes halfway through its split, and the master runs that split again on another machine.",
-    takeaway: "A worker died mid-task and the answer did not change: its split was still in the input, so the master just ran it again elsewhere." },
-  { id: "straggler", label: "Straggler", params: { straggler: 1 }, whatIf: "one machine is slow",
-    description: "One mapper's disk is slow, so the master races a backup copy of its task on an idle machine.",
-    takeaway: "One slow disk could have held up the whole job. A backup copy of its task finished first, and the answer is the same." },
-  { id: "skew", label: "Skewed keys", params: { input: "200 200 404 200 200 301 200 200 500 200 200 200 304 200", reducers: 3 }, whatIf: "one key is everywhere",
-    description: "A log of HTTP status codes where 200 is almost every line, so one reducer gets most of the work.",
-    takeaway: "Hashing sends every copy of a key to the same reducer, so one hot key piles its whole load onto one machine." },
+  { id: "happy", label: "Everything works", whatIf: "nothing goes wrong",
+    description: "Every machine stays healthy: the whole job, from cutting up the text to the final counts." },
+  { id: "crash", label: "One machine crashes", params: { crash: 1 }, whatIf: "a machine crashes halfway through",
+    description: "One reading machine crashes halfway through its piece, and the master has that piece read again.",
+    takeaway: "A machine died mid-task and the answer did not change: its piece was still on disk, so the master had it read again.",
+    recap: [
+      "A reading machine crashed halfway, and its slips were lost with it.",
+      "The text was still on disk, so the master had that piece read again.",
+      "Reading the same piece again gives the same slips: the counts are still exact.",
+    ] },
+  { id: "straggler", label: "One machine is slow", params: { straggler: 1 }, whatIf: "one machine is much slower than the rest",
+    description: "One reading machine has a failing disk, so the master races a backup copy of its piece on a free machine.",
+    takeaway: "One slow disk could have held up the whole job. A backup copy of its piece finished first, and the answer is the same.",
+    recap: [
+      "One reading machine had a failing disk and fell far behind.",
+      "With a machine free, the master started a backup copy of its piece.",
+      "The first copy to finish wins and the other is stopped: same answer, less waiting.",
+    ] },
+  { id: "skew", label: "One word is very common", params: { input: "200 200 404 200 200 301 200 200 500 200 200 200 304 200", reducers: 3 },
+    whatIf: "one word is far more common than the rest",
+    description: "A web log where almost every line is the status code 200, so one counting machine gets most of the work.",
+    takeaway: "Every copy of a word goes to the same counter. That keeps counts exact, but one very common word loads one machine.",
+    recap: [
+      "Almost every line of the log was the code 200.",
+      "The hash sent every 200 to the same counting machine.",
+      "So one machine did most of the adding while the others sat idle.",
+    ] },
 ];
 
 // the dock shows the primary numbers; every number, with its hint, is one click away
 export const counters = {
-  records: { label: "words mapped", format: "int", primary: true,
-    hint: "Each word a mapper reads becomes one (word, 1) record. Words read again after a failure count again." },
+  records: { label: "words read", format: "int", primary: true,
+    hint: "Each word a reading machine reads becomes one (word, 1) slip. Words read again after a failure count again." },
   bytes: { label: "sent between machines", short: "sent", format: "bytes", primary: true,
-    hint: "Data the shuffle moves from mappers to reducers: each record's word plus a 4-byte count." },
-  skew: { label: "busiest reducer's load", short: "busiest reducer", format: "x", primary: ["skew"],
-    hint: "Records at the busiest reducer divided by the average per reducer. 1× is perfectly even." },
+    hint: "Data moved from the reading machines to the counting machines: each slip's word plus a 4-byte count." },
+  skew: { label: "busiest counter's load", short: "busiest counter", format: "x", primary: ["skew"],
+    hint: "Slips at the busiest counting machine, divided by the average per counting machine. 1× is perfectly even." },
   tasks: { label: "tasks finished", format: "int",
-    hint: "Map and reduce tasks completed so far, counting any task that had to run again." },
+    hint: "Pieces read and counting jobs done so far, including any that had to run again." },
 };
 
 export const code = {
   lang: "python",
   source: [
-    "def map(split):",
+    "def map(split):                   # a reading machine",
     "    for word in split.split():",
-    "        emit(word, 1)",
+    "        emit(word, 1)              # one slip per word",
     "",
-    "def combine(word, counts):        # optional, on the mapper",
+    "def combine(word, counts):        # optional: add up repeats first",
     "    emit(word, sum(counts))",
     "",
-    "def partition(word, R):",
+    "def partition(word, R):           # which counting machine",
     "    return hash(word) % R",
     "",
-    "def reduce(word, counts):",
+    "def reduce(word, counts):         # a counting machine",
     "    emit(word, sum(counts))",
   ].join("\n"),
 };
@@ -105,6 +151,7 @@ export function hash(word) {
 const rec = (word, count) => `${word} · ${count}`;
 const ip = (base, k) => `192.0.2.${base + k}`;
 const pinned = (v) => v !== undefined && v !== null && v !== false;
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export function build(s, p, scenario, env = {}) {
   const M = Math.max(1, Math.min(6, p.mappers | 0));
@@ -114,6 +161,8 @@ export function build(s, p, scenario, env = {}) {
   const slow = victim < 0 && (scenario === "straggler" || (scenario !== "happy" && pinned(p.straggler))) ? Math.min(M - 1, Math.max(0, (p.straggler ?? 1) | 0)) : -1;
   const skewed = scenario === "skew";
   const unit = skewed ? "lines" : "words";
+  const thing = skewed ? "code" : "word";            // what one slip counts
+  const slip = (w) => `\`(${w}, 1)\``;
 
   // splits: contiguous runs of words, as even as possible
   const splits = [];
@@ -122,6 +171,7 @@ export function build(s, p, scenario, env = {}) {
     splits.push(words.slice(at, at + n));
     at += n;
   }
+  const biggest = Math.max(0, ...splits.map((x) => x.length));
 
   // ---- the world ----
   // landscape: the job flows left to right in five columns; portrait (a phone): top to bottom, with the mappers and
@@ -142,34 +192,38 @@ export function build(s, p, scenario, env = {}) {
   s.bus("shuffle-bus", { from: Array.from({ length: M }, (_, k) => `m${k}`), to: Array.from({ length: R }, (_, r) => `r${r}`), via: "shuffle" });
   for (let r = 0; r < R; r++) s.trace(`r${r}-out`, `r${r}`, "output", sides);
 
+  // ---- Split: the parts, and the slow way first ----
   s.phase("Split", { about: skewed
-    ? "The log is too big for one machine, so the master cuts it into splits, one per map task. Each split can then be read on its own, all at the same time."
-    : "The text is too big for one machine, so the master cuts it into splits, one per map task. Each split can then be read on its own, all at the same time." });
+    ? "Think of counting the codes in a huge web log with a team. One machine would take ages, so the {term:master} gives each machine one {term:split}: a piece of the log."
+    : "Think of counting every word in a library with a team. One person would take ages, so a coordinator, the {term:master}, gives each helper one shelf: a {term:split}, one piece of the text." });
   s.step(skewed
-    ? `Counting status codes in an access log: ${words.length} requests, ${M} map ${M === 1 ? "task" : "tasks"}, ${R} reduce ${R === 1 ? "task" : "tasks"}`
-    : `A word-count job: ${M} map ${M === 1 ? "task" : "tasks"}, ${R} reduce ${R === 1 ? "task" : "tasks"}, ${words.length} words of input`);
+    ? `A web log of ${words.length} requests: count each status code. One machine alone would read every line.`
+    : M > 1
+      ? `${words.length} words to count. One machine alone would read all ${words.length}; here ${M} machines share them.`
+      : `${words.length} words to count, and one machine to read every one of them.`);
 
-  // ---- Split ----
   for (let k = 0; k < M; k++) s.tile(`split${k}`, { in: "input", of: "page", text: `split ${k}`, sub: `${splits[k].length} ${unit}`, state: { words: splits[k] } });
+  s.tag("input", M > 1 ? `alone: ${words.length} reads · shared: ${biggest} each` : `${words.length} reads, one by one`);
   s.line(1);
-  s.step(`The input is cut into ${M} ${M === 1 ? "split" : "splits"} of about ${Math.round(words.length / M)} ${unit}`);
+  s.step(M > 1
+    ? `The master cuts the ${skewed ? "log" : "text"} into ${M} pieces of about ${Math.round(words.length / M)} ${unit}, one per machine.`
+    : `With one machine there is one piece: all ${words.length} ${unit}.`, { keep: true });
 
   // ---- Map ----
-  const unitOne = skewed ? "`(code, 1)`" : "`(word, 1)`";
   s.phase("Map", { about: victim >= 0
-    ? `Each mapper turns its split into ${unitOne} records. When one crashes, everything it emitted is lost with it, so the master simply runs that split again on another worker.`
+    ? `Each reading machine, a {term:mapper}, writes a slip like ${slip(thing)} for every ${thing}. If one crashes, its slips are lost with it, so the master has its piece read again.`
     : slow >= 0
       ? (M > 1
-        ? `Each mapper turns its split into ${unitOne} records. One machine has a slow disk, so near the end the master starts a backup copy of its task and keeps whichever finishes first.`
-        : `Each mapper turns its split into ${unitOne} records. This one has a slow disk, and with no other mapper free to run a backup, the whole job must wait for it.`)
-      : `Each mapper reads its split and emits one ${unitOne} record per ${skewed ? "request" : "word"}. Mappers share nothing, so they all work in parallel.` +
-        (p.combiner ? " A combiner then merges repeats on the mapper, so less data crosses the network." : "") });
+        ? `Each reading machine, a {term:mapper}, writes a slip for every ${thing}. One has a failing disk, a {term:straggler}, so the master races a backup copy of its piece.`
+        : `The only reading machine, a {term:mapper}, writes a slip for every ${thing}. Its disk is failing, a {term:straggler}, and with no machine free to help, the job waits.`)
+      : `${skewed ? "Like helpers each tallying their own page" : "Each helper tallies their own shelf"}: each reading machine, a {term:mapper}, writes a slip like ${slip(thing)} for every ${thing}. Nobody waits for anybody.` +
+        (p.combiner ? " Each then adds up its repeats into one slip, so less data travels." : "") });
   const tray = Array.from({ length: M }, () => []);       // live record ids per mapper, in tray order
   for (let k = 0; k < M; k++) {
     s.spawn(`m${k}.split${k}`, { from: `split${k}`, in: `m${k}`, of: "page", text: `split ${k}`, sub: `${splits[k].length} ${unit}` });
     s.set(`m${k}`, { led: "busy", state: { host: ip(10, k), task: `map ${k}` } });
   }
-  s.step(`The master hands each mapper one split; the splits travel to ${M === 1 ? "it" : "them"} in parallel`);
+  s.step(M > 1 ? `The master hands each machine its piece; all ${M} pieces travel at once.` : "The master hands the machine its piece.");
 
   // emit words [from, to) of a split from a split copy into mapper k, one beat per word
   const emit = (k, split, list, src, from = 0, to = list.length, suffix = "") => {
@@ -204,7 +258,7 @@ export function build(s, p, scenario, env = {}) {
       tray[k] = tray[k].filter((x) => !rest.includes(x));
     }
     s.line(5, 6);
-    s.step(`The combiner on {ref:m${k}|map ${k}} folds repeated keys: ${dup.map(([w, ids]) => `{key:${w}} × ${ids.length}`).join(", ")} leave as one record each`);
+    s.step(`{ref:m${k}|map ${k}} adds up its repeats first: ${dup.map(([w, ids]) => `{key:${w}} × ${ids.length}`).join(", ")} leave as one slip each.`);
   };
   // a task's output is discarded: it stays where it is, dimmed, and is never shuffled
   const discard = (k, src) => {
@@ -217,8 +271,8 @@ export function build(s, p, scenario, env = {}) {
     finish(k, `m${k}.split${k}`);
     s.line(2, 3);
     s.step(splits[k].length
-      ? `{ref:m${k}|map ${k}} emits \`(word, 1)\` for each of its ${splits[k].length} words, keyed by the word`
-      : `{ref:m${k}|map ${k}} has an empty split and finishes at once`);
+      ? `{ref:m${k}|map ${k}} writes a slip for each of its ${plural(splits[k].length, thing)}, like ${slip(splits[k][0])}.`
+      : `{ref:m${k}|map ${k}} has an empty piece and finishes at once.`);
     if (p.combiner) combine(k);
   };
   const helper = (bad) => { for (let k = 0; k < M; k++) if (k !== bad) return k; return bad; };
@@ -229,11 +283,11 @@ export function build(s, p, scenario, env = {}) {
       const list = splits[k], upto = Math.min(list.length, Math.max(1, Math.floor(list.length / 2)));
       emit(k, k, list, `m${k}.split${k}`, 0, upto);
       s.line(2, 3);
-      s.step(`{ref:m${k}|map ${k}} starts emitting \`(word, 1)\` for split ${k}`);
+      s.step(`{ref:m${k}|map ${k}} starts on its piece, writing a slip for each ${thing}.`);
       s.set(`m${k}`, { led: "fail", dim: true, state: { host: ip(10, k), task: `map ${k}`, status: "down" } });
-      s.tag(`m${k}`, "missed heartbeat", { tone: "fail" });
+      s.tag(`m${k}`, "stopped answering", { tone: "fail" });
       discard(k, `m${k}.split${k}`);
-      s.step(`{ref:m${k}|map ${k}} {tone:fail|crashes} after ${upto} of ${list.length} words; what it emitted is lost with it`);
+      s.step(`{ref:m${k}|map ${k}} {tone:fail|crashes} after ${upto} of ${list.length} ${unit}; ${upto === 1 ? "its slip is" : `its ${upto} slips are`} lost with it.`, { keep: true });
       continue;
     }
     if (k === slow) {
@@ -243,7 +297,7 @@ export function build(s, p, scenario, env = {}) {
       s.set(`m${k}`, { led: "warn", sub: "disk 11 MB/s" });
       s.tag(`m${k}`, "slow disk", { tone: "warn" });
       s.line(2, 3);
-      s.step(`{ref:m${k}|map ${k}} is a {tone:warn|straggler}: its disk reads at 11 MB/s, and it has emitted ${done} of ${list.length} words`);
+      s.step(`{ref:m${k}|map ${k}}'s disk is failing (11 MB/s): it has written ${done} of ${list.length} slips.`, { keep: true });
       continue;
     }
     healthy(k);
@@ -252,19 +306,23 @@ export function build(s, p, scenario, env = {}) {
   if (victim >= 0) {
     const j = helper(victim);
     const copy = j === victim ? `m${j}.split${victim}.retry` : `m${j}.split${victim}`;
+    const lost = Math.min(splits[victim].length, Math.max(1, Math.floor(splits[victim].length / 2)));
     if (j === victim) {
       // nobody else can take the task: the master restarts the worker; its lost output stays dead in the tray
       s.set(`m${j}`, { led: "ok", dim: false, state: { host: ip(10, j), task: null, status: "restarted" } });
-      s.step(`No other mapper is free, so the master restarts {ref:m${j}|map ${j}}`);
+      s.step(`No other machine is free, so the master restarts {ref:m${j}|map ${j}}.`);
     }
-    s.spawn(copy, { from: `split${victim}`, in: `m${j}`, of: "page", text: `split ${victim}`, sub: `${splits[victim].length} words` });
+    s.ask(`map ${victim} crashed after ${lost} of its ${splits[victim].length} ${unit}. What happens to its piece?`,
+      [`The count comes out ${plural(lost, thing)} short`, "The master has the piece read again", "The whole job starts over"], 1,
+      { why: "The text is still on disk, and reading it again gives the same slips, so redoing just that piece is safe." });
+    s.spawn(copy, { from: `split${victim}`, in: `m${j}`, of: "page", text: `split ${victim}`, sub: `${splits[victim].length} ${unit}` });
     s.set(`m${j}`, { led: "busy" });
-    s.tag(`split${victim}`, `re-run on map ${j}`, { tone: "warn" });
-    s.step(`The master re-runs split ${victim} on {ref:m${j}|map ${j}}; the input is still there, so nothing is lost but time`);
+    s.tag(`split${victim}`, `read again on map ${j}`, { tone: "warn" });
+    s.step(`The master re-runs split ${victim} on {ref:m${j}|map ${j}}: the text is still safe on disk.`, { keep: true });
     emit(j, victim, splits[victim], copy, 0, splits[victim].length, j === victim ? "r" : "");
     finish(j, copy);
     s.line(2, 3);
-    s.step(`{ref:m${j}|map ${j}} emits the ${splits[victim].length} words of split ${victim} again`);
+    s.step(`{ref:m${j}|map ${j}} reads split ${victim} again and writes the same ${plural(splits[victim].length, "slip")}.`);
     if (p.combiner) combine(j);
   }
 
@@ -274,22 +332,26 @@ export function build(s, p, scenario, env = {}) {
       // nowhere to run a backup: the whole job waits for the slow worker
       emit(slow, slow, list, `m${slow}.split${slow}`, Math.min(1, list.length), list.length);
       finish(slow, `m${slow}.split${slow}`);
-      s.step(`With a single mapper there is nowhere to run a backup: the job waits for the straggler to finish its ${list.length} words`);
+      s.step(`With no other machine, there is no backup: the job waits for all ${plural(list.length, thing)}.`);
       if (p.combiner) combine(slow);
     } else {
       // near the end of the map phase the master schedules a backup copy of the slow task on an idle worker
       const j = helper(slow), backup = `m${j}.split${slow}.backup`;
+      const had = tray[slow].length;
+      s.ask(`map ${slow} has written ${had} of its ${list.length} slips, and the other machines are done. What does the master do?`,
+        ["Wait: the job cannot finish without its piece", "Start a copy of its piece on a free machine", "Skip its words to finish on time"], 1,
+        { why: "Reading a piece twice gives the same slips, so a backup copy is safe, and the master keeps whichever finishes first." });
       s.spawn(backup, { from: `split${slow}`, in: `m${j}`, of: "page", text: `split ${slow}`, sub: "backup" });
       s.set(`m${j}`, { led: "busy" });
       s.tag(`split${slow}`, `backup on map ${j}`, { tone: "busy" });
-      s.step(`The map phase is almost done but split ${slow} is not, so the master starts a {tone:busy|backup} of it on idle {ref:m${j}|map ${j}}`);
+      s.step(`{ref:m${j}|map ${j}} is free, so the master starts a {tone:busy|backup} copy of split ${slow} on it.`, { keep: true });
       // the race: the backup emits every word while the straggler manages one more
       const before = tray[slow].length;
       emit(j, slow, list, backup, 0, list.length, "b");
       if (before < list.length) { emit(slow, slow, list, `m${slow}.split${slow}`, before, before + 1); }
       const straggled = tray[slow].length;
       s.line(2, 3);
-      s.step(`Both copies run: the backup on {ref:m${j}|map ${j}} emits all ${list.length} words while {ref:m${slow}|map ${slow}} manages ${straggled - before} more`);
+      s.step(`Both copies run: the backup writes all ${list.length} slips while {ref:m${slow}|map ${slow}} manages ${straggled - before} more.`);
       // whichever finishes first wins; the other is killed and its output thrown away
       s.remove(backup, { style: "sink" });
       s.set(`m${j}`, { led: "ok" });
@@ -297,23 +359,34 @@ export function build(s, p, scenario, env = {}) {
       s.beat();
       discard(slow, `m${slow}.split${slow}`);
       s.set(`m${slow}`, { led: "idle", sub: ip(10, slow) });
-      s.tag(`m${slow}`, "killed", { tone: "warn" });
-      s.step(`The backup finishes first, so the master keeps its output and kills the straggler, which had ${list.length - straggled} ${list.length - straggled === 1 ? "word" : "words"} to go`);
+      s.tag(`m${slow}`, "stopped", { tone: "warn" });
+      s.step(`The backup finishes first, so the master keeps its slips and stops {ref:m${slow}|map ${slow}}, ${plural(list.length - straggled, thing)} short.`);
       if (p.combiner) combine(j);
     }
   }
 
   // ---- Shuffle ----
   s.phase("Shuffle", { about: skewed
-    ? "Each record goes to the reducer picked by `hash(key) % R`, where R is the number of reducers. One status code dominates the log, so one reducer receives most of the records."
-    : "Each record goes to the reducer picked by `hash(word) % R`, where R is the number of reducers. Every copy of a word lands on the same reducer, so its counts end up together." });
+    ? "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. One code fills most of the log, so one machine receives most of the slips."
+    : "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number; its remainder after dividing by the number of counters picks the machine." });
   const inbox = Array.from({ length: R }, () => []);
   const load = new Array(R).fill(0);
-  let bytes = 0, moved = 0;
+  const sentTo = new Map();   // word -> [reducer, from mapper] of its first copy
+  let bytes = 0, moved = 0, asked = false, first = true;
   for (let k = 0; k < M; k++) {
     for (const id of tray[k]) {
       const { word, count } = s.get(id).state;
       const r = hash(word) % R;
+      // the aha: the first word that comes back a second time goes where its first copy went
+      const again = sentTo.get(word);
+      const asking = !!again && !asked && R > 1;
+      if (asking) {
+        asked = true;
+        s.ask(`The first "${word}" went to reduce ${again[0]}. Where does this "${word}", from map ${k}, go?`,
+          [`Reduce ${(again[0] + 1) % R}: spread the slips evenly`, `Reduce ${again[0]}, to join the first "${word}"`, "Nowhere yet: one machine counts everything at the end"], 1,
+          { why: `hash(${word}) is the same number every time, so its remainder is ${r} every time: every "${word}" meets on reduce ${r}.` });
+      }
+      if (!sentTo.has(word)) sentTo.set(word, [r, k]);
       s.move(id, `r${r}`, { via: "shuffle-bus" });
       s.tag(id, `hash(${word}) % ${R} = ${r}`);
       const b = word.length + 4;
@@ -322,20 +395,24 @@ export function build(s, p, scenario, env = {}) {
       s.gauge("skew", Math.round((Math.max(...load) / (moved / R)) * 100) / 100);
       s.line(8, 9);
       inbox[r].push(id);
-      s.step(`{key:${word}}${count > 1 ? ` · ${count}` : ""} goes to {ref:r${r}|reduce ${r}} because \`hash(${word}) % ${R} = ${r}\` (${b} bytes)` +
-        (skewed ? `; it now holds ${load[r]} of ${moved}` : ""));
+      const chip = `{key:${word}}${count > 1 ? ` · ${count}` : ""}`;
+      const tally = skewed ? `: it has ${load[r]} of ${moved} slips so far` : "";
+      if (first) s.step(`${chip} goes to {ref:r${r}|reduce ${r}}: its hash, divided by ${plural(R, "counter")}, leaves remainder ${r} (\`hash(${word}) % ${R} = ${r}\`).`, { keep: true });
+      else if (asking) s.step(`${chip} goes to {ref:r${r}|reduce ${r}} too: the same ${thing} always gives the same hash.`, { keep: true });
+      else s.step(`${chip} goes to {ref:r${r}|reduce ${r}} because \`hash(${word}) % ${R} = ${r}\`${tally}.`);
+      first = false;
     }
   }
 
   // ---- Reduce ----
-  s.phase("Reduce", { about: `Each reducer sorts its records so equal ${skewed ? "codes" : "words"} sit side by side, then adds up each run of equals into a single total.` });
+  s.phase("Reduce", { about: `Each counting machine, a {term:reducer}, sorts its slips so equal ${thing}s sit together, then adds up each group into one total.` });
   const results = Array.from({ length: R }, () => []);
   for (let r = 0; r < R; r++) {
     const ids = inbox[r];
     if (!ids.length) {
       s.set(`r${r}`, { led: "ok" });
       s.count("tasks");
-      s.step(`{ref:r${r}|reduce ${r}} received no keys and finishes empty`);
+      s.step(`{ref:r${r}|reduce ${r}} got no slips and finishes empty.`);
       continue;
     }
     s.set(`r${r}`, { led: "busy" });
@@ -354,8 +431,8 @@ export function build(s, p, scenario, env = {}) {
     if (!swaps) s.lit(`r${r}`);
     s.line(11);
     s.step(swaps
-      ? `{ref:r${r}|reduce ${r}} sorts its ${ids.length} records by key (${swaps} ${swaps === 1 ? "swap" : "swaps"}), so equal words sit side by side`
-      : `{ref:r${r}|reduce ${r}}'s ${ids.length} records already arrive in key order`);
+      ? `{ref:r${r}|reduce ${r}} sorts its ${plural(ids.length, "slip")} so equal ${thing}s sit together (${plural(swaps, "swap")}).`
+      : `{ref:r${r}|reduce ${r}}'s ${plural(ids.length, "slip")} already arrive in order.`);
     // merge runs of equal keys
     const runs = [];
     for (const id of order) {
@@ -379,22 +456,24 @@ export function build(s, p, scenario, env = {}) {
     s.line(11, 12);
     results[r] = runs.map((x) => x.ids[0]);
     s.step(merged.length
-      ? `{ref:r${r}|reduce ${r}} sums each run: ${merged.map((x) => `{key:${x.word}} = ${x.total}`).join(", ")}`
-      : `{ref:r${r}|reduce ${r}} has no repeated keys; every count stays as it is`);
+      ? `{ref:r${r}|reduce ${r}} adds up each group: ${merged.map((x) => `{key:${x.word}} = ${x.total}`).join(", ")}.`
+      : `{ref:r${r}|reduce ${r}} has no repeated ${thing}s, so each count stays as it is.`);
   }
 
   // ---- Output ----
-  s.phase("Output", { about: `Each reducer writes its totals to the shared output. Together they hold exactly one count for every distinct ${skewed ? "status code" : "word"} in the input.` });
+  s.phase("Output", { about: `Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different ${skewed ? "status code" : "word"}.` });
   for (let r = 0; r < R; r++) {
     if (!results[r].length) continue;
     results[r].forEach((id, j) => { if (j) s.beat(); s.move(id, "output", { via: `r${r}-out` }); });
-    s.step(`{ref:r${r}|reduce ${r}} writes its ${results[r].length} ${results[r].length === 1 ? "result" : "results"} to the output`);
+    s.step(`{ref:r${r}|reduce ${r}} writes its ${plural(results[r].length, "total")} to the output.`);
   }
   const distinct = new Set(words).size;
   s.lit("output");
   s.focus("output");   // the payoff: the camera frames the answer large
   if (skewed && moved) {
     const hot = load.indexOf(Math.max(...load));
-    s.step(`Done. {ref:r${hot}|reduce ${hot}} handled ${load[hot]} of ${moved} records, ${(load[hot] / (moved / R)).toFixed(1)}× its fair share: one hot key loads one reducer`);
-  } else s.step(`Done: ${distinct} distinct words, ${words.length} counted, ${bytes} bytes shuffled`);
+    s.step(`Done. {ref:r${hot}|reduce ${hot}} got ${load[hot]} of ${moved} slips, ${(load[hot] / (moved / R)).toFixed(1)}× its fair share: one common code overloads it.`, { keep: true });
+  } else s.step(M > 1
+    ? `Done: all ${words.length} words counted, ${distinct} different ones, and no machine read the whole text.`
+    : `Done: all ${words.length} words counted, ${distinct} different ones.`, { keep: true });
 }
