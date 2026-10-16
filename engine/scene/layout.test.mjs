@@ -168,3 +168,23 @@ test("arrays and bits: cells, indices and bitfield brackets", () => {
   const tag = br.find((p) => p.label === "tag");
   assert.ok(tag.points[0][0] < v7.x && tag.points[3][0] > v4.x);   // the bracket spans bits 7..4 (msb first)
 });
+
+test("a tile's own width (s.tile(id, { w })) sizes its slot, the tray and its pose; a keyed trace carries its key", () => {
+  const tl = compile(fig((s) => {
+    s.row("r", { gap: 40 });
+    s.housing("a", { in: "r", tray: { cols: 2 } });
+    s.tile("v", { in: "a", text: "31" });
+    s.tile("p", { in: "a", text: "0x7f3a_2c10", w: 76 });
+    s.housing("b", { in: "r", tray: { cols: 2 } });
+    s.trace("ab", "a", "b", { key: "x" });
+    s.step("x");
+  }));
+  const L = layout0(tl);
+  const v = L.local.get("v"), p = L.local.get("p");
+  assert.equal(Math.round(p.x - v.x), Math.round((SIZE.tile.w + 76) / 2 + SIZE.tile.gap));
+  assert.ok(box(tl, "a").w >= SIZE.tile.w + 76 + SIZE.tile.gap);
+  const f = tl.sample(0.5);
+  assert.equal(f.poses.find((q) => q.id === "p").w, 76);
+  assert.equal(f.poses.find((q) => q.id === "v").w, SIZE.tile.w);
+  assert.equal(f.poses.find((q) => q.id === "ab").key, 0);
+});

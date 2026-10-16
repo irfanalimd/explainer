@@ -19,7 +19,14 @@ export const L = {
 };
 
 const slotOf = (of) => SIZE[of] ?? SIZE.tile;
-export const tileSize = (rec) => slotOf(rec.of);
+const wide = new Map();   // "of:w" -> slot size with a tile's own width (s.tile(id, { w }))
+export const tileSize = (rec) => {
+  if (!rec.w) return slotOf(rec.of);
+  const k = `${rec.of}:${rec.w}`;
+  let z = wide.get(k);
+  if (!z) wide.set(k, (z = { ...slotOf(rec.of), w: rec.w }));
+  return z;
+};
 
 /** Run-wide facts the layout needs so containers keep one size for the whole run. */
 export function scanCapacities(states) {

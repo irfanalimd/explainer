@@ -118,6 +118,8 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
       sub: o.sub === undefined || o.sub === null ? null : String(o.sub),
       key: o.key ?? null, keyIndex: keyOf(o.key), tone: o.tone ?? null, state: o.state ?? null,
       dim: !!o.dim, at: o.at ?? null, lod: o.lod ?? null,
+      // optional width override (a wider cell, e.g. a pointer-sized word holding a full address)
+      w: Number.isFinite(o.w) && o.w > 0 ? o.w : null,
     };
   }
 

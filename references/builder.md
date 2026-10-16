@@ -209,9 +209,12 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
 
 ### Tiles
 
-- `s.tile(id, { in, index, of = "tile", text, sub, key, tone, state, dim })`
+- `s.tile(id, { in, index, of = "tile", text, sub, key, tone, state, dim, w })`
   - `in` is a housing (with a tray), a container, or a group (a loose tile on the floor).
   - `index` inserts at that slot, and the others reflow.
+  - `w` widens this one tile (u) beyond its kind's width, for a value that is longer than a keycap, such as a full
+    address in a pointer field (`w: 76` fits `0x7f3a_2c10`). Its tray column grows to fit it. `sub` prints a small
+    second line under the text: a field name (`value`, `next`).
 - `key` (any string or number) gives the tile its **identity colour**, in first-seen order; there are at most 8 before
   colours repeat. Use it for the data the reader tracks.
 - `tone` gives a status colour (`ok`, `busy`, `warn`, `fail`, `idle`) or `"ghost"` (an empty or placeholder slot).
