@@ -4,13 +4,13 @@
 A Claude Code skill: <code>/explainer &lt;concept&gt;</code> writes a real simulation of the idea and hands you one HTML page you can play, rewind and break.</p>
 
 <p align="center">
-  <a href="https://sites.irfanali.me/p/random/raft-consensus.html">Live demo</a> ·
+  <a href="https://sites.irfanali.me/p/random/linked-list.html">Live demo</a> ·
   <a href="#install">Install</a> ·
   <a href="#gallery">Gallery</a> ·
   <a href="#how-it-works">How it works</a>
 </p>
 
-<p align="center"><img src=".github/assets/linked-list.jpg" width="880" alt="A linked-list explainer in its 'Arrows in the wrong order' story: nodes sit at real memory addresses, each holding a value and the address of the next node, joined by arrows. Node 42 points at itself in a glowing loop, and the nodes 48, 17 and 23 sit inside a dashed red zone labelled 'lost: no arrow leads here'. The panel on the right reads 'From head: 31, 12, 42, 42, 42… forever. It never reaches the end.'"></p>
+<p align="center"><a href="https://sites.irfanali.me/p/random/linked-list.html"><img src=".github/assets/linked-list.jpg" width="880" alt="A linked-list explainer in its 'Arrows in the wrong order' story: nodes sit at real memory addresses, each holding a value and the address of the next node, joined by arrows. Node 42 points at itself in a glowing loop, and the nodes 48, 17 and 23 sit inside a dashed red zone labelled 'lost: no arrow leads here'. The panel on the right reads 'From head: 31, 12, 42, 42, 42… forever. It never reaches the end.'"></a></p>
 
 ---
 
@@ -55,7 +55,7 @@ Every figure follows a teaching standard ([`references/teaching.md`](references/
 
 ## Gallery
 
-Every image is a frame of an example in [`examples/`](examples). Click one to open it live (the linked list and the B+ tree are not online yet; build them with `node scripts/build.mjs examples/<name>/figure.mjs`).
+Every image is a frame of an example in [`examples/`](examples). Click one to open it live (the B+ tree is not online yet; build it with `node scripts/build.mjs examples/btree/figure.mjs`).
 
 <table>
   <tr>
@@ -84,7 +84,7 @@ Every image is a frame of an example in [`examples/`](examples). Click one to op
   </tr>
   <tr>
     <td><a href="examples/btree"><img src=".github/assets/btree.jpg" alt="A B+ tree: an insert tray of new ids above the root page p3 and five leaf pages holding coloured keys; the panel explains how an insert follows the signposts down."></a></td>
-    <td><a href="examples/linked-list"><img src=".github/assets/linked-list-insert.jpg" alt="The linked list in the light theme: head points to 31, 12, 48, 17 and 23 at their memory addresses; the new node 42 sits below, with 12's arrow now pointing at it and 42's arrow pointing at 48."></a></td>
+    <td><a href="https://sites.irfanali.me/p/random/linked-list.html"><img src=".github/assets/linked-list-insert.jpg" alt="The linked list in the light theme: head points to 31, 12, 48, 17 and 23 at their memory addresses; the new node 42 sits below, with 12's arrow now pointing at it and 42's arrow pointing at 48."></a></td>
   </tr>
   <tr>
     <td><b>B+ tree</b>: a library's signposts. Without an index first, then ids in any order, ids that only grow, the top page fills up.</td>
