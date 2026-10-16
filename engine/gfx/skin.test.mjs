@@ -108,6 +108,17 @@ test("trace and bus: grooves with pulses coloured by key; bus accepts several po
   assert.equal(dl.grooves[1].width, SIZE.trace.bus);
 });
 
+test("keyed trace: an idle trace with a key keeps a faint glow in that key's colour; none without", () => {
+  const dl = run([
+    { id: "k", kind: "trace", points: [[0, 0], [100, 0]], key: 3, tone: "neutral" },
+    { id: "n", kind: "trace", points: [[0, 20], [100, 20]], tone: "neutral" },
+  ]);
+  const k = dl.grooves.find((g) => g.id === "k"), n = dl.grooves.find((g) => g.id === "n");
+  assert.equal(k.glowColor, keyColor("dark", 3));
+  assert.ok(k.glow > 0 && k.glow < GLOW.trace, "a faint identity tint, not a light tube");
+  assert.equal(n.glow, 0);
+});
+
 test("lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line", () => {
   const dl = run([
     { id: "l", kind: "lane", points: [[0, 0], [200, 0]], title: "n1", scale: 1 },

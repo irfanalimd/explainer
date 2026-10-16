@@ -10,7 +10,6 @@ What the engine does not do yet, collected while building the flagship examples 
     - `s.ring(id, { angleOf })`
     - `s.trace(..., { route: "arc", center, radius })`
     - `s.set(id, { at })` for free members
-- **Traces cannot carry an identity colour.** Wanted: `s.trace(..., { key })` → coloured glow or inlay (ownership arcs, partitions).
 - **Grooves and zones above the floor draw at z = 0** (renderer).
 - **Rails don't show pulses** (renderer).
 - **Glass has no refraction** (renderer).
@@ -33,6 +32,9 @@ What the engine does not do yet, collected while building the flagship examples 
 - **verify varies one knob at a time.** Combined extremes and the phone env at extremes are not exercised.
 
 ## Done (recent)
+
+- `s.trace(..., { key })`: a trace in an identity colour; `s.tile(..., { w })`: a wider tile; a pointer on a housing's
+  tile stands on the floor in front of the housing (from `examples/linked-list`).
 
 - `build(s, p, scenario, env)` for portrait and phone layouts; verify runs every scenario in a 390×844 env.
 - Reading time: a step lasts at least `MOTION.read.base + perWord × words` (capped at `max`). Motion stretches at most `stretch`, and the rest of the time is a hold.

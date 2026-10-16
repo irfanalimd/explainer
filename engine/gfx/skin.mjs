@@ -346,7 +346,8 @@ function trace(p, dl, ctx, width) {
   // a carrying trace glows faintly in the data's colour (pose.glow 0..1)
   // a carrying trace becomes a light tube in the data's colour (pose.glow 0..1)
   // a status tone (s.set(trace, { tone: "fail" })) keeps a faint glow in that colour even while idle
-  const toned = !print && !message && p.tone && p.tone !== "key" && p.tone !== "neutral" && keyC;
+  // so does a keyed trace (s.trace(id, a, b, { key })): an identity tint, e.g. a pointer in its target's colour
+  const toned = !print && !message && keyC && ((p.tone && p.tone !== "key" && p.tone !== "neutral") || (p.kind === "trace" && p.key != null));
   const glow = Math.max(clamp(num(p.glow, pulses.length ? 0.6 : 0), 0, 1), toned ? 0.35 : 0) * GLOW.trace * (1 - dim);
   const w = print ? 1.3 : message ? Math.min(width, 2.6) : width;
   const opacity = num(p.opacity, 1) * (1 - 0.5 * dim) * (print ? 0.85 : 1);
