@@ -192,7 +192,7 @@ Before delivering, all of these must be true:
 - `references/tooling.md`: every script and flag: verify, lesson, build, serve, shoot, audit, record, new.
 - `references/roadmap.md`: known gaps and their workarounds (ring by angle, keyed traces, desktop scale). Check it when the engine seems unable to do something.
 - `examples/`: complete flagship figures. Open the closest one before starting:
-  - `raft/`: consensus with crash and partition, a responsive layout, predict questions, and a space-time lanes board that is off by default (opt in with the "Space-time board" setting).
+  - `raft/`: consensus with crash and partition, a responsive layout, predict questions, and a space-time lanes board that is off by default (opt in with the "Message timeline" setting: Show, or Show below the servers).
   - `mapreduce/`: pipeline with a bus shuffle, worker crash, straggler with a backup task, skewed keys, combiner.
   - `quicksort/`: `tracked.array` with pointers, sorted regions, worst case and duplicates.
   - `consistent-hashing/`: a 2³² MurmurHash3 ring, add or remove a server, ring vs `hash % N`, virtual nodes.

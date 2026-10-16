@@ -360,9 +360,10 @@ The world:
 - the lanes board shows every message, with marks for election timeouts, new leaders (green) and commits (unlabelled
   green pucks).
 
-The lanes board is off by default: the `lanes` knob ("Space-time board" in settings) turns it on (`"on"`, or `"auto"`
-for wide screens only). With `layout: "auto"` (the default) the boards sit side by side on a wide screen and stack on a
-portrait phone; the `layout` knob forces either. At 1440×900 the two layouts draw objects at about the same size,
+The lanes board is off by default: the `lanes` knob ("Message timeline" in settings: Hide, Show, or Show below the
+servers) turns it on (`"on"`, beside the cluster on a wide screen, or `"below"`, stacked under it; build still reads
+an old link's `"auto"`, which shows it on wide screens only). On a portrait phone the boards always stack, and a
+`layout` param (no longer a knob, kept for old links) can force either. At 1440×900 the two layouts draw objects at about the same size,
 about 0.8 px per world unit, but on a 390×844 phone the stacked one is 2.4× larger, and side by side is unreadable
 there. The code panel shows the real handlers, and `s.line` lights the
 ones each step runs.
