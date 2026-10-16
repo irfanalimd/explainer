@@ -15,6 +15,8 @@ test("a clean figure passes every run (scenarios x param extremes)", async () =>
   assert.equal(rep.errors, 0, rep.text);
   assert.equal(r.runs.length, 22);   // 19 + one portrait-phone run per scenario
   assert.ok(r.runs.every((x) => x.steps >= 10));
+  // the teaching lint reads the lesson too: its own section, advice only for this figure
+  assert.ok(r.teaching && r.teaching.errors.length === 0 && /teaching {2}the lesson a beginner reads/.test(rep.text), rep.text);
 });
 
 test("a broken figure gets precise, actionable findings", async () => {

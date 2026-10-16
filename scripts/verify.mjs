@@ -3,6 +3,8 @@
 // extremes: compile, determinism (two compiles, same tl.hash and same steps), tl.problems, a caption on every
 // step, invariants on every snapshot, counters declared, step count and phase length sanity, and a sampler pass
 // (no throw, finite poses, focus inside the world, exact backward scrub). Exit 1 on any error.
+// Then the teaching lint (scripts/lib/teach.mjs, references/teaching.md): the lesson a beginner reads, in its own
+// section: advisory warnings, and errors only for clear defects (an undefined {term:…}, a predict answer out of range).
 // Compiles run in a worker thread so an infinite loop in build() is reported instead of hanging.
 import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
 import { readFileSync, existsSync } from "node:fs";
@@ -12,6 +14,8 @@ import { parseArgs, isMain, showPath } from "./lib/args.mjs";
 import { tokenize } from "./lib/modules.mjs";
 import { foldPlan, foldedDuration } from "../engine/playback.mjs";
 import { rng as simRng } from "../sim/rng.mjs";   // the page (engine/runtime.mjs) seeds s.rng with this too
+import { extractLesson } from "./lib/lesson.mjs";
+import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teach.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(here, "..");
@@ -23,6 +27,7 @@ usage: node scripts/verify.mjs <figure.mjs> [options]
   --quick             defaults of each scenario only (no param extremes)
   --no-sample         skip the sampler pass
   --timeout <s>       give up on a run after this long (default 20)
+  --no-teach          skip the teaching checks (the lesson a beginner reads; node scripts/lesson.mjs prints it)
   --json              machine-readable output
 `;
 const PARAM_TYPES = ["int", "float", "bool", "text", "select"];
@@ -313,7 +318,7 @@ function firstLines(e) {
 }
 const listSteps = (xs) => (xs.length > 8 ? xs.slice(0, 8).join(", ") + ` … (${xs.length})` : xs.join(", "));
 
-async function workerMain({ figure, compiler, quick, sample }) {
+async function workerMain({ figure, compiler, quick, sample, teach = true }) {
   const post = (m) => parentPort.postMessage(m);
   let fig, compile;
   await import("./lib/node-hooks.mjs");       // "@internals/<path>" imports resolve in Node too
@@ -323,10 +328,27 @@ async function workerMain({ figure, compiler, quick, sample }) {
   catch (e) { post({ type: "fatal", message: `the compiler ${showPath(compiler)} failed to load: ${firstLines(e)}` }); return; }
   post({ type: "static", result: staticChecks(fig, figure) });
   if (typeof fig.build !== "function") { post({ type: "done" }); return; }
+  // the words each run at other settings shows, kept from its first compile for the teaching lint (no extra compile)
+  const variants = [];
   for (const run of planRuns(fig, quick)) {
     post({ type: "start", label: run.label });
-    const r = verifyRun(fig, compile, run, sample);
+    let kept = !(teach && (Object.keys(run.changed).length || run.env));
+    const watched = (f, o) => { const tl = compile(f, o); if (!kept) { kept = true; variants.push({ label: run.label, words: wordsShown(tl) }); } return tl; };
+    const r = verifyRun(fig, watched, run, sample);
     post({ type: "run", run: { label: run.label, scenario: run.scenario, changed: run.changed }, result: r });
+  }
+  if (teach) {
+    post({ type: "start", label: "teaching" });
+    let result;
+    try {
+      const lesson = extractLesson(fig, compile, { rng: simRng });
+      result = lintLesson(lesson, fig);
+      const more = lintVariants(lesson, variants, fig, result);
+      result.errors.push(...more.errors);
+      result.warnings.push(...more.warnings);
+    }
+    catch (e) { result = { errors: [{ kind: "teaching", rule: "lesson", message: `could not read the lesson: ${firstLines(e)}` }], warnings: [], info: {} }; }
+    post({ type: "teaching", result });
   }
   post({ type: "done" });
 }
@@ -335,15 +357,15 @@ if (!isMainThread && workerData?.verify) await workerMain(workerData);
 
 // ------------------------------------------------------------------ main: runs the worker, prints the report
 
-export function verify(figure, { compiler, quick = false, sample = true, timeout = 20, onEvent } = {}) {
+export function verify(figure, { compiler, quick = false, sample = true, teach = true, timeout = 20, onEvent } = {}) {
   const file = resolve(figure);
   compiler = resolve(compiler ?? DEFAULT_COMPILER);
   return new Promise((ok) => {
-    const out = { figure: file, compiler, static: null, runs: [], fatal: null, timedOut: null, timeout, ms: 0 };
+    const out = { figure: file, compiler, static: null, runs: [], teaching: null, fatal: null, timedOut: null, timeout, ms: 0 };
     if (!existsSync(file)) { out.fatal = `figure not found: ${figure}`; return ok(out); }
     if (!existsSync(compiler)) { out.fatal = compiler === DEFAULT_COMPILER ? "engine/scene/index.mjs does not exist yet; pass --compiler <file>" : `compiler not found: ${compiler}`; return ok(out); }
     const t0 = performance.now();
-    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { verify: true, figure: file, compiler, quick, sample } });
+    const w = new Worker(fileURLToPath(import.meta.url), { workerData: { verify: true, figure: file, compiler, quick, sample, teach } });
     let current = "loading the figure", timer;
     const arm = () => { clearTimeout(timer); timer = setTimeout(() => { out.timedOut = current; w.terminate(); }, timeout * 1000); };
     arm();
@@ -352,6 +374,7 @@ export function verify(figure, { compiler, quick = false, sample = true, timeout
       if (m.type === "static") out.static = m.result;
       else if (m.type === "start") current = m.label;
       else if (m.type === "run") out.runs.push({ ...m.run, ...m.result });
+      else if (m.type === "teaching") out.teaching = m.result;
       else if (m.type === "fatal") out.fatal = m.message;
       onEvent?.(m);
       if (m.type === "done" || m.type === "fatal") w.terminate();
@@ -387,14 +410,22 @@ export function report(r) {
   const changed = new Set(r.runs.flatMap((x) => x.counters?.changed ?? []));
   if (r.runs.length) for (const k of r.static?.declared ?? []) if (!changed.has(k)) { warnings++; lines.push(`  WARN  counter "${k}" is declared but never changes in any run`); }
   if (r.timedOut) { errors++; lines.push(`  FAIL  ${r.timedOut.padEnd(width)}  no result within ${r.timeout} s: an infinite loop in build() (or in the compiler)? Later runs were not checked.`); }
-  lines.push(`summary  ${r.runs.length} run(s), ${r.runs.filter((x) => x.errors.length).length} failing, ${errors} error(s), ${warnings} warning(s)  ${(r.ms / 1000).toFixed(1)} s`);
+  // the teaching lint: the lesson as a beginner reads it (warnings are advice; errors are clear defects)
+  const T = r.teaching;
+  if (T) {
+    errors += T.errors.length; warnings += T.warnings.length;
+    lines.push(`  ${T.errors.length ? "FAIL" : T.warnings.length ? "WARN" : "ok  "}  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)`);
+    lines.push(formatFindings(T, "        "));
+  }
+  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0);
+  lines.push(`summary  ${r.runs.length} run(s), ${failing} failing, ${errors} error(s), ${warnings} warning(s)  ${(r.ms / 1000).toFixed(1)} s`);
   return { text: lines.join("\n"), errors, warnings };
 }
 
 if (isMainThread && isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { compiler: "string", quick: "boolean", sample: "boolean", timeout: "number", json: "boolean" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { compiler: "string", quick: "boolean", sample: "boolean", teach: "boolean", timeout: "number", json: "boolean" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
-  const r = await verify(a._[0], { compiler: a.compiler, quick: a.quick, sample: a.sample !== false, timeout: a.timeout ?? 20 });
+  const r = await verify(a._[0], { compiler: a.compiler, quick: a.quick, sample: a.sample !== false, teach: a.teach !== false, timeout: a.timeout ?? 20 });
   const rep = report(r);
   console.log(a.json ? JSON.stringify({ ...r, errors: rep.errors, warnings: rep.warnings }, null, 2) : rep.text);
   process.exit(rep.errors ? 1 : 0);

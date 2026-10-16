@@ -25,7 +25,7 @@ starting with `contact.png`.
 
 ## verify.mjs
 
-`node scripts/verify.mjs <figure.mjs> [--compiler file] [--quick] [--no-sample] [--timeout 20] [--json]`
+`node scripts/verify.mjs <figure.mjs> [--compiler file] [--quick] [--no-sample] [--no-teach] [--timeout 20] [--json]`
 
 Runs in Node, the compile inside a worker thread, so an infinite loop in `build()` is reported (with the run that
 hung) instead of hanging the caller. Checks, in order:
@@ -48,6 +48,16 @@ hung) instead of hanging the caller. Checks, in order:
   `tl.sample` must not throw, pose numbers and points finite, focus and world well formed, focus inside the world,
   tag anchors finite) and an **exact backward scrub** check.
 - Identical findings in later runs are counted (`(+3 as above)`), not repeated.
+- **teaching** (its own section, last; `--no-teach` skips it): the lesson a beginner reads, extracted from every
+  scenario at its defaults (`scripts/lib/lesson.mjs`) and checked by `scripts/lib/teach.mjs` against
+  `references/teaching.md`. Errors only for clear defects (a `{term:x}` without `meta.terms.x`, a predict answer that
+  is not one of its options, a malformed `meta.level`, `meta.terms` or `meta.recap`); everything else is advice:
+  level, hook, analogy, recap, takeaway, abouts, caption length, predict questions and their `why`, size for the
+  level, terms used before they are defined, flagged jargon, jargon in story labels and chapter names, filler words,
+  long sentences and a rough reading grade. The words that appear only at other settings (the extreme and phone runs
+  above, kept from their first compile, so no extra compile) get the same checks, reported once as "at other
+  settings". A teaching error counts as one failing entry in the summary. The full rule table is
+  `references/teaching.md` section 9.
 
 An invariant receives `(snap, { step, final, params, scenario, timeline })` and must return `true` or a message;
 `false` and `undefined` are reported as such (a forgotten `return` is the usual cause).
