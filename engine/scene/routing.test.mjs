@@ -186,3 +186,65 @@ test("top-to-bottom flow: bottom->top traces fan out through a horizontal gutter
   assert.ok(bus.pulses.length + bus.branches.reduce((a, q) => a + q.pulses.length, 0) > 0);
   assert.ok(Math.abs(tl2.sample(st.t1).poses.find((p) => p.id === "x").x - box(tl2, "r1").x) < 1);
 });
+
+test("a self-loop leaves its housing's right edge, wraps the corner outside it and comes back in through the front", () => {
+  const tl = compile(fig((s) => {
+    s.row("r"); s.housing("a", { in: "r", tray: { cols: 1 } }); s.housing("b", { in: "r" });
+    s.trace("aa", "a", "a", { arrow: true }); s.trace("ab", "a", "b");
+    s.step("x");
+    s.send("m", "a", "a", { via: "aa", key: 1 });
+    s.step("round the loop");
+  }));
+  assert.deepEqual(tl.problems.filter((p) => p.kind !== "overlap"), []);
+  const r = routes0(tl).traces.get("aa"), A = box(tl, "a");
+  assert.equal(r.sa, "right"); assert.equal(r.sb, "bottom");
+  assert.ok(axisAligned(r.raw));
+  const [p0, pN] = [r.raw[0], r.raw[r.raw.length - 1]];
+  assert.ok(Math.abs(p0[0] - (A.x + A.w / 2)) < 1e-6, "starts on the right edge");
+  assert.ok(Math.abs(pN[1] - (A.y + A.d / 2)) < 1e-6, "ends on the front edge");
+  assert.ok(p0[1] > A.y + (A.tray?.y ?? 0) && pN[0] > A.x, "both ends sit toward the corner the loop wraps");
+  for (let i = 1; i < r.raw.length; i++) assert.ok(!segHitsBox(r.raw[i - 1], r.raw[i], A, 0.5), `segment ${i} cuts through the housing`);
+  // a send along it flies the loop and lands back where it started, with finite poses all the way
+  const s1 = tl.steps[1];
+  for (let k = 0; k <= 10; k++) {
+    const f = tl.sample(s1.t0 + (s1.t1 - s1.t0) * (k / 10));
+    for (const p of f.poses) for (const key of ["x", "y", "z", "lit"]) if (p[key] != null) assert.ok(Number.isFinite(p[key]), `${p.id}.${key} at ${k}`);
+  }
+  assert.equal(tl.sample(s1.t0 + 0.01).poses.find((p) => p.id === "aa").arrow, "end");
+});
+
+test("facing ports alone on their edges line up into one straight run; a narrow gap never curls", () => {
+  const tl = compile(fig((s) => {
+    s.free("f");
+    s.housing("a", { in: "f", at: [0, 0], tray: { cols: 1 } });
+    s.housing("b", { in: "f", at: [150, 30], tray: { cols: 1 } });    // a little lower, close beside it
+    s.housing("c", { in: "f", at: [300, 300], tray: { cols: 1 } });   // far off its row: no shared height
+    s.trace("ab", "a", "b"); s.trace("bc", "b", "c", { fromSide: "right", toSide: "left" });
+    s.step("x");
+  }));
+  const R0 = routes0(tl), ab = R0.traces.get("ab"), bc = R0.traces.get("bc");
+  assert.equal(ab.raw.length, 2, `a straight run, got ${JSON.stringify(ab.raw)}`);
+  assert.ok(Math.abs(ab.raw[0][1] - ab.raw[1][1]) < 1e-6);
+  const A = box(tl, "a"), B = box(tl, "b");
+  for (const [P, X] of [[ab.raw[0], A], [ab.raw[1], B]]) assert.ok(P[1] > X.y - X.d / 2 + SIZE.housing.header && P[1] < X.y + X.d / 2, "the port stays on the edge, below the header");
+  // no run of a route ever turns back on itself (that is the curl)
+  for (const r of [ab, bc]) for (let i = 2; i < r.raw.length; i++) {
+    const u = [r.raw[i - 1][0] - r.raw[i - 2][0], r.raw[i - 1][1] - r.raw[i - 2][1]], v = [r.raw[i][0] - r.raw[i - 1][0], r.raw[i][1] - r.raw[i - 1][1]];
+    assert.ok(u[0] * v[0] + u[1] * v[1] >= -1e-6, `${r.id} doubles back at point ${i}: ${JSON.stringify(r.raw)}`);
+  }
+});
+
+test("arrow is a trace option and a settable prop", () => {
+  const tl = compile(fig((s) => {
+    s.row("r"); s.housing("a", { in: "r" }); s.housing("b", { in: "r" });
+    s.trace("ab", "a", "b");
+    s.step("plain");
+    s.set("ab", { arrow: "both" });
+    s.step("both ways");
+    s.set("ab", { arrow: false });
+    s.step("none");
+  }));
+  assert.deepEqual(tl.problems.filter((p) => p.kind === "bad-prop"), []);
+  const at = (i) => tl.sample(tl.steps[i].t1 - 0.01).poses.find((p) => p.id === "ab").arrow;
+  assert.equal(at(0), null); assert.equal(at(1), "both"); assert.equal(at(2), null);
+});

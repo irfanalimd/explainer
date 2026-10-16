@@ -255,6 +255,8 @@ s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
   - `from` may equal `to`: a self-loop (a node that points at itself) leaves the right edge, wraps the corner and
     comes back in through the front (`fromSide` / `toSide` pick other edges); a send `via` it flies the loop.
   - It is routed orthogonally, with rounded corners, through gutters, and detours around housings.
+  - Facing ports that are alone on their edges line up, so side-by-side neighbours get one straight run instead of a
+    small S-bend.
   - Ports spread when several traces share an edge.
   - `route: "straight"` draws a straight line, for rings; `"auto"` is already straight between members of a `ring`.
   - Sides are `"left" | "right" | "top" | "bottom"`.

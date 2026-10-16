@@ -223,6 +223,18 @@ export function routeAll(layout, state) {
       else e.c.branches.push({ box, side, p, kind: e.end === "f" ? "from" : "to" });
     });
   }
+  // facing ports that are alone on their edges line up, so side-by-side neighbours get one straight run
+  // instead of a small S-bend: the shared height nearest both anchors, inside both edges' port ranges
+  for (const c of conns) {
+    if (!c.rec || c.rec.kind !== "trace" || c.straight || c.loop || !c.aloneA || !c.aloneB || c.sa !== OPP[c.sb]) continue;
+    if (c.A.round || c.B.round) continue;
+    const ax = c.sa === "left" || c.sa === "right" ? 1 : 0;   // the coordinate that varies along these edges
+    const ra = sideRange(c.A, c.sa), rb = sideRange(c.B, c.sb);
+    const lo = Math.max(ra.lo, rb.lo), hi = Math.min(ra.hi, rb.hi);
+    if (hi - lo < R.align) continue;
+    const v = Math.min(hi, Math.max(lo, (c.pa[ax] + c.pb[ax]) / 2));
+    c.pa = portPoint(c.A, c.sa, v); c.pb = portPoint(c.B, c.sb, v);
+  }
 
   // 3. route traces: Z through the gutter when it is clear, else search; then assign gutter tracks
   const channels = [];          // Z-routes whose middle run can slide inside its gutter
@@ -243,28 +255,34 @@ export function routeAll(layout, state) {
     let raw = null;
     const horiz = (sa === "left" || sa === "right") && (sb === "left" || sb === "right");
     const vert = (sa === "top" || sa === "bottom") && (sb === "top" || sb === "bottom");
-    if (horiz && sa === OPP[sb] && (sa === "right" ? pb[0] - pa[0] : pa[0] - pb[0]) > 2 * R.stub) {
+    // facing ports: a straight run when they line up; else a Z through the gap (a narrow gap squeezes its corners,
+    // which beats a search whose stubs would overshoot each other and curl)
+    const gapX = sa === "right" ? pb[0] - pa[0] : pa[0] - pb[0], gapY = sa === "bottom" ? pb[1] - pa[1] : pa[1] - pb[1];
+    if (horiz && sa === OPP[sb] && gapX > 1 && Math.abs(pa[1] - pb[1]) < 0.5) raw = [pa, pb];
+    else if (vert && sa === OPP[sb] && gapY > 1 && Math.abs(pa[0] - pb[0]) < 0.5) raw = [pa, pb];
+    else if (horiz && sa === OPP[sb] && gapX > 1) {
       if (Math.abs(pa[1] - pb[1]) < 0.5) raw = [pa, pb];
       else {
         const lo = sa === "right" ? c.A.x + c.A.w / 2 : c.B.x + c.B.w / 2, hi = sa === "right" ? c.B.x - c.B.w / 2 : c.A.x - c.A.w / 2;
         const m = (lo + hi) / 2;
         raw = [pa, [m, pa[1]], [m, pb[1]], pb];
-        c.channel = { axis: "x", value: m, lo: lo + R.stub * 0.6, hi: hi - R.stub * 0.6, a: pa[1], b: pb[1], dirSign: sa === "right" ? 1 : -1 };
+        c.channel = { axis: "x", value: m, lo: Math.min(m, lo + R.stub * 0.6), hi: Math.max(m, hi - R.stub * 0.6), a: pa[1], b: pb[1], dirSign: sa === "right" ? 1 : -1 };
       }
-    } else if (vert && sa === OPP[sb] && (sa === "bottom" ? pb[1] - pa[1] : pa[1] - pb[1]) > 2 * R.stub) {
+    } else if (vert && sa === OPP[sb] && gapY > 1) {
       if (Math.abs(pa[0] - pb[0]) < 0.5) raw = [pa, pb];
       else {
         const lo = sa === "bottom" ? c.A.y + c.A.d / 2 : c.B.y + c.B.d / 2, hi = sa === "bottom" ? c.B.y - c.B.d / 2 : c.A.y - c.A.d / 2;
         const m = (lo + hi) / 2;
         raw = [pa, [pa[0], m], [pb[0], m], pb];
-        c.channel = { axis: "y", value: m, lo: lo + R.stub * 0.6, hi: hi - R.stub * 0.6, a: pa[0], b: pb[0], dirSign: sa === "bottom" ? 1 : -1 };
+        c.channel = { axis: "y", value: m, lo: Math.min(m, lo + R.stub * 0.6), hi: Math.max(m, hi - R.stub * 0.6), a: pa[0], b: pb[0], dirSign: sa === "bottom" ? 1 : -1 };
       }
     } else if (!horiz && !vert) {
       // perpendicular sides: one L if it leaves and enters the right way
       const L1 = (sa === "left" || sa === "right") ? [pb[0], pa[1]] : [pa[0], pb[1]];
       const da = DIRS[sa], db = DIRS[sb];
-      const okA = (L1[0] - pa[0]) * da[0] + (L1[1] - pa[1]) * da[1] > R.stub;
-      const okB = (L1[0] - pb[0]) * db[0] + (L1[1] - pb[1]) * db[1] > R.stub;
+      // a short leg still beats a search whose stubs overshoot and jog back
+      const okA = (L1[0] - pa[0]) * da[0] + (L1[1] - pa[1]) * da[1] > R.stub / 3;
+      const okB = (L1[0] - pb[0]) * db[0] + (L1[1] - pb[1]) * db[1] > R.stub / 3;
       if (okA && okB) raw = [pa, L1, pb];
     }
     if (raw && hitsObstacles(raw, obstacles, skip)) { raw = null; c.channel = null; }
