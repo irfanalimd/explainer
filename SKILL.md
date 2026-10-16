@@ -199,6 +199,7 @@ Before delivering, all of these must be true:
   - `virtual-memory/`: x86-64 4-level page walk, TLB hit, miss and fill, page fault with swap-in, cycles counted.
   - `event-loop/`: tasks vs microtasks, `await`, microtask starvation, yielding with `setTimeout`, predict questions.
   - `btree/`: a B+ tree index taking inserts, leaf and root splits, sequential vs random keys, a range scan over the leaf chain.
+  - `linked-list/`: the reference **intro** figure (`meta.level: "intro"`): array vs linked list, nodes at real addresses, walking, inserting by changing two arrows, and the wrong-order bug. Open it first for any beginner-level concept.
 - `scripts/templates/figure.mjs`: the annotated template that `new.mjs` writes.
 
 Paths in this file are relative to the skill folder (the folder holding this `SKILL.md`). The engine keeps a few internal names from before the skill was called Explainer: the page API `window.__internals`, the `@internals/<path>` import specifier and the `ix-` CSS prefix. They are stable; use them as written.
