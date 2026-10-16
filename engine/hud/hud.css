@@ -1376,3 +1376,20 @@
 /* ---------- end teaching ---------- */
 .ix-ex-new:empty { display: none; }
 .ix-ex-new .ix-ex-defs { margin-top: 10px; }
+
+/* ---------- explain panel: never wider than itself ----------
+   Grid and flex children default to their min-content width, so one nowrap chip or a long word used to widen a whole
+   column and push the recap and the what-ifs past the panel's right edge. Every track is minmax(0, 1fr), every box may
+   shrink, long words break, and the what-if chips wrap their words inside the panel. It scrolls down, never across. */
+.ix-explain { min-width: 0; max-width: calc(100% - var(--ix-pad-l, 16px) - var(--ix-pad-r, 16px)); }
+.ix-ex-body { min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
+.ix-explain :is(.ix-ex-head, .ix-ex-headin, .ix-ex-ask, .ix-ex-now, .ix-ex-now-body, .ix-ex-recapin, .ix-ex-earlier, .ix-ex-new,
+  .ix-payoff, .ix-recap, .ix-recap-list, .ix-recap-list li, .ix-takeaway, .ix-whatif, .ix-chips, .ix-ex-defs, .ix-ex-def dd,
+  .ix-predict, .ix-predict-q, .ix-opts, .ix-opt, .ix-predict-why) { min-width: 0; max-width: 100%; }
+.ix-explain :is(.ix-payoff-panel, .ix-payoff-sheet, .ix-recap, .ix-recap-list, .ix-ex-defs) { grid-template-columns: minmax(0, 1fr); }
+.ix-explain .ix-whatif .ix-chip-btn {
+  max-width: 100%; min-width: 0; height: auto; min-height: 28px; padding-block: 4px;
+  white-space: normal; text-align: left; line-height: 18px; overflow-wrap: anywhere;
+}
+.ix-explain .ix-whatif .ix-chip-btn.ix-chip-next > span { flex: none; }
+.ix-explain :is(.ix-chip, .ix-code-inline) { max-width: 100%; }

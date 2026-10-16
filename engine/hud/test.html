@@ -903,6 +903,78 @@ window.__results = (async () => {
     hT.destroy();
     rT.remove();
   }
+
+  // the explain panel never overflows sideways: a long recap, a long takeaway, 3 long what-ifs, a predict card with a long why
+  for (const [width, height] of [[1440, 900], [1280, 720], [1200, 800], [820, 900], [390, 844]]) {
+    const rO = document.createElement("div");
+    rO.style.cssText = `position:fixed;left:0;top:0;width:${width}px;height:${height}px;visibility:hidden`;
+    rO.append(document.createElement("canvas"));
+    document.body.append(rO);
+    const longWhy = "Every reading machine writes a slip for every single word it sees, like (fox, 1), and nobody waits for anybody else, so the slips for one word end up spread over all the machines together.";
+    const metaO = { title: "MapReduce", level: "core",
+      takeaway: "Each machine read only its piece, yet every count is exact: every copy of a word went to the same counter, however many machines there were.",
+      recap: ["The text was cut into pieces, and each machine read one of them at the same time as the others.",
+        "Each reader wrote a slip for every word, like `(fox, 1)`, and sent it on: supercalifragilisticexpialidocious-sized-words-included.",
+        "A hash sent every copy of a word to the same counting machine, so every `fox` met every other `fox` together.",
+        "Each counter added up its words; together they hold every count, and no machine ever read the whole text."] };
+    const scO = [{ id: "happy", label: "Everything works", whatIf: "nothing goes wrong" },
+      { id: "crash", label: "A machine crashes", whatIf: "a reading machine crashes halfway through its piece of the text" },
+      { id: "slow", label: "One slow machine", whatIf: "one machine is much slower than all of the rest of the machines" },
+      { id: "skew", label: "One word everywhere", whatIf: "one word is far more common than the rest, so one counting machine gets nearly every slip" }];
+    const hO = createHud(rO, { meta: metaO, scenarios: scO, scenario: "happy", hash: false, storage: false }, cb);
+    const stO = [
+      { index: 0, t0: 0, t1: 2, dur: 2, caption: "Eleven words to count, shared between three machines.", phase: "Split" },
+      { index: 1, t0: 2, t1: 4, dur: 2, caption: "Each machine reads its piece.", phase: "Map",
+        ask: { question: "Where does the counting of every copy of one word finally happen, once all of the slips are written?", options: ["On one big machine at the very end, after everything else", "On the counting machine that the word's number picks"], answer: 1, why: longWhy } },
+      { index: 2, t0: 4, t1: 6, dur: 2, caption: "Slips for {key:fox} meet on one machine.", phase: "Map" },
+      { index: 3, t0: 6, t1: 8, dur: 2, caption: "Done: all 11 words counted, 8 different ones, and no machine read the whole text.", phase: "Reduce" },
+    ];
+    hO.setTimeline({ steps: stO, duration: 8, events: [], keys: [{ name: "fox", index: 3 }], counters: {},
+      phases: [{ name: "Split", step: 0, t0: 0, t1: 2 }, { name: "Map", step: 1, t0: 2, t1: 6 }, { name: "Reduce", step: 3, t0: 6, t1: 8 }] });
+    const fO = (t) => { const k = Math.min(3, Math.floor(t / 2)); return { time: t, step: k, u: (t / 2) % 1, caption: stO[k].caption, phase: stO[k].phase, tags: [], counters: {}, entities: new Map(), poses: [{ key: 3, opacity: 1 }] }; };
+    const tag = `${width}x${height}`;
+    // every rendered box inside `box` stays inside it (bounding rects), and the clipping boxes never scroll sideways
+    const sideways = (box) => {
+      const b = box.getBoundingClientRect(), bad = [];
+      for (const el of [box, ...box.querySelectorAll("*")]) {
+        if (!el.getClientRects().length || el.closest("[hidden]") || getComputedStyle(el).display === "none") continue;
+        const r = el.getBoundingClientRect();
+        if (r.width && (r.left < b.left - 0.5 || r.right > b.right + 0.5)) bad.push(`${el.className || el.tagName} rect ${Math.round(r.left)}..${Math.round(r.right)} in ${Math.round(b.left)}..${Math.round(b.right)}`);
+      }
+      // the boxes that clip (the card and its scrolling body) hold no content wider than themselves
+      for (const el of [box, box.querySelector(".ix-ex-body")]) if (el && el.scrollWidth > el.clientWidth + 1) bad.push(`${el.className} scrolls sideways ${el.scrollWidth} > ${el.clientWidth}`);
+      return bad.slice(0, 6);
+    };
+    const docked = width >= 1200;
+    const openCard = async () => { if (!docked && !rO.classList.contains("ix-ex-sheet-open")) { rO.querySelector(".ix-ex-capbtn").click(); await frameWait(); } };
+    // the predict card, asked and then revealed with its why
+    hO.update(fO(1.99), { time: 1.99, playing: false, speed: 1 });
+    hO.ask({ ...stO[1].ask, step: 1 });
+    await frameWait();
+    const qBox = () => (docked ? rO.querySelector(".ix-explain") : rO.querySelector(".ix-predict.ix-open"));
+    check(`${tag}: the predict card, asked, fits its box`, !!qBox() && sideways(qBox()).length === 0, qBox() && sideways(qBox()));
+    rO.querySelectorAll(".ix-predict .ix-opt")[1].click();
+    hO.update(fO(3.6), { time: 3.6, playing: true, speed: 1 });
+    await frameWait();
+    check(`${tag}: the predict card, revealed with a long why, fits its box`, !!rO.querySelector(".ix-predict.ix-revealed .ix-predict-why") && !!qBox() && sideways(qBox()).length === 0, qBox() && sideways(qBox()));
+    if (!docked) check(`${tag}: the predict card stays on screen`, qBox().getBoundingClientRect().right <= width + 0.5 && qBox().getBoundingClientRect().left >= -0.5);
+    hO.ask(null);
+    rO.querySelector(".ix-predict .ix-close")?.click();
+    // the end card
+    hO.update(fO(7.99), { time: 8, playing: false, speed: 1, held: { kind: "end", phase: 2 } });
+    await frameWait();
+    await openCard();
+    const pO = rO.querySelector(".ix-explain");
+    const chipsO = [...pO.querySelectorAll(".ix-whatif .ix-chip-btn")];
+    check(`${tag}: the end card shows the long recap${docked ? " and 3 what-ifs" : ""}`, pO.querySelectorAll(".ix-recap-list li").length === 4 && (!docked || chipsO.length === 3), chipsO.length);
+    const pr = pO.getBoundingClientRect();
+    check(`${tag}: the end card stays on screen`, pr.left >= -0.5 && pr.right <= width + 0.5, [pr.left, pr.right]);
+    check(`${tag}: nothing in the end card overflows it sideways`, sideways(pO).length === 0, sideways(pO));
+    if (docked) check(`${tag}: the end card scrolls down if it must, never across`, getComputedStyle(pO.querySelector(".ix-ex-body")).overflowX === "hidden"
+      && /auto|scroll/.test(getComputedStyle(pO.querySelector(".ix-ex-body")).overflowY));
+    hO.destroy();
+    rO.remove();
+  }
   // reduced motion: counters snap, no caption rise; destroy removes everything
   const root2 = document.createElement("div");
   root2.style.cssText = "position:fixed;left:0;top:0;width:800px;height:600px;visibility:hidden";
