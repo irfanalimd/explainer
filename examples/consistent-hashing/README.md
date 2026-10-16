@@ -54,8 +54,8 @@ The reader should come away knowing three things:
 The old "mod N vs ring" story is folded into "Add a server", where the problem now comes first.
 
 Knobs: servers (2–6), keys (6–24), seats per server (1–8), seed (which keys).
-Numbers: keys moved on the ring, keys moved the remainder way (in the dock); busiest server's share (in the dock for
-"Many seats per server"); servers.
+Numbers: keys moved on the ring (in the dock); keys moved the remainder way (in the dock for "Add a server", the only
+story that runs the remainder board); busiest server's share (in the dock for "Many seats per server"); servers.
 
 ## Invariants (verify checks every step of every run)
 

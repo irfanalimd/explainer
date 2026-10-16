@@ -92,7 +92,7 @@ export const scenarios = [
 export const counters = {
   moved: { label: "keys moved on the ring", short: "moved, ring", better: "lower", primary: true,
     hint: "Keys that had to change server on the ring. Each one is data copied over the network." },
-  modmoved: { label: "keys moved the remainder way", short: "moved, remainder", better: "lower", primary: ["add", "remove"],
+  modmoved: { label: "keys moved the remainder way", short: "moved, remainder", better: "lower", primary: ["add"],
     hint: "Keys that would change server if each key used hash(key) % N, the remainder way." },
   load: { label: "busiest server's share", short: "busiest server", format: "x", primary: ["vnodes"],
     hint: "The busiest server's share of the ring, divided by the average share. 1× is perfectly even." },
