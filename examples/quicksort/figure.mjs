@@ -1,6 +1,23 @@
-// Quicksort with Lomuto partitioning (the CLRS form: pivot = a[hi], i is the store index), run on a tracked
-// array: every comparison is a step, its swap and the store-pointer advance join it, the active partition is the
-// only undimmed region, and each pivot turns ok when it lands in its final slot.
+// Quicksort with Lomuto partitioning (the CLRS form: pivot = a[hi], i is where the next small value goes), run on a
+// tracked array, for a beginner. Every comparison is a step, its swap joins it, the active group is the only
+// undimmed region, and each pivot turns ok when it lands in its final slot.
+//
+// Lesson plan (references/teaching.md)
+//   Reader      knows arrays and loops; has never met a pivot, a partition or recursion.
+//   Level       core, kept light: 5 chapters, one number in the dock, two knobs.
+//   Hook        comparing every pair is slow: how does quicksort skip most pairs, and when can't it?
+//   Picture     a line of people ordered by height around one chosen person: shorter ones step left, taller ones
+//               right, and the chosen person now stands exactly where they belong. Then the same in each group.
+//               person = number, height = value, chosen person = pivot, the stepping aside = partition, doing it
+//               again on each side = recursion. Unlike people, the computer moves one swap at a time.
+//   Problem     the simple way (find the smallest, then the next…) compares every pair: n(n−1)/2. The first
+//               round of it runs for real in chapter 1; the end compares quicksort's count with that total.
+//   Ladder      The line · Split around one · Into place · Repeat on each side · Sorted
+//   Misconception "the pivot lands in the middle": predicted before it swaps into place (random story).
+//   Aha         the two sides of a placed pivot are never compared with each other (predicted in chapter 4).
+//   Stories     Shuffled numbers · Already sorted input (the slow case) · Lots of repeated numbers
+// Every question sits on its chapter's first step (or as early as the run allows), because the HUD withholds a
+// chapter's about until its predictions are revealed.
 
 import { tracked } from "../../sim/tracked.mjs";
 import { rng } from "../../sim/rng.mjs";
@@ -9,41 +26,59 @@ import { stateOf } from "../../sim/inspect.mjs";
 
 export const meta = {
   title: "Quicksort",
-  subtitle: "Lomuto partitioning, one comparison at a time",
+  subtitle: "Split around one number, then do the same on each side",
   kicker: "Algorithms",
   fig: 2,
+  level: "core",
   cite: { text: "C. A. R. Hoare, “Quicksort”, The Computer Journal, 1962", url: "https://doi.org/10.1093/comjnl/5.1.10" },
   theme: "dark",
-  hook: "Why is quicksort fast, and when is it slow?",
-  takeaway: "Each partition drops its pivot into its final place. Pivots that split near the middle keep the comparisons far below the n(n−1)/2 worst case.",
+  hook: "Comparing every number with every other one is slow. How does quicksort sort with far fewer comparisons, and when does that fail?",
+  terms: {
+    pivot: "the number that every other number in the group is compared with",
+    partition: "one pass that moves the smaller numbers left of a chosen number and the bigger ones right",
+    recursion: "solving each smaller piece with the very same steps, until the pieces are too small to need it",
+  },
+  recap: [
+    "Pick one number, the pivot: smaller ones go left, bigger ones right.",
+    "The pivot then sits in its final slot and never moves again.",
+    "Each side is split the same way, until every group has one number.",
+    "The two sides are never compared, so even splits skip most pairs.",
+  ],
+  takeaway: "Each split puts one number in its final place and leaves two smaller groups that never need comparing with each other.",
 };
 
 export const params = {
-  n: { label: "Elements", type: "int", min: 2, max: 12, value: 9 },
-  order: {
-    label: "Input order", type: "select", value: "random",
-    options: [{ value: "random", label: "Random" }, { value: "sorted", label: "Already sorted" }, { value: "dups", label: "Many duplicates" }],
-  },
-  input: { label: "Input (overrides)", type: "text", value: "" },
+  n: { label: "How many numbers", type: "int", min: 2, max: 12, value: 9 },
+  input: { label: "Your own numbers (optional)", type: "text", value: "" },
   seed: { label: "Seed", type: "int", value: 7 },
 };
 
 export const scenarios = [
-  { id: "random", label: "Random", params: { order: "random" }, whatIf: "the input is shuffled",
-    description: "Shuffled numbers, the typical case: each pivot splits its range into two parts to sort on their own." },
-  { id: "sorted", label: "Already sorted", params: { order: "sorted" }, whatIf: "the input is already sorted",
-    description: "The input is already in order, so every pivot is the largest value left: the worst case.",
-    takeaway: "On sorted input the last element is always the largest, so each partition peels off one element: n(n−1)/2 comparisons, the worst case." },
-  { id: "dups", label: "Many duplicates", params: { order: "dups" }, whatIf: "most values are equal",
-    description: "Most values are equal, and every copy of the pivot lands on the same side of it.",
-    takeaway: "Partitioning on ≤ sends every copy of the pivot to the low side, so many duplicates push quicksort toward its worst case." },
+  { id: "random", label: "Shuffled numbers", params: { order: "random" }, whatIf: "the numbers are shuffled",
+    description: "Shuffled numbers, the usual case: each split leaves two smaller groups to sort." },
+  { id: "sorted", label: "Already sorted input", params: { order: "sorted" }, whatIf: "the numbers are already in order",
+    description: "The numbers are already in order, so each split peels off just one number: the slowest case.",
+    takeaway: "Already sorted input is quicksort's slowest case: the last number is always the biggest, so every pair gets compared.",
+    recap: [
+      "In sorted input the last number of a group is always the biggest.",
+      "So every split put all the others on one side and placed just one.",
+      "Nothing was skipped: quicksort compared every pair, the slowest it can be.",
+    ] },
+  { id: "dups", label: "Lots of repeated numbers", params: { order: "dups" }, whatIf: "most of the numbers are the same",
+    description: "Only three different values, so copies of the chosen number all pile up on one side.",
+    takeaway: "A copy of the pivot counts as small, so many repeats make the splits lopsided and slow.",
+    recap: [
+      "With only three values, many numbers equal the pivot.",
+      "Equal counts as small, so every copy went to the left side.",
+      "Lopsided splits placed few numbers each, so few pairs were skipped.",
+    ] },
 ];
 
 export const counters = {
   comparisons: { label: "comparisons", format: "int", primary: true,
-    hint: "Times an element was compared with the pivot. This is most of quicksort's work." },
-  swaps: { label: "swaps", format: "int", primary: true,
-    hint: "Times two elements traded places in the array." },
+    hint: "Times a number was checked against the pivot: most of quicksort's work. Checking every pair would take far more." },
+  swaps: { label: "swaps", format: "int",
+    hint: "Times two numbers traded places in the line." },
 };
 
 export const code = {
@@ -94,9 +129,11 @@ export const invariants = {
   },
 };
 
+const typedOf = (p) => String(p.input ?? "").split(/[\s,]+/).filter(Boolean).map(Number).filter((x) => Number.isInteger(x) && Math.abs(x) < 1000);
+
 /** The input for given params: an explicit list wins, else n values in the chosen order. */
 export function inputFor(p) {
-  const typed = String(p.input ?? "").split(/[\s,]+/).filter(Boolean).map(Number).filter((x) => Number.isInteger(x) && Math.abs(x) < 1000);
+  const typed = typedOf(p);
   if (typed.length >= 2) return typed.slice(0, 12);
   const n = Math.max(2, Math.min(12, p.n ?? 9));
   const r = rng(p.seed ?? 7).fork("quicksort-input");
@@ -109,79 +146,190 @@ export function inputFor(p) {
 export function build(s, p, scenario) {
   const input = inputFor(p);
   const n = input.length;
-  const dups = (p.order ?? "random") === "dups";
+  const typed = typedOf(p).length >= 2;
+  const order = typed ? "typed" : (p.order ?? "random");
+  const sc = scenario ?? "random";
+  const repeats = new Set(input).size < n;          // then "smaller" must read "no bigger"
+  const worst = (n * (n - 1)) / 2;                  // comparisons for every pair
+
   // the pointer rods stand in front of the tiles (two can stack on one slot): reserve that strip of floor
   s.column("stage", { gap: 0, align: "center" });
   const a = tracked.array(s, "a", input, {
-    in: "stage",
-    label: "a",
+    in: "stage", label: "a", auto: "none",
     counters: { reads: false, writes: false },
-    ...(dups ? { keyOf: (v) => `value ${v}` } : {}),
+    ...(order === "dups" ? { keyOf: (v) => `value ${v}` } : {}),
   });
   s.spacer("rods", { in: "stage", w: 2, d: 34 });
   const placed = [];
   a.state({ input: input.slice(), placed: [], done: false });
-  const I = a.pointer("i", -1, { tone: "busy" });             // shown when a partition starts
-  const J = a.pointer("j", -1, { loop: true, say: false });
+  const I = a.pointer("i", -1, { tone: "busy", say: false });   // shown when a split starts
+  const J = a.pointer("j", -1, { say: false });
 
-  const intro = (p.order === "sorted" && !String(p.input ?? "").trim())
-    ? `${fmt.plural(n, "number")}, already in order: with the last element as pivot, every partition peels off a single element`
-    : dups ? `${fmt.plural(n, "number")} drawn from just three values: duplicates are hard on a partition that splits on ≤`
-      : `${fmt.plural(n, "number")} to sort in place. Quicksort partitions around a pivot, then recurses on each side`;
-  a.step(`${intro}.`);
+  // every caption is written here, in plain words; the tracked array only does the operations and the counting
+  // a phone frames the whole line every step, so a close-up on a few tiles never cuts off the end of the array
+  const step = (caption, o) => { a.caption(); s.step(caption, o); };
+  const chip = (k) => fmt.ref(a.tile(k), a.show(a.values()[k]));   // the number in slot k, lit on hover
+  const sideOf = (side, parent) => (side ? `${side === "left" ? "Left" : "Right"} of ${parent}` : "");
 
-  const place = (k, say) => {
-    placed.push(k);
-    a.mark(k, k, "ok");
-    a.state({ placed: placed.slice() });
-    if (say) a.say(say);
-  };
+  // ---- chapter 1: the line, and what the simple way costs ----
+  const values = a.values();
+  const shown = fmt.and([...new Set(sortedCopy(values))].map(String));
+  s.phase("The line", { about: `Each number is a person in a line, and its value is their height. The simple way compares every pair: ${fmt.plural(worst, "comparison")}. Quicksort tries to skip most of them.` });
+  step(order === "sorted" ? `${n} numbers, already in order: like a line of people already sorted by height.`
+    : order === "dups" ? `${n} numbers, but only ${shown}: like a line of people of just ${new Set(values).size} heights.`
+      : `${n} numbers to sort, like ${n} people in a line to order from shortest to tallest.`);
+  let m = 0;
+  for (let k = 1; k < n; k++) if (values[k] < values[m]) m = k;
+  s.lit(a.tile(m));
+  s.tag(a.tile(m), `smallest: ${fmt.plural(n - 1, "comparison")}`);
+  step(n > 2
+    ? `The simple way: ${n - 1} comparisons find the smallest, ${n - 2} the next${n > 3 ? ", and so on" : ""}: ${worst} in all.`
+    : `The simple way compares the two numbers once: 1 comparison in all.`);
 
-  function partition(lo, hi) {
+  // ---- one split: Lomuto, narrated ----
+  let asked = { place: false, never: false, left: false, equal: false };
+  const place = (k) => { placed.push(k); a.mark(k, k, "ok"); a.state({ placed: placed.slice() }); };
+
+  function partition(lo, hi, side, parent, first) {
     const pivot = a.get(hi);
-    a.phase(`a[${lo}..${hi}]`, { about: `The last element, ${a.show(pivot)}, is the pivot. Pointer ${fmt.code("j")} scans the rest; each value ≤ ${a.show(pivot)} is swapped left, to pointer ${fmt.code("i")}. Finally the pivot swaps to ${fmt.code("i")}: its final sorted place.` });
+    const P = chip(hi);
     a.only(lo, hi);
     a.mark(hi, hi, "warn");
-    I.to(lo, { say: false });
-    J.to(lo);
-    a.step(`Partition a[${lo}..${hi}] around the pivot ${a.ref(hi)} = ${a.show(pivot)}: everything ≤ ${a.show(pivot)} will end up left of ${fmt.code("i")}.`, { line: [8, 10] });
+    if (first) {
+      s.line(8, 9);
+      step(`${P}, the last number, is the {term:pivot}: every other number is compared with it.`);
+      I.to(lo);
+      J.to(lo);
+      s.line(10, 11);
+      step(`Marker \`j\` checks each number in turn; \`i\` marks where the next ${repeats ? "small" : "smaller"} one will go.`);
+    } else {
+      I.to(lo);
+      J.to(lo);
+      s.line(8, 11);
+      const o = never ? never() : null;
+      step(o ? o.caption(lo, hi, P) : `${sideOf(side, parent)}: slots ${lo}–${hi}, with pivot ${P}.`, o ? { keep: true } : undefined);
+    }
     let i = lo;
     for (let j = lo; j < hi; j++) {
       J.to(j);
-      if (a.cmp(j, hi, { as: "pivot", line: [11, 12] }) <= 0) {
-        if (i !== j) a.swap(i, j, { line: [13, 14] });
+      const x = chip(j), y = i !== j ? chip(i) : null, v = a.values()[j];
+      const eq = v === pivot;
+      if (sc === "dups" && eq && !asked.equal) {
+        asked.equal = true;
+        s.ask(`${v} is the same as the pivot, ${pivot}. Which side does it go to?`,
+          ["The left, with the smaller numbers", "The right, with the bigger numbers", "Neither: it waits beside the pivot"], 0,
+          { why: `The rule is “smaller than or equal to the pivot goes left”, so every copy of ${pivot} lands on the left side.` });
+      }
+      // the first split says each move in full; later splits repeat the same moves in a short form
+      const small = eq ? `${x} equals ${P}, which counts as small` : `${x} is smaller than ${P}`;
+      const short = repeats ? `${x} is not bigger than ${P}` : small;   // one shape, so the repeats fold
+      if (a.cmp(j, hi) <= 0) {
+        if (i !== j) a.swap(i, j);
         i++;
-        I.to(i, { line: 15 });
+        I.to(i);
+        s.line(11, 15);
+        step(first ? (y ? `${small}: it swaps with ${y} onto the left side; \`i\` steps on.` : `${small}: it is already on the left, so \`i\` steps past it.`)
+          : (y ? `${short}: it swaps left with ${y}.` : `${short}: it stays left.`));
+      } else {
+        s.line(11, 12);
+        step(first ? `${x} is bigger than ${P}, so it stays where it is, on the right side.` : `${x} is bigger than ${P}: it stays right.`);
       }
     }
-    a.flush();
-    a.mark(hi, hi, null);
-    if (i !== hi) a.swap(i, hi, { why: "to put the pivot in its final place", line: [16, 17] });
-    else a.say(`Every element of a[${lo}..${hi - 1}] is ≤ ${a.show(pivot)}, so the pivot is already in its final place.`);
-    place(i);
-    I.hide(); J.hide();
-    a.step(undefined, { line: [16, 18] });
+    // the pivot's final move: the misconception ("it lands in the middle") is asked right before it
+    if (first) {
+      s.phase("Into place", { about: `The pivot swaps into the slot right after the last smaller number. Everything left of it is no bigger and everything right of it is bigger, so it is already where it belongs.` });
+      if (sc === "random" && !asked.place) { asked.place = true; askPlace(lo, hi, i, pivot); }
+      if (sc === "sorted" && !asked.left && i === hi && hi > lo) {
+        asked.left = true;
+        s.ask(`Every number was smaller than ${pivot}. What is left to sort once ${pivot} is placed?`,
+          [`Two groups of about ${Math.floor((hi - lo) / 2)}`, `One group: all ${hi - lo} others`, "Nothing: the line was already sorted"], 1,
+          { why: `${pivot} is the biggest, so all ${hi - lo} others sit on its left and its right side is empty. This split placed just one number.` });
+      }
+    }
+    a.mark(hi, hi, null);   // slot marks stay on their slot: clear the pivot's before it moves
+    const before = i - lo;
+    const fewer = repeats ? `${fmt.plural(before, "number")} no bigger than it` : `${fmt.plural(before, "smaller number")}`;
+    if (i !== hi) {
+      const Y = chip(i);
+      a.swap(i, hi);
+      s.line(16, 18);
+      place(i);
+      I.hide(); J.hide();
+      step(!first ? `${P} swaps with ${Y} into slot ${i}: placed for good.`
+        : before ? `${P} swaps with ${Y} into slot ${i}, after the ${fewer}. Placed for good.`
+          : `${P} swaps with ${Y} into slot ${i}, the front of its group: nothing is smaller. Placed for good.`, { keep: !!first });
+    } else {
+      s.line(16, 18);
+      place(i);
+      I.hide(); J.hide();
+      step(first && sc === "sorted"
+        ? `Nothing is bigger than ${P}: it stays in slot ${i}, and the other ${before} still need sorting.`
+        : first ? `Nothing in this group is bigger than ${P}, so it stays in slot ${i}. Placed for good.`
+          : `Nothing here is bigger than ${P}: it stays in slot ${i}, placed for good.`, { keep: !!first });
+    }
     return i;
   }
 
-  function quicksort(lo, hi) {
+  // the misconception: "the pivot lands in the middle" (three distinct slots when the group allows)
+  function askPlace(lo, hi, q, pivot) {
+    const mid = (lo + hi) >> 1;
+    const right = q === lo ? `Slot ${q}, at the front: nothing is smaller` : `Slot ${q}, right after the ${q - lo} smaller numbers`;
+    const wrong = [[mid, `In the middle, slot ${mid}`], [hi, `Where it is now, slot ${hi}`], [lo, `At the front, slot ${lo}`]]
+      .filter(([k]) => k !== q).filter(([k], ix, all) => all.findIndex(([x]) => x === k) === ix).slice(0, 2).map(([, t]) => t);
+    const options = [wrong[0], right, ...wrong.slice(1)];
+    s.ask(`Where will the pivot, ${pivot}, end up?`, options, 1,
+      { why: `${q - lo} of the other ${hi - lo} numbers are smaller than ${pivot}, so it belongs right after them. The pivot is just the last number, not the middle one.` });
+  }
+
+  // the aha, once: after the first split, a number on the left is never compared with one on the right
+  let never = null;
+  function quicksort(lo, hi, side, parent, first) {
     if (lo > hi) return;
     if (lo === hi) {
       a.only(lo, hi);
       place(lo);
-      a.step(`${a.ref(lo)} = ${a.show(a.values()[lo])} is a partition of one element, so it is already in place.`, { line: [2, 3] });
+      s.line(2, 3);
+      const o = never ? never() : null;
+      step(o ? o.caption(lo, hi, chip(lo)) : `${side ? `${sideOf(side, parent)}: ` : ""}${chip(lo)} is alone in its group, so it is placed.`, o ? { keep: true } : undefined);
       return;
     }
-    const q = partition(lo, hi);
-    quicksort(lo, q - 1);
-    quicksort(q + 1, hi);
+    const q = partition(lo, hi, side, parent, first);
+    const pv = chip(q);
+    if (first) {
+      s.phase("Repeat on each side", { about: "The two sides are sorted on their own, so a number on the left is never compared with one on the right. Each side gets the very same split: {term:recursion}." });
+      if (sc === "random" && q > lo && q < hi) {
+        const x = a.values()[lo], y = a.values()[q + 1], pivot = a.values()[q];
+        let used = false;
+        never = () => {
+          if (used) return null;
+          used = true;
+          s.ask(`${x} is left of ${pivot} and ${y} is right of it. Will ${x} and ${y} ever be compared?`,
+            ["Yes: every pair is compared in the end", "No: the two sides are sorted separately", "Only if one of them becomes a pivot"], 1,
+            { why: `Each side of ${pivot} is sorted on its own, with its own pivots. ${x} and ${y} are never compared: that skipping is the saving.` });
+          s.tag(a.tile(q + 1), "sorted on its own, later");
+          return { caption: (l, h, P) => (l === h
+            ? `Left of ${pv}: ${P} is alone, so it is placed. ${chip(q + 1)} is never compared with it.`
+            : `Left of ${pv}: slots ${l}–${h}, pivot ${P}. ${chip(q + 1)} is never compared with any of them.`) };
+        };
+      }
+    }
+    quicksort(lo, q - 1, "left", pv, false);
+    quicksort(q + 1, hi, "right", pv, false);
   }
 
-  quicksort(0, n - 1);
-  const st = a.stats;
-  a.phase("Sorted", { about: "Every element has been a pivot or a part of one element, so each already sits in its final place. The array is sorted in place, with no extra memory." });
+  s.phase("Split around one", { about: `Like the chosen person in the line, pick one number, the {term:pivot}. Smaller${repeats ? " or equal" : ""} numbers go to its left and bigger ones to its right. This split is a {term:partition}.` });
+  quicksort(0, n - 1, null, null, true);
+
+  // ---- the end: the count against every pair ----
+  const c = a.stats.comparisons;
+  s.phase("Sorted", { about: c === worst
+    ? "Every number was a pivot or alone in a group, so each sits in its place. But no pair was skipped: this input is the slowest case."
+    : `Every number was a pivot or alone in a group, so each sits in its place. Skipping pairs on opposite sides saved ${worst - c} of the ${worst} comparisons.` });
   a.dim(0, n - 1, false);
   a.state({ done: true });
-  const worst = (n * (n - 1)) / 2;
-  a.step(`Sorted with ${fmt.plural(st.comparisons, "comparison")} and ${fmt.plural(st.swaps, "swap")}; the worst case for ${n} elements is ${worst} comparisons.`);
+  s.focus("a");
+  s.line(null);
+  step(c === worst
+    ? `Sorted, but with all ${fmt.plural(worst, "comparison")}: every pair was compared, the slowest case.`
+    : `Sorted with ${fmt.plural(c, "comparison")}, where comparing every pair would take ${worst}.`);
 }

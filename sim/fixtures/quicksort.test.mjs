@@ -69,17 +69,19 @@ test("the figure is deterministic and its narration is precise", () => {
   const r = runFigure(figure, { params: { input: "3 1 2" } });
   const caps = r.rec.captions().map((c) => fmt.ascii(fmt.plain(c)));
   assert.deepEqual(caps, [
-    "3 numbers to sort in place. Quicksort partitions around a pivot, then recurses on each side.",
-    "Partition a[0..2] around the pivot a[2] = 2: everything ≤ 2 will end up left of i.",
-    "Compare a[0] = 3 with pivot a[2] = 2 — 3 > 2.",
-    "Compare a[1] = 1 with pivot a[2] = 2 — 1 < 2, so swap a[0] ↔ a[1], i → 1.",
-    "Swap a[1] = 3 with a[2] = 2 to put the pivot in its final place.",
-    "a[0] = 1 is a partition of one element, so it is already in place.",
-    "a[2] = 3 is a partition of one element, so it is already in place.",
-    "Sorted with 2 comparisons and 2 swaps; the worst case for 3 elements is 3 comparisons.",
+    "3 numbers to sort, like 3 people in a line to order from shortest to tallest.",
+    "The simple way: 2 comparisons find the smallest, 1 the next: 3 in all.",
+    "2, the last number, is the pivot: every other number is compared with it.",
+    "Marker j checks each number in turn; i marks where the next smaller one will go.",
+    "3 is bigger than 2, so it stays where it is, on the right side.",
+    "1 is smaller than 2: it swaps with 3 onto the left side; i steps on.",
+    "2 swaps with 3 into slot 1, after the 1 smaller number. Placed for good.",
+    "Left of 2: 1 is alone, so it is placed. 3 is never compared with it.",
+    "Right of 2: 3 is alone in its group, so it is placed.",
+    "Sorted with 2 comparisons, where comparing every pair would take 3.",
   ]);
-  assert.deepEqual(r.rec.steps.map((x) => x.phase), [null, "a[0..2]", null, null, null, null, null, "Sorted"]);
-  assert.deepEqual(r.rec.steps[3].line, [11, 15]);
+  assert.deepEqual(r.rec.steps.map((x) => x.phase), ["The line", null, "Split around one", null, null, null, "Into place", "Repeat on each side", null, "Sorted"]);
+  assert.deepEqual(r.rec.steps[5].line, [11, 15]);
 });
 
 test("the invariants catch a broken array", () => {
