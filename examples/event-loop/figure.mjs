@@ -393,7 +393,7 @@ function machine(s, cfg, sc, view = {}) {
   const seen = new Set();
   // one plain-English line per chapter, for the explain panel
   const about = (name) => ({
-    Microtasks: starve
+    "Before the next task": starve
       ? "When the stack empties, the loop runs every microtask, even new ones added along the way. Here each chunk adds the next, so timers and repaints must wait."
       : "When the stack empties, the loop runs every waiting microtask: promise callbacks and code after `await`. Microtasks added along the way run too, before any new task.",
     "The timer": "A timer's callback waits in the task queue. The loop takes one task at a time, only once the microtasks are done, so even a 0 ms timer waits its turn.",
@@ -694,7 +694,7 @@ function machine(s, cfg, sc, view = {}) {
   }
   let askAfterScript = null, jobsRun = 0;
   function checkpoint() {
-    if (micro.length) { phase("Microtasks"); began = { what: "a microtask checkpoint", depth: stack.length, micro: micro.length }; }
+    if (micro.length) { phase("Before the next task"); began = { what: "a microtask checkpoint", depth: stack.length, micro: micro.length }; }
     while (micro.length) runJob(micro.shift());
     loop(stack.length ? shown.sub : "idle");
   }
