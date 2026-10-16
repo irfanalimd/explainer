@@ -192,7 +192,7 @@ s.tag(entity, text, { tone })                   // a floating chip for this step
 s.count(name, delta = 1); s.gauge(name, value)  // counters (see `counters` export)
 s.line(from, to = from)                          // active code lines
 s.say(markup)                                    // narration (section 4.4)
-s.ask(question, options, answerIndex)            // predict mode: playback pauses before this step
+s.ask(question, options, answerIndex, { why })   // predict mode: playback pauses before this step; why shows on reveal
 s.phase(name, { about })                         // starts a chapter at the next step; about: 1-2 plain sentences (explain panel)
 s.beat()                                         // ops after this run after the ops before it, in the same step
 s.step(caption, { dur = MOTION.step, t /* sim time, ms */ })   // commits the step

@@ -265,7 +265,7 @@ Every op is recorded into the current step (or the current beat). An id or a han
 | `s.count(name, delta = 1)`, `s.gauge(name, value)` | Counters. A count adds; a gauge sets. |
 | `s.line(from, to = from)` | Lights code lines. The highlight stays until changed; `s.line(null)` clears it. |
 | `s.say(markup)` | Appended to this step's caption. Sim runtimes use it. |
-| `s.ask(question, options, answerIndex)` | Predict mode: playback pauses before this step. Until the answer is revealed (70 % into the step) nothing gives it away: the step's caption shows "…", its tags and new legend keys wait, and the chapter's `about` is withheld from the chapter's start ("Explained once you have made your prediction"), since an about often states the answer. On wide screens the question sits in the explain panel. |
+| `s.ask(question, options, answerIndex, { why })` | Predict mode: playback pauses before this step. Until the answer is revealed (70 % into the step) nothing gives it away: the step's caption shows "…", its tags and new legend keys wait, and the chapter's `about` is withheld from the chapter's start ("Explained once you have made your prediction"), since an about often states the answer. On wide screens the question sits in the explain panel. `why` (optional, recommended) is one plain sentence on why the answer is right; it replaces the card's footer once revealed, and the card stays long enough to read it. Put the question right before the step that disproves a beginner's likely misconception, and make the wrong options real misconceptions. |
 
 ```js
 s.move(rec, `r${hash(word) % R}`, { via: "shuffle" });

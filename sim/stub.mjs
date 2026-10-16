@@ -486,11 +486,12 @@ export function stubScene(params = {}, opts = {}) {
     if (typeof markup !== "string" || !markup.trim()) problem(`say needs non-empty markup`);
     else cur.says.push(markup);
   });
-  s.ask = (question, options, answerIndex) => record("ask", [question, options, answerIndex], () => {
+  s.ask = (question, options, answerIndex, o) => record("ask", o === undefined ? [question, options, answerIndex] : [question, options, answerIndex, o], () => {
     if (typeof question !== "string" || !question.trim()) problem(`ask needs a question`);
     if (!Array.isArray(options) || options.length < 2) problem(`ask needs at least two options`);
     else if (!(Number.isInteger(answerIndex) && answerIndex >= 0 && answerIndex < options.length)) problem(`ask answer index ${answerIndex} is out of range`);
-    cur.ask = { question, options: snap(options), answer: answerIndex };
+    if (o?.why !== undefined && (typeof o.why !== "string" || !o.why.trim())) problem(`ask why must be a non-empty sentence`);
+    cur.ask = { question, options: snap(options), answer: answerIndex, ...(o?.why ? { why: o.why } : {}) };
   });
   s.phase = (name) => record("phase", [name], () => {
     if (typeof name !== "string" || !name.trim()) problem(`phase needs a name`);

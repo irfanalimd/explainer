@@ -1360,5 +1360,9 @@
 .ix-ex-def { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; font-size: 12.5px; line-height: 18px; }
 .ix-ex-def dt { font-weight: 600; color: var(--ix-ink); }
 .ix-ex-def dd { margin: 0; color: var(--ix-ink-muted); text-wrap: pretty; }
+.ix-predict-why { margin: 12px 0 0; font-size: 13.5px; line-height: 20px; color: var(--ix-ink); text-wrap: pretty; }
+.ix-predict-why-label {
+  margin-right: 8px; font: 500 10.5px/20px var(--ix-font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ix-ink-faint);
+}
 .ix-ex-new:empty { display: none; }
 .ix-ex-new .ix-ex-defs { margin-top: 10px; }

@@ -1895,6 +1895,13 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.status.textContent = ok ? "Correct" : "Not quite";
     Q.status.className = `ix-predict-status ix-tone-${ok ? "ok" : "fail"}`;
     Q.foot.textContent = ok ? "Your prediction matches the run." : `The run shows ${String.fromCharCode(65 + right)}.`;
+    // s.ask(..., { why }): the reason the answer is right replaces the foot, and the card stays long enough to read it
+    Q.hold = 4200;
+    if (Q.q.why) {
+      Q.foot.replaceWith(Q.foot = h("p", { class: "ix-predict-why" }, h("span", { class: "ix-predict-why-label", text: "Why" }),
+        h("span", { class: "ix-predict-why-text" }, toDOM(parse(String(Q.q.why)), doc, markupOpts))));
+      Q.hold += 300 * toText(parse(String(Q.q.why))).split(/\s+/).filter(Boolean).length;
+    }
     Q.close.hidden = false;
     Q.revealAt = now();
     if (Q.step >= 0) revealedAsks.add(Q.step);
@@ -1907,7 +1914,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!Q.q || !Q.revealed) return;
     const t = now();
     if (!S.playing || scrubbing) Q.revealAt = Math.max(Q.revealAt, t - 2400);
-    else if (t - Q.revealAt > 4200) hidePredict();
+    else if (t - Q.revealAt > (Q.hold ?? 4200)) hidePredict();
   }
   function hidePredict() {
     if (!Q.q) return;

@@ -350,7 +350,11 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
     gauge(name, value) { counters[name] = value; annotate({ op: "gauge", name, value }); },
     line(from, to = from) { line = from === null || from === undefined ? null : [from, to]; annotate({ op: "line", line }); },
     say(markup) { if (markup !== undefined && markup !== null && markup !== "") pending.says.push(String(markup)); },
-    ask(question, options = [], answer = 0) { pending.ask = Object.freeze({ question: String(question), options: Object.freeze(options.map(String)), answer }); },
+    // predict: `why` (optional) is one plain sentence on why the answer is right, shown once the answer is revealed
+    ask(question, options = [], answer = 0, o = {}) {
+      const why = o?.why === undefined || o?.why === null || o?.why === "" ? undefined : String(o.why);
+      pending.ask = Object.freeze({ question: String(question), options: Object.freeze(options.map(String)), answer, ...(why ? { why } : {}) });
+    },
     // a chapter; `about` is an optional plain-English line on what the chapter does and why (the explain panel shows it)
     phase(name, o) {
       pending.phase = String(name);
