@@ -16,7 +16,9 @@ The reader should leave knowing:
   and how is it fast?"
 - **Picture:** a building where each program has its own apartment numbers. The building directory, one per
   program, is the page table; the real room is the frame; the receptionist's sticky notes of recent lookups are the
-  TLB; a room whose boxes went to storage is a page out on disk (a page fault). The first chapter's about says it.
+  TLB; a room whose contents went to storage is a page out on disk (a page fault). The first chapter's about says it,
+  and also that addresses are written in hex, 4 bits a digit. Captions name the tables first, second, third and
+  last (Intel numbers them 4 down to 1); the PML4/PDPT/PD/PT names stay on the table plates.
 - **Ladder** (the main story): Apartment numbers → Sticky notes → The directory → The real room → Same page again
   (the aha: 1 cycle) → Another program (the same address, a different room).
 - **Misconceptions, predicted first:** "every read walks the directory" (before the TLB hit) and "an address is one
@@ -53,9 +55,11 @@ The reader should leave knowing:
     - PCIDs (Linux uses them to keep TLB entries across a switch; here the CR3 write flushes them) and the
       scheduler itself: program B simply runs next, with its own tables mapping the same three virtual pages
 - **Scenarios:**
-  - **A new address** (the default): a cold 4-level walk (961 cycles). Then the next byte hits the TLB (1 cycle), and
+  - **A new address** (the default): a cold 4-level walk (961 cycles, every line from DRAM: the worst case, and the
+    words say so; real MMUs cache upper-level entries). Then the next byte hits the TLB (1 cycle), and
     the scan runs on to the end of the page with 438 more hits: 440 reads in 1 400 cycles. Then the OS switches to
-    program B: CR3 gets B's PML4 and the TLB is flushed (a CR3 write without PCIDs drops every non-global entry).
+    program B: CR3 gets B's PML4 and the TLB is flushed (a CR3 write without PCIDs drops every non-global entry; the
+    words call this "this CPU" and the about says most real CPUs tag notes by program instead).
     B reads the same virtual address, misses, walks its own tables (4 × 240 cycles) and reads a byte from a
     different frame, while A's byte stays in A's frame. Two predict questions.
   - **A recent address**: the page was used a moment ago. The frame comes straight from the TLB and the page tables
