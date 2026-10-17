@@ -1,21 +1,13 @@
 // GLSL ES 3.00 sources for every pass. Shared chunks are composed into programs by the renderer.
 // Instance data for slabs lives in a float texture (26 texels per slab), see pack.mjs for the layout.
-import { LIGHT } from "../tokens.mjs";
-import { norm3, cross3 } from "./math.mjs";
+import { STUDIO } from "../../look.mjs";
+import { MATERIAL } from "../../../tokens.mjs";
+
+const EDGE = ["matte", "ceramic", "glass", "metal"].map((k) => (MATERIAL[k].edge ?? 0).toFixed(3)).join(", ");
 
 const f = (x) => (Number.isInteger(x) ? x.toFixed(1) : String(x));
 const v3 = (a) => `vec3(${a.map(f).join(", ")})`;
-
-// studio environment geometry (directions toward each softbox), derived from the key light token
-const KEY = norm3(LIGHT.key.dir);
-const KEY_X = norm3(cross3([0, 0, 1], KEY));
-const KEY_Y = cross3(KEY, KEY_X);
-const STRIP = norm3([0, 0.8, 0.6]);          // a long strip softbox behind the camera, above the horizon
-const STRIP_Y = norm3(cross3(STRIP, [1, 0, 0]).map((x) => -x));
-const SIDE = norm3([0.74, -0.42, 0.52]);      // a side softbox on the fill side (catch-lights on right bevels)
-const BACK = norm3([0, -0.72, 0.69]);         // a broad soft panel behind the set: the satin gradient on tops
-const SIDE_X = norm3(cross3([0, 0, 1], SIDE));
-const SIDE_Y = cross3(SIDE, SIDE_X);
+const { KEY, KEY_X, KEY_Y, STRIP, STRIP_Y, SIDE, SIDE_X, SIDE_Y, BACK } = STUDIO;
 
 export const HEAD = `#version 300 es
 precision highp float;
@@ -259,6 +251,7 @@ vec3 studioEnv(vec3 r, float rough) {
 
 // --- slab surface ----------------------------------------------------------------------------------------
 export const slabFS = HEAD + INST + SDF + LIGHTING + `
+const float EDGE[4] = float[4](${EDGE});
 in vec3 vWorld; in vec3 vNormal; in vec3 vLocal; in vec3 vLocalN; flat in int vId;
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oEmis;
@@ -343,14 +336,14 @@ void main() {
       vec2 uvPerU = (uvr.zw - uvr.xy) / (2.0 * qd.zw);
       float texPerU = uvPerU.x * uAtlasSize;
       float sdPx = texPerU * uPerPx / (2.0 * uSpreadPx);        // SDF units per screen pixel
-      float aa = max(sdPx * 0.85, 0.003);
+      float aa = clamp(sdPx * 0.85, 0.003, 0.2);
       float sd = textureLod(uAtlas, uv, 0.0).r;
       // dark ink on a bright body: linear-light coverage thins dark strokes to a grey hairline, so small
       // dark text is dilated (stem darkening, up to ~0.4 px) and blended in sRGB below
       float darkInk = ex.x > 0.5 ? 0.0 : smoothstep(0.03, 0.2, luma(alb) - luma(col.rgb));
       inkZone = max(inkZone, darkInk * col.a);
       float smallTxt = 1.0 - smoothstep(18.0, 54.0, 2.0 * qd.w / uPerPx);
-      float grow = darkInk * min(sdPx * (0.18 + 0.24 * smallTxt), 0.12);
+      float grow = darkInk * min(sdPx * (0.05 + 0.15 * smallTxt), 0.07);
       float a = smoothstep(0.5 - grow - aa, 0.5 - grow + aa, sd) * col.a * faceMask;
       // clip box for rolling values (y window in face coords)
       a *= (1.0 - smoothstep(ex.z - uPerPx, ex.z, abs(lp.y - ex.w)));
@@ -368,9 +361,7 @@ void main() {
         alb = mix(alb, c, a);
       } else {
         // light ink keeps linear coverage (it already reads bold); dark ink mixes in sRGB, as a print would
-        vec3 linMix = mix(alb, col.rgb, a);
-        vec3 srgbMix = toLin(mix(toSrgb(alb), toSrgb(col.rgb), a));
-        alb = mix(linMix, srgbMix, darkInk);
+        alb = toLin(mix(toSrgb(alb), toSrgb(col.rgb), a));   // ink mixes in sRGB, as a print would
       }
       inkA = max(inkA, a);
     }
@@ -460,6 +451,9 @@ void main() {
   col += uKey * uNorm * vis * max(NdK, 0.0) * D * F * M.y * 0.25 * specTint * (1.0 - 0.85 * inkA);
   // material rim: a fresnel lift on silhouettes (environment)
   col += uEnvTint * uEnvGain.x * pow(1.0 - NdV, 4.0) * M.z * 0.5 * ao;
+  // the machined chamfer: a fine catch-light along the top bevel (dark studio only)
+  float chamfer = smoothstep(0.3, 0.7, vLocalN.z) * (1.0 - smoothstep(0.86, 0.985, vLocalN.z)) * step(h - bev - 0.02, vLocal.z);
+  if (uTheme == 0) col += uEnvTint * chamfer * EDGE[min(matId, 3)] * (0.55 + 0.45 * vis) * ao;
 
   // attention rim on the bevel and silhouette
   float rim = t5.x;
@@ -667,7 +661,7 @@ void main() {
     if (rel.x < 0.0 || rel.y < 0.0 || rel.x > 1.0 || rel.y > 1.0) discard;
     vec2 uv = mix(vD.xy, vD.zw, rel);
     vec2 uvPerU = (vD.zw - vD.xy) / (2.0 * hs);
-    float aa = max(uvPerU.x * uAtlasSize * pxU / (2.0 * uSpreadPx) * 0.85, 0.003);
+    float aa = clamp(uvPerU.x * uAtlasSize * pxU / (2.0 * uSpreadPx) * 0.85, 0.003, 0.2);   // far text keeps its weight
     float sd = textureLod(uAtlas, uv, 0.0).r;
     a = smoothstep(0.5 - aa, 0.5 + aa, sd) * vC.a;
     if (vE.x > 0.5) {

@@ -8,7 +8,8 @@
 //   0 bottom centre   1 bottom edge (normal down)   2 side foot (normal out)
 //   3 bevel (phi 0 = vertical side .. pi/2 = top)   4 well lip (phi 0 = top face .. pi/2 = vertical wall)
 //   5 well wall foot (normal in)   6 well floor edge (normal up)   7 well floor centre
-// Without a well the hole collapses to a point at the top face, all well rings become degenerate.
+// Without a well the hole collapses to a point at the top face, all well rings become degenerate: the first
+// `solidCount` indices (up to the top face's fan into that point) draw such a slab exactly, with no empty triangles.
 // Triangles are CCW seen from outside (right-handed world maths).
 
 export const RING = { BOTTOM_C: 0, BOTTOM_E: 1, FOOT: 2, BEVEL: 3, LIP: 4, WALL: 5, FLOOR_E: 6, FLOOR_C: 7 };
@@ -41,6 +42,7 @@ export function slabTemplate({ corner = 8, bevel = 6, lip = 3 } = {}) {
     }
   }
   const idx = [];
+  let solidCount = 0;
   for (let r = 0; r + 1 < rings.length; r++) {
     const a = rings[r][0], b = rings[r + 1][0];
     // coincident rings (hard edges) have no area between them
@@ -52,7 +54,8 @@ export function slabTemplate({ corner = 8, bevel = 6, lip = 3 } = {}) {
       else if (b === RING.FLOOR_C) idx.push(ai, aj, bj);          // fan to the well centre, facing up
       else idx.push(ai, aj, bj, ai, bj, bi);
     }
+    if (a === RING.BEVEL && b === RING.LIP) solidCount = idx.length;
   }
   const indices = rings.length * M > 65535 ? new Uint32Array(idx) : new Uint16Array(idx);
-  return { plan, prof, indices, vertexCount: rings.length * M, ringSize: M, rings: rings.length };
+  return { plan, prof, indices, solidCount, vertexCount: rings.length * M, ringSize: M, rings: rings.length };
 }

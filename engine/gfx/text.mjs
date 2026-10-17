@@ -3,14 +3,17 @@
 // (shelf packer, LRU eviction for strings that come and go, like counters). The renderer samples it with
 // screen-space AA, so labels stay crisp at every zoom.
 //
-// Browser-only for rasterising (2D canvas); the packing logic is plain JS.
-import { TYPE } from "../tokens.mjs";
+// Browser-only for rasterising (2D canvas); the packing logic is plain JS. The backend owns the GPU texture
+// (R8, size x size) and hands attach() a function that uploads one rectangle of SDF bytes into it.
+import { TYPE, WORLD_TYPE } from "../tokens.mjs";
 import { sdfFromAlpha } from "./edt.mjs";
 
 export const ATLAS = { size: 2048, px: 64, spread: 8 };
+// the weights the world prints in (Geist is variable, so any weight in WORLD_TYPE loads from the one face)
+const weights = (font) => [...new Set([400, 500, 600, ...Object.values(WORLD_TYPE).filter((t) => t.font === font).map((t) => t.weight)])];
 const FACES = [
-  [TYPE.sans, [400, 500, 600]],
-  [TYPE.mono, [400, 500, 600]],
+  [TYPE.sans, weights("sans")],
+  [TYPE.mono, weights("mono")],
 ];
 
 /** A shelf allocator whose rows can free and reuse gaps. */
@@ -65,7 +68,7 @@ export class TextAtlas {
     this.metrics = new Map();
     this.fontsOk = false;          // the real faces are loaded
     this.generation = 0;           // bumps when faces arrive late: everything re-rasterises
-    this.gl = null; this.tex = null;
+    this.upload = null;
     this.budgetMs = Infinity;      // set a finite budget (ms per frame) to spread rasterising over frames
     this.warm = 3;                 // the first frames rasterise everything they need
     this.unbounded = false;
@@ -104,15 +107,9 @@ export class TextAtlas {
     }
   }
 
-  attach(gl) {
-    this.gl = gl;
-    this.tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.tex);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R8, this.size, this.size);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  /** upload(x, y, w, h, bytes): write an R8 rectangle into the backend's atlas texture. */
+  attach(upload) {
+    this.upload = upload;
     this.invalidate();
   }
 
@@ -154,7 +151,7 @@ export class TextAtlas {
    * Returns null while fonts load or when the budget is spent (the label simply appears next frame).
    */
   get(text, font = "mono", weight = 500, tracking = 0) {
-    if (!this.gl || !this.fontsOk && !this.fallbackOk()) return null;
+    if (!this.upload || !this.fontsOk && !this.fallbackOk()) return null;
     text = String(text);
     if (!text.length) return null;
     const key = font + "|" + weight + "|" + tracking + "|" + text;
@@ -200,10 +197,7 @@ export class TextAtlas {
     const alpha = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) alpha[i] = img[i * 4 + 3];
     const sdf = sdfFromAlpha(alpha, w, h, this.spread);
-    const gl = this.gl;
-    gl.bindTexture(gl.TEXTURE_2D, this.tex);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    gl.texSubImage2D(gl.TEXTURE_2D, 0, slot.x, slot.y, w, h, gl.RED, gl.UNSIGNED_BYTE, sdf);
+    this.upload(slot.x, slot.y, w, h, sdf);
     const S = this.size;
     return {
       key, item: slot.item, x: slot.x, y: slot.y, w, h, used: this.frame,

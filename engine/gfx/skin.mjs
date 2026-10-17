@@ -6,7 +6,7 @@
 // The scene decides where things are and what state they are in; the skin adds the purely visual
 // offsets: z += MOTION.litRise * lit, emission from flash, rim from lit, LED blinking from time, key index
 // to colour, tone to colour.
-import { PALETTE, SIZE, MOTION, ACCENT, GLOW, keyColor } from "../tokens.mjs";
+import { PALETTE, SIZE, MOTION, ACCENT, GLOW, WORLD_TYPE, keyColor, worldCase } from "../tokens.mjs";
 
 const num = (v, d) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
@@ -59,10 +59,11 @@ const at = (p, dx, dy) => {
   return [p.x + c * dx - s * dy, p.y + s * dx + c * dy];
 };
 
-// common attention / state styling shared by solids
-function attention(pose, slab, theme, { keyed, body }) {
+// common attention / state styling shared by solids; `calm` styles the pose as if it were neither lit nor
+// flashing (a housing carries those on its rim and accent instead)
+function attention(pose, slab, theme, { keyed, body }, calm = false) {
   const P = PALETTE[theme];
-  const lit = clamp(num(pose.lit, 0), 0, 1), flash = clamp(num(pose.flash, 0), 0, 1), dim = clamp(num(pose.dim, 0), 0, 1);
+  const lit = calm ? 0 : clamp(num(pose.lit, 0), 0, 1), flash = calm ? 0 : clamp(num(pose.flash, 0), 0, 1), dim = clamp(num(pose.dim, 0), 0, 1);
   slab.z = num(slab.z, 0) + MOTION.litRise * lit;
   if (lit > 0) slab.rim = Math.max(num(slab.rim, 0), lit);
   let e = num(slab.emissive, 0);
@@ -128,22 +129,27 @@ function housing(p, dl, ctx) {
     depth: SIZE.well.depth, lip: SIZE.well.lip, color: P.well,
   };
   const body = vname === "store" || vname === "client" ? P.housingAlt : P.housing;
+
   const top = -d / 2, trayTop = tray.y - tray.d / 2, trayBottom = tray.y + tray.d / 2;
   const headerY = round ? (top + trayTop) / 2 : top + Math.min(H.header, Math.max(10, trayTop - top)) / 2;
-  const slab = { id: p.id, x: p.x, y: p.y, z, w, d, h, r, bevel, color: body, material: "matte", well };
+  // farColor: white ceramic seen from far off (a scale field) would melt into the white studio; the packer greys it
+  // toward this as it shrinks to a few px on screen
+  const slab = { id: p.id, x: p.x, y: p.y, z, w, d, h, r, bevel, color: body, material: "matte", well, farColor: P.farHousing };
 
   const pad = H.pad + (round ? 0 : Math.max(0, r - H.pad) * 0.35);
   const ledR = H.led;
   const labels = [];
+  // the title names the thing (Geist, the HUD's family); the sub-label is data (an address, a count) in Geist Mono
+  const T = WORLD_TYPE.title, Sb = WORLD_TYPE.sub;
   if (p.title) {
-    labels.push(round
-      ? { text: p.title, font: "sans", weight: 600, size: H.title, upper: false, tracking: -0.01, engrave: false, color: P.ink, align: "center", dx: 0, dy: headerY }
-      : { text: p.title, font: "sans", weight: 600, size: H.title, upper: false, tracking: -0.01, engrave: false, color: P.ink, align: "left", dx: -w / 2 + pad, dy: headerY });
+    const t = { text: p.title, font: T.font, weight: T.weight, size: T.size, tracking: T.tracking, color: P.ink, dy: headerY };
+    labels.push(round ? { ...t, align: "center", dx: 0 } : { ...t, align: "left", dx: -w / 2 + pad });
   }
   if (p.sub) {
+    const t = { text: p.sub, font: Sb.font, weight: Sb.weight, size: Sb.size, tracking: Sb.tracking, color: P.inkMuted };
     labels.push(round
-      ? { text: p.sub, font: "mono", weight: 500, size: H.sub, engrave: false, color: P.inkMuted, align: "center", dx: 0, dy: (trayBottom + d / 2) / 2 }
-      : { text: p.sub, font: "mono", weight: 500, size: H.sub, engrave: false, color: P.inkMuted, align: "right", dx: w / 2 - pad - (p.led ? ledR * 2 + 6 : 0), dy: headerY });
+      ? { ...t, align: "center", dx: 0, dy: (trayBottom + d / 2) / 2 }
+      : { ...t, align: "right", dx: w / 2 - pad - (p.led ? ledR * 2 + 6 : 0), dy: headerY });
   }
   assignLabels(slab, labels);
 
@@ -155,7 +161,7 @@ function housing(p, dl, ctx) {
     else slab.meter = { x: round ? 0 : w * 0.12, y: round ? (trayBottom + d / 2) / 2 + (p.sub ? 7 : 0) : headerY, w: round ? w * 0.34 : w * 0.26, d: SIZE.meter.h, value: clamp(p.meter, 0, 1), color: mc };
   }
   const lit = clamp(num(p.lit, 0), 0, 1), flash = clamp(num(p.flash, 0), 0, 1);
-  attention({ ...p, lit: 0, flash: 0 }, slab, theme, { keyed: false, body });
+  attention(p, slab, theme, { keyed: false, body }, true);
   // status accent: a thin light strip along the header's bottom edge (a ring round a round well) plus a faint
   // matching rim, driven by led (crossfading ledPrev -> led over ledMix), else a status tone
   const acc = accentOf(p, P, time, lit);
@@ -191,7 +197,7 @@ function housing(p, dl, ctx) {
     dl.slab({
       id: p.id, x: lx, y: ly, z: z + h - 0.5, w: ledR * 2, d: ledR * 2, h: 1.5, r: ledR, bevel: 0.7,
       color: col, material: "ceramic", emissive: e, emissiveColor: col, light: light > 0.5 ? light : 0,
-      opacity: p.opacity,
+      opacity: p.opacity, minPx: 1.4,       // from afar (a scale field) it stays a readable dot: the packer grows it
     });
   }
   // chips: fine pins printed on the board along every edge
@@ -265,8 +271,9 @@ function tileLike(p, dl, ctx) {
     if (val == null && typeof key === "string" && key.includes("·")) { const [a, b] = key.split("·"); key = a.trim(); val = b.trim(); }
     if (typeof valOut === "string" && valOut.includes("·")) valOut = valOut.split("·")[1].trim();
     const m = Math.max(5.5, S.r + 0.5);
-    if (key != null && key !== "") labels.push({ text: String(key), font: "mono", weight: 500, size, color: tc.ink, align: "left", dx: -w / 2 + m, dy: 0 });
-    if (val != null && val !== "") labels.push(...rollingLabels({ font: "mono", weight: 400, size, color: tc.ink, opacity: 0.78, align: "right", dx: w / 2 - m, dy: 0 },
+    const K = WORLD_TYPE.key, Vt = WORLD_TYPE.value;
+    if (key != null && key !== "") labels.push({ text: String(key), font: K.font, weight: K.weight, size, color: tc.ink, align: "left", dx: -w / 2 + m, dy: 0 });
+    if (val != null && val !== "") labels.push(...rollingLabels({ font: Vt.font, weight: Vt.weight, size, color: tc.ink, opacity: Vt.opacity, align: "right", dx: w / 2 - m, dy: 0 },
       String(val), valOut == null ? null : String(valOut), p.roll, size));
   } else {
     const hasSub = p.sub != null && p.sub !== "" && S.sub;
@@ -285,6 +292,54 @@ function tileLike(p, dl, ctx) {
     slab.ping = { flash: clamp(num(p.flash, 0), 0, 1), lit: clamp(num(p.lit, 0), 0, 1), color: tc.keyed ? tc.body : PALETTE[theme].lit, z: num(p.z, 0) };
   }
   dl.slab(slab);
+}
+
+// --- scale fields -------------------------------------------------------------------------------------------
+// A scale field (scene/scale.mjs) is one pose for thousands of copies of one machine: their places (xy) and a state
+// row each (state, FIELD_ROW numbers: z, led, ledPrev, ledMix, page z, page flash; NaN z: not risen). Each machine is
+// dressed as a housing of the run's silhouette with its piece of input in the tray, and its slabs are kept with the
+// row that made them, remade only when it changes (rising, a task finishing, the work wave). They go to the packer
+// in dl.fields (with a version per machine, so it can cache their packed form too); their lights and ticks go to the
+// DrawList as usual. Field machines never fail, so nothing here depends on time.
+const FIELD_ROW = 6;
+const fieldMemo = new WeakMap();      // field.xy -> { theme, rows, version, slabs, extras }
+const sameNum = (a, b) => a === b || (a !== a && b !== b);
+
+function field(p, dl, ctx) {
+  const n = p.n, rows = p.state;
+  let m = fieldMemo.get(p.xy);
+  if (!m || m.theme !== ctx.theme || m.rows.length !== rows.length) {
+    m = { theme: ctx.theme, rows: new Float64Array(rows.length).fill(NaN), version: new Uint32Array(n), slabs: new Array(n).fill(null), extras: new Array(n).fill(null) };
+    fieldMemo.set(p.xy, m);
+  }
+  for (let k = 0, o = 0; k < n; k++, o += FIELD_ROW) {
+    let same = true;
+    for (let j = 0; j < FIELD_ROW && same; j++) same = sameNum(rows[o + j], m.rows[o + j]);
+    if (!same) {
+      m.rows.set(rows.subarray(o, o + FIELD_ROW), o);
+      m.version[k]++;
+      dressMachine(p, k, rows, o, m, ctx);
+    }
+    const ex = m.extras[k];
+    if (ex) { for (const l of ex.lights) dl.light(l); for (const t of ex.ticks) dl.tick(t); }
+  }
+  (dl.fields ??= []).push({ n, version: m.version, slabs: m.slabs, memo: m });
+}
+// one field machine's slabs (and any lights or ticks) from its state row, through the housing and page skins
+function dressMachine(p, k, rows, o, m, ctx) {
+  if (rows[o] !== rows[o]) { m.slabs[k] = null; m.extras[k] = null; return; }
+  const { w, d, h, variant } = p.like, x = p.xy[2 * k], y = p.xy[2 * k + 1];
+  const out = { slabs: [], lights: [], ticks: [], slab(s) { this.slabs.push(s); }, light(l) { this.lights.push(l); }, tick(t) { this.ticks.push(t); } };
+  const pose = { id: null, kind: "housing", variant, x, y, z: rows[o], w, d, h, title: null, sub: null, led: p.leds[rows[o + 1]], opacity: 1, lit: 0, flash: 0, dim: 0 };
+  if (rows[o + 2] >= 0) { pose.ledPrev = p.leds[rows[o + 2]]; pose.ledMix = rows[o + 3]; }
+  housing(pose, out, ctx);
+  const pz = rows[o + 4];
+  if (pz === pz) {
+    const pg = p.page;
+    tileLike({ id: null, kind: "page", x, y: y + pg.dy, z: pz, w: pg.w, d: pg.d, h: pg.h, text: "", tone: "busy", opacity: 1, lit: 0, flash: rows[o + 5], dim: 0 }, out, ctx);
+  }
+  m.slabs[k] = out.slabs;
+  m.extras[k] = out.lights.length || out.ticks.length ? { lights: out.lights, ticks: out.ticks } : null;
 }
 
 function packet(p, dl, ctx) {
@@ -327,10 +382,16 @@ export function inkOn(hexc, P) {
   const dark = P.keyInk ?? "#0B0C0F";
   return contrast(L, relLum(dark)) >= contrast(L, 1) ? dark : "#FFFFFF";
 }
+const LUM = new Map();      // token colours repeat endlessly: memoise
 function relLum(hexc) {
+  let L = LUM.get(hexc);
+  if (L !== undefined) return L;
   const n = parseInt(String(hexc).slice(1), 16);
   const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-  return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  if (LUM.size > 4096) LUM.clear();
+  LUM.set(hexc, L);
+  return L;
 }
 const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 
@@ -483,7 +544,8 @@ function lane(p, dl, ctx) {
   if (name) {
     // the scene reserves room left of the rail and says where the name starts (labelAt)
     const [nx, ny] = p.labelAt ?? [left - 12, y0];
-    dl.text({ x: nx, y: ny, text: name, font: "mono", weight: 600, size: L.label + 0.5, upper: true, tracking: 0.06, align: p.labelAt ? "left" : "right", color: P.inkMuted, opacity: op, engrave: true });
+    const T = WORLD_TYPE.lane;
+    dl.text({ x: nx, y: ny, text: worldCase(name, T), font: T.font, weight: T.weight, size: T.size, tracking: T.tracking, align: p.labelAt ? "left" : "right", color: P.inkMuted, opacity: op });
   }
   if (p.labels) {
     p.labels.forEach((lb, k) => dl.text({ x: lb.x, y: lb.y, text: lb.text, font: "mono", weight: 400, size: 6, align: k === 0 ? "left" : "center", color: P.inkFaint, opacity: op }));
@@ -535,9 +597,10 @@ function zone(p, dl, ctx) {
     borderStyle: fail ? "dashed" : "solid", borderWidth: fail ? 1.1 : 0.9, title: around ? undefined : title, opacity: p.opacity,
   });
   if (around && title) {
+    const T = WORLD_TYPE.zone;
     dl.text({
-      x: p.x + p.w / 2 - SIZE.zone.r * 0.7, y: p.y - p.d / 2 + SIZE.zone.title * 0.95, text: String(title), font: "mono", weight: 600,
-      size: SIZE.zone.title, color: fail ? withAlpha(P.fail, 0.9) : tc ?? P.engrave, align: "right", upper: true, tracking: 0.1,
+      x: p.x + p.w / 2 - SIZE.zone.r * 0.7, y: p.y - p.d / 2 + T.size * 0.95, text: worldCase(title, T), font: T.font, weight: T.weight,
+      size: T.size, tracking: T.tracking, color: fail ? withAlpha(P.fail, 0.9) : tc ?? P.inkMuted, align: "right",
       opacity: num(p.opacity, 1),
     });
   }
@@ -554,11 +617,13 @@ function text(p, dl, ctx) {
   const P = PALETTE[theme];
   const v = TEXT_VARIANT[p.variant] ?? TEXT_VARIANT.floor;
   const faint = p.tone === "ghost" || p.tone === "faint" || p.tone === "idle";
-  const col = (p.tone !== "neutral" && toneCol(theme, p.tone === "key" ? null : p.tone, p.key)) || (faint ? P.inkFaint : P[v.ink]);
+  // on white ceramic, muted floor print washes out with distance: there it is set in ink, a little transparent
+  const muted = theme === "light" && v.ink === "inkMuted";
+  const col = (p.tone !== "neutral" && toneCol(theme, p.tone === "key" ? null : p.tone, p.key)) || (faint ? P.inkFaint : muted ? P.ink : P[v.ink]);
   dl.text({
     id: p.id, x: p.x, y: p.y, z: p.z, text: String(p.text ?? ""), font: p.font ?? "mono", weight: num(p.weight, v.weight),
     size: num(p.size, v.size), color: col, align: p.align ?? (p.variant === "label" ? "left" : "center"), baseline: p.baseline, yaw: p.yaw,
-    opacity: num(p.opacity, 1) * (1 - 0.5 * num(p.dim, 0)), upper: p.upper, tracking: p.tracking,
+    opacity: num(p.opacity, 1) * (1 - 0.5 * num(p.dim, 0)) * (muted && !faint ? 0.78 : 1), upper: p.upper, tracking: p.tracking,
   });
 }
 
@@ -573,7 +638,8 @@ function bracket(p, dl, ctx) {
   const pts = [[x0, y - hook], [x0, y - rr], [x0 + rr * 0.3, y - rr * 0.3], [x0 + rr, y], [x1 - rr, y], [x1 - rr * 0.3, y - rr * 0.3], [x1, y - rr], [x1, y - hook]];
   dl.groove({ id: p.id, z: num(p.z, 0) + 0.06, points: pts, width: 0.85, style: "print", color: col, opacity: 0.9 * op });
   const name = p.text ?? p.label ?? p.title;
-  if (name) dl.text({ z: num(p.z, 0) + 0.06, x: (x0 + x1) / 2, y: y + SIZE.bracket.dy, text: name, font: "mono", weight: 600, size: SIZE.bracket.label, upper: true, tracking: SIZE.bracket.tracking, color: col, opacity: op });
+  const T = WORLD_TYPE.bracket;
+  if (name) dl.text({ z: num(p.z, 0) + 0.06, x: (x0 + x1) / 2, y: y + SIZE.bracket.dy, text: worldCase(name, T), font: T.font, weight: T.weight, size: T.size, tracking: T.tracking, color: col, opacity: op });
 }
 
 function pointer(p, dl, ctx) {
@@ -605,7 +671,7 @@ function container(p, dl, ctx) {
     id: p.id, x: p.x, y: p.y, z: num(p.z, 0), w: p.w, d: p.d, h: num(p.h, S.h), r: Math.min(S.r, Math.min(p.w, p.d) / 2), bevel: 0.9,
     color: P.housingAlt, material: "matte",
   };
-  attention({ ...p, lit: 0, flash: 0 }, s, theme, { keyed: false, body: s.color });
+  attention(p, s, theme, { keyed: false, body: s.color }, true);
   dl.slab(s);
 }
 
@@ -613,7 +679,7 @@ const KINDS = {
   housing, container, tile: tileLike, record: tileLike, bit: tileLike, page: tileLike, packet,
   trace: (p, dl, ctx) => trace(p, dl, ctx, SIZE.trace.w),
   bus,
-  lane, mark, zone, text, bracket, pointer, playhead,
+  lane, mark, zone, text, bracket, pointer, playhead, field,
 };
 
 /**
@@ -623,6 +689,7 @@ const KINDS = {
  */
 export function skin(poses, dl, opts = {}) {
   const ctx = { theme: opts.theme === "light" ? "light" : "dark", time: num(opts.time, 0), pxPerUnit: num(opts.pxPerUnit, 1) };
+  dl.fields = null;
   for (const p of poses ?? []) {
     if (!p || num(p.opacity, 1) <= 0) continue;
     const fn = KINDS[p.kind];
