@@ -6,19 +6,19 @@
 
 const CSS = `
 .ix-fold-line { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 20px;
-  font: 500 11px/16px var(--ix-font-mono); letter-spacing: 0.04em; color: var(--ix-ink-faint);
+  font: 500 var(--ix-fs-xs, 12px)/16px var(--ix-font-sans); color: var(--ix-ink-faint);
   font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap;
   opacity: 0; transition: opacity var(--ix-dur-slow, 220ms) var(--ix-ease, ease); }
 .ix-fold-line.ix-show { opacity: 1; }
 .ix-fold-line[hidden] { display: none; }
 .ix-fold-line .ix-fold-icon { display: inline-flex; color: var(--ix-ink-muted); }
 .ix-fold-line .ix-fold-n { color: var(--ix-ink-muted); }
-.ix-fold-line .ix-skip-text { font: 450 12.5px/18px var(--ix-font-sans); letter-spacing: 0; color: var(--ix-ink-muted); }
+.ix-fold-line .ix-skip-text { font: 400 var(--ix-fs-xs, 12px)/16px var(--ix-font-sans); color: var(--ix-ink-muted); }
 .ix[data-size="phone"] .ix-fold-line .ix-skip-long { display: none; }
-.ix-fold-line .ix-skip-btn { pointer-events: auto; border: 0; padding: 2px 9px; height: 22px; border-radius: 11px; cursor: pointer;
-  font: 500 12px/18px var(--ix-font-sans); color: var(--ix-ink); background: rgb(var(--ix-ink-rgb) / 0.08);
-  box-shadow: inset 0 0 0 1px rgb(var(--ix-ink-rgb) / 0.1); }
-.ix-fold-line .ix-skip-btn:hover { background: rgb(var(--ix-ink-rgb) / 0.13); }
+.ix-fold-line .ix-skip-btn { pointer-events: auto; border: 0; padding: 0 12px; height: 24px; border-radius: 999px; cursor: pointer;
+  font: 500 var(--ix-fs-xs, 12px)/24px var(--ix-font-sans); color: var(--ix-ink); background: none;
+  box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
+.ix-fold-line .ix-skip-btn:hover { background: var(--ix-hover); }
 .ix-fold-line .ix-skip-btn:focus-visible { outline: var(--ix-ring); outline-offset: 2px; }
 .ix-caption > .ix-fold-line { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); }
 .ix-explain .ix-fold-line { grid-column: 2; justify-content: flex-start; margin-top: 6px; flex-wrap: wrap; row-gap: 4px; }

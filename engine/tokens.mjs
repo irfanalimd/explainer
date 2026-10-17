@@ -74,6 +74,7 @@ export const PALETTE = {
 
     housing: "#FFFFFF",            // white ceramic
     housingAlt: "#F5F7FB",
+    farHousing: "#C9D0DC",         // a housing a few px wide (a scale field) greys toward this so it holds on white
     well: "#EEF1F7",
     tile: "#FFFFFF",
     tileInk: "#17181C",
@@ -145,11 +146,26 @@ export const SIZE = {
   gutter: 84,    // default gap between columns / boards
 };
 
+// World type (DESIGN.md 7): the HUD's family on the solids. Geist names things (housing titles, zone and lane labels),
+// Geist Mono prints data (keys, values, addresses, ids). Sizes in u; sentence case, no tracked caps.
+//   case "sentence": the label's first letter is capitalised (zone and lane names); titles keep the author's case
+export const WORLD_TYPE = {
+  title:   { font: "sans", weight: 560, size: 12, tracking: -0.012 },          // housing titles: map 1, reduce 0
+  sub:     { font: "mono", weight: 400, size: 7.2, tracking: 0 },              // addresses and sub-labels in headers
+  zone:    { font: "sans", weight: 500, size: 11, tracking: -0.008, case: "sentence" },   // Map, Reduce
+  lane:    { font: "sans", weight: 500, size: 8, tracking: -0.004, case: "sentence" },
+  bracket: { font: "sans", weight: 500, size: 6.8, tracking: 0, case: "sentence" },
+  key:     { font: "mono", weight: 500 },                                      // a key on a tile or record
+  value:   { font: "mono", weight: 400, opacity: 0.74 },                        // its value, quieter
+  floor:   { font: "mono", weight: 400 },                                      // data printed on the floor
+};
+
 export const MATERIAL = {
-  matte:   { rough: 0.85, spec: 0.08, rim: 0.10 },   // stage, housings
-  ceramic: { rough: 0.45, spec: 0.35, rim: 0.18 },   // tiles, records
-  glass:   { rough: 0.10, spec: 0.90, rim: 0.60, alpha: 0.35 },
-  metal:   { rough: 0.30, spec: 0.75, rim: 0.30 },
+  // edge: the machined chamfer, a fine catch-light along the top bevel in the dark studio (x the studio's light)
+  matte:   { rough: 0.85, spec: 0.08, rim: 0.10, edge: 0.14 },   // stage, housings
+  ceramic: { rough: 0.45, spec: 0.35, rim: 0.18, edge: 0.08 },   // tiles, records
+  glass:   { rough: 0.10, spec: 0.90, rim: 0.60, alpha: 0.35, edge: 0 },
+  metal:   { rough: 0.30, spec: 0.75, rim: 0.30, edge: 0.05 },
 };
 
 // Prism finish: how state, data and attention light the world (renderer + skin read these)
@@ -172,7 +188,7 @@ export const GLOW = {
   pulse: 1.7,                   // scene pulse intensity (0..1) -> HDR emission of the travelling trail
   afterglow: 1.1,               // s, a recently used trace keeps a faint glow that fades over this long
   afterLevel: 0.5,              // afterglow start, x the trace's last glow
-  satin: 0.16,                  // keyed tiles: satin top gradient (inner luminance), x saturation
+  satin: 0.2,                   // keyed tiles: satin top gradient (inner luminance), x saturation
   tileLift: { dark: 0.035, light: 0 },       // keyed tiles' faint self-luminance (they are the brightest things)
   ping: { radius: 15, width: 1.3, time: 0.7, alpha: 0.95 },   // floor ping ring for lit / arriving tiles
   bounce: { dark: 1.0, light: 0.5, sigma: 10 },              // colour bounce from data onto nearby surfaces
@@ -228,8 +244,49 @@ export const TYPE = {
   mono: "Geist Mono",
   fallbackSans: "ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif",
   fallbackMono: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
-  // HUD scale, CSS px
-  kicker: 11, title: 26, subtitle: 14, caption: 17, ui: 13, small: 11.5, code: 12.5,
+  // HUD scale, CSS px: five sizes, each with its line height and tracking (DESIGN.md 9.1)
+  scale: {
+    xs: { size: 12, line: 16, track: 0 },          // labels, counters, meta lines
+    sm: { size: 13, line: 20, track: -0.003 },     // UI text, secondary reading text
+    md: { size: 15, line: 24, track: -0.008 },     // reading text: the step, the caption, card bodies
+    lg: { size: 20, line: 28, track: -0.016 },     // panel and card titles
+    xl: { size: 28, line: 34, track: -0.024 },     // the figure title, the start card's title
+  },
+  code: 12.5,
+};
+
+// The HUD's language (DESIGN.md 9): monochrome, typography-led, flat. These greys carry every piece of chrome; colour
+// in the HUD comes only from PALETTE identity keys and status tones. Text greys keep 4.5:1 on their surface in both
+// themes (ink3 is the faintest text); ink4 marks non-text only (rails, hollow dots).
+export const UI = {
+  dark: {
+    surface: [0.063, 0.063, 0.071, 0.92],   // cards and bars: near-black, barely translucent
+    raised: "#1D1D21",                       // fills on a surface: segmented tracks, inputs, chips
+    ink: "#F5F5F6", ink2: "#B7B9BF", ink3: "#8F9299", ink4: "#55585F",
+    line: [1, 1, 1, 0.09], lineStrong: [1, 1, 1, 0.16],
+    hover: [1, 1, 1, 0.06], press: [1, 1, 1, 0.1],
+    primary: "#F5F5F6", onPrimary: "#0B0B0C",   // the solid pill
+    thumb: "#2C2C31",                          // the knob of a segmented control, slider or switch
+    shadow: "0 1px 2px rgb(0 0 0 / 0.24), 0 12px 32px -8px rgb(0 0 0 / 0.4)",
+    shadowSm: "0 1px 2px rgb(0 0 0 / 0.2), 0 4px 12px -4px rgb(0 0 0 / 0.3)",
+    scrim: [0.035, 0.04, 0.05, 0.8],
+  },
+  light: {
+    surface: [1, 1, 1, 0.94],
+    raised: "#F2F2F3",
+    ink: "#0B0B0C", ink2: "#484B52", ink3: "#676B73", ink4: "#B4B7BD",
+    line: [0, 0, 0, 0.08], lineStrong: [0, 0, 0, 0.14],
+    hover: [0, 0, 0, 0.045], press: [0, 0, 0, 0.08],
+    primary: "#0B0B0C", onPrimary: "#FFFFFF",
+    thumb: "#FFFFFF",
+    shadow: "0 1px 2px rgb(16 18 24 / 0.04), 0 12px 32px -8px rgb(16 18 24 / 0.1)",
+    shadowSm: "0 1px 2px rgb(16 18 24 / 0.05), 0 4px 12px -4px rgb(16 18 24 / 0.08)",
+    scrim: [0.96, 0.965, 0.975, 0.86],
+  },
+  radius: { sm: 8, md: 12, lg: 16, xl: 24 },   // chips and menu rows; inputs and small cards; cards; the start card
+  blur: 12,
+  focus: 2,                                    // focus ring width in px, in ink, offset 2 px
+  motion: { fast: 150, base: 200, slow: 250, ease: [0.16, 1, 0.3, 1] },   // ease-out, no overshoot
 };
 
 // Turn a hex colour into sRGB floats.
@@ -241,3 +298,43 @@ export function hex(c) {
 }
 
 export const keyColor = (theme, index) => PALETTE[theme].keys[((index % 8) + 8) % 8];
+
+// A world label in its WORLD_TYPE case: "sentence" capitalises the first letter, anything else keeps the text.
+export const worldCase = (text, spec) => {
+  const s = String(text ?? "");
+  return spec?.case === "sentence" ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+};
+
+// Prism 2: what the WebGPU tier adds on top of the shared look (the WebGL2 tier draws the frame without it).
+//   reflect: a clear coat on the floor that mirrors the world, sharp at contact and blurring with height
+//     (strength at normal incidence rises by Fresnel from f0; blurHeight: u above the floor where it is fully soft)
+//   supersample: jittered samples averaged per captured frame (renderAt, shoot, record); live WebGPU frames cycle the same offsets through temporal AA (backends/webgpu/temporal.mjs)
+//   karis: tame lone hot pixels in the first bloom level (1 on, 0 off)
+export const PRISM2 = {
+  reflect: { dark: { strength: 1.0, f0: 0.1 }, light: { strength: 1.0, f0: 0.06 }, blurHeight: 22 },
+  supersample: 8,
+  karis: 0,
+  // glass: a zone becomes a plinth of clear glass `h` u thick (what stands in it rises onto its top, its title is
+  // etched into it); the world behind refracts through it (ior), softened by a fine frost (px), tinted by absorption
+  // along the path (tint, absorb per u), with a Fresnel reflection of the studio and of the world (reflect) and a
+  // soft lit edge (edge). WebGL2 keeps the printed zone.
+  glass: {
+    zone: { h: 5, bevel: 2.2, ramp: 14 },        // ramp: u over which things rise onto the plinth at its edge
+    ior: 1.5, frost: 1.1,
+    dark:  { tint: "#C4D2F2", absorb: 0.012, edge: 0.6, reflect: 0.85, etch: 0.75 },
+    light: { tint: "#B9C6DE", absorb: 0.004, edge: 0.5, reflect: 0.5, etch: 0.8 },
+  },
+};
+
+// Data in motion (WebGPU tier; engine/gfx/motion.mjs -> backends/webgpu/particles.mjs). Every particle is a real
+// byte or a real event of the run: a flight leaves a light trail sized by the bytes it carries, its bytes ride
+// behind it (one particle per byte) and then stay on the wire it used for the rest of the chapter, drifting
+// slowly, so a wire's density is the bytes it carried; a crashed machine's work breaks up and fades.
+export const MOTION_FX = {
+  trail: { length: 84, width: 3.0, spacing: 0.45, zFloor: 0.9, hold: 0.45, fade: 0.5, intensity: { dark: 5.0, light: 0.9 } },
+  bytes: { ref: 8, min: 0.8, max: 1.7, none: 0.7 },          // width scale sqrt(bytes / ref), clamped; flights with no byte count
+  stream: { gap: 3, spacing: 4.6, size: 2.3, white: 0.55, settle: 0.45, intensity: { dark: 4.0, light: 1.0 } },   // one bead per byte, single file; a pearl of light (whiter core) so it reads over its own light tube
+  flow: { speed: 14, size: 1.6, white: 0.7, level: { dark: 0.9, light: 0.5 }, rise: 1.1, edge: 10, appear: 1.0, fade: 0.9 },   // the drift: nearly neutral, so a busy wire reads dense, not confetti
+  shatter: { count: 22, life: 2.4, stagger: 0.8, spread: 8, rise: 40, size: 2.2, intensity: { dark: 3.4, light: 1.0 } },   // a lost slip's colour rises out of it as motes
+  maxParticles: 32768,
+};

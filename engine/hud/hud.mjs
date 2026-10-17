@@ -2,7 +2,7 @@
 // DOM chrome over the canvas: title block, scenario control, settings drawer, captions, transport with a chapter
 // scrubber, meters, legend, inspector, code panel, predict card, help, notices and world tags. Words live in one place:
 // the explain panel on wide screens, the caption otherwise; nothing floats over the world at a chapter pause (the
-// transport's primary button turns into "Continue: <chapter>"), and nothing gives a prediction away before its
+// transport's primary button turns into "Continue to <chapter>"), and nothing gives a prediction away before its
 // reveal (the veil: held-back caption, about lines, tags and legend). It also owns all stage
 // input (pointer, wheel, touch, keyboard), deep links, reduced motion and fullscreen. update() is diffed: it touches
 // the DOM only when something it shows has changed.
@@ -14,6 +14,13 @@ import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
 import { createExplain, VEIL } from "./explain.mjs";
 import { createFold } from "./fold.mjs";
+import { createLevel } from "./level.mjs";
+import { createLayers } from "./layers.mjs";
+import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
+import { createTurn, liveTurns, detourOf } from "./turn.mjs";
+import { createCheck, checksFor } from "./check.mjs";
+import { createNudge, beliefBlock } from "./nudge.mjs";
+import { createPresenter, presentQuery } from "./presenter.mjs";
 
 export { applyTheme, parseHash, formatHash };
 
@@ -25,7 +32,9 @@ const ICON = {
   fwd: SVG('<rect x="11.25" y="3.75" width="1.75" height="8.5" rx=".85"/><path d="M3.25 4.35v7.3c0 .55.62.87 1.07.55L9.4 8.55a.68.68 0 0 0 0-1.1L4.32 3.8c-.45-.32-1.07 0-1.07.55z"/>', true),
   tune: SVG('<path d="M2.5 4.75h3.25M9.75 4.75h3.75M2.5 11.25h6.75M13.25 11.25h.25"/><circle cx="7.75" cy="4.75" r="1.9"/><circle cx="11.25" cy="11.25" r="1.9"/>'),
   code: SVG('<path d="M5.25 4.5 1.75 8l3.5 3.5M10.75 4.5 14.25 8l-3.5 3.5M9.1 2.75 6.9 13.25"/>'),
-  theme: SVG('<circle cx="8" cy="8" r="5.75"/><path d="M8 2.25a5.75 5.75 0 0 1 0 11.5z" fill="currentColor" stroke="none"/>'),
+  // the theme button shows where it goes: a moon in light mode (to dark), a sun in dark mode (to light)
+  sun: SVG('<circle cx="8" cy="8" r="2.75"/><path d="M8 1.75v1.25M8 13v1.25M1.75 8H3M13 8h1.25M3.6 3.6l.9.9M11.5 11.5l.9.9M3.6 12.4l.9-.9M11.5 4.5l.9-.9"/>'),
+  moon: SVG('<path d="M13.25 9.6A5.5 5.5 0 0 1 6.4 2.75a5.5 5.5 0 1 0 6.85 6.85z"/>'),
   full: SVG('<path d="M2.75 6V3.75a1 1 0 0 1 1-1H6M10 2.75h2.25a1 1 0 0 1 1 1V6M13.25 10v2.25a1 1 0 0 1-1 1H10M6 13.25H3.75a1 1 0 0 1-1-1V10"/>'),
   unfull: SVG('<path d="M6 2.75V5a1 1 0 0 1-1 1H2.75M13.25 6H11a1 1 0 0 1-1-1V2.75M10 13.25V11a1 1 0 0 1 1-1h2.25M2.75 10H5a1 1 0 0 1 1 1v2.25"/>'),
   help: SVG('<circle cx="8" cy="8" r="6"/><path d="M6.35 6.25a1.75 1.75 0 0 1 3.4.55c0 1.15-1.75 1.45-1.75 2.6"/><path d="M8 11.4v.1" stroke-width="1.75"/>'),
@@ -44,24 +53,41 @@ const ICON = {
   caption: SVG('<rect x="2" y="4" width="12" height="8" rx="2.25"/><path d="M4.75 8h3.5"/><circle cx="10.75" cy="8" r=".9" fill="currentColor" stroke="none"/>'),
   branch: SVG('<circle cx="4.5" cy="3.75" r="1.5"/><circle cx="4.5" cy="12.25" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><path d="M4.5 5.25v5.5M11.5 7c0 2.5-3 2.5-7 3.75"/>'),
   meter: SVG('<path d="M2.75 13.25h10.5"/><path d="M4.5 10.5V8M8 10.5V4.75M11.5 10.5V6.5"/>'),
+  // presenter mode: a projector screen; the presenter view: a second window beside it
+  present: SVG('<rect x="1.75" y="2.75" width="12.5" height="8" rx="1.5"/><path d="M8 10.75v2.5M5.5 13.25h5"/>'),
+  windows: SVG('<rect x="1.75" y="4.25" width="8.5" height="7.5" rx="1.5"/><path d="M6 4.25V3.5a1.25 1.25 0 0 1 1.25-1.25h5.75a1.25 1.25 0 0 1 1.25 1.25v5.25A1.25 1.25 0 0 1 13 10h-2.75"/>'),
 };
 
 const KEYMAP = [
   ["Playback", [[["Space"], "Play or pause"], [["Enter"], "Continue to the next chapter"], [["←", "→"], "Back, next step"],
     [["Shift", "←", "→"], "Previous, next chapter"], [["Home", "End"], "Start, end"], [["[", "]"], "Slower, faster"], [["R"], "Restart"]]],
-  ["View", [[["1", "–", "9"], "Stories"], [["S"], "Settings"], [["C"], "Code"], [["T"], "Light or dark"], [["F"], "Fit the camera"],
-    [["I"], "Pin the inspector"], [["E"], "Explain panel"], [["?"], "Help"], [["Esc"], "Close"]]],
+  ["View", [[["1", "–", "9"], "Scenarios"], [["S"], "Parameters and settings"], [["C"], "Code"], [["T"], "Light or dark"], [["F"], "Fit the camera"],
+    [["I"], "Pin the inspector"], [["E"], "Explain panel"], [["L"], "Your level"], [["P"], "Presenter mode"], [["?"], "Help"], [["Esc"], "Close"]]],
+  // the keyboard path into the world (engine/a11y/scene.mjs)
+  ["The world", [[["Tab"], "Go into the world"], [["←", "↑", "↓", "→"], "Move between things"], [["Enter"], "Show its details"], [["Esc"], "Leave the world"]]],
 ];
+// keys that are a single character: a viewer can turn these off in Settings (WCAG 2.1.4); Space, Enter, the arrows,
+// Home, End and Esc always work
+const isCharKey = (k) => k.length === 1 && k !== " ";
 // the help overlay's plain-words guide to the interface
 const GUIDE = [
   ["play", "Play and pause", "Runs the simulation. It stops at the end of each chapter so you can catch up."],
   ["fwd", "Back and Next", "Move one step at a time. Every step is one real event from the run."],
   ["timeline", "The timeline", "Each segment is a chapter. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
-  ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus."],
+  ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
-  ["branch", "Stories", "The same system again with a twist, like a worker crashing halfway. Pick one from the stories at the top, or press its number."],
-  ["meter", "Numbers and settings", "The numbers count what the run has done so far; point at one, or tap them, to see what it means. Settings change the inputs and re-run it instantly."],
+  ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
+  ["meter", "Numbers and parameters", "The numbers count what the run has done so far; point at one, or tap them, to see what it means. Parameters change the inputs and re-run it instantly."],
+  ["present", "Presenter mode", "For teaching from a projector: big type, high contrast, and a clicker that steps through it. Press P, or turn it on in Settings."],
 ];
+// the same guide in touch words, for screens without a mouse: tap, pinch, drag (and no keys)
+const GUIDE_TOUCH = {
+  cursor: "Tap anything to see its state. Drag to turn the camera, pinch to zoom, double-tap to focus.",
+  caption: "Narrates the current step. Words with a dot are things in the world: tap one to find it and see its state.",
+  branch: "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top.",
+  meter: "The numbers count what the run has done so far; tap them to see what each one means. Parameters change the inputs and re-run it instantly.",
+  present: null,
+};
 const SPEED_NAMES = { 0.5: "Slow", 1: "Normal", 2: "Fast", 4: "Fastest" };
 
 const SIZE_PHONE = 640, SIZE_COMPACT = 1000;
@@ -136,7 +162,7 @@ export function createHud(root, opts = {}, cb = {}) {
 
   const S = {
     meta: opts.meta ?? {}, params: opts.params ?? {}, scenarios: opts.scenarios ?? [], counters: opts.counters ?? {},
-    code: opts.code ?? null, theme: opts.theme ?? opts.meta?.theme ?? "dark",
+    code: opts.code ?? null, theme: opts.theme ?? opts.meta?.theme ?? "light",
     values: { ...defaultsOf(opts.params), ...(opts.values ?? {}) },
     scenario: opts.scenario ?? opts.scenarios?.[0]?.id ?? null,
     tl: null, steps: [], phases: [], duration: 0, keyIndex: new Map(), keyNames: new Map(),
@@ -154,6 +180,9 @@ export function createHud(root, opts = {}, cb = {}) {
   const canvas = root.querySelector(":scope > canvas") ?? root.querySelector("canvas");
   root.classList.add("ix");
   if (!root.hasAttribute("tabindex")) root.tabIndex = -1;
+  // the figure is the page's main content, unless the page already names one
+  const landmark = !doc.querySelector("main, [role=main]");
+  if (landmark) root.setAttribute("role", "main");
   S.theme = applyTheme(root, S.theme);
   const mq = win.matchMedia ? win.matchMedia("(prefers-reduced-motion: reduce)") : null;
   let reduced = opts.reducedMotion ?? !!mq?.matches;
@@ -162,6 +191,11 @@ export function createHud(root, opts = {}, cb = {}) {
     if (opts.reducedMotion != null) return;
     reduced = e.matches; root.classList.toggle("ix-reduced", reduced); fire("onReducedMotion", reduced);
   });
+  // a touch screen (no hover, a coarse pointer): help and hints speak of taps and pinches, and the keys step aside
+  const touchMq = win.matchMedia ? win.matchMedia("(hover: none) and (pointer: coarse)") : null;
+  let touch = !!touchMq?.matches;
+  root.classList.toggle("ix-touch", touch);
+  if (touchMq?.addEventListener) on(touchMq, "change", (e) => { touch = e.matches; root.classList.toggle("ix-touch", touch); renderGuide(); });
   // capture (record/shoot) and reduced motion both mean: no tweens, no smoothing, swap instantly
   const capturing = () => root.classList.contains("ix-capture") || doc.documentElement.classList.contains("ix-capture");
   const still = () => reduced || capturing();
@@ -184,6 +218,14 @@ export function createHud(root, opts = {}, cb = {}) {
   const figKey = () => String(S.meta.id ?? S.meta.title ?? win.location.pathname).toLowerCase().replace(/[^\w-]+/g, "-").slice(0, 64);
   let guided = store.get("guided") !== "0";
   let folding = store.get("fold") !== "0";   // "Speed through repeats" (fold.mjs, engine/playback.mjs)
+  let charKeys = store.get("keys") !== "0";  // single-character shortcuts (WCAG 2.1.4: a viewer can turn them off)
+  // the reader's level (level.mjs): what the explain panel, the caption and the predict card show
+  const level = createLevel({ store, key: figKey(), meta: S.meta, onChange: (v) => {
+    explain.refresh(true);
+    S.captionDirty = true;
+    if (S.step >= 0) setCaption(S.caption, S.step);
+    fire("onLevel", v);
+  } });
 
   // ---------- small builders ----------
   const iconBtn = (icon, label, kbd, onclick, cls = "") => h("button", {
@@ -205,7 +247,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const m = S.meta;
     return [m.kicker, m.fig != null ? `Fig ${m.fig}` : null].filter(Boolean).join(" · ");
   };
-  const titleEl = h("div", { class: "ix-heading", role: "heading", "aria-level": "1" });
+  const titleEl = h("h1", { class: "ix-heading" });
   // the header is the title alone (the subtitle lives on the start card); phones show it on one line, and the
   // subtitle and a link to the paper open from it in a small card
   const aboutBtn = h("button", { class: "ix-about-btn", type: "button", "aria-label": "About this figure", "aria-expanded": "false", html: ICON.chevron, onclick: () => toggleAbout() });
@@ -215,18 +257,21 @@ export function createHud(root, opts = {}, cb = {}) {
   // between the title and the toolbar it collapses to one "Story · Worker dies ⌄" pill with a menu; on a phone the pill
   // takes a short second row. A story's description shows in its tooltip, and once, briefly, under the strip after a switch.
   const storyThumb = h("span", { class: "ix-stories-thumb", "aria-hidden": "true" });
-  const storySegK = h("span", { class: "ix-stories-k", "aria-hidden": "true", text: "Stories" });
-  const storySeg = h("div", { class: "ix-stories-strip ix-glass", role: "radiogroup", "aria-label": "Stories" }, storySegK, storyThumb);
+  const storySegK = h("span", { class: "ix-stories-k", "aria-hidden": "true", text: "Scenarios" });
+  const storySeg = h("div", { class: "ix-stories-strip ix-glass", role: "radiogroup", "aria-label": "Scenarios" }, storySegK, storyThumb);
   const storyName = h("span", { class: "ix-story-name" });
   const storyBtn = h("button", { class: "ix-story ix-glass", type: "button", "aria-haspopup": "menu", "aria-expanded": "false",
     onclick: () => toggleStoryMenu() },
-  h("span", { class: "ix-story-k", "aria-hidden": "true", text: "Story" }), storyName, h("span", { class: "ix-story-chev", html: ICON.chevron }));
+  h("span", { class: "ix-story-k", "aria-hidden": "true", text: "Scenario" }), storyName, h("span", { class: "ix-story-chev", html: ICON.chevron }));
   const storyNote = h("p", { class: "ix-story-note", role: "status", "aria-live": "polite", "aria-atomic": "true" });
   const storyBar = h("div", { class: "ix-stories", hidden: true }, storySeg, storyBtn, storyNote);   // shown once there are 2+ stories
   const titleBlock = h("div", { class: "ix-title" }, headRow);
   const aboutSub = h("p", { class: "ix-about-sub" });
   const aboutCite = h("a", { class: "ix-about-link", target: "_blank", rel: "noopener" });
-  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite);
+  // phones have no help circle: help opens from here, under the subtitle (the card opens from the title)
+  const aboutHelp = h("button", { class: "ix-about-help", type: "button", onclick: () => { toggleAbout(false); aboutBtn.focus({ preventScroll: true }); toggleHelp(true); } },
+    h("span", { class: "ix-about-help-mark", "aria-hidden": "true", text: "?" }), "How to use this figure");
+  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite, aboutHelp);
   on(headRow, "click", (e) => { if (S.size === "phone" && e.target !== aboutBtn && !aboutBtn.contains(e.target)) toggleAbout(); });
   function renderTitle() {
     const m = S.meta;
@@ -246,20 +291,20 @@ export function createHud(root, opts = {}, cb = {}) {
     aboutCite.hidden = !cite?.url;
     aboutSub.textContent = m.subtitle ?? "";
     aboutSub.hidden = !m.subtitle;
-    aboutBtn.hidden = !(m.subtitle || cite?.url);
+    aboutBtn.hidden = false;   // the card always carries help
     if (canvas) canvas.setAttribute("aria-label", figureLabel());
   }
 
   // ---------- stories: the scenarios, a strip at the top centre (or a pill and its menu where the strip does not fit) ----------
   // Each is a story of the same system with its one-line description; digits 1-9 pick one from anywhere.
-  const storyMenu = h("div", { class: "ix-menu ix-story-menu ix-glass", role: "menu", "aria-label": "Stories", id: uid("stories") });
+  const storyMenu = h("div", { class: "ix-menu ix-story-menu ix-glass", role: "menu", "aria-label": "Scenarios", id: uid("stories") });
   storyBtn.setAttribute("aria-controls", storyMenu.id);
   let storyItems = [], storyTabs = [], storyOpen = false, storyMode = "strip";
   function buildScenarios() {
     const n = S.scenarios.length;
     storyTabs = S.scenarios.map((sc, i) => h("button", {
       class: "ix-stories-tab", type: "button", role: "radio", "aria-checked": "false", tabindex: "-1", "data-id": sc.id,
-      "aria-label": `Story ${i + 1} of ${n}: ${sc.label ?? sc.id}`, "aria-description": sc.description ?? null,
+      "aria-label": `Scenario ${i + 1} of ${n}: ${sc.label ?? sc.id}`, "aria-description": sc.description ?? null,
       "data-tip": sc.description ?? null, "data-tip-head": sc.description ? sc.label ?? sc.id : null, "data-kbd": i < 9 ? String(i + 1) : null,
       onclick: () => chooseScenario(sc.id),
     }, sc.label ?? sc.id));
@@ -271,7 +316,7 @@ export function createHud(root, opts = {}, cb = {}) {
     h("span", { class: "ix-story-body" }, h("span", { class: "ix-story-label", text: sc.label ?? sc.id }),
       sc.description ? h("span", { class: "ix-story-text", text: sc.description }) : null),
     h("span", { class: "ix-menu-check", html: ICON.check })));
-    put(storyMenu, h("div", { class: "ix-story-head", "aria-hidden": "true", text: "Same system, different stories" }), storyItems);
+    put(storyMenu, h("div", { class: "ix-story-head", "aria-hidden": "true", text: "Same system, different scenarios" }), storyItems);
     const many = S.scenarios.length > 1;
     storyBar.hidden = !many;
     if (!many) toggleStoryMenu(false);
@@ -284,7 +329,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const n = S.scenarios.length, i = Math.max(0, S.scenarios.findIndex((x) => x.id === S.scenario)), sc = S.scenarios[i];
     const label = sc?.label ?? sc?.id ?? "";
     storyName.textContent = label;
-    storyBtn.setAttribute("aria-label", `Story ${i + 1} of ${n}: ${label}. Choose another story`);
+    storyBtn.setAttribute("aria-label", `Scenario ${i + 1} of ${n}: ${label}. Choose another scenario`);
     storyItems.forEach((b) => b.setAttribute("aria-checked", String(b.dataset.id === S.scenario)));
     // the strip is one radio group with a roving tab stop on the current story
     storyTabs.forEach((b) => { const on = b.dataset.id === S.scenario; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; });
@@ -417,7 +462,7 @@ export function createHud(root, opts = {}, cb = {}) {
       const next = !!set._exclude && sc.id === nextId;
       return h("button", {
         class: `ix-chip-btn${next ? " ix-chip-next" : ""}`, type: "button", role: "radio", "data-id": sc.id, title: sc.description ?? null,
-        "aria-description": next ? "Next story" : null,
+        "aria-description": next ? "Next scenario" : null,
         onclick: () => { if (sc.id === S.scenario) fire("onRestart"); else chooseScenario(sc.id); },
       }, (set._exclude && sc.whatIf) || sc.label || sc.id, next ? h("span", { html: ICON.next, "aria-hidden": "true" }) : null);
     }));
@@ -443,12 +488,29 @@ export function createHud(root, opts = {}, cb = {}) {
     scheduleHash(true);
   }
 
-  const codeBtn = iconBtn("code", "Code", "C", () => toggleCode());
-  const tuneBtn = iconBtn("tune", "Settings", "S", () => toggleDrawer());
-  const themeBtn = iconBtn("theme", "Switch to light", "T", () => toggleTheme());
-  const helpBtn = iconBtn("help", "Help", "?", () => toggleHelp(), "ix-only-desk");
-  const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk");
-  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, codeBtn, tuneBtn, themeBtn, helpBtn, fullBtn);
+  // the toolbar names what matters in words ("Code", "Parameters"); the theme and full screen keep their own
+  // well-known icons, each with a tooltip. Help is not here: it waits in the bottom-left corner.
+  const toolBtn = (icon, word, kbd, onclick) => {
+    const w = h("span", { class: "ix-tool-label", text: word });
+    const b = h("button", { class: "ix-tool", type: "button", "data-tip": word, "data-kbd": kbd, onclick }, h("span", { class: "ix-tool-icon", html: ICON[icon] }), w);
+    b._word = w;
+    return b;
+  };
+  const codeBtn = toolBtn("code", "Code", "C", () => toggleCode());
+  codeBtn.classList.add("ix-code-tool");
+  // presenting: the toolbar's first word opens the presenter view (the panel on the laptop), a circle ends presenting
+  const viewBtn = toolBtn("windows", "Presenter view", null, () => presenter.toggleView());
+  viewBtn.classList.add("ix-present-btn");
+  viewBtn.dataset.tip = "The explain panel on this screen, the world on the projector";
+  viewBtn.setAttribute("aria-label", "Presenter view");
+  const endBtn = iconBtn("close", "End presenting", "P", () => presenter.set(false), "ix-present-end");
+  const tuneBtn = toolBtn("tune", "Settings", "S", () => toggleDrawer());
+  const themeBtn = iconBtn("moon", "Dark mode", "T", () => toggleTheme());
+  const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk ix-full-btn");
+  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, tuneBtn,
+    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), themeBtn, fullBtn, endBtn);
+  const helpBtn = h("button", { class: "ix-help-fab ix-glass", type: "button", "aria-label": "Help", "data-tip": "How to use this figure", "data-kbd": "?",
+    onclick: () => toggleHelp() }, h("span", { "aria-hidden": "true", text: "?" }));
   const toolbar = h("div", { class: "ix-toolbar" }, tools);
   const top = h("div", { class: "ix-top" }, titleBlock, storyBar, toolbar);
   const fsEnabled = !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled);
@@ -467,10 +529,31 @@ export function createHud(root, opts = {}, cb = {}) {
     h("p", { class: "ix-knob-help", id: uid("guided-help"), text: "Stop at the end of each chapter with a short recap." }));
   const foldSw = h("button", { class: "ix-switch", id: uid("fold"), type: "button", role: "switch", "aria-checked": String(folding),
     "aria-describedby": uid("fold-help"), onclick: () => setFolding(!folding) });
+  const keysSw = h("button", { class: "ix-switch", id: uid("keys"), type: "button", role: "switch", "aria-checked": String(charKeys),
+    "aria-describedby": uid("keys-help"), onclick: () => setCharKeys(!charKeys) });
   prefs.append(
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: foldSw.id, text: "Speed through repeats" }), foldSw)),
-    h("p", { class: "ix-knob-help", id: uid("fold-help"), text: "Once a step has played twice, its repeats play faster." }));
+    h("p", { class: "ix-knob-help", id: uid("fold-help"), text: "Once a step has played twice, its repeats play faster." }),
+    h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
+      h("label", { class: "ix-knob-label", for: keysSw.id, text: "Letter and number shortcuts" }), keysSw)),
+    h("p", { class: "ix-knob-help", id: uid("keys-help"), text: "Keys like T, S and 1–9. Turn them off if you use speech input. Space, Enter and the arrows always work." }));
+  // presenting: a projector mode for classrooms (presenter.mjs); not offered on phones
+  const presentSw = h("button", { class: "ix-switch", id: uid("present"), type: "button", role: "switch", "aria-checked": "false",
+    "aria-describedby": uid("present-help"), onclick: () => presenter.set(!presenter.on) });
+  const presentView = h("button", { class: "ix-ghost-btn ix-present-open", type: "button", onclick: () => presenter.openView() },
+    h("span", { html: ICON.windows }), "Open presenter view");
+  const presentPrefs = h("div", { class: "ix-prefs ix-prefs-present" },
+    h("div", { class: "ix-prefs-title", text: "Presenting" }),
+    h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
+      h("label", { class: "ix-knob-label", for: presentSw.id, text: "Presenter mode" }), presentSw)),
+    h("p", { class: "ix-knob-help", id: uid("present-help"), text: "Big type and high contrast for a projector. A clicker steps through it: → or Page Down goes on, ← or Page Up goes back. P turns it on and off." }),
+    presentView);
+  function setCharKeys(on) {
+    charKeys = !!on;
+    keysSw.setAttribute("aria-checked", String(charKeys));
+    store.set("keys", charKeys ? "1" : "0");
+  }
   function setFolding(on) {
     folding = !!on;
     foldSw.setAttribute("aria-checked", String(folding));
@@ -478,9 +561,66 @@ export function createHud(root, opts = {}, cb = {}) {
     fire("onFolding", folding);
   }
   const knobFoot = h("footer", { class: "ix-panel-foot", text: "Changes re-run the simulation instantly." });
+  const drawerHead = panelHead("Settings", resetBtn, () => toggleDrawer(false));
   const drawer = h("section", { class: "ix-panel ix-drawer ix-glass", role: "dialog", "aria-label": "Settings", tabindex: "-1", inert: true },
-    panelHead("Settings", resetBtn, () => toggleDrawer(false)),
-    knobBody, knobFoot, prefs);
+    drawerHead, knobBody, knobFoot, prefs, presentPrefs);
+
+  // ---------- parameters: the figure's inputs, always in view where there is room ----------
+  // Wide screens (where the explain panel docks): a card of its own at the foot of the right column, each knob a row
+  // with its name, its control and its value, open by default (the header folds it; remembered). On a short screen
+  // it starts folded to its title, so the explain panel above keeps room for the step. Narrower screens:
+  // the same knobs lead the drawer, which the toolbar's "Parameters" opens (a bottom sheet on phones). Docked, the
+  // drawer keeps only the playback preferences and the toolbar calls it "Settings".
+  const PARAMS_TALL = 800;   // px of root height from which the card starts open
+  let paramsPref = store.get("params"), paramsOpen = null, paramsDocked = null;
+  const paramsToggle = h("button", { class: "ix-params-toggle", type: "button", "aria-controls": uid("params-body"),
+    onclick: () => { paramsPref = paramsOpen ? "0" : "1"; store.set("params", paramsPref); syncParamsOpen(); } }, h("span", { class: "ix-params-title", text: "Parameters" }), h("span", { class: "ix-params-chev", html: ICON.chevron }));
+  const paramsReset = h("button", { class: "ix-textbtn ix-params-reset", type: "button", text: "Reset", "data-tip": "Back to this scenario's values", onclick: () => resetParams() });
+  const paramsBody = h("div", { class: "ix-params-body", id: uid("params-body") });
+  const paramsCard = h("section", { class: "ix-params ix-glass", "aria-label": "Parameters", hidden: true },
+    h("header", { class: "ix-params-head" }, paramsToggle, paramsReset), paramsBody);
+  const hasKnobs = () => Object.keys(knobs).length > 0;
+  function syncParamsOpen() {
+    const open = paramsPref ? paramsPref === "1" : S.H >= PARAMS_TALL;
+    if (open === paramsOpen) return;
+    paramsOpen = open;
+    paramsToggle.setAttribute("aria-expanded", String(open));
+    paramsCard.classList.toggle("ix-params-folded", !open);
+    sizeParams();
+  }
+  // the knobs live in the card (docked) or lead the drawer; the toolbar's button is named for what it opens
+  function placeParams() {
+    const dock = explain.mode === "docked" && hasKnobs() && !presenter.on;
+    if (dock !== paramsDocked) {
+      paramsDocked = dock;
+      if (dock) paramsBody.append(knobBody); else drawer.insertBefore(knobBody, knobFoot);
+      paramsCard.hidden = !dock;
+      knobFoot.hidden = resetBtn.hidden = dock || !hasKnobs();
+      const name = !dock && hasKnobs() ? "Parameters" : "Settings";
+      drawerHead.querySelector(".ix-panel-title").textContent = name;
+      drawer.setAttribute("aria-label", name);
+      tuneBtn._word.textContent = name;
+      tuneBtn.dataset.tip = dock ? "Playback settings" : name;
+      tuneBtn.setAttribute("aria-label", tuneBtn.dataset.tip);
+      for (const k in knobs) knobs[k].fit?.();
+    }
+    syncParamsOpen();
+    knobBody.classList.toggle("ix-knobs-rows", !!paramsDocked || S.size === "phone");
+    sizeParams();
+  }
+  // the explain panel above it ends where the card begins
+  function sizeParams() {
+    const hgt = paramsDocked && !paramsCard.hidden ? paramsCard.offsetHeight : 0;
+    root.style.setProperty("--ix-params-space", hgt ? `${hgt + 12}px` : "0px");
+  }
+  /** Width of the root the parameters card covers, from the right edge, for hud.insets.right. */
+  const paramsInset = () => (paramsDocked && paramsCard.offsetWidth && !capturing() ? Math.max(0, Math.round(root.clientWidth - paramsCard.offsetLeft)) : 0);
+  // Reset shows only once a value differs from the scenario's own
+  function syncReset() {
+    const base = { ...defaultsOf(S.params), ...(scenarioDef()?.params ?? {}) };
+    const changed = Object.keys(knobs).some((k) => k in base && !sameJSON(base[k], S.values[k]));
+    paramsReset.hidden = !changed;
+  }
   function setGuided(on) {
     guided = !!on;
     guidedSw.setAttribute("aria-checked", String(guided));
@@ -497,6 +637,7 @@ export function createHud(root, opts = {}, cb = {}) {
       const j = JSON.stringify(S.values);
       if (j === sentJSON) return;
       sentJSON = j;
+      syncReset();
       fire("onParams", { ...S.values });
       scheduleHash(true);
     };
@@ -528,6 +669,9 @@ export function createHud(root, opts = {}, cb = {}) {
       k.set(S.values[key]);
     }
     sentJSON = JSON.stringify(S.values);
+    paramsDocked = null;
+    if (S.size) { placeParams(); updateInsets(); }
+    syncReset();
   }
 
   function makeKnob(key, def) {
@@ -712,7 +856,7 @@ export function createHud(root, opts = {}, cb = {}) {
     b._icon = ic; b._word = w;
     return b;
   };
-  // at a chapter pause the primary button reads "Continue: Shuffle" (Enter), at the end "Replay"; nothing else appears
+  // at a chapter pause the primary button reads "Continue to Shuffle" (Enter), at the end "Replay"; Next steps aside
   const playBtn = tpBtn("play", "Play", "Play", "Space", () => (S.held && !S.playing ? heldAction() : togglePlay()), "ix-play");
   const backBtn = tpBtn("back", "Back", "Back one step", "←", () => fire("onStep", -1), "ix-step ix-back");
   const fwdBtn = tpBtn("fwd", "Next", "Next step", "→", () => { hideCoach("step"); fire("onStep", 1); }, "ix-step ix-next");
@@ -726,7 +870,10 @@ export function createHud(root, opts = {}, cb = {}) {
   const ticks = h("div", { class: "ix-ticks", "aria-hidden": "true" });
   const playhead = h("div", { class: "ix-playhead-rail", "aria-hidden": "true" }, h("div", { class: "ix-playhead" }));
   const hoverLine = h("div", { class: "ix-hoverline", "aria-hidden": "true" });
-  const track = h("div", { class: "ix-track" }, segBase, segFill);
+  // a wrong pick's branch (turn.mjs detourOf): drawn off the pick over the main run's track, which waits behind it
+  const detourFill = h("div", { class: "ix-detour-fill" });
+  const detourBand = h("div", { class: "ix-detour", hidden: true }, detourFill);
+  const track = h("div", { class: "ix-track" }, segBase, segFill, detourBand);
   const previewMeta = h("div", { class: "ix-preview-meta" });
   const previewText = h("div", { class: "ix-preview-text" });
   const preview = h("div", { class: "ix-preview ix-glass", "aria-hidden": "true" }, previewMeta, previewText);
@@ -735,7 +882,8 @@ export function createHud(root, opts = {}, cb = {}) {
   const scrubWrap = h("div", { class: "ix-scrub-wrap" }, scrub);
   const countCur = h("span", { class: "ix-count-cur", text: "0" });
   const countTot = h("span", { class: "ix-count-tot", text: "0" });
-  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countCur, h("span", { class: "ix-count-sep", text: "/" }), countTot);
+  const countTag = h("span", { class: "ix-count-tag", text: "Detour", hidden: true });
+  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, countCur, h("span", { class: "ix-count-sep", text: "/" }), countTot);
   // the speed is always visible, with its name; the menu says what each value means
   const speedVal = h("span", { class: "ix-speed-val", text: "1×" });
   const speedBtn = h("button", { class: "ix-speed", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Speed, 1×",
@@ -772,7 +920,7 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("intro-sub"), tabindex: "-1", inert: true });
   const coach = h("div", { class: "ix-coach ix-glass", role: "status", "aria-live": "polite", inert: true });
 
-  hud.append(top, bottom, sheetScrim, codePanel, drawer, about);
+  hud.append(top, bottom, sheetScrim, codePanel, drawer, about, paramsCard, helpBtn);
   const after = canvas && canvas.parentNode === root ? canvas.nextSibling : root.firstChild;
   const frag = doc.createDocumentFragment();
   // popovers live at root level: a backdrop-filter parent would stop their own blur from seeing the world
@@ -781,22 +929,27 @@ export function createHud(root, opts = {}, cb = {}) {
   root.insertBefore(frag, after);
 
   // ---------- help: what each part of the interface is for, in plain words, then the keys ----------
+  const guideList = h("ul", { class: "ix-guide-list" });
+  // touch screens read "tap", "pinch to zoom" and "drag to turn" (and no keys); the rest point, scroll and press
+  function renderGuide() {
+    put(guideList, GUIDE.filter(([icon]) => !(touch && GUIDE_TOUCH[icon] === null)).map(([icon, name, text]) => h("li", { class: "ix-guide-item" },
+      h("span", { class: "ix-guide-icon", html: ICON[icon] }),
+      h("span", { class: "ix-guide-body" }, h("span", { class: "ix-guide-name", text: name }), h("span", { class: "ix-guide-text", text: (touch && GUIDE_TOUCH[icon]) || text })))));
+  }
   (function buildHelp() {
     const kb = (k) => (k === "–" ? h("span", { class: "ix-kbd-sep", text: "–" }) : h("kbd", { class: "ix-kbd", text: k }));
     help.append(
       h("header", { class: "ix-help-head" }, h("h2", { class: "ix-help-title", id: uid("help-title"), text: "How to use this figure" }),
         iconBtn("close", "Close help", "Esc", () => toggleHelp(false), "ix-btn-sm ix-close")),
       h("div", { class: "ix-help-grid" },
-        h("div", { class: "ix-help-group ix-guide" }, h("div", { class: "ix-help-kicker", text: "The interface" }),
-          h("ul", { class: "ix-guide-list" }, GUIDE.map(([icon, name, text]) => h("li", { class: "ix-guide-item" },
-            h("span", { class: "ix-guide-icon", html: ICON[icon] }),
-            h("span", { class: "ix-guide-body" }, h("span", { class: "ix-guide-name", text: name }), h("span", { class: "ix-guide-text", text })))))),
+        h("div", { class: "ix-help-group ix-guide" }, h("div", { class: "ix-help-kicker", text: "The interface" }), guideList),
         h("div", { class: "ix-help-keys-col" }, KEYMAP.map(([group, rows]) => h("div", { class: "ix-help-group" },
           h("div", { class: "ix-help-kicker", text: group }),
           rows.map(([keys, what]) => h("div", { class: "ix-help-row" }, h("span", { class: "ix-help-what", text: what }), h("span", { class: "ix-help-keys" }, keys.map(kb)))))))),
       h("footer", { class: "ix-help-foot" },
         h("button", { class: "ix-ghost-btn", type: "button", onclick: () => { toggleHelp(false); openIntro(true); } }, h("span", { html: ICON.replay }), "Replay intro"),
-        h("span", { class: "ix-help-note", text: "Chapter pauses can be turned off in Settings." })));
+        h("span", { class: "ix-help-note", text: "Chapter pauses and the letter shortcuts can be turned off in Settings." })));
+    renderGuide();
   })();
 
   // ---------- state for overlays ----------
@@ -847,7 +1000,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(help, open);
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
-    if (open) { lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }
+    if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
   function toggleSpeedMenu(open = !menuOpen) {
@@ -976,9 +1129,12 @@ export function createHud(root, opts = {}, cb = {}) {
   const introPlay = h("button", { class: "ix-cta", type: "button", onclick: () => closeIntro("play") }, h("span", { class: "ix-cta-icon", html: ICON.play }), "Play");
   const introStep = h("button", { class: "ix-cta-2", type: "button", onclick: () => closeIntro("step") }, "Step through it yourself");
   const introPath = h("p", { class: "ix-intro-path", "aria-label": "Chapters" });
+  // the level, asked once up front (built when the figure turns out to have a lesson)
+  const introLevel = h("div", { class: "ix-intro-level", hidden: true });
   const kbs = (...ks) => ks.map((k) => h("kbd", { class: "ix-kbd ix-kbd-sm", text: k }));
   intro.append(
     h("div", { class: "ix-intro-head" }, introTitle, introSub, introPath),
+    introLevel,
     h("div", { class: "ix-intro-actions" }, introPlay, introStep),
     h("p", { class: "ix-intro-keys" }, kbs("Space"), " play", h("span", { class: "ix-dotsep", text: "·" }), kbs("←", "→"), " step"));
   // the start card asks the figure's question (meta.hook), falling back to the subtitle (the header shows only the title), and
@@ -993,6 +1149,8 @@ export function createHud(root, opts = {}, cb = {}) {
     // the client asked for no chapter preview on the start card: newcomers don't know the terms yet
     put(introPath, []);
     introPath.hidden = true;
+    if (S.lesson && !introLevel.firstChild) introLevel.append(h("p", { class: "ix-intro-level-k", text: "How well do you know this?" }), level.control(h, { cls: "ix-intro-levels" }));
+    introLevel.hidden = !S.lesson;
   }
   function openIntro(open = true) {
     if (open === introOpen || (open && capturing())) return;
@@ -1020,7 +1178,7 @@ export function createHud(root, opts = {}, cb = {}) {
   }
 
   // ---------- pauses: a chapter's end, or the run's end ----------
-  // No card floats over the world. The transport's primary button says what comes next ("Continue: Shuffle", or
+  // No card floats over the world. The transport's primary button says what comes next ("Continue to Shuffle", or
   // "Replay" at the end), and the words go where the words live: the explain panel's recap on wide screens, the
   // caption otherwise. At the end both carry the payoff: the takeaway, and the other scenarios as "What if…".
   const endChipsPanel = scenarioChips(true), endChipsCap = scenarioChips(true);
@@ -1032,7 +1190,8 @@ export function createHud(root, opts = {}, cb = {}) {
   };
   function heldAction() {
     if (!S.held) return;
-    if (S.held.kind === "end") fire("onRestart"); else cont();
+    if (S.held.kind === "turn") turn.primary();
+    else if (S.held.kind === "end") fire("onRestart"); else cont();
   }
   function replayChapter() {
     const ph = S.phases[S.held?.phase ?? 0];
@@ -1054,31 +1213,37 @@ export function createHud(root, opts = {}, cb = {}) {
   function payoffNode(chips, cls, withTakeaway = true) {
     fillChips(chips);
     const t = withTakeaway ? takeaway() : "", others = chips.childElementCount > 0;
-    const recap = withTakeaway ? recapNode() : null;
+    const recap = withTakeaway && !check.done ? recapNode() : null;   // after the end check, "You can now…" stands for it
     if (!t && !others && !recap) return null;
     return h("div", { class: `ix-payoff ${cls}` }, recap,
       t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null,
       others ? h("div", { class: "ix-whatif" }, h("span", { class: "ix-whatif-label", text: "What if…" }), chips) : null);
   }
+  // a pause: { kind: "chapter" | "end", phase }, or { kind: "key", phase } when New holds after a key step to let it land
   function setHeld(v) {
     const ok = v && !capturing() && !introOpen && S.steps.length;
-    const next = ok ? { kind: v.kind === "end" ? "end" : "chapter", phase: clamp(v.phase ?? 0, 0, Math.max(0, S.phases.length - 1)) } : null;
+    const kind = v?.kind === "end" || v?.kind === "key" || v?.kind === "turn" ? v.kind : "chapter";
+    const next = ok ? { kind, phase: clamp(v.phase ?? 0, 0, Math.max(0, S.phases.length - 1)) } : null;
     const a = S.held ? `${S.held.kind}:${S.held.phase}` : "", b = next ? `${next.kind}:${next.phase}` : "";
     if (a === b) return;
     S.held = next;
     root.classList.toggle("ix-held-open", !!next);
     renderPlay();
-    explain.setHeld(next);
+    explain.setHeld(kind === "key" || kind === "turn" ? null : next);
     S.captionDirty = true;
     obstaclesDirty = true;
     if (!next) return;
     hideCoach();
     // say it once for screen readers, then put the keyboard on the button that continues
     const name = S.phases[next.phase]?.name;
-    const done = next.kind === "end" ? "Run complete" : `${name || `Chapter ${next.phase + 1}`} complete`;
-    const t = next.kind === "end" ? takeaway() : "";
     cancel(liveTimer);
-    live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${next.kind === "end" ? "Press Enter to replay." : `Press Enter to continue with ${nextChapter()}.`}`;
+    if (kind === "key") live.textContent = "Paused on this step. Press Enter to go on.";
+    else if (kind === "turn") live.textContent = "That pick played out. Press Enter to rewind and try again.";
+    else {
+      const done = kind === "end" ? "Run complete" : `${name || `Chapter ${next.phase + 1}`} complete`;
+      const t = kind === "end" ? takeaway() : "";
+      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${kind === "end" ? "Press Enter to replay." : `Press Enter to continue with ${nextChapter()}.`}`;
+    }
     if (keyboardMode) raf(() => { if (S.held) playBtn.focus({ preventScroll: true }); });
   }
 
@@ -1127,7 +1292,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const scrubAnchor = () => {
     const rr = root.getBoundingClientRect(), sr = scrub.getBoundingClientRect();
     if (!sr.width) return null;
-    const p = S.duration ? clamp(S.time / S.duration, 0, 1) : 0;
+    const p = S.span ? clamp(S.time / S.span, 0, 1) : 0;
     return { x: sr.left - rr.left + p * sr.width, y: barTop() };
   };
   const nextAnchor = () => {
@@ -1138,7 +1303,10 @@ export function createHud(root, opts = {}, cb = {}) {
   // ---------- theme, fullscreen, play, speed ----------
   function setTheme(t) {
     S.theme = applyTheme(root, t);
-    const label = S.theme === "dark" ? "Switch to light" : "Switch to dark";
+    presenter.restyle();
+    // the icon and the name say where the button goes, not where the page is
+    const label = S.theme === "dark" ? "Light mode" : "Dark mode";
+    themeBtn.innerHTML = S.theme === "dark" ? ICON.sun : ICON.moon;
     themeBtn.setAttribute("aria-label", label);
     themeBtn.dataset.tip = label;
   }
@@ -1168,12 +1336,14 @@ export function createHud(root, opts = {}, cb = {}) {
 
   function renderPlay() {
     const hv = S.playing ? null : S.held;
-    const icon = hv ? (hv.kind === "end" ? ICON.replay : ICON.next) : S.playing ? ICON.pause : ICON.play;
-    const word = hv ? (hv.kind === "end" ? "Replay" : `Continue: ${nextChapter()}`) : S.playing ? "Pause" : "Play";
-    const name = hv ? (hv.kind === "end" ? "Replay from the start" : `Continue with ${nextChapter()}`) : word;
+    const icon = hv ? (hv.kind === "end" || hv.kind === "turn" ? ICON.replay : ICON.next) : S.playing ? ICON.pause : ICON.play;
+    const word = hv ? (hv.kind === "end" ? "Replay" : hv.kind === "key" ? "Continue" : hv.kind === "turn" ? "Rewind and try again" : `Continue to ${nextChapter()}`) : S.playing ? "Pause" : "Play";
+    const name = hv ? (hv.kind === "end" ? "Replay from the start" : word) : word;
     if (playBtn._iconKey !== icon) { playBtn._iconKey = icon; playBtn._icon.innerHTML = icon; }
-    // "Continue: Shuffle" on wide screens; a phone keeps the verb and drops the chapter name
-    if (hv && hv.kind !== "end") put(playBtn._word, "Continue", h("span", { class: "ix-tp-more", text: `: ${nextChapter()}` }), h("kbd", { class: "ix-tp-kbd", text: "↵" }));
+    // "Continue to Shuffle  Enter": the chapter it goes to, then the key; a phone keeps the verb alone
+    if (hv && hv.kind !== "end") put(playBtn._word, h("span", { class: "ix-tp-verb", text: hv.kind === "turn" ? "Rewind" : "Continue" }),
+      hv.kind === "turn" ? h("span", { class: "ix-tp-more", text: "and try again" }) : null,
+      hv.kind === "chapter" ? h("span", { class: "ix-tp-more", text: `to ${nextChapter()}` }) : null, h("kbd", { class: "ix-tp-kbd", text: "Enter" }));
     else playBtn._word.textContent = word;
     playBtn.setAttribute("aria-label", name);
     playBtn.dataset.tip = name;
@@ -1181,9 +1351,12 @@ export function createHud(root, opts = {}, cb = {}) {
     playBtn.classList.toggle("ix-continue", !!hv && hv.kind !== "end");
     playBtn.classList.toggle("ix-held-btn", !!hv);
     againBtn.hidden = !(hv && hv.kind === "chapter");
+    // a pause has one way on: Continue (or Replay at the end), so Next steps aside rather than say it twice
+    fwdBtn.hidden = !!hv;
     root.classList.toggle("ix-playing", S.playing);
   }
   function togglePlay() {
+    if (S.held?.kind === "turn" && !S.playing) { heldAction(); return; }
     if (typeof cb.onToggle === "function") fire("onToggle");
     else fire(S.playing ? "onPause" : "onPlay");
     S.playing = !S.playing;
@@ -1212,9 +1385,14 @@ export function createHud(root, opts = {}, cb = {}) {
   let segFills = [], labelEls = [], tickSig = "";
   function setTimeline(tl) {
     S.tl = tl;
+    S.lesson = lessonOf(tl);
     S.steps = tl?.steps ?? [];
     S.duration = tl?.duration ?? (S.steps.length ? S.steps[S.steps.length - 1].t1 : 0);
     S.phases = tl?.phases?.length ? tl.phases : [{ name: "", step: 0, t0: 0, t1: S.duration }];
+    // a branch reads as a detour from the main run: the scrubber keeps its chapters and length (S.span)
+    if (!tl?.branch) S.main = tl;
+    S.detour = detourOf(tl, S.main);
+    S.span = S.detour?.span ?? S.duration;
     S.keyIndex = new Map((tl?.keys ?? []).map((k) => [String(k.name), k.index]));
     S.keyNames = new Map((tl?.keys ?? []).map((k) => [k.index, String(k.name)]));
     if (tl?.counters) S.counters = tl.counters;
@@ -1225,6 +1403,7 @@ export function createHud(root, opts = {}, cb = {}) {
     S.captionDirty = true;
     S.phase = -1;
     revealedAsks.clear();
+    if (!tl?.branch) check.set(checksFor(tl?.checks, level.value));
     explain.setTimeline(tl);
     renderCount();
     scrub.setAttribute("aria-valuemax", String(+S.duration.toFixed(2)));
@@ -1233,10 +1412,11 @@ export function createHud(root, opts = {}, cb = {}) {
     if (introOpen) renderIntro();
   }
   function buildScrubber() {
-    const D = S.duration || 1;
-    const segs = S.phases.map((p, i) => {
-      const t1 = i + 1 < S.phases.length ? S.phases[i + 1].t0 : D;
-      return { name: p.name ?? "", t0: p.t0 ?? 0, t1: p.t1 ?? t1, last: i === S.phases.length - 1 };
+    const D = S.span || 1;
+    const phases = S.detour?.main.phases ?? S.phases;
+    const segs = phases.map((p, i) => {
+      const t1 = i + 1 < phases.length ? phases[i + 1].t0 : D;
+      return { name: p.name ?? "", t0: p.t0 ?? 0, t1: p.t1 ?? t1, last: i === phases.length - 1 };
     });
     const pos = (sg) => ({ left: `${(sg.t0 / D) * 100}%`, width: `calc(${((sg.t1 - sg.t0) / D) * 100}% - ${sg.last ? 0 : 3}px)` });
     const mk = () => segs.map((sg) => { const e = h("div", { class: "ix-seg" }); Object.assign(e.style, pos(sg)); return e; });
@@ -1251,6 +1431,10 @@ export function createHud(root, opts = {}, cb = {}) {
     });
     labels.replaceChildren(...labelEls);
     scrub.classList.toggle("ix-has-labels", segs.some((sg) => sg.name));
+    scrub.classList.toggle("ix-on-detour", !!S.detour);
+    detourBand.hidden = !S.detour;
+    if (S.detour) Object.assign(detourBand.style, { left: `${(S.detour.t0 / D) * 100}%`, width: `${((S.detour.t1 - S.detour.t0) / D) * 100}%` });
+    if (S.detour) markLabels(S.detour.phase);
     fitLabels();
     // event ticks, one per step and tone; ask steps get a marker of their own
     const seen = new Set();
@@ -1262,7 +1446,7 @@ export function createHud(root, opts = {}, cb = {}) {
       seen.add(k);
       tk.push([ev.t, tone]);
     }
-    S.steps.forEach((st) => { if (st.ask) tk.push([st.t0, "ask"]); });
+    S.steps.forEach((st) => { if (st.ask || st.choose) tk.push([st.t0, "ask"]); });
     const sig = tk.map((x) => x.join()).join(";") + D;
     if (sig !== tickSig) {
       tickSig = sig;
@@ -1278,13 +1462,13 @@ export function createHud(root, opts = {}, cb = {}) {
   function fitLabels() {
     const W = scrub.clientWidth;
     if (!W) return;
-    const D = S.duration || 1;
-    const fs = S.size === "phone" ? 9.5 : 10;
+    const D = S.span || 1;
+    const fs = presenter.on ? 12.5 : S.size === "phone" ? 9.5 : 10;   // the projector's labels are a size up
     const need = (sg) => sg.name.length * (fs * 0.6 + fs * 0.1) + 4;
     const fits = labelEls.map((e) => !e._seg.name || ((e._seg.t1 - e._seg.t0) / D) * W - 3 >= need(e._seg));
     // every name fits over its segment: show them all. Otherwise a lone name (the first chapter's, say) would read as
     // the current chapter, so show only the playhead's chapter (S.phase), free to overhang its segment
-    const all = fits.every(Boolean), cur = Math.max(0, S.phase);
+    const all = fits.every(Boolean), cur = S.detour ? S.detour.phase : Math.max(0, S.phase);
     labelEls.forEach((e, i) => {
       const sg = e._seg;
       if (all || i !== cur) {
@@ -1302,11 +1486,18 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   let lastP = -1;
   function renderPlayhead(t) {
-    const p = S.duration > 0 ? clamp(t / S.duration, 0, 1) : 0;
+    const p = S.span > 0 ? clamp(t / S.span, 0, 1) : 0;
     if (Math.abs(p - lastP) < 0.00015) return;
     lastP = p;
     playhead.style.transform = `translate3d(${(p * 100).toFixed(3)}%,0,0)`;
-    segFill.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(3)}% 0 0)`;
+    // on a detour the main run's fill stops at the pick and the detour's own fill runs on from it
+    const d = S.detour, main = d ? Math.min(p, d.t0 / S.span) : p;
+    segFill.style.clipPath = `inset(0 ${((1 - main) * 100).toFixed(3)}% 0 0)`;
+    if (d) detourFill.style.clipPath = `inset(0 ${((1 - clamp((t - d.t0) / Math.max(1e-6, d.t1 - d.t0), 0, 1)) * 100).toFixed(3)}% 0 0)`;
+  }
+  /** The chapter labels' current one (on a detour: the pick's chapter of the main run, whatever the branch calls it). */
+  function markLabels(ph) {
+    labelEls.forEach((e, i) => { e.classList.toggle("ix-cur", i === ph); e.classList.toggle("ix-past", i < ph); });
   }
   function stepAt(t) {
     const st = S.steps;
@@ -1320,18 +1511,20 @@ export function createHud(root, opts = {}, cb = {}) {
     return idx;
   }
   function renderCount() {
-    const n = S.steps.length;
+    // on a detour the count is the detour's own steps, from the pick, under its name
+    const k = S.detour?.step ?? 0, n = S.steps.length - k;
     const digits = String(Math.max(1, n)).length;
     countCur.style.minWidth = `${digits}ch`;
     countTot.textContent = String(n);
-    countCur.textContent = String(Math.max(0, S.step) + 1);
+    countTag.hidden = !S.detour;
+    countCur.textContent = String(clamp(S.step - k, 0, n - 1) + 1);
   }
 
   // scrubbing with the pointer
   let scrubbing = false, scrubRect = null, scrubT = 0, seekRaf = 0, hoverStep = -1;
   const timeAtX = (clientX) => {
     const r = scrubRect ?? scrub.getBoundingClientRect();
-    return clamp((clientX - r.left) / Math.max(1, r.width), 0, 1) * S.duration;
+    return clamp((clientX - r.left) / Math.max(1, r.width), 0, 1) * S.span;
   };
   const emitSeek = () => { seekRaf = 0; fire("onSeek", scrubT, { scrubbing: true }); };
   on(scrub, "pointerdown", (e) => {
@@ -1386,13 +1579,14 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!S.steps.length) return;
     const r = scrubRect ?? scrub.getBoundingClientRect();
     const x = clamp(clientX - r.left, 0, r.width);
-    const t = (x / Math.max(1, r.width)) * S.duration;
+    const t = (x / Math.max(1, r.width)) * S.span;
     const i = stepAt(t);
     if (i !== hoverStep) {
       hoverStep = i;
       const st = S.steps[i];
       const ph = S.phases[phaseAt(i)]?.name;
-      previewMeta.textContent = `${ph ? `${ph} · ` : ""}Step ${i + 1} of ${S.steps.length}`;
+      previewMeta.textContent = S.detour && i >= S.detour.step ? `Detour · Step ${i - S.detour.step + 1} of ${S.steps.length - S.detour.step}`
+        : `${ph ? `${ph} · ` : ""}Step ${i + 1} of ${S.steps.length}`;
       previewText.replaceChildren(toDOM(parse(st.caption ?? ""), doc, markupOpts));
       preview._w = 0;
     }
@@ -1422,19 +1616,26 @@ export function createHud(root, opts = {}, cb = {}) {
     keyIndex: (name) => S.keyIndex.get(String(name)) ?? null,
     refTitle: (id) => S.entities?.get?.(id)?.title ?? null,
     // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
-    term: (name) => { const d = S.meta?.terms?.[name]; return typeof d === "string" && d.trim() ? d.trim() : null; },
+    term: (name) => termOf(S.lesson, S.meta, name)?.def ?? null,
   };
+  const md = (src) => toDOM(parse(src ?? ""), doc, markupOpts);
+  // the caption on narrow screens tells the step in layers too (layers.mjs), keeping to the plain line, the why and its chips
+  const capLayers = createLayers({ h, markup: md, refTitle: markupOpts.refTitle, onLook: (ids) => fire("onLook", ids),
+    onChange: () => { S.captionDirty = true; setCaption(S.caption, S.step); }, onMore: () => explain.toggle(true) });
   let capCur = null, liveTimer = 0;
   function setCaption(markup, step) {
     // while a prediction is open its step's words are held back; at the end the takeaway replaces the last line
     const veiled = step >= 0 && step === veilStep();
     const end = S.held?.kind === "end", t = end ? takeaway() : "";
+    const chapterDone = S.held && S.held.kind !== "key" && S.held.kind !== "turn";
     const nodes = parse(veiled ? VEIL : t || (markup ?? ""));
-    const note = S.held ? h("div", { class: "ix-cap-note" }, h("span", { class: "ix-cap-check", html: ICON.check }),
+    const note = chapterDone ? h("div", { class: "ix-cap-note" }, h("span", { class: "ix-cap-check", html: ICON.check }),
       h("span", { text: end ? "Done" : `${S.phases[S.held.phase]?.name || `Chapter ${S.held.phase + 1}`} complete` })) : null;
-    // the scrubber names the phase and the counter the step, so the caption is the sentence alone
-    const el = h("div", { class: `ix-cap${end && t ? " ix-cap-takeaway" : ""}` }, note, h("p", { class: "ix-cap-text" }, toDOM(nodes, doc, markupOpts)),
-      end ? payoffNode(endChipsCap, "ix-payoff-cap", false) ?? null : null);
+    // narrow screens tell the step in layers; a wide screen's caption (the panel tucked away) is the sentence alone
+    const layered = explain.mode === "sheet" && !chapterDone && !veiled && step >= 0 && !!S.steps[step];
+    const el = layered ? layeredCaption(markup, step)
+      : h("div", { class: `ix-cap${end && t ? " ix-cap-takeaway" : ""}` }, note, h("p", { class: "ix-cap-text" }, toDOM(nodes, doc, markupOpts)),
+        end ? payoffNode(endChipsCap, "ix-payoff-cap", false) ?? null : null);
     const instant = scrubbing || !capCur || S.captionDirty || capturing();
     S.captionDirty = false;
     // fast playback shortens the crossfade so captions never pile up
@@ -1458,6 +1659,18 @@ export function createHud(root, opts = {}, cb = {}) {
     obstaclesDirty = true;
     S.capText = veiled ? "" : toText(nodes, markupOpts.refTitle);
     if (!S.held) announce();
+  }
+  // the step in layers, under a line that places it ("Shuffle · step 2 of 11"); the chapter's first step leads with its Now
+  function layeredCaption(markup, step) {
+    const L = layersOf(S.steps[step]), P = level.policy;
+    const k = phaseAt(step), ph = S.phases[k] ?? { name: "", step: 0 };
+    const first = ph.step ?? 0, end = k + 1 < S.phases.length ? S.phases[k + 1].step : S.steps.length;
+    const enter = step === first && P.entry !== "off" ? enterOf(ph) : null;
+    const where = [ph.name, `step ${step - first + 1} of ${end - first}`].filter(Boolean).join(" · ");
+    const block = capLayers.build(step, L, { policy: P, lesson: S.lesson, plain: markup && markup !== L.plain ? markup : null,
+      where: "caption", plainClass: "ix-cap-text", compact: S.size === "phone" });
+    return h("div", { class: "ix-cap ix-cap-layered" }, h("div", { class: "ix-cap-meta", text: where }),
+      enter ? h("p", { class: "ix-cap-now" }, h("span", { class: "ix-l-label", text: "Now" }), h("span", null, md(enter.now))) : null, block);
   }
   function announce() {
     cancel(liveTimer);
@@ -1487,7 +1700,9 @@ export function createHud(root, opts = {}, cb = {}) {
   on(caption, "focusout", () => { if (refHovered) { refHovered = null; fire("onRefHover", null); } });
 
   // ---------- explain panel (explain.mjs): what is happening and why, beside the world or in a card ----------
-  const explain = createExplain({ root, doc, h, parent: hud, caption, bar, store, markupOpts,
+  const explain = createExplain({ root, doc, h, parent: hud, caption, bar, store, markupOpts, markup: md, level,
+    term: (name) => termOf(S.lesson, S.meta, name),
+    onLook: (ids) => fire("onLook", ids),
     instant: () => still() || scrubbing,
     veil: () => ({ step: veilStep(), about: aboutWithheld }),
     revealed: () => !!(Q.q && Q.revealed),
@@ -1548,7 +1763,7 @@ export function createHud(root, opts = {}, cb = {}) {
       spark.append(svg("path", { class: "ix-spark-base", d: "M1 17.25H51" }), m.area, m.line, m.dot);
       m.el = h("div", { class: "ix-meter" }, meterLabel(def, name), spark, h("span", { class: "ix-meter-val" }, m.num, m.unit));
       meterList.append(m.el);
-      const st = statTip(h("span", { class: "ix-stat" }, statLabel(def, name), statVal(m)), def, name);
+      const st = statTip(h("span", { class: "ix-stat" }, statLabel(def, name), h("span", { class: "ix-sr", text: ": " }), statVal(m), h("span", { class: "ix-sr", text: ". " })), def, name);
       st._defs = [def];
       statsList.append(st); statEls.push(st);
       meters.push(m);
@@ -1588,7 +1803,8 @@ export function createHud(root, opts = {}, cb = {}) {
           c.stat = statVal(c);
           vals.push(c.stat);
         });
-        const st = statTip(h("span", { class: "ix-stat ix-stat-cmp" }, statLabel(row.def, row.label), h("span", { class: "ix-stat-vals" }, vals)), row.def, row.label);
+        const st = statTip(h("span", { class: "ix-stat ix-stat-cmp" }, statLabel(row.def, row.label), h("span", { class: "ix-sr", text: ": " }),
+          h("span", { class: "ix-stat-vals" }, vals), h("span", { class: "ix-sr", text: ". " })), row.def, row.label);
         if (!row.def.hint) st.title = groups.join(" / ");
         st._defs = row.cells.filter(Boolean).map((c) => c.def);
         statsList.append(st); statEls.push(st);
@@ -1610,6 +1826,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const marked = statEls.some((e) => e._defs.some((d) => d?.primary));
     let on = statEls.map((e, i) => (marked ? e._defs.some(isPrimary) : i < 3));
     if (!on.some(Boolean)) on = statEls.map((_, i) => i === 0);
+    if (S.dockRow) { const first = on.indexOf(true); on = on.map((_, i) => i === first); }   // the one-row dock keeps one number
     statEls.forEach((e, i) => { e.hidden = !on[i]; });
     fitSoon();
   }
@@ -1844,13 +2061,52 @@ export function createHud(root, opts = {}, cb = {}) {
   let keyboardMode = false;
   on(win, "keydown", () => { keyboardMode = true; }, true);
   on(win, "pointerdown", () => { keyboardMode = false; }, true);
+
+  // ---------- your turn: an in-world pick (turn.mjs), the end check (check.mjs), level nudges (nudge.mjs) ----------
+  // They use the predict card and its place (the explain panel, or above the caption), so the calm rules hold for them.
+  const nudge = createNudge({ h, level, store, key: figKey(), icon: ICON.close });
+  const belief = (m, feedback) => beliefBlock(h, md, S.lesson, m, feedback);
+  // open the card on what turn.mjs or check.mjs has put in it; revealed: the step's words may show under it
+  function showTurn(q, o = {}) {
+    Q.q = q; Q.sig = `${q.kind}:${q.id}`; Q.step = o.step ?? -1; Q.opts = o.opts ?? [];
+    Q.answered = o.revealed ? 0 : null; Q.revealed = !!o.revealed; Q.revealAt = now(); Q.hold = o.hold ?? 4200;
+    predict.classList.toggle("ix-revealed", !!o.revealed);
+    hideCoach();
+    setOpen(predict, true);
+    obstaclesDirty = true;
+    root.classList.toggle("ix-asking", o.asking ?? !o.revealed);
+    hostPredict();
+    S.captionDirty = true;
+    explain.refresh();
+  }
+  const turnCtx = { h, md, card: predict, level, nudge, belief, icon: { check: ICON.check, cross: ICON.cross, close: ICON.close },
+    keyboard: () => keyboardMode, reduced: () => still(), entities: () => S.entities, steps: () => S.steps, lesson: () => S.lesson,
+    phases: () => S.phases, docked: () => explain.docked, show: showTurn, hide: () => hidePredict(), fire };
+  const turn = createTurn(turnCtx);
+  const check = createCheck(turnCtx);
+  // the questions a story asks at this level (turn.mjs liveTurns); the rest play through
+  let liveSig = null, live$ = null;
+  const isLive = (step) => {
+    const sig = `${S.steps.length}|${S.tl?.hash}|${level.value}`;
+    if (sig !== liveSig) { liveSig = sig; live$ = liveTurns(S.steps, level.value); }
+    return step < 0 || live$.has(step);
+  };
+
   function ask(q) {
     if (!q) {
+      turn.reset();
       // an answered question finishes its reveal first, then hides itself
       if (Q.q && Q.answered != null) return;
       hidePredict();
       return;
     }
+    if (q.kind === "choose") {
+      const k = S.steps.findIndex((st) => st.choose === q);
+      if (!isLive(k)) { fire("onAnswer", q.answer); return; }
+      turn.open(q, k);
+      return;
+    }
+    if (!isLive(q.step ?? findAskStep(q))) { revealedAsks.add(q.step ?? findAskStep(q)); fire("onAnswer", -1); return; }
     const sig = `${q.question}\u0000${(q.options ?? []).join("\u0000")}`;
     if (sig === Q.sig && Q.q) return;
     Q.q = q; Q.sig = sig; Q.answered = null; Q.revealed = false;
@@ -1861,13 +2117,20 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.close.hidden = true;
     Q.opts = (q.options ?? []).map((o, i) => h("button", {
       class: "ix-opt", type: "button", onclick: () => answer(i),
-    }, h("span", { class: "ix-opt-key", text: String.fromCharCode(65 + i) }), h("span", { class: "ix-opt-text" }, toDOM(parse(String(o)), doc, markupOpts)),
+    }, h("span", { class: "ix-opt-key", text: String.fromCharCode(65 + i) }), h("span", { class: "ix-opt-text" }, md(String(o))),
     h("span", { class: "ix-opt-mark" })));
     Q.foot = h("div", { class: "ix-predict-foot", text: "Pick one, then watch." });
-    put(predict, 
-      h("div", { class: "ix-predict-head" }, h("span", { class: "ix-badge" }, h("i", { class: "ix-badge-dot" }), "Predict"), status, Q.close),
-      h("p", { class: "ix-predict-q" }, toDOM(parse(q.question ?? ""), doc, markupOpts)),
-      h("div", { class: "ix-opts" }, Q.opts), Q.foot);
+    const opts = h("div", { class: "ix-opts" }, Q.opts);
+    // Expert: pause and ponder; the options wait behind Predict, and the question can be skipped
+    const ponder = level.policy.predict === "ponder";
+    const choices = ponder ? h("div", { class: "ix-predict-ponder" },
+      h("button", { class: "ix-pill", type: "button", onclick: () => { choices.remove(); opts.hidden = Q.foot.hidden = false; if (keyboardMode) Q.opts[0]?.focus({ preventScroll: true }); } }, "Predict"),
+      h("button", { class: "ix-pill ix-pill-quiet", type: "button", onclick: () => skipPredict() }, "Skip")) : null;
+    opts.hidden = Q.foot.hidden = ponder;
+    put(predict,
+      h("div", { class: "ix-predict-head" }, h("span", { class: "ix-badge" }, h("i", { class: "ix-badge-dot" }), ponder ? "Think first" : "Predict"), status, Q.close),
+      h("p", { class: "ix-predict-q" }, md(q.question ?? "")),
+      choices, opts, Q.foot);
     predict.classList.remove("ix-revealed");
     hideCoach();
     setOpen(predict, true);
@@ -1875,7 +2138,13 @@ export function createHud(root, opts = {}, cb = {}) {
     root.classList.add("ix-asking");
     hostPredict();
     S.captionDirty = true;
-    if (keyboardMode) raf(() => Q.opts[0]?.focus({ preventScroll: true }));
+    if (keyboardMode) raf(() => (ponder ? choices.firstChild : Q.opts[0])?.focus({ preventScroll: true }));
+  }
+  // Expert skips a question: the run plays on, and the step's words come back with it
+  function skipPredict() {
+    revealedAsks.add(Q.step);
+    hidePredict();
+    fire("onAnswer", -1);
   }
   function findAskStep(q) {
     let best = -1;
@@ -1886,6 +2155,8 @@ export function createHud(root, opts = {}, cb = {}) {
     return best >= 0 ? best : S.step + 1;
   }
   function answer(i) {
+    if (Q.q?.kind === "choose") { turn.pick(i); return; }
+    if (Q.q?.kind === "check") { check.answer(i); return; }
     if (!Q.q || Q.answered != null) return;
     Q.answered = i;
     Q.opts.forEach((b, j) => { b.classList.toggle("ix-chosen", j === i); b.setAttribute("aria-disabled", "true"); });
@@ -1895,7 +2166,7 @@ export function createHud(root, opts = {}, cb = {}) {
     fire("onAnswer", i);
   }
   function maybeReveal() {
-    if (!Q.q || Q.answered == null || Q.revealed) return;
+    if (!Q.q || Q.q.kind || Q.answered == null || Q.revealed) return;
     const st = S.steps[Q.step];
     const due = st ? S.step > Q.step || (S.step === Q.step && S.time >= st.t0 + (st.dur ?? st.t1 - st.t0) * 0.7) : S.step > Q.step;
     if (!due) return;
@@ -1912,12 +2183,18 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.status.textContent = ok ? "Correct" : "Not quite";
     Q.status.className = `ix-predict-status ix-tone-${ok ? "ok" : "fail"}`;
     Q.foot.textContent = ok ? "Your prediction matches the run." : `The run shows ${String.fromCharCode(65 + right)}.`;
-    // s.ask(..., { why }): the reason the answer is right replaces the foot, and the card stays long enough to read it
+    // the reader's own pick answers back (each wrong option has its feedback), then the reason the answer is right
+    // replaces the foot; the card stays long enough to read both
     Q.hold = 4200;
-    if (Q.q.why) {
-      Q.foot.replaceWith(Q.foot = h("p", { class: "ix-predict-why" }, h("span", { class: "ix-predict-why-label", text: "Why" }),
-        h("span", { class: "ix-predict-why-text" }, toDOM(parse(String(Q.q.why)), doc, markupOpts))));
-      Q.hold += 300 * toText(parse(String(Q.q.why))).split(/\s+/).filter(Boolean).length;
+    // a wrong pick names the belief behind it ("If you thought…", lesson.misconceptions), then what the run shows
+    const fb = !ok ? Q.q.feedback?.[Q.answered] : null;
+    const said = [!ok && (fb?.misconception || feedbackOf(Q.q, Q.answered)) ? belief(fb?.misconception ?? null, feedbackOf(Q.q, Q.answered)) : null,
+      Q.q.why ? h("p", { class: "ix-predict-why" }, h("span", { class: "ix-predict-why-label", text: "Why" }), h("span", { class: "ix-predict-why-text" }, md(String(Q.q.why)))) : null].filter(Boolean);
+    nudge.note(ok, true);
+    const offer = nudge.line();
+    if (said.length || offer) {
+      Q.foot.replaceWith(Q.foot = h("div", { class: "ix-predict-said" }, said, offer));
+      Q.hold += 300 * said.reduce((n, el) => n + (el.textContent ?? "").split(/\s+/).filter(Boolean).length, 0);
     }
     Q.close.hidden = false;
     Q.revealAt = now();
@@ -2327,11 +2604,13 @@ export function createHud(root, opts = {}, cb = {}) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key;
     const activates = t?.closest?.("button, a[href], [role=switch], [role=radio], [role=menuitemradio]");
+    // presenting, the clicker's keys go on and back (presenter.mjs); everything else falls through
+    if (!isTyping(t) && k !== "Escape" && presenter.key(e, { charKeys, activates })) return;
     // the start card takes the keyboard: Space or Enter plays, Esc dismisses, digits pick a scenario
     if (introOpen) {
       if (k === "Escape") { e.preventDefault(); closeIntro("dismiss"); }
       else if ((k === " " || k === "Spacebar" || k === "Enter") && !activates) { e.preventDefault(); closeIntro("play"); }
-      else if (/^[1-9]$/.test(k) && S.scenarios[+k - 1]) { e.preventDefault(); chooseScenario(S.scenarios[+k - 1].id); }
+      else if (charKeys && /^[1-9]$/.test(k) && S.scenarios[+k - 1]) { e.preventDefault(); chooseScenario(S.scenarios[+k - 1].id); }
       return;
     }
     if (e.key === "Escape") {
@@ -2339,6 +2618,7 @@ export function createHud(root, opts = {}, cb = {}) {
       return;
     }
     if (isTyping(t)) return;
+    if (!charKeys && isCharKey(k)) return;
     let used = true;
     if (k === " " || k === "Spacebar") { if (activates) return; togglePlay(); }
     else if (k === "Enter") { if (activates) return; if (S.held && !S.playing) heldAction(); else used = false; }
@@ -2365,8 +2645,76 @@ export function createHud(root, opts = {}, cb = {}) {
     else if (k === "r" || k === "R") { if (typeof cb.onRestart === "function") fire("onRestart"); else fire("onSeek", 0, { scrubbing: false }); }
     else if (k === "?" || (k === "/" && e.shiftKey)) toggleHelp();
     else if (k === "e" || k === "E") explain.toggle();
+    else if (k === "p" || k === "P") { if (S.size !== "phone") presenter.set(!presenter.on); else used = false; }
+    else if (k === "l" || k === "L") { if (S.lesson) cycleLevel(); else used = false; }
     else used = false;
     if (used) e.preventDefault();
+  });
+
+  // ---------- presenter mode (presenter.mjs, presenter-view.mjs): a projector, a clicker, a second window ----------
+  // The clicker goes on: into the first step from the start card, through a pause by its Continue, else one step played
+  // to its end. Like a slide build, a click while a step still moves completes it at once, so no click is lost. An open
+  // question waits for its answer (the room answers on screen, or the presenter view does).
+  function advance() {
+    if (introOpen) { closeIntro("step"); return; }
+    if (S.held && !S.playing) { heldAction(); return; }
+    if (Q.q && !Q.q.kind && Q.answered == null) { notice("Pick an answer first: click it, or press its number."); return; }
+    hideCoach("step");
+    const st = S.steps[S.step];
+    if (S.playing && st && S.time < st.t1 - 0.05) { fire("onPause"); fire("onSeek", st.t1 - 1e-3, { scrubbing: false }); return; }
+    fire("onStep", 1);
+  }
+  function cycleLevel() {
+    if (!S.lesson) return;
+    const order = ["new", "basics", "expert"], next = order[(order.indexOf(level.value) + 1) % order.length];
+    level.set(next);
+    notice(`Level: ${{ new: "New to this", basics: "I know the basics", expert: "Expert" }[next]}`, { duration: 1600 });
+  }
+  // what the presenter view shows: this step in full, the next one, the open question and its answer
+  function viewState() {
+    if (!S.steps.length) return null;
+    const i = clamp(S.step, 0, S.steps.length - 1), nx = S.steps[i + 1] ?? null, k = phaseAt(i), nk = nx ? phaseAt(i + 1) : k;
+    const hv = S.playing ? null : S.held;
+    const primary = hv ? (hv.kind === "end" ? "Replay" : hv.kind === "chapter" ? `Continue to ${nextChapter()}` : hv.kind === "turn" ? "Rewind and try again" : "Continue")
+      : S.playing ? "Pause" : "Play";
+    const done = hv?.kind === "end" ? "Run complete" : hv?.kind === "chapter" ? `${S.phases[hv.phase]?.name || `Chapter ${hv.phase + 1}`} complete` : null;
+    const q = Q.q && (!Q.q.kind || Q.q.kind === "choose") ? Q.q : null;
+    const ask = q ? { kind: q.kind ?? "predict", question: q.question ?? q.prompt ?? "", options: q.kind ? [] : q.options ?? [], answer: q.kind ? null : q.answer,
+      chosen: q.kind ? null : Q.answered, revealed: Q.revealed } : null;
+    return {
+      steps: S.steps.length, step: i, chapters: S.phases.map((p) => p.name ?? ""), chapter: k, cur: S.steps[i], next: nx,
+      nextChapter: nx && nk !== k ? S.phases[nk]?.name ?? `Chapter ${nk + 1}` : null, held: hv ? { kind: hv.kind, done } : null, primary,
+      playing: S.playing, progress: S.span ? S.time / S.span : 0, ask, about: S.phases[k]?.about ?? null,
+      scenario: S.scenarios.length > 1 ? scenarioDef()?.label ?? S.scenario : null,
+      sig: [i, S.tl?.hash ?? "", S.steps.length, primary, ask ? `${ask.question}|${ask.chosen}|${ask.revealed}` : "", level.value, S.scenario].join("|"),
+    };
+  }
+  let splitWas = null;
+  const presenter = createPresenter({
+    root, win, theme: () => S.theme, notice,
+    on: (v) => {
+      presentSw.setAttribute("aria-checked", String(v));
+      if (v) { toggleHelp(false); toggleSpeedMenu(false); toggleReadout(false); toggleLegend(false); if (codeOpen) toggleCode(false); }
+      paramsDocked = null;   // presenting, the knobs lead the drawer (S) rather than a card under the panel
+      onResize();
+      applyPrimary();
+    },
+    // the presenter view holds the words: on the projector the panel steps aside and the caption takes its place
+    split: (open) => {
+      root.classList.toggle("ix-present-split", open);
+      viewBtn.setAttribute("aria-pressed", String(open));
+      if (open) { splitWas = explain.open; explain.toggle(false); }
+      else if (splitWas != null) { explain.toggle(splitWas); splitWas = null; }
+      S.captionDirty = true;
+    },
+    advance, cycleLevel, back: () => { if (!introOpen) fire("onStep", -1); }, heldAction: () => { if (S.held && !S.playing) heldAction(); },
+    view: {
+      doc, get level() { return S.lesson ? level : null; }, title: () => S.meta.title ?? "Figure", theme: () => S.theme, state: viewState,
+      makeH: (d) => maker(d).h, markup: (src, d) => toDOM(parse(src), d, markupOpts),
+      icons: { back: ICON.back, fwd: ICON.fwd, play: ICON.play, pause: ICON.pause, next: ICON.next, replay: ICON.replay, check: ICON.check },
+      key: (e) => presenter.key(e, { charKeys }),
+      actions: { back: () => fire("onStep", -1), advance, primary: () => (S.held && !S.playing ? heldAction() : togglePlay()), answer: (i) => answer(i) },
+    },
   });
 
   // ---------- deep links ----------
@@ -2400,7 +2748,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function updateInsets() {
     const rr = root.getBoundingClientRect();
     insets.left = codeOpen && S.size !== "phone" ? Math.round(codePanel.offsetLeft + codePanel.offsetWidth) : 0;
-    insets.right = explain.inset();
+    insets.right = Math.max(explain.inset(), paramsInset());
     placeStories(rr);   // centred on the free stage the side insets leave
     const tr = top.getBoundingClientRect(), br = bottom.getBoundingClientRect();
     const sb = storyBar.hidden ? null : storyBar.getBoundingClientRect();
@@ -2416,8 +2764,12 @@ export function createHud(root, opts = {}, cb = {}) {
     const size = W < SIZE_PHONE ? "phone" : W < SIZE_COMPACT ? "compact" : "desktop";
     if (size !== S.size) { S.size = size; root.dataset.size = size; syncSheets(); hideTip(); }
     root.classList.toggle("ix-short", H < 560);
-    // one dock row on wide screens; below that the readout strip sits on its own row above the transport
-    root.classList.toggle("ix-tiered", size !== "desktop" || W < 1200);
+    // Embedded, or short: the dock is one row (play, the timeline, the count, one number), so the world keeps its height.
+    // Otherwise one row on wide screens, and below that the readout strip sits on its own row above the transport.
+    S.embedded = root.classList.contains("ix-embed");
+    const row = (S.embedded || H < 600) && size !== "phone" && !presenter.on;
+    if (row !== S.dockRow) { S.dockRow = row; root.classList.toggle("ix-dock-row", row); applyPrimary(); }
+    root.classList.toggle("ix-tiered", !row && (size !== "desktop" || W < 1200));
     root.style.setProperty("--ix-stats-max", `${Math.round(Math.min(W - 48, 1320) * 0.42)}px`);
     if (size !== "phone" && aboutOpen) toggleAbout(false);
     fitSoon();
@@ -2426,13 +2778,14 @@ export function createHud(root, opts = {}, cb = {}) {
     fitLabels();
     preview._w = 0;
     explain.resize(size, W);
+    placeParams();
     updateInsets();
     if (pinCard.shown) placeCard(pinCard, pinCard.x, pinCard.y);
     hideCoach();
     obstaclesDirty = true;
   }
   const ro = new win.ResizeObserver(() => onResize());
-  ro.observe(root); ro.observe(top); ro.observe(bottom); ro.observe(scrub);
+  ro.observe(root); ro.observe(top); ro.observe(bottom); ro.observe(scrub); ro.observe(paramsCard);
   onResize();
   doc.fonts?.ready?.then(() => { if (!destroyed) { preview._w = 0; fitStats(); updateInsets(); } });
 
@@ -2451,7 +2804,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function onStep(step) {
     const prevStep = S.step;
     S.step = step;
-    countCur.textContent = String(step + 1);
+    renderCount();
     const ph = phaseAt(step);
     if (ph !== S.phase) {
       // after the first chapter, one pointer at the timeline: it can be dragged back
@@ -2459,12 +2812,13 @@ export function createHud(root, opts = {}, cb = {}) {
         later(() => { if (S.phase === 1 && S.playing && !scrubbing) hint("scrub", "Drag to rewind", scrubAnchor, { sub: "Every step is replayable." }); }, 900);
       }
       S.phase = ph;
-      labelEls.forEach((e, i) => { e.classList.toggle("ix-cur", i === ph); e.classList.toggle("ix-past", i < ph); });
+      markLabels(S.detour ? S.detour.phase : ph);
       fitLabels();
     }
     const st = S.steps[step];
     scrub.setAttribute("aria-valuenow", String(+(st?.t0 ?? S.time).toFixed(2)));
-    scrub.setAttribute("aria-valuetext", `Step ${step + 1} of ${S.steps.length}${S.phases[ph]?.name ? `, ${S.phases[ph].name}` : ""}`);
+    scrub.setAttribute("aria-valuetext", S.detour && step >= S.detour.step ? `Detour, step ${step - S.detour.step + 1} of ${S.steps.length - S.detour.step}`
+      : `Step ${step + 1} of ${S.steps.length}${S.phases[ph]?.name ? `, ${S.phases[ph].name}` : ""}`);
     sparksDirty = true;
   }
   let legendTick = 0;
@@ -2482,9 +2836,12 @@ export function createHud(root, opts = {}, cb = {}) {
     const step = Number.isInteger(frame.step) ? frame.step : S.steps.length ? stepAt(t) : 0;
     if (step !== S.step) onStep(step);
     explain.step(step, info.fold?.caption);
-    setHeld(playing ? null : info.held ?? null);   // before the caption: a pause changes what the caption says
+    const held = turn.held(info.held ?? null, S.tl);   // a branch's end is the turn's hold (turn.mjs)
+    setHeld(playing ? null : held);   // before the caption: a pause changes what the caption says
+    turn.update({ tl: S.tl, step, time: t, held: info.held ?? null });
+    check.update({ held: playing ? null : held, branch: !!S.tl?.branch });
     const cap = frame.caption ?? "";
-    const capKey = `${S.held ? `${S.held.kind}${S.held.phase}` : ""}|${veilStep() === step ? 1 : 0}`;
+    const capKey = `${S.held ? `${S.held.kind}${S.held.phase}` : ""}|${veilStep() === step ? 1 : 0}|${explain.mode}`;
     if (cap !== S.caption || S.captionDirty || capKey !== S.capKey) { S.caption = cap; S.capKey = capKey; setCaption(cap, step); }
     if (frame.counters) setMeters(frame.counters, step);
     if (rowsDirty) { rowsDirty = false; renderRows(true); }
@@ -2500,8 +2857,11 @@ export function createHud(root, opts = {}, cb = {}) {
       if (sm) later(() => { if (S.stepMode) hint("step", "Press Next for each step", nextAnchor, { sub: "Or the → key. Play runs it on its own." }); }, 350);
       else hideCoach("step");
     }
-    fold.update({ fold: info.fold ?? null, skipped: info.skipped ?? null, duration: info.duration ?? S.duration });
+    fold.update({ fold: info.fold ?? null, skipped: info.skipped ?? null, duration: S.detour ? S.span : info.duration ?? S.duration });
     if (moved && (playing || scrubbing)) scheduleHash(false);
+    presenter.update();
+    // embedding marks the root after the HUD exists (engine/embed): the dock takes its one-row form then
+    if (root.classList.contains("ix-embed") !== S.embedded) onResize();
   }
 
   // ---------- initial render ----------
@@ -2514,6 +2874,7 @@ export function createHud(root, opts = {}, cb = {}) {
   renderSpeed();
   setTheme(S.theme);
   updateLegend(null);
+  if (presentQuery(win.location.search)) presenter.set(true);
 
   const api = {
     root,
@@ -2522,12 +2883,15 @@ export function createHud(root, opts = {}, cb = {}) {
     placeTags,
     inspect,
     ask,
+    /** A click in the world while an in-world pick is open: true when the pick took it (turn.mjs). */
+    pick: (id) => turn.pickId(id),
     notice,
     setTheme: (t) => setTheme(t),
     setValues(values) {
       S.values = { ...S.values, ...(values ?? {}) };
       sentJSON = JSON.stringify(S.values);
       for (const k in knobs) knobs[k].set(S.values[k]);
+      syncReset();
     },
     setScenario(id) { if (id != null && id !== S.scenario) { S.scenario = id; renderScenario(); } },
     setMeta(meta) { S.meta = meta ?? {}; renderTitle(); },
@@ -2541,6 +2905,10 @@ export function createHud(root, opts = {}, cb = {}) {
     get guided() { return guided; },
     /** "Speed through repeats" (a viewer preference, default on). */
     get folding() { return folding; },
+    /** The reader's level ("new" | "basics" | "expert") and what it shows (level.mjs POLICY). */
+    get level() { return level.value; },
+    get policy() { return level.policy; },
+    setLevel: (v) => level.set(v),
     hint: (name, text, at, o) => hint(name, text, at, o),
     get reducedMotion() { return reduced; },
     get insets() { return { ...insets }; },
@@ -2554,6 +2922,10 @@ export function createHud(root, opts = {}, cb = {}) {
       obstaclesDirty = true;
       updateInsets();
     },
+    /** Presenter mode (projector type, high contrast, clicker keys), and its second window. */
+    get presenting() { return presenter.on; },
+    present: (on = true) => presenter.set(on),
+    presenterView: (open = true) => (open ? presenter.openView() : presenter.closeView()),
     open(what, on = true) {
       if (what === "settings") toggleDrawer(on);
       else if (what === "code") toggleCode(on);
@@ -2571,11 +2943,13 @@ export function createHud(root, opts = {}, cb = {}) {
       ro.disconnect();
       explain.destroy();
       fold.destroy();
+      presenter.destroy();
       listeners.forEach((off) => off());
       timers.forEach((id) => win.clearTimeout(id));
       if (countRaf) win.cancelAnimationFrame(countRaf);
       if (fitRaf) win.cancelAnimationFrame(fitRaf);
       for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live]) el.remove();
+      if (landmark) root.removeAttribute("role");
       root.classList.remove("ix-reduced", "ix-playing", "ix-has-code", "ix-has-meters", "ix-has-legend", "ix-has-scenarios", "ix-stepmode", "ix-intro-open", "ix-held-open");
     },
   };
