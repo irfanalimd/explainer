@@ -4,7 +4,8 @@ A figure is a lesson before it is a picture. The engine makes it beautiful and t
 Every rule here is something a cold reader can check, and most of them `verify` checks for you (section 9).
 
 Read this before writing `figure.mjs`. Fill in the lesson plan (section 2) first, in plain text, then build the run
-that tells it. Afterwards, read `node scripts/lesson.mjs figure.mjs` as a beginner would (section 8).
+that tells it, then write its words in `lesson.mjs` (section 5). Afterwards, read `node scripts/lesson.mjs figure.mjs`
+as a beginner would (section 8).
 
 Contents: [1 Reader](#1-know-the-reader) · [2 Plan](#2-the-lesson-plan-before-any-code) ·
 [3 Words](#3-words) · [4 Size](#4-sizing-by-concept) · [5 In the figure](#5-where-each-part-goes) ·
@@ -119,7 +120,9 @@ The word may well appear: define it first. Also avoid:
 
 ### Captions: what happened, and why
 
-- One event and its reason, **at most 18 words** (22 for a deep lesson), present tense, the event first.
+- One event and its reason, **at most 18 words** (22 for a deep lesson), present tense, the event first. With a
+  lesson file the event goes in `plain` (at most 14 words) and the reason, where one is needed, in `why` (5.2); the
+  figure's caption stays as the fallback.
 - "`28` is bigger than `19`, so we drop the right half: 4 places left." (what + why + the number that changed)
 - Not "Compare a[4] with key." (no why) and not a paragraph (move the explanation into the chapter's `about`).
 - Real numbers from the run; a number the reader cannot interpret needs its unit or its meaning.
@@ -132,7 +135,7 @@ The first chapter's about carries the everyday picture and its mapping.
 
 ### Story labels, what-ifs and descriptions
 
-The story picker is read before anything is explained, so it uses **no** flagged words at all. Nor do chapter
+The Scenarios picker is read before anything is explained, so it uses **no** flagged words at all. Nor do chapter
 names: the scrubber shows every one of them from the first frame ("Copy the log", not "Replication").
 
 | | Before | After |
@@ -176,23 +179,162 @@ protocol into its phases (elect, replicate, commit, recover), and let each failu
 
 ## 5. Where each part goes
 
-| Lesson part | In `figure.mjs` |
-|---|---|
-| Size | `meta.level: "intro" \| "core" \| "deep"` |
-| Question | `meta.hook` |
-| Everyday picture + mapping | the first `s.phase(name, { about })`, and the opening step's caption |
-| Problem before solution | the first chapter or the first story: run the naive way for real |
-| New words | `meta.terms` + `{term:name}` (or `fmt.term(name, text)`) at first use |
-| One idea per chapter | `s.phase(name, { about })`, 1–2 sentences, ≤ 40 words |
-| What happened + why | `s.step(caption)`, ≤ 18 words |
-| Misconception, aha | `s.ask(question, options, answer, { why })` right before the revealing step; `{ keep: true }` on it |
-| What breaks | a scenario with a learner-language `label`, `whatIf` and `description` |
-| Recap | `meta.recap: ["…", "…"]` (2–4 lines; a scenario may have its own `recap`) |
-| Takeaway | `meta.takeaway` (a scenario may have its own) |
+A figure is two files. `figure.mjs` owns the truth: it runs the concept and names each step, chapter and question
+with a stable id, passing the run's values as `vars`. `lesson.mjs` beside it owns the words, keyed by those ids. Its
+templates print the vars; the lesson never computes. A step the lesson has no words for shows its inline caption, so
+keep every caption true and short. `examples/mapreduce/` is the model to copy (`examples/linked-list/` for `intro`).
 
-`s.ask`'s `why` is one sentence on *why* the right answer is right, from the run ("The list is in order, so every
-number right of 28 is bigger than 28, and cannot be 19"). It replaces the card's footer once the answer is revealed.
-Write wrong options that a beginner would really pick: the misconception, the naive guess.
+| Lesson part | Where it lives |
+|---|---|
+| Size | `meta.level: "intro" \| "core" \| "deep"` (also the reader's default level, 5.4) |
+| Question | `meta.hook` |
+| Goal, objectives | `lesson.goal`, `lesson.objectives: [{ id, text }]` (the progress map shows the goal) |
+| Everyday picture + mapping | `lesson.picture: { name, rows: [{ id, picture, real, term? }], breaks }`; the full map on one chapter's entry card (`enter.picture: true`), a one-line picture on the steps that use it |
+| Problem before solution | the first chapter or the first story: run the naive way for real |
+| New words | `meta.terms` (plain definitions) and `lesson.terms: { name: { lead, def } }`; `{term:name}` at first use |
+| One idea per chapter | `s.phase(name, { about, id })`; `lesson.chapters[id]: { about, enter: { sofar, now, done } }` |
+| What happened, why, what to watch | `s.step(caption, { id, vars })`; `lesson.steps[id]: { plain, why, look, deeper, picture, key }` |
+| Misconception, aha | `lesson.misconceptions: [{ id, wrong, fix }]`; `s.ask(question, options, answer, { why, id })` right before the revealing step; `lesson.asks[id].options[j]: { feedback, misconception }` |
+| Your turn, in the world | `s.choose(id, { prompt, options: [{ pick, right }] })` at the decision; the wrong branch plays for real; `lesson.choices[id]: { prompt, why, wrong: { feedback, misconception } }` |
+| End check | `s.check(id, { question, options, answer, chapter, vars })` with answers from the run's rules at other knob values; `lesson.checks[id]: { question, why }`; `lesson.objectives` become "You can now…" |
+| What breaks | a scenario with a learner-language `label`, `whatIf` and `description` |
+| The real scale | `s.scale({ … })` on the happy path's last step, numbers from the run or a cited source (`references/builder.md` section 11) |
+| Recap, takeaway | `meta.recap` (2–4 lines), `meta.takeaway` (a scenario may have its own of each) |
+
+### 5.1 The lesson file
+
+```js
+export const lesson = {
+  goal: "Count every word of a text exactly, with machines that each read only part of it.",
+  objectives: [{ id: "o-hash", text: "Explain why every copy of a word must reach the same counter." }],
+  misconceptions: [{ id: "m-even", wrong: "Spreading the slips evenly is best.", fix: "Copies of one word would land on different counters." }],
+  picture: { name: "a library counted by a team", rows: [{ id: "split", picture: "one shelf of books", real: "a split", term: "split" }],
+             breaks: "Helpers would agree on who counts which word. Machines never ask: each one hashes the word." },
+  terms: { split: { lead: "one piece of the text", def: "One piece of the input, read by one machine." } },
+  chapters: {
+    split: { about: "…", enter: { sofar: "You can count words with a loop and a dictionary.", now: "Cut the text into pieces.",
+                                  done: "Every word sits in exactly one piece.", picture: true } },
+    "split@skew": { about: "…" },                       // this scenario's own version
+  },
+  steps: {
+    "split.cut": { key: true, plain: "The master cuts the text into {M} pieces of about {per} words.",
+                   why: "Each piece can be read without the others, so all {M} machines start at once.",
+                   look: ["{splitIds}"], picture: "split",
+                   deeper: { how: "…", real: "…", source: "Dean & Ghemawat, OSDI 2004, https://research.google/pubs/pub62/" } },
+    "map.read": { plain: "{map} writes a slip for each of its {count:count|word}.", look: ["{mapId}"],
+                  first: { why: "That is the whole of map: nobody waits for anybody.", picture: "slip" } },
+    "map.combine": { when: (v) => v.dups > 0, plain: "…" },   // only when the run makes this line true
+  },
+  asks: {
+    "shuffle.where": { options: [
+      { misconception: "m-even", feedback: "Even spreading would split {w}'s slips, and neither counter could give its full count." },
+      { feedback: "Right. {w} always hashes to the same number, so every copy lands on {firstRed}." },
+      { misconception: "m-central", feedback: "Then one machine would add up every slip, the very work we shared out." } ] },
+  },
+};
+```
+
+- **Templates** print the figure's vars by kind: `{n}` (a number as `1 234`, a string as text, `{ key }` as a chip,
+  `{ ref, text }` as an entity chip, `{ code }` as code, a list as "a, b and c", `{ path }` as "a → b"),
+  `{count:n|item}` ("3 items"; `{count:n|child|children}`), `{be:n}` ("is"/"are"). In `look`, `"{id}"` prints the
+  raw id, and a list var expands to one id per item. Caption markup (`{term:…}`, `{key:…}`, `` `code` ``) passes
+  through. Exact rules: `CONTRACTS.md` section 10.
+- **`first`** replaces fields for the first step with that id (the first of a repeat carries the why); **`when`**
+  skips an entry whose line is false at some knob values; **`x@story`** replaces `x` (a whole entry or one field) in
+  that scenario.
+- **Ids**: steps `chapter.verb-noun` (`map.read`, `insert.save-next`), shared by every repeat of a step; chapters
+  and asks short and stable. Chapter titles stay in `s.phase(name)`: scenarios and forks find chapters by name.
+- **Planned ids** (the curriculum skeleton, before the run exists) are empty entries, `"map.read": {}`: they fall
+  back to the caption until the words are written, and verify notes any the run never reaches.
+
+### 5.2 Writing the layers
+
+| Layer | Holds | Rules |
+|---|---|---|
+| `plain` | what just happened | Every step. At most 14 words and 2 sentences, present tense, the real values. No O(·) at `intro`. |
+| `why` | why it matters for the goal | Mostly per chapter: the entry card carries the chunk's purpose, so a step adds a `why` only where its purpose differs or defies intuition: the first time a move happens, the aha step, a misconception or failure step, the first of a repeat. Never on repeats. One sentence, at most 18 words, and it must not restate `plain`. |
+| `look` | the entity ids to watch | One cue per step; every id exists at the end of the step. The world lights them, and on a key step the camera takes a detail shot of them. |
+| `deeper` | the precise version, structured | `{ cost, how, code, edge, real, source }`, all optional, in that order: Basics shows the first present field as a one-line peek. `cost`: the complexity and the run's real count. `how`: the exact mechanism. `code`: the line, in a real language. `edge`: the case that breaks the simple story. `real`: where a real system does this. `source`: a URL, required when `real` makes a claim. At least one `cost` in the lesson, and one nuance a ten-year practitioner would not know. |
+| `picture` | the picture row this step uses | Only on steps that use the analogy. There is no persistent analogy table under the steps: the full map appears once, on the parts chapter's entry card, with its "where it stops matching" line; after that a flagged step gets one inline line at New, and the map stays in the Words drawer. |
+| `key` | `true` on the steps that carry the idea | Needs `why` (verify warns) and `deeper`. New holds after it; the camera frames its `look`. |
+
+Chapters: `about` (1–2 sentences, at most 40 words, true in every scenario) and an `enter` card: **So far** (what the
+last chapter showed, carrying its "but"), **Now** (the one new move), **You'll know it worked when** (what the reader
+will see in the world).
+
+Asks: right before the step that disproves a misconception, and only where the naive answer is wrong. Every option
+gets its own feedback: a wrong option names the belief it holds (`misconception`), says what the run shows with the
+run's values, and the right one gets a line on why. Every misconception is named by some option (verify warns). At
+most one interaction per chapter, never two within 4 steps.
+
+### 5.3 Words: term load and readability
+
+- **At most 1 new term per step**, all levels. Per chapter at most 2 (`intro`), 3 (`core`), 4 (`deep`), except the
+  one chapter that introduces the parts (the one whose entry card shows the picture map), which may hold 4 / 5 / 6
+  if every term names an entity lit on that step.
+- **Use it or lose it.** Each defined term reappears in at least 2 later steps, the first within 3 steps; otherwise
+  do not introduce it.
+- A label shown in the world counts as introduced at the step it appears: name it there.
+- No forward references in any layer, `deeper` included (a Basics peek may not use a term defined only later).
+- `lead` is the plain word the reader meets first ("an arrow"), `def` the definition (under 20 words, only words the
+  reader has). Beginner words first, the real name second.
+- **Readability.** Hard per-line limits above (`plain` 14 words, `why` 18, no sentence over 18). Pooled over the
+  lesson, `plain` and `why` read at grade 7 or less (`intro`), 9 (`core`), 11 (`deep`). For New text, at least 95 %
+  of content words are common words, the prerequisites or terms already defined.
+- Never show the same words twice: `why` against `plain`, an entry card against its first step.
+- `deeper` is about this step's mechanism; trivia is a seductive detail, so cut it.
+
+verify enforces part of this (section 9: caption length, terms used before they are defined, jargon, the reading
+grade, key steps without a why, misconceptions no option names). The rest is on the writer and the blind readers.
+
+### 5.4 Levels
+
+The reader picks a level in the panel header or on the start card; the default comes from `meta.level` (`intro`
+opens at New, `core` and `deep` at Basics), and the choice is remembered. A level changes what is shown, never the
+facts (`engine/hud/level.mjs`, `DESIGN.md` section 9):
+
+| | New to this | I know the basics | Expert |
+|---|---|---|---|
+| Entry card | So far, Now, You'll know it worked when | the Now line | off |
+| `about` | full | full | first sentence, then More |
+| `why` | every step that has one | key steps; a Why toggle elsewhere | behind the Why toggle |
+| `look` | a chip that pulses with the world | a chip | none (the world still lights) |
+| `picture` | inline line on flagged steps | off | off |
+| `deeper` | closed (Go deeper) | the first field as a peek, then More | every field open |
+| Pace | 1.2× reading time; holds after each key step | 1× | 1× |
+| Predict | a card | a card | "Think first": Predict or Skip |
+
+So write every layer for its level: what a beginner must know goes in `plain` or `why`, the precise version in
+`deeper`, and nothing true only in one layer contradicts another.
+
+`s.ask`'s `why` (or the lesson's) is one sentence on *why* the right answer is right, from the run ("The list is in
+order, so every number right of 28 is bigger than 28, and cannot be 19"). Write wrong options that a beginner would
+really pick: the misconception, the naive guess.
+
+### 5.5 Your turn
+
+Watching is not doing. Two interactions let the reader act on the run (`engine/hud/turn.mjs`, `check.mjs`):
+
+- **A pick in the world** (`s.choose`): at the decision the run pauses and the reader picks the *thing*, not a card
+  option ("Click the counting machine that should get this `fox`"). A wrong pick plays its branch for real at 1×,
+  narrated by the branch's own steps, and holds on the consequence. The card names the belief behind the pick (the
+  option's `misconception`: "If you thought…") and what the run shows (its `feedback`); the transport's one way on
+  rewinds the same branch to the pick. "Show me" appears after two wrong tries; a right first pick offers "See what
+  the other pick does". The run never ends on the broken state. Make the wrong options the ones a misconception picks,
+  and make the branch's last step say the consequence plainly, with its numbers.
+- **The end check** (`s.check`): 1–3 questions when the main run ends, each answered from the run's own rules,
+  ideally at other knob values (a transfer, not a recall of captions). Each answer shows its why; a miss offers
+  "Replay <chapter>". It ends on "You can now…", the lesson's `objectives`, never a score: write objectives as
+  things the reader can now do ("Explain why every copy of a word must reach the same counter").
+
+**Caps** (verify warns past them; the HUD asks only the first): one question (`s.ask` or `s.choose`) per chapter, at
+most 3 per story. The HUD keeps 3 at New, 2 at Basics, 1 at Expert, picks before predictions. Expert gets no
+highlighted candidates (the list folds behind "Or pick from a list"). **Level nudges**: two right first tries at New
+offer "I know the basics", a wrong pick at Expert offers the step-by-step version; one dismissible line, never an
+automatic switch.
+
+Every in-world pick has a keyboard and list equivalent: Tab or the arrow keys move through the candidates (each lights
+its thing), Enter picks, and 1–9 pick by number. Phones get 44 px targets.
 
 ## 6. Worked example: a linked list
 
@@ -301,9 +443,20 @@ before it, and fix it. Then check:
 - [ ] The numbers in the dock are few and I know what each one means.
 - [ ] Nothing on screen is there that the lesson does not use (knobs, numbers, code panel).
 - [ ] The recap says back what I saw, in order; the takeaway is one sentence I could repeat tomorrow.
-- [ ] `verify` shows no teaching errors, and every remaining teaching warning has a reason.
+- [ ] Whatever option I picked, its feedback spoke to what I believed, with the run's values.
+- [ ] Read at Expert (`node scripts/review-packet.mjs figure.mjs --out <dir>/review/packet --no-images` writes the
+      New and Expert views as files), each key step's `deeper` says something precise and true, with a source.
+- [ ] `verify` shows no teaching errors, and every remaining lesson and teaching warning has a reason.
 
 ## 9. What verify checks
+
+verify loads `lesson.mjs` with the figure, so every run it makes (each scenario at its defaults, on a phone, and at
+every knob extreme) also checks the lesson. These are **errors** in that run (kind `lesson`): a template var the
+figure does not pass, a `look` id that does not exist at the end of its step, an unknown `picture` row, `deeper`
+field or misconception id, and an ask whose option count differs from the figure's. Then a **lesson** section looks
+across all the runs and warns about step ids with no `plain`, steps or chapters without an id, `key` steps without a
+`why`, and misconceptions no ask option names; it notes (without counting) lesson ids no run reaches, which is fine
+for a line only an untried knob value reaches (a very short input), and otherwise a typo.
 
 `node scripts/verify.mjs figure.mjs` ends with a **teaching** section (skip it with `--no-teach`). It reads the same
 lesson that `lesson.mjs` prints, at default params, every story from its fork. Then it checks the words the run shows
@@ -311,6 +464,9 @@ only at other settings (each knob at its extremes, and the phone layout: the run
 defects: long captions and abouts, undefined `{term:}`s, flagged jargon, filler, malformed questions and jargon in
 chapter names. Those findings start "at other settings", group captions by their shape, and never repeat a word the
 default lesson's findings already name. `node scripts/lesson.mjs` prints the lesson and then the default findings.
+With a lesson file, the captions it checks are the lesson's `plain` lines, the abouts and asks are the lesson's, and
+the defined words are `meta.terms` merged with `lesson.terms`. It does not read the other layers (`why`, `deeper`,
+entry cards): section 5's limits on those are for the writer, `lesson.mjs`'s printout and the blind readers.
 
 **Errors** (clear defects; verify fails):
 

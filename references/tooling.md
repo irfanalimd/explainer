@@ -6,15 +6,22 @@ to the skill root; every script also takes absolute paths and works from any wor
 ## The authoring loop
 
 ```sh
-node scripts/new.mjs ~/figs/raft                       # figure.mjs (commented template) + README.md
-node scripts/verify.mjs ~/figs/raft/figure.mjs         # headless checks; fix until it exits 0
+node scripts/new.mjs ~/figs/raft                       # figure.mjs + lesson.mjs (commented templates) + README.md
+node scripts/verify.mjs ~/figs/raft/figure.mjs         # headless checks, the lesson file included; fix until it exits 0
 node scripts/lesson.mjs ~/figs/raft/figure.mjs         # the lesson as text: read it as a beginner would
 node scripts/build.mjs ~/figs/raft/figure.mjs --serve  # live-reloading dev page, URL printed
 node scripts/build.mjs ~/figs/raft/figure.mjs          # the shippable single file: ~/figs/raft/raft.html
 node scripts/shoot.mjs ~/figs/raft/raft.html           # PNGs of every phase, both themes, desktop + phone, contact sheet
 node scripts/audit.mjs ~/figs/raft/raft.html           # every step, both sizes: overflow, tags, focus, frame time
 node scripts/record.mjs ~/figs/raft/raft.html --out raft.webm --captions
+node scripts/review-packet.mjs ~/figs/raft/figure.mjs --out ~/figs/raft/review/packet --round 1   # the blind readers' packet
+node scripts/review-check.mjs ~/figs/raft/review --round 1                                        # check their reports
 ```
+
+Every script that runs a figure in Node (verify, lesson, review-packet) loads it with `loadFigure()` from
+`scripts/lib/lesson-load.mjs`, which adds the `lesson.mjs` beside it (`{ ...figure, lesson }`). The page scripts
+(shoot, audit, record) drive a built page, and `build.mjs` bundles the lesson into it; given a `figure.mjs` they
+build it first. So the lesson is in every run, everywhere.
 
 On Node 20 and 21, where the built-in WebSocket is behind a flag, the browser scripts (snap, shoot, audit, record)
 re-run themselves with `--experimental-websocket` (`scripts/lib/websocket.mjs`); Node 22.4+ needs nothing.
@@ -47,7 +54,25 @@ hung) instead of hanging the caller. Checks, in order:
   **pacing** (warn above 400 or below 4 steps, or, as advice, a phase that takes longer than 150 s to watch at 1x with repeats sped up); a **sampler pass** (mid-step
   `tl.sample` must not throw, pose numbers and points finite, focus and world well formed, focus inside the world,
   tag anchors finite) and an **exact backward scrub** check.
+- **the lesson in every run**: the figure is loaded with its `lesson.mjs`, so each run above merges it, and a
+  template var the step does not pass, a `look` id that does not exist at the end of its step, an unknown picture
+  row, `deeper` field or misconception id, or an ask whose option count differs is a `lesson` error in that run, at
+  that knob value.
+- **branches** (`s.choose`, CONTRACTS.md 10.5): in every run above, each wrong option of each pick is compiled at the
+  same settings with `choices: { [id]: option }`, so every branch is checked at every knob extreme and on the phone.
+  A branch gets the run's checks (determinism, timing, captions, `tl.problems`, invariants, the sampler and scrub
+  pass) plus two of its own: `tl.branch` names the option it plays, and its steps before the pick read and start the
+  same as the main run's (the HUD swaps it in there). Invariants run on branches too and decide for themselves:
+  one that a wrong pick is meant to break excuses it with `({ timeline }) => timeline.branch` (MapReduce's "every
+  word counted once"). Findings fold into the run's line, prefixed `in the branch where the reader picks "reduce 1"
+  at shuffle.which:`, and the line counts them (`+ 1 branch`). A branch's steps count for the lesson's coverage, and
+  its words get the teaching checks once per run ("at other settings", labelled `· branch id=option`).
 - Identical findings in later runs are counted (`(+3 as above)`), not repeated.
+- **lesson** (its own section, when there is a `lesson.mjs`): across every run, warnings for step ids with no `plain`
+  (they show the figure's caption), steps or chapters with no id, `key` steps without a `why`, and misconceptions no
+  ask option names; and a `note`, not counted, for lesson ids no run reaches (a typo, a step the figure no longer
+  makes, or one only an untried knob value reaches), including `lesson.choices` and `lesson.checks` ids no pick or end
+  check uses. The header counts what the runs and branches reach: step ids, chapters, asks, picks and checks.
 - **teaching** (its own section, last; `--no-teach` skips it): the lesson a beginner reads, extracted from every
   scenario at its defaults (`scripts/lib/lesson.mjs`) and checked by `scripts/lib/teach.mjs` against
   `references/teaching.md`. Errors only for clear defects (a `{term:x}` without `meta.terms.x`, a predict answer that
@@ -64,7 +89,7 @@ An invariant receives `(snap, { step, final, params, scenario, timeline })` and 
 
 ## lesson.mjs
 
-`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--all] [--full] [--no-lint] [--json] [--width 100]`
+`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--params n=7,at=4] [--all] [--full] [--no-lint] [--json] [--width 100]`
 
 Prints the lesson as plain text, story by story, so it can be read like a script: the hook, the defined words, the
 numbers (`*` for the dock), then for each story its what-if and description, each chapter's name and about, every
@@ -72,9 +97,17 @@ caption (markup flattened; a term's definition in `[brackets]` where the run fir
 does), each predict question with its options, the answer (`✓`) and its why, then the recap and the takeaway. Then
 the teaching checks (the same findings verify reports).
 
+With a `lesson.mjs` it also prints the goal, the objectives, the picture map and the misconceptions (BELIEFS) up
+top; each chapter's entry card (so far, now, done when); each step's id (`‹map.read›`), a `★` on key steps, and its
+layers (why, look, picture, deeper fields); and each ask option's feedback with the misconception it names.
+
+- `--params n=7,at=4` sets knob values for every story (numbers, `true`/`false`, strings), so a template can be read
+  at a knob's extremes, as verify runs it.
+
 - A run of steps with one caption shape shows two, then "… 6 more like this (steps 14–19)"; `--all` shows every step.
 - Later stories start where they leave story 1 (as the page does on a switch); `--full` prints them from step 0.
-- `--json` prints `{ figure, lesson, findings }`. Exit 1 when the teaching checks find an error.
+- `--json` prints `{ figure, lesson, findings }`; with `--all --no-lint` it is the run a lesson writer works from (every
+  step id, its caption and its layers). Exit 1 when the teaching checks find an error.
 
 ## build.mjs
 
@@ -104,6 +137,29 @@ the teaching checks (the same findings verify reports).
 - `--dev` writes `<slug>.dev.html` that references source files over http (served by serve.mjs, live reload
   client included). `--serve` does that, starts the server with the figure's folder allowed, rebuilds the page
   when the figure changes, and prints the URL.
+
+## Embedding and deep links (`engine/embed/`)
+
+A built page is also an embed. `?embed=1` gives the iframe chrome (no full screen, a smaller title; designed for
+800×500 and up). Framed pages speak a postMessage API, shaped for an LMS:
+
+```js
+// host → figure (validated; a message with an id is answered { type, version, event: "ack", id, ok, error? })
+frame.contentWindow.postMessage({ type: "explainer", version: 1, command: "seek", value: 12.5, id: 1 }, figureOrigin);
+//   play | pause | seek (seconds) | step (1-based) | scenario (id) | level ("new" | "basics" | "expert") | theme ("light" | "dark")
+// figure → host: { type: "explainer", version: 1, event, statement }
+//   ready (initialized) · step (progressed, cmi5 progress %) · chapter (experienced) · ask-answered (answered:
+//   success, response; picks report every try, the first try scores) · complete (completed: score over the questions asked)
+//   statement = an xAPI statement without an actor (the host adds it): { verb, object: { id: "urn:explainer:<id>#step-12" }, result, context, timestamp }
+```
+
+- Origins: `?origin=https://lms.example,https://other.example` or `meta.embed.origins` (`"*"` allows any). With
+  neither, only the parent window may drive it (a console warning says so once) and events go to the parent's origin.
+- The figure's IRI is `meta.embed.id`, else `urn:explainer:<meta.id or title slug>`.
+- Deep links, embedded or not: `#step-12`, `#scenario-crash`, `#level-expert`, joinable (`#scenario-crash&step-4`),
+  applied on load and on hashchange, then removed from the hash (the HUD's `#s=…&t=…` takes over). `step` lands on
+  the step's start, like Back. LTI 1.3 needs a server, so it is out of scope for the file; a SCORM zip is the later
+  static route to gradebooks.
 
 ## serve.mjs
 
@@ -135,9 +191,14 @@ there is one instance per module); everything else is served byte for byte.
   - each predict question, asked (`<scenario>-<theme>-<w>x<h>-<step>-ask.png`), then answered with the first wrong
     option and revealed with its why (`…-<step>-why.png`). A question in the shared opening of several stories is shot
     once per theme and size.
+  - each pick (`s.choose`): played to, then the first wrong option picked; its branch plays (at 4×) to its
+    consequence and is shot as the detour with its feedback card (`…-<step>-wrong.png`); the transport's Rewind takes
+    it back to the pick, the right option is picked and shot with its why (`…-<step>-right.png`). A pick that never
+    opens, never holds, or never comes back is reported and the page is scrubbed back out of the branch (a branch
+    never reaches the end card), so the run never stalls.
   - the end card, scrolled to the recap, takeaway and what-ifs (`…-<last step>-end-card.png`). On a narrow screen,
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
-  The shots join the contact sheet; a question that never opens or reveals is reported as a page error. Live play
+  The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error. Live play
   takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
   shoots the cards alone.
 
@@ -181,24 +242,80 @@ page errors.
 `node scripts/new.mjs <dir> [--from <example | folder>] [--title text] [--force]`
 
 Writes `figure.mjs` from `scripts/templates/figure.mjs` (binary search, written to show each export: meta,
-params, scenarios, counters, invariants, code, and a `build` with phases, focus, lit, tags, gauges and truthful
-captions) and a README with the exact commands. `--from` copies `examples/<name>/` (or any folder with a
+params, scenarios, counters, invariants, code, and a `build` with phases, focus, lit, tags, gauges, truthful
+captions, and an id and vars on every step, chapter and question), `lesson.mjs` from `scripts/templates/lesson.mjs`
+(the words for those ids: goal, objectives, misconceptions, picture map, terms, chapter cards, layered steps and
+ask feedback) and a README with the exact commands. `--from` copies `examples/<name>/` (or any folder with a
 `figure.mjs`), skipping built pages, shots and videos, and relocates imports into the skill: relative if the new
 folder is inside the skill, absolute otherwise.
+
+## review-packet.mjs
+
+`node scripts/review-packet.mjs <figure.mjs> --out <dir>/review/packet [--round N] [--levels new,expert] [--no-images]`
+
+The blind readers' packet for the teacher pipeline (`SKILL.md`, stage 3.5): only what a reader meets, in reading
+order, rebuilt from scratch each round. One folder per level (`new/`, `expert/`, and `basics/` if asked), each with
+`index.md` (the reading order, images included), `00-start.md` (title, hook, level, the scenarios, the chapters),
+`NN-<chapter>.md` for each chapter of the first scenario, `sK-<scenario>.md` for each other scenario from where it
+differs, and `end.md` (recap, takeaway). Steps print their layers as that level shows them (`engine/hud/level.mjs`):
+New gets the full entry card, every why and the picture lines; Expert the first sentence of each about and every
+`deeper` field. A term's definition follows its first use in `[brackets]`. A prediction ends its chunk with the
+question and options; the next chunk (`NN-<chapter>-2.md`) opens with "Revealed: … because …" and the feedback for
+the other options. No ids, file paths, lint output or source.
+
+`img/` holds one key frame per chapter of the first scenario (its last step), every ask and why card, and each
+scenario's end card, all 1440×900 in the dark theme (`shoot.mjs --teach` underneath; Chrome required, about a
+minute). `--no-images` writes the transcript alone. Exit 1 when an image is missing.
+
+`--round N` seeds one canary per reader and records it in `<out>/../round-N/canary.json`, outside the packet: for the
+New folder, a sentence with a flagged word the lesson never defines ("This is the shuffle at work."), appended to a
+step mid-lesson; for the Expert folder, one count in a step changed (5 becomes 7). Each round picks a different
+place and word. Never show `canary.json` to an agent.
+
+## review-check.mjs
+
+`node scripts/review-check.mjs <dir>/review --round N`
+
+Checks the readers' reports in `review/round-N/` (`novice-*.json`, `expert*.json`: each reader's final message as
+the lead saved it, a fenced ```json block or bare JSON) against the packet and writes `round-N/findings.json`:
+
+- the schema of `agents/novice-reader.md` or `agents/expert-reader.md` (chapters with a say-it-back, three weakest
+  moments; findings, three least precise sentences, a source on every `wrong` or `misleading` finding);
+- every quote is verified: at least 3 words and in the packet, after normalising whitespace, `**` and curly quotes;
+  the rest are dropped and counted;
+- the canary: a report must quote it (the word, or the sentence with the wrong number); its findings are stripped;
+- at least 3 verified quotes per report.
+
+`findings.json` holds `readers` (anonymous: `novice-1`, `novice-2`, `expert`; each novice's persona, say-it-backs,
+guesses and outcome; the expert's verified nuances) and `findings`, each with an id (`F1`…), its reader, kind
+(`lost`, `prior_knowledge`, `image`, `weakest`, `expert`, `least_precise`, `nuance`), chapter, step and quote. It
+prints one line per report and exits 1 when any report is void: rerun that reader once, then escalate.
 
 ## snap.mjs
 
 `node scripts/snap.mjs <url-or-path> --out shot.png [--size 1440x900] [--dpr 2] [--wait ms] [--eval js] [--theme light]`.
 Unchanged CLI; it now re-exports `launch`, `openPage`, `urlFor`, `CHROME` from `scripts/lib/cdp.mjs`.
 
-## Director (`engine/director/director.mjs`)
+## Rendering backends
+
+The renderer (`engine/gfx/renderer.mjs`, CONTRACTS.md 3.1) draws with WebGPU where the browser has it and passes a
+startup self-test, and with WebGL2 otherwise; if WebGPU fails to start or its device is lost later, the page swaps to
+WebGL2 and redraws the last frame. Add `?gfx=webgl2` or `?gfx=webgpu` to a page URL to force one (a forced WebGPU
+that fails logs an error and still falls back). `__internals.stats().backend` says which one is drawing, and
+`__internals.profile()` resolves to the WebGPU tier's per-pass GPU timings (null on WebGL2). The scripts' headless
+Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fallback logs a `[gfx]` warning). To
+check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
+the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
+
+## Director (`engine/director/director.mjs`, `engine/director/shots.mjs`)
 
 ```js
 const dir = createDirector({ reducedMotion, timeline });
 dir.update(frame, { width, height, insets }, dt, { settled })  // -> Camera (one reused object; copy to keep it)
 dir.gesture({ type: "orbit" | "zoom" | "pan" | "focus", dx, dy, scale, x, y, bounds })
 dir.fit(bounds, { instant, hold = true }); dir.resume(); dir.setTimeline(tl); dir.setReducedMotion(on); dir.reset()
-dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "manual", goal, auto, resumeIn, viewport }
+dir.keep(bounds | null)           // hold a box in the free area (an open pick's candidates) until null
+dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "manual" | "keep" | <plan kind>, goal, auto, resumeIn, viewport, plan }
 ```
 
 - **Exact framing** (`frameBounds`): the eight corners of the bounds box (z 0..30 when the box has none) are taken
@@ -211,18 +328,32 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   `hud.insets`), the edge sits `margin / 3` inside the overlay instead, so the framed world sits in the free
   rectangle and its projected centre moves with it. Inset changes under 24 px are ignored, bigger ones reframe on
   the springs; a change of width or height cuts.
-- **Shots**: the establishing shot of `frame.world` holds for `2 x MOTION.step` (1.8 s) from the start of every
-  phase (from `tl.phases` when `setTimeline` was called, else from seeing `frame.phase` change), then the focus
-  shot (focus padded by `SIZE.zone.pad`, never closer than 1.6 px/u at the target, never wider than the world shot).
-- **Hysteresis**: the shot is kept until the focus centre leaves the central `MOTION.camera.deadZone` of the free
-  stage, a focus corner gets within half a margin of the edge, or the zoom would change by more than
-  `zoomHysteresis` (22 %).
+- **The shot plan** (with a timeline, `shots.mjs`): `planShots(tl, viewport, framing)` writes a list of keyframes,
+  each a shot the camera moves to from time `at` over `move` seconds, and `cameraAt(plan, time)` gives the camera at
+  any playhead time, so playing, scrubbing, stepping and capture agree. Per chapter: **establish** (the whole world
+  at the chapter's first step, from the chapter's own yaw, alternating sides, held while the entry card reads),
+  **push** (the chapter's stage: the union of its steps' focus and `look` boxes), **detail** (a `key` step's `look`
+  ids, close), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
+  last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
+  box, craning up as it widens). Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
+  `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).
+- **Keep** (`dir.keep(bounds)`): while the reader must click something (an `s.choose` pick, which the runtime passes
+  through `onPickArea`), the planned shot stands when it already holds the box inside the free area at half the
+  margin; otherwise the camera springs to a shot of the box at the plan's angle (`state.shot === "keep"`, no closer
+  than 1.25× the plan's zoom), and `keep(null)` eases back into the plan. The HUD counts an open pick card on a phone
+  in `insets.bottom`, so there the candidates frame above the card. `__internals.director` and `__internals.insets`
+  show both from a script.
+- **Without a timeline** (the gallery, tests): the establishing shot of `frame.world` holds for `2 x MOTION.step`
+  (1.8 s) from each phase change, then the focus shot (focus padded by `SIZE.zone.pad`, never closer than 1.6 px/u
+  at the target, never wider than the world shot), kept until the focus centre leaves the central
+  `MOTION.camera.deadZone` of the free stage, a focus corner gets within half a margin of the edge, or the zoom
+  would change by more than `zoomHysteresis` (22 %).
 - **Motion**: exact critically damped springs (omega `MOTION.camera.omega`), frame-rate independent, on target,
   log distance, yaw and pitch. Idle drift is ±`CAMERA.drift` of yaw from two slow incommensurate sines of the
   playhead time (it freezes when paused and is exact in capture).
 - **Gestures**: orbit (yaw within ±`yawRange`, pitch within min/maxPitch) and pan apply directly; zoom springs fast
   and keeps the floor point under the pointer still; focus frames given bounds; all hold the camera until 4 s after
-  the last one, then auto direction flies back. Reduced motion: cuts instead of flights, no drift.
+  the last one, then auto direction eases back into the plan. Reduced motion: cuts instead of flights, no drift.
 - **Settled** (`{ settled: true }`, alias `settle`): jump straight to this frame's shot with no hysteresis and no
   history, for capture. Without a timeline, a settled frame only establishes during the first 1.8 s.
 - Conventions (shared with the renderer): eye = target + d·(sin yaw cos pitch, cos yaw cos pitch, sin pitch);
@@ -235,8 +366,9 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
 `cdp.mjs` (launch Chrome, pages in their own windows, error collection including failed loads, screenshots),
 `modules.mjs` (lexer, import scan, specifier resolution and mapping, rewrite, graph), `webm.mjs` (EBML writer,
 muxer, reader), `figure-page.mjs` (open a page through `__internals`, shot times, capture CSS, finding groups),
-`args.mjs`, `node-hooks.mjs`, `lesson.mjs` (extract and format the lesson a figure teaches) and `teach.mjs` (the
-teaching lint, its jargon list and size limits, readability helpers).
+`args.mjs`, `node-hooks.mjs`, `lesson-load.mjs` (`loadFigure()`: a figure with the `lesson.mjs` beside it),
+`lesson.mjs` (extract and format the lesson a figure teaches) and `teach.mjs` (the teaching lint, its jargon list and
+size limits, readability helpers).
 
 ## Tests
 

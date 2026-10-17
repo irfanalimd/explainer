@@ -14,8 +14,8 @@ Contents: [1 Module](#1-the-figure-module) · [2 Model](#2-the-recording-model) 
 ## 1. The figure module
 
 ```js
-export const meta = { title, subtitle, kicker, fig, cite: { text, url }, theme: "dark" | "light",
-  level: "intro" | "core" | "deep",                                                         // optional (core): sizes the lesson
+export const meta = { title, subtitle, kicker, fig, cite: { text, url }, theme: "light" | "dark",  // optional (light)
+  level: "intro" | "core" | "deep",              // optional (core): sizes the lesson; intro opens at the New reader level
   hook: "Five servers, any of which can crash. How do they still agree on one log?",      // optional: the start card's question
   terms: { leader: "the one server that decides the order of the log" },                 // optional: plain definitions, {term:leader}
   recap: ["Servers vote for one leader.", "The leader copies each entry to the others."], // optional: 2–4 lines at the end
@@ -24,7 +24,7 @@ export const params = {                 // knobs; verify runs every one at its e
   n:    { label: "Keys", type: "int", min: 4, max: 12, value: 8 },   // also "float" (min, max, step), "bool", "text",
   seed: { label: "Seed", type: "int", value: 7 },                    // "select" (options: [{ value, label }])
 };
-export const scenarios = [                // the stories; label and description are shown in the story picker
+export const scenarios = [                // the stories; label and description are shown in the Scenarios picker
   { id: "happy", label: "Normal run", description: "Every machine stays healthy: the whole job, start to finish." },
   { id: "crash", label: "Worker dies", params: { crash: 1 },
     description: "A mapper crashes halfway through its split, and the master runs it again elsewhere.",
@@ -46,8 +46,9 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
   the settings drawer (a counter marked `hidden: true` stays out of the dock): it still resolves, a scenario may set
   it, verify still runs it at its extremes, and the teaching lint does not count it as a knob. `build` receives the
   resolved values `p` and the scenario **id** (a string).
-- **Scenarios are stories.** Each one is the same system told another way, and the reader picks it from a strip
-  of stories at the top centre (it collapses to a centred "Story · A machine crashes ⌄" pill when it does not fit).
+- **Scenarios are stories.** Each one is the same system told another way, and the reader picks it from the
+  "Scenarios" strip at the top centre (it collapses to a centred "Story · A machine crashes ⌄" pill when it does not
+  fit). Say "scenario" in anything a reader sees; "story" is the authors' word.
   Give every scenario of a figure with more than one a `description`: one plain sentence, about 10–20 words, on what
   happens in this story ("A machine crashes halfway through its share, and the master runs it again elsewhere."). It
   is shown with the picker and in its menu, so it must be true at every knob value (no counts a knob can change).
@@ -88,8 +89,9 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
     replaces it.
   - All three must be true of what the run shows, in every scenario they apply to and at any knob setting: state the
     principle, not numbers that a knob can change.
-- **The lesson.** Plan it before the code with `references/teaching.md`; `verify` checks it in a teaching section and
-  `node scripts/lesson.mjs figure.mjs` prints it as text.
+- **The lesson.** Plan it before the code with `references/teaching.md`, then write its words in a `lesson.mjs`
+  beside the figure, keyed by the ids the figure gives its steps, chapters and questions (section 7, "Ids for the
+  lesson"). `verify` checks it in its lesson and teaching sections and `node scripts/lesson.mjs figure.mjs` prints it.
   - `meta.level` sizes it: `"intro"` (a first encounter: linked list, stack, binary search) gives every caption 20 %
     more reading time at 1× and tighter limits (3–5 chapters, at most 2 knobs and 2 dock numbers); `"core"` is the
     default; `"deep"` allows more (Raft, page walks). An unknown value is an error.
@@ -295,7 +297,10 @@ Every op is recorded into the current step (or the current beat). An id or a han
 | `s.count(name, delta = 1)`, `s.gauge(name, value)` | Counters. A count adds; a gauge sets. |
 | `s.line(from, to = from)` | Lights code lines. The highlight stays until changed; `s.line(null)` clears it. |
 | `s.say(markup)` | Appended to this step's caption. Sim runtimes use it. |
-| `s.ask(question, options, answerIndex, { why })` | Predict mode: playback pauses before this step. Until the answer is revealed (70 % into the step) nothing gives it away: the step's caption shows "…", its tags and new legend keys wait, and the chapter's `about` is withheld from the chapter's start ("Explained once you have made your prediction"), since an about often states the answer. On wide screens the question sits in the explain panel. `why` (optional, recommended) is one plain sentence on why the answer is right; it replaces the card's footer once revealed, and the card stays long enough to read it. Put the question right before the step that disproves a beginner's likely misconception, and make the wrong options real misconceptions. |
+| `s.ask(question, options, answerIndex, { why, id })` | Predict mode: playback pauses before this step. Until the answer is revealed (70 % into the step) nothing gives it away: the step's caption shows "…", its tags and new legend keys wait, and the chapter's `about` is withheld from the chapter's start ("Explained once you have made your prediction"), since an about often states the answer. On wide screens the question sits in the explain panel. `why` (optional, recommended) is one plain sentence on why the answer is right; it replaces the card's footer once revealed, and the card stays long enough to read it. Put the question right before the step that disproves a beginner's likely misconception, and make the wrong options real misconceptions. `id` keys the lesson's wording and per-option feedback (section 7). |
+| `s.choose(id, { prompt, options: [{ pick, right?, text? }], why? })` | Your turn, in the world: playback pauses before this step and the reader clicks (or tabs to) one of the `pick` entities, which light up. Exactly one option is `right`. Every option is a branch of the same run: `compile(figure, { choices: { [id]: j } })` plays option `j`, and without one the run plays the right option. It returns `{ index, pick, right }` for this run: on a wrong pick, play its consequence for real (the real ops, with their own step ids), then `return` from `build`; the run holds on that last step and the HUD rewinds to the pick. One per step (never with `s.ask` on the same step). Section 7 and `examples/mapreduce/figure.mjs` ("shuffle.which"). |
+| `s.check(id, { question, options, answer, chapter?, why?, vars?, transfer? })` | One end-check question, shown when the main run ends (New 3, Basics 2, Expert 1: the one marked `transfer`). Compute `answer` from the figure's own rules, ideally at other knob values ("with 3 counting machines, which one gets `fox`?"), never as a literal. `chapter` (a chapter id; default the current one) is what "Replay" offers on a miss; `vars` fill the lesson's `checks[id]` templates. Not a step: record it anywhere in `build`. |
+| `s.scale({ count, run, like, from, title, lines, note })` | A scale shot on this step: the camera pulls back from the run into a field of `count` machines (section 11). |
 
 ```js
 s.move(rec, `r${hash(word) % R}`, { via: "shuffle" });
@@ -306,7 +311,7 @@ s.step(`{key:${word}} goes to {ref:r1|reduce 1} because \`hash(${word}) % ${R} =
 
 ## 7. Steps, beats, timing
 
-- **`s.step(caption, { dur, t })`** commits a step.
+- **`s.step(caption, { dur, t, id, vars, keep })`** commits a step (`id` and `vars`: "Ids for the lesson" below).
   - `dur` defaults to the step's natural length: at least `MOTION.step` (0.9 s), and longer runs take longer.
   - `t` is the simulated time in ms. A step without `t` keeps the previous one.
 - **Repeats fold.** In normal playback, once a step pattern has played twice in a row in a chapter (the same caption
@@ -323,7 +328,7 @@ s.step(`{key:${word}} goes to {ref:r1|reduce 1} because \`hash(${word}) % ${R} =
   ```
   An explicit `dur` is shared between beats in proportion to their natural lengths.
 - **`s.hold(dur, caption?)`** is a step that just holds the picture. Without a caption it repeats the previous one.
-- **`s.phase(name, { about })`** starts a scrubber chapter at the next step. Use 3 to 6 per figure.
+- **`s.phase(name, { about, id })`** starts a scrubber chapter at the next step. Use 3 to 6 per figure.
   - `about` (optional, recommended) is one or two plain-English sentences on what this chapter does and **why**,
     shown at the top of the explain panel beside the world while the chapter plays. Markup is allowed
     (`` `hash(word) % R` ``, `{key:…}`, `{ref:…}`). Keep it under 40 words, explain any jargon in a word (or mark it `{term:…}`), and make it
@@ -333,6 +338,41 @@ s.step(`{key:${word}} goes to {ref:r1|reduce 1} because \`hash(${word}) % ${R} =
 
   ```js
   s.phase("Shuffle", { about: "Each record goes to the reducer picked by `hash(word) % R`, so every copy of a word lands on the same reducer." });
+  ```
+- **Ids for the lesson** (`CONTRACTS.md` section 10, `references/teaching.md` section 5). The figure owns the facts and
+  passes them; `lesson.mjs` owns the words and only formats what it is given.
+  - `s.step(caption, { id, vars })`: `id` names the step (`"map.read"`, `"insert.save-next"`: `chapter.verb-noun`).
+    Every repeat of one move shares its id; the lesson's `first` covers the first time. `vars` holds every run value
+    the words need, by kind: a number, a string (also the form for entity ids used in `look`), `{ key: v }` (a key
+    chip), `{ ref: id, text }` (an entity chip), `{ code: s }`, a list `[a, b]`, `{ path: [a, b] }`, or
+    `{ markup: m }` for a composite the figure builds. The caption stays the fallback for a step the lesson has no
+    words for, so keep it true and short.
+  - `s.phase(name, { about, id })`: the lesson's `chapters[id]` supplies the about and the entry card. The name stays
+    the chapter's title (scenarios and forks find chapters by name).
+  - `s.ask(question, options, answer, { why, id })`: the lesson's `asks[id]` can reword the question and options and
+    adds per-option feedback; the figure's `answer` decides which option is right.
+  - `s.choose(id, …)` and `s.check(id, …)`: the lesson's `choices[id]` words the prompt, the why and each option
+    (`options[j]`, or `wrong` for every wrong option when the count follows a knob) with `{ feedback, misconception }`;
+    a choose's templates use its step's vars. `checks[id]` words a check (`question`, `why`, `options`) from its `vars`.
+
+    ```js
+    const pick = s.choose("shuffle.which", { prompt: "Click the counter that should get this one.",
+      options: Array.from({ length: R }, (_, q) => ({ pick: `r${q}`, right: q === r })) });
+    if (!pick.right) { splitCount(pick.pick); return; }   // the wrong branch plays for real, then the run ends there
+    ```
+
+    `verify.mjs` compiles every wrong option's branch at every setting it tries and checks it like the run: give the
+    branch's own steps ids and lesson words (verify counts them for the lesson's coverage), and let an invariant the
+    branch is meant to break excuse it with `({ timeline }) => timeline.branch`. Keep the candidates near one another
+    in the world: the camera keeps them all in view while the pick is open (on a phone, above the pick card).
+  - A small helper keeps it tidy: `const step = (id, caption, vars = {}, o = {}) => s.step(caption, { ...o, id, vars: { ...V, ...vars } });`
+    with the run-wide values in `V` (`examples/mapreduce/figure.mjs`).
+
+  ```js
+  s.phase("Shuffle", { id: "shuffle", about: "Each slip goes to the counter its hash picks." });
+  s.ask(`Where does this "${w}" go?`, ["Reduce 1", "Reduce 0", "Nowhere yet"], 1, { why: "…", id: "shuffle.where" });
+  s.move(rec, `r${r}`, { via: "shuffle" });
+  s.step(`{key:${w}} goes to {ref:r${r}|reduce ${r}}`, { id: "shuffle.send", vars: { w: { key: w }, red: { ref: `r${r}`, text: `reduce ${r}` }, redId: `r${r}`, rem: r } });
   ```
 - **Simulated time**: step i spans `[t_i, t_(i+1)]`. Its events happen at its start, then the clock runs to the next
   event, and packets and the playhead move by that clock. Steps that share a `t` (several handlers at one instant)
@@ -426,18 +466,49 @@ real name second, marked at first use: "each box keeps an arrow to the next, cal
 
 - **Lit**: moved, spawned, swapped and delivered tiles light up automatically for their beat. `s.lit` lights things for
   the step. Light only the one or two things to watch.
-- **Focus**: the camera frames everything the step touches, both ends of each motion. That set includes lit and tagged
-  things, set targets, and the sender and receiver of each send.
-  - A step that touches nothing keeps the previous framing.
-  - `s.focus(...)` overrides it, for an establishing or closing shot of a group.
-  - At a phase change the camera pulls back to the whole world.
+- **Camera.** You never move it: the director (`engine/director/shots.mjs`) plans its shots from the compiled
+  timeline, so the camera is a function of the playhead and playing, scrubbing and capture agree. Per chapter:
+  - **establish**: the chapter's first step opens on the whole world, from the chapter's own angle (chapters turn the
+    world a little, alternating sides), and holds while the entry card reads;
+  - **push-in**: the chapter's *stage*, everything its steps touch or `look` at, framed to fill the free area with
+    the step's focus in view;
+  - **detail**: a `key` step with `look` ids (the lesson's strongest signal) goes close enough to read those tiles;
+  - **pull-back**: the chapter's last step widens to the whole world (phones: to the stage);
+  - **payoff**: the run's last step (before any scale shot) frames its focus close and large (§1);
+  - **scale**: an `s.scale` step tracks the pull-back out to the whole field (below).
+  A new shot too close to the current one is not taken, so the camera rests while the reader reads. Reduced motion
+  cuts. So: give each chapter one stage, give key steps a `look`, and end on the result with `s.focus` on it.
+- **Focus**: everything the step touches, both ends of each motion: lit and tagged things, set targets, the sender
+  and receiver of each send. It builds the chapter's stage and stays in view in the push-in.
+  - A step that touches nothing keeps the previous focus.
+  - `s.focus(...)` overrides it, for a closing shot of a group or the payoff.
   - The camera frames only the space the HUD leaves free (the explain and code panels, title and dock), and never
     shrinks the world below 0.9 px/u on desktop (9.5 u tile labels at ~8.6 px) to fit it: a wider world gets a closer
-    shot that holds the focus, and slides so any cut falls at a bare screen edge rather than under a panel. When the
-    whole world fits at that size and a close-up would leave part of it under a panel, the world is shown whole. A
-    small board (one array) fills about 62 % of the free area. Phones fit the board width first; lay out for
-    portrait with `env`.
-  - The last step's focus is the payoff shot (§1): end on the result, and focus it.
+    shot that holds the focus, and slides so any cut falls at a bare screen edge rather than under a panel. A small
+    board (one array) fills about 62 % of the free area. Phones fit the board width first; lay out for portrait
+    with `env`.
+- **Scale shot**: `s.scale({ count, run, like, from, title, lines, note })`, called before the `s.step` it belongs to.
+  The camera pulls back, in powers of ten, from `from` (an id or ids; default the whole world) to a field of `count`
+  machines, each a silhouette of `like` (default `run[0]`) rising out of the floor as the view reaches it; the run's
+  own machines (`run`, ids) count among them and stay where they are. `title` prints large, `lines` (each wraps at
+  52 characters) below it, then the `note`, `"shown at scale, simplified"` unless you give another, always printed.
+  The step lasts at least 12.5 s at 1×. A bad `count`, a missing `like`, or a `run` larger than `count` is a
+  `bad-scale` problem.
+  - **Use it** when the point is the real system's size (a 2,000-machine job, a data centre, a million keys), once
+    per figure, on the last step of the happy path: the reader has seen the mechanism small, and now sees how big it
+    runs.
+  - **It is a picture, not a simulation.** Nothing in the field is computed: its lights only show busy or idle.
+    So `count`, `title` and `lines` carry only numbers the run computed or a cited source gives, and say whose
+    ("The paper's typical job: M = 200,000 map tasks", "Dean & Ghemawat, OSDI 2004, §3.5"). Never invent a number
+    for it; keep the note.
+
+  ```js
+  if (scenario === "happy") {
+    s.scale({ count: 2000, run: [...mapIds, ...reduceIds], from: "output", title: "2,000 machines",
+      lines: ["The paper's typical job: M = 200,000 map tasks, R = 5,000 reduce tasks", "Dean & Ghemawat, OSDI 2004, §3.5"] });
+    s.step("The same job at the paper's scale. Shown simplified.", { id: "scale.cluster", vars: { machines: "2,000" }, keep: true });
+  }
+  ```
 - **Tags** live for one step and fade in and out. A tag on a housing, or on a tile resting in one, floats above the
   housing's back edge, clear of the engraved header. For the first housing of a titled zone, it floats above the zone's
   edge instead, clear of the zone title. Over the groove it rides just above the tile. One tag per event: a few words
@@ -475,6 +546,8 @@ real name second, marked at first use: "each box keeps an arrow to the next, cal
 | `keys` | More than 8 identity keys. |
 | `trailing-ops` | Ops after the last step. |
 | `unknown-ref` | A `{ref:id}` in a caption names an entity that never exists. |
+| `lesson` | `lesson.mjs` names a var the step does not pass, a `look` id that does not exist at the end of the step, an unknown picture row, `deeper` field or misconception id, or an ask with another option count (`CONTRACTS.md` 10.2). |
+| `bad-scale` | `s.scale` without a usable `count` or `like`, or with more `run` machines than `count`. |
 | `duplicate-id`, `not-tile`, `not-held`, `bad-prop`, `free-without-at`, `no-lane`, `unroutable`, `build-error` (the exception, with its stack) | |
 
 
