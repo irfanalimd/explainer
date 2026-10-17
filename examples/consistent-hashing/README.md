@@ -48,12 +48,12 @@ The reader should come away knowing three things:
 | Story | What happens | What it teaches |
 |---|---|---|
 | Add a server | The same 16 keys first sit on a `hash(key) % 4` board; db05 joins and 14 of 16 move. Then the ring: four servers take their seats, one key's clockwise walk is shown, each server's arc fills with its keys. db05 joins inside db04's arc and takes over its slice. | 3 of 16 keys move on the ring (one in 5 would be 3.2), all from one neighbour, against 14 the remainder way. The hot spot (db03, 49% of the ring) is untouched: one seat per server shares the ring unevenly. |
-| A server leaves | The server with the most keys drains and leaves. | All of its keys go to the next server clockwise, which now owns 70% of the ring. Its arc moved, nothing else did; the remainder way would move 10. |
-| Many seats per server | Seats per server double: 1 → 2 → 4 → 8. Then a server leaves. | The busiest share goes 2.0× → 1.6× → 1.4× → 1.3× the average. The leaver's keys spread over 3 servers. A scale-up line gives 256 seats (computed, not drawn). |
+| A server leaves | The server with the most keys drains and leaves. | All of its keys go to the next server clockwise, which now owns 70% of the ring. Its arc moved, nothing else did; the remainder way (`hash % 3`) would move 10. |
+| Many seats per server | Seats per server double: 1 → 2 → 4 → 8 (each new seat splits an arc, so a few keys move). Then a server leaves, and the keys-moved meter restarts at 0 for it. | The busiest share goes 2.0× → 1.6× → 1.4× → 1.3× the average. The leaver's 4 keys spread over 3 servers. A scale-up line gives 256 seats (computed, not drawn). |
 
 The old "mod N vs ring" story is folded into "Add a server", where the problem now comes first.
 
-Knobs: servers (2–6), keys (6–24), seats per server (1–8), seed (which keys).
+Knobs: servers (4–6), keys (6–24), seats per server (1–8), seed (which keys).
 Numbers: keys moved on the ring (in the dock); keys moved the remainder way (in the dock for "Add a server", the only
 story that runs the remainder board); busiest server's share (in the dock for "Many seats per server"); servers.
 

@@ -29,6 +29,31 @@
 //   Stories     Add a server · A server leaves · Many seats per server
 // Each question sits on its chapter's first step, because the HUD withholds a chapter's about until its
 // predictions are revealed.
+//
+// The words live in lesson.mjs, keyed by the ids below (CONTRACTS.md section 10); each step keeps a plain caption as
+// the fallback. Servers print as key chips in their colour, keys as entity chips, shares and ratios as text ("37%",
+// "1.4×"). Every step passes K (keys) and N (servers at the start), plus:
+//   chapters       simple · more · ring · keys · add · leave · vnodes · result
+//   simple.intro   rule, boxIds                              (the remainder board's housings)
+//   simple.place   per, servers, example, exampleId, eq, boxIds
+//   more.move      extra, extraId, n1, moved, stayed, rule, fair
+//   ring.intro     again (the add story, after the remainder way), ringIds
+//   ring.seats     seats, total, order, biggest, biggestId, share, tokenIds
+//   keys.hash      key, keyId, hash, angle
+//   keys.walk      key, keyId, hash, server, serverId, tokenId, seat, hops
+//   keys.arc       server, serverId, tokenId, share, count, arcs, keys, keyIds   (add only, once per server)
+//   keys.rest      rest, keyIds                              (remove and vnodes)
+//   keys.loads     loads, servers, hot, hotId, share, hotKeys
+//   add.join       extra, extraId, tokenId, hash, seats, pred, predId, predTokenId, predKeys
+//   add.move       moved, stayed, extra, extraId, from, fromIds, keys, keyIds
+//   result.moved   moved, n1, fair, modm, keyIds
+//   result.uneven  seats, top, topId, share, ratio
+//   vnodes.more    seats, was, changed, keyIds, before, after, total            (once per doubling)
+//   leave.drain    victim, victimId, count, share, seats, tokenIds, keys, keyIds
+//   leave.move     victim, victimId, count, dests, destIds, keyIds
+//   result.leave   heavy, heavyId, share, left, modm, dests, rule
+//   result.vnodes  spread, alone, heavy, heavyId, ratio, big64, big256, left, dests
+//   asks           more.moved · add.which · leave.where
 
 import * as fmt from "../../sim/fmt.mjs";
 import { rng } from "../../sim/rng.mjs";
@@ -44,7 +69,7 @@ export const meta = {
     text: "Karger et al., “Consistent Hashing and Random Trees”, STOC 1997 · DeCandia et al., “Dynamo”, SOSP 2007",
     url: "https://doi.org/10.1145/258533.258660",
   },
-  theme: "dark",
+  theme: "light",
   hook: "Several servers share the keys. Add one more server: how many keys have to move?",
   terms: {
     hash: "a scrambling recipe that turns a name into a big number, the same number every time",
@@ -53,16 +78,16 @@ export const meta = {
     "virtual node": "one of several seats a single server takes on the circle",
   },
   recap: [
-    "The remainder way moved most keys when one more server joined.",
+    "The remainder way moved more keys than the ring when one more server joined.",
     "On the ring, each key sits with the next server clockwise.",
-    "A new server split one arc and took only the keys in it.",
-    "One seat per server leaves the shares uneven.",
+    "A new server took only the keys just before its new seats.",
+    "The seats share the ring unevenly: the busiest server owns more than its fair share.",
   ],
-  takeaway: "On a ring, a new server takes over one arc, so only the keys in it move; the remainder way moves almost all.",
+  takeaway: "On a ring, a new server takes only the keys just before its seats. The remainder way moves more: on average N keys in N + 1.",
 };
 
 export const params = {
-  servers: { label: "Servers", type: "int", min: 2, max: 6, value: 4 },
+  servers: { label: "Servers", type: "int", min: 4, max: 6, value: 4 },   // from 4 the remainder way always moves more
   keys: { label: "Keys", type: "int", min: 6, max: 24, value: 16 },
   vnodes: { label: "Seats per server", type: "int", min: 1, max: 8, value: 1 },
   seed: { label: "Seed (which keys)", type: "int", value: 6 },
@@ -72,20 +97,20 @@ export const scenarios = [
   { id: "add", label: "Add a server", whatIf: "a server joins",
     description: "First the simple remainder way, then the ring: a new server takes only the keys just before its seat." },
   { id: "remove", label: "A server leaves", whatIf: "a server leaves",
-    description: "A server leaves the ring: only its own keys move, all of them to the next server clockwise.",
-    takeaway: "When a server leaves, only its own keys move, and all of them go to the next server clockwise.",
+    description: "A server leaves the ring: only its own keys move, each to the next seat clockwise.",
+    takeaway: "When a server leaves, only its keys move, each to the next seat clockwise; with one seat each, all land on one neighbour.",
     recap: [
       "Each key sits with the next server clockwise.",
-      "The leaving server's keys all moved to its clockwise neighbour.",
-      "No other key moved, but that neighbour now carries far more.",
+      "The leaving server's keys moved on to the next seat clockwise.",
+      "No other key moved, but the servers that took them now own more of the ring.",
     ] },
   { id: "vnodes", label: "Many seats per server", params: { vnodes: 8 }, whatIf: "each server takes many seats",
     description: "Each server takes many seats around the ring, so when one leaves, its keys spread over several servers.",
-    takeaway: "With many seats per server, the shares even out, and a leaving server's keys spread over several neighbours.",
+    takeaway: "With many seats per server, the shares tend to even out, and a leaving server's keys can spread over several neighbours.",
     recap: [
-      "More seats per server made the shares more even.",
-      "A leaving server's keys went to several different neighbours.",
-      "No single server had to take the whole load.",
+      "A server's share is the sum of its arcs, and more seats make more, smaller arcs.",
+      "When a server left, each of its keys walked on to the next seat clockwise.",
+      "Only the leaving server's keys moved on the leave.",
     ] },
 ];
 
@@ -345,7 +370,7 @@ function layoutRing(stations, servers) {
 // ---- the run ---------------------------------------------------------------------------------------------------
 
 function plan(p, scenario) {
-  const N = Math.max(2, Math.min(6, p.servers | 0));
+  const N = Math.max(4, Math.min(6, p.servers | 0));
   const K = Math.max(1, Math.min(POOL.length, p.keys | 0));
   const V = Math.max(1, Math.min(8, p.vnodes | 0));
   const sc = ["add", "remove", "vnodes"].includes(scenario) ? scenario : "add";
@@ -383,9 +408,13 @@ export function build(s, p, scenario, env) {
   const shareNow = () => shares(ringNow(), [...live].filter((sv) => ringNow().some((t) => t.server === sv)));
   const count = (sv) => keys.filter((k) => owner.get(k.name) === sv).length;
   const pct = (x) => `${Math.round(x * 100)}%`;
-  const say = (markup, o = {}) => s.step(markup, { dur: o.dur ?? readable(markup, o.min) });
+  const say = (id, markup, vars = {}, o = {}) => s.step(markup, { id, vars: { K, N: servers.length, ...vars }, dur: o.dur ?? readable(markup, o.min) });
   const K_ = (sv) => fmt.key(sv);
   const keyRef = (name) => fmt.ref(`k.${name}`, name);
+  // lesson var kinds (CONTRACTS.md 10.1): a server prints as a key chip in its colour, a key as an entity chip
+  const SV = (sv) => ({ key: sv });
+  const KEY = (name) => ({ ref: `k.${name}`, text: name });
+  const keyIds = (list) => list.map((k) => `k.${k.name}`);
 
   const keyState = (k, extraState = {}) => ({ kind: "key", key: k.name, hash: k.hash, hex: hex(k.hash), owner: owner.get(k.name) ?? null, stored: owner.has(k.name), moves: moves.get(k.name), from: from.get(k.name) ?? null, ...extraState });
   const housingState = (sv, o = {}) => {
@@ -459,10 +488,11 @@ export function build(s, p, scenario, env) {
 
   // ---- the problem first ("Add a server"): the same keys placed by hash(key) % N, then N grows by one ----
   if (sc === "add") {
-    s.phase("The simple way", { about: `Like counting off into ${n0} teams. Each key's name becomes a number with a {term:hash}; divide it by ${n0}, and the remainder picks the server.` });
+    s.phase("The simple way", { id: "simple", about: `Like counting off into ${n0} teams. Each key's name becomes a number with a {term:hash}; divide it by ${n0}, and the remainder picks the server.` });
     s.focus(...modIds);
     s.line(18, 19);
-    say(`${n0} servers share ${K} keys. The simple way sends each key to server \`hash(key) % ${n0}\`.`, { min: 3 });
+    say("simple.intro", `${n0} servers share ${K} keys. The simple way sends each key to server \`hash(key) % ${n0}\`.`,
+      { rule: { code: `hash(key) % ${n0}` }, boxIds: modIds }, { min: 3 });
     for (const k of keys) {
       const b = k.hash % n0, dst = servers[b];
       modOwner.set(k.name, dst);
@@ -472,15 +502,19 @@ export function build(s, p, scenario, env) {
     s.tag(`mk.${k0.name}`, `${hex(k0.hash)} % ${n0} = ${k0.hash % n0}`);
     s.focus(...modIds);
     const per = servers.map((sv) => keys.filter((k) => modOwner.get(k.name) === sv).length);
-    say(`Each key goes to the server its remainder names: ${fmt.and(per.map(String))} keys.`, { min: 2.6 });
+    say("simple.place", `Each key goes to the server its remainder names: ${fmt.and(per.map(String))} keys.`,
+      { per, servers: servers.map(SV), example: k0.name, exampleId: `mk.${k0.name}`, eq: { code: `${hex(k0.hash)} % ${n0} = ${k0.hash % n0}` }, boxIds: modIds }, { min: 2.6 });
 
     const all = [...servers, extra];
     const n1 = all.length;
-    s.phase("One more server", { about: `Now there are ${n1} servers, so every key's number is divided by ${n1} instead of ${n0}. The remainders change, and each key follows its remainder.` });
+    s.phase("One more server", { id: "more", about: `Now there are ${n1} servers, so every key's number is divided by ${n1} instead of ${n0}. The remainders change, and each key follows its remainder.` });
     // the misconception: "one more server moves only its fair share, whatever the scheme"
+    // the right option is the one nearest this run's real count: luck with few keys can make it "about half"
+    const movedNow = keys.filter((k) => all[k.hash % n1] !== servers[k.hash % n0]).length;
+    const guesses = [K / n1, K / 2, (K * n0) / n1].map((x) => Math.abs(x - movedNow));
     s.ask(`${extra} joins, so each key now goes to server hash % ${n1}. How many of the ${K} keys change server?`,
-      [`About ${Math.round(K / n1)}: the new server's fair share`, "About half of them", "Nearly all of them"], 2,
-      { why: `Dividing by ${n1} instead of ${n0} gives most numbers a different remainder, so most keys land on a different server.` });
+      [`About ${Math.round(K / n1)}: the new server's fair share`, "About half of them", "Nearly all of them"], guesses.lastIndexOf(Math.min(...guesses)),
+      { id: "more.moved", why: `A key keeps its server only when its remainders by ${n0} and ${n1} agree: on average 1 key in ${n1}. Here ${movedNow} of ${K} change server.` });
     addMod(extra, n1);
     s.set("modzone", { around: [...modIds, `m.${extra}`] });
     for (const sv of all) s.set(`m.${sv}`, { sub: `h % ${n1} = ${all.indexOf(sv)}`, state: { kind: "bucket", server: sv, index: all.indexOf(sv), n: n1 } });
@@ -498,17 +532,18 @@ export function build(s, p, scenario, env) {
     s.count("modmoved", moved);
     s.focus(...modIds, `m.${extra}`);
     s.line(18, 19);
-    say(`${K_(extra)} joins, so every key now uses \`hash % ${n1}\`: ${moved} of ${K} keys change server.`, { min: 3.6 });
+    say("more.move", `${K_(extra)} joins, so every key now uses \`hash % ${n1}\`: ${moved} of ${K} keys change server.`,
+      { extra: SV(extra), extraId: `m.${extra}`, n1, moved, stayed: K - moved, rule: { code: `hash % ${n1}` }, fair: Math.round(K / n1) }, { min: 3.6 });
   }
 
-  s.phase("The ring", { about: (P.levels[0] === 1
+  s.phase("The ring", { id: "ring", about: (P.levels[0] === 1
     ? "Think of a round table whose seats are every {term:hash} number, bent into a {term:ring}. Each server sits at the seat its name hashes to."
     : "Think of a round table whose seats are every {term:hash} number, bent into a {term:ring}. Each server takes several seats: its name and a few variants, hashed.") });
   s.line(3, 4);
   if (sc === "add") s.focus(...RING);
-  say(sc === "add"
+  say("ring.intro", sc === "add"
     ? `Now the ring way, with the same ${servers.length} servers: 0 at the top, numbers rising clockwise.`
-    : `${servers.length} database servers, and a ring of every hash number: 0 at the top, rising clockwise.`, { min: 2.2 });
+    : `${servers.length} database servers, and a ring of every hash number: 0 at the top, rising clockwise.`, { again: sc === "add", ringIds: RING }, { min: 2.2 });
 
   // ---- servers take their places ----
   const V0 = P.levels[0];
@@ -528,12 +563,14 @@ export function build(s, p, scenario, env) {
   s.line(6, 11);
   const ringOrder = ringNow().filter((t) => t.i === 0).map((t) => t.server);
   const biggest = Object.entries(sh).sort((a, b) => b[1] - a[1])[0];
-  say(V0 === 1
+  say("ring.seats", V0 === 1
     ? `Each server sits at the seat its name hashes to. The seats are uneven: ${K_(biggest[0])}'s {term:arc} is ${pct(biggest[1])}.`
-    : `Each server takes ${V0} seats, its name and ${V0 - 1} variants: ${active.size} seats, ${active.size} {term:arc|arcs}.`, { min: 2.6 });
+    : `Each server takes ${V0} seats, its name and ${V0 - 1} variants: ${active.size} seats, ${active.size} {term:arc|arcs}.`,
+    { seats: V0, total: active.size, order: ringOrder.map(SV), biggest: SV(biggest[0]), biggestId: biggest[0], share: pct(biggest[1]),
+      tokenIds: ringNow().map((t) => `t.${t.name}`) }, { min: 2.6 });
 
   // ---- keys: one lookup in full, then the rest arc by arc ----
-  s.phase("Keys", { about: "Each key's name is hashed to a seat too. Like a guest finding a host, the key walks clockwise and sits with the first server it meets." });
+  s.phase("Keys", { id: "keys", about: "Each key's name is hashed to a seat too. Like a guest finding a host, the key walks clockwise and sits with the first server it meets." });
   const ownerNow = (h) => successor(ringNow(), h).server;
   // the lookup shown in full: a key whose clockwise walk to its server is long enough to watch
   const walkLen = (k) => { const t = successor(ringNow(), k.hash); return (((t.hash - k.hash) + SPACE) % SPACE) / SPACE; };
@@ -543,7 +580,8 @@ export function build(s, p, scenario, env) {
   keyTile(probe);
   s.tag(`k.${probe.name}`, `${hex(probe.hash)} · ${deg(probe.hash)}`);
   s.line(13, 14);
-  say(`A key is hashed the same way: ${keyRef(probe.name)} lands at \`${hex(probe.hash)}\`, ${deg(probe.hash)} round the ring.`, { min: 2.4 });
+  say("keys.hash", `A key is hashed the same way: ${keyRef(probe.name)} lands at \`${hex(probe.hash)}\`, ${deg(probe.hash)} round the ring.`,
+    { key: KEY(probe.name), keyId: `k.${probe.name}`, hash: { code: hex(probe.hash) }, angle: deg(probe.hash) }, { min: 2.4 });
 
   const tok = successor(ringNow(), probe.hash);
   const a0 = at.get(`k.${probe.name}`), a1 = at.get(`t.${tok.name}`);
@@ -561,7 +599,9 @@ export function build(s, p, scenario, env) {
   s.lit(`t.${tok.name}`);
   s.tag(`t.${tok.name}`, `first seat ≥ ${hex(probe.hash)}`);
   s.line(15, 16);
-  say(`Walk clockwise from it: the first server seat is ${K_(tok.server)}'s, so ${K_(tok.server)} stores ${keyRef(probe.name)}.`, { dur: Math.max(2.8, hops * 0.34 + 1) });
+  say("keys.walk", `Walk clockwise from it: the first server seat is ${K_(tok.server)}'s, so ${K_(tok.server)} stores ${keyRef(probe.name)}.`,
+    { key: KEY(probe.name), keyId: `k.${probe.name}`, hash: { code: hex(probe.hash) }, server: SV(tok.server), serverId: tok.server, tokenId: `t.${tok.name}`,
+      seat: { code: hex(tok.hash) }, hops }, { dur: Math.max(2.8, hops * 0.34 + 1) });
 
   const rest = keys.filter((k) => k !== probe);
   if (sc === "add") {
@@ -575,23 +615,25 @@ export function build(s, p, scenario, env) {
       s.focus(sv, `t.${sv}`, ...mine.map((k) => `k.${k.name}`));
       s.line(13, 16);
       const tokensOf = ringNow().filter((t) => t.server === sv).length;
-      say(tokensOf === 1
+      say("keys.arc", tokensOf === 1
         ? (n ? `${K_(sv)} owns the arc that ends at its seat: ${pct(share)} of the ring, ${fmt.plural(n, "key")}.` : `${K_(sv)}'s arc is only ${pct(share)} of the ring, and no key lands in it.`)
-        : `${K_(sv)}'s ${tokensOf} arcs add up to ${pct(share)} of the ring: ${fmt.plural(n, "key")}.`, { min: 2.2 });
+        : `${K_(sv)}'s ${tokensOf} arcs add up to ${pct(share)} of the ring: ${fmt.plural(n, "key")}.`,
+        { server: SV(sv), serverId: sv, tokenId: `t.${sv}`, share: pct(share), count: n, arcs: tokensOf, keys: mine.map((k) => KEY(k.name)), keyIds: keyIds(mine) }, { min: 2.2 });
     }
   } else {
     for (const k of rest) { owner.set(k.name, ownerNow(k.hash)); keyTile(k); }
     for (const sv of servers) refreshServer(sv);
     s.focus(...RING);
     s.line(13, 16);
-    say(`The other ${K - 1} keys do the same, and each takes its server's colour.`, { min: 2.4 });
+    say("keys.rest", `The other ${K - 1} keys do the same, and each takes its server's colour.`, { rest: K - 1, keyIds: keyIds(rest) }, { min: 2.4 });
   }
   sh = shareNow();
   const loads = servers.map((sv) => count(sv));
   const hot = servers.slice().sort((a, b) => sh[b] - sh[a])[0];
   s.lit(hot);
   s.focus(...RING);
-  say(`${K} keys on ${servers.length} servers: ${fmt.and(loads.map(String))}. ${K_(hot)} has the biggest arc, ${pct(sh[hot])}.`, { min: 3 });
+  say("keys.loads", `${K} keys on ${servers.length} servers: ${fmt.and(loads.map(String))}. ${K_(hot)} has the biggest arc, ${pct(sh[hot])}.`,
+    { loads, servers: servers.map(SV), hot: SV(hot), hotId: hot, share: pct(sh[hot]), hotKeys: count(hot) }, { min: 3 });
 
   // a membership change: moving keys stream from their old owner to the new one, then recolour
   const migrate = (list, toOf, line) => {
@@ -617,7 +659,7 @@ export function build(s, p, scenario, env) {
 
   // ---- add a server ----
   if (sc === "add") {
-    s.phase("Add a server", { about: P.levels[0] === 1
+    s.phase("Add a server", { id: "add", about: P.levels[0] === 1
       ? "A new server pulls up a chair inside one neighbour's arc. It takes only the keys between its seat and the server before it; every other key stays put."
       : "A new server pulls up several chairs, each inside an arc. It takes only the keys just before each of its seats; every other key stays put." });
     live.add(extra);
@@ -631,20 +673,22 @@ export function build(s, p, scenario, env) {
     s.tag(`t.${extra}`, `${extra} · ${hex(h)}`);
     s.focus(extra, `t.${extra}`, ...(P.levels[0] === 1 ? [`t.${pred.name}`] : []));
     s.line(6, 11);
-    say(P.levels[0] === 1
+    say("add.join", P.levels[0] === 1
       ? `${K_(extra)} joins at \`${hex(h)}\`, inside ${K_(pred.server)}'s arc. It waits, empty, for its keys.`
-      : `${K_(extra)} joins with ${P.levels[0]} seats, landing in ${P.levels[0]} different arcs. It waits, empty, for its keys.`, { min: 2.8 });
+      : `${K_(extra)} joins with ${P.levels[0]} seats, landing in ${P.levels[0]} different arcs. It waits, empty, for its keys.`,
+      { extra: SV(extra), extraId: extra, tokenId: `t.${extra}`, hash: { code: hex(h) }, seats: P.levels[0], pred: SV(pred.server), predId: pred.server,
+        predTokenId: `t.${pred.name}`, predKeys: count(pred.server) }, { min: 2.8 });
 
     // the aha: on the ring, one more server moves only one arc's keys (the remainder way moved most of them)
     const modm = modWhatIf(servers, [...servers, extra]);
-    const whole = takes.length === count(pred.server) && takes.length > 0;
+    const whole = takes.length === count(pred.server);   // the newcomer takes its neighbour's whole arc (or both hold none)
     s.ask(P.levels[0] === 1
-      ? `${extra} takes over part of ${pred.server}'s arc. How many of the ${K} keys have to move?`
-      : `${extra}'s seats land in ${P.levels[0]} arcs. How many of the ${K} keys have to move?`, [
+      ? `${extra} takes over part of ${pred.server}'s arc. Which of the ${K} keys have to move?`
+      : `${extra}'s seats land in ${P.levels[0]} arcs. Which of the ${K} keys have to move?`, [
       P.levels[0] === 1 ? `Only the keys between ${extra} and the server before it` : "Only the keys just before each of its seats",
-      `About ${modm}, like the remainder way`,
-      whole || P.levels[0] > 1 ? `About half of them` : `All of ${pred.server}'s ${count(pred.server)} keys`,
-    ], 0, { why: P.levels[0] === 1
+      "Keys from all around the ring, like the remainder way",
+      whole || P.levels[0] > 1 ? `All ${K} of them` : `All of ${pred.server}'s ${count(pred.server)} keys`,
+    ], 0, { id: "add.which", why: P.levels[0] === 1
       ? `${extra} splits one arc. Only keys between the server before it and ${extra}'s seat now meet ${extra} first.`
       : `Each new seat splits one arc. Only keys just before a new seat now meet ${extra} first.` });
     for (let i = 0; i < P.levels[0]; i++) { const name = tokenName(extra, i); active.set(name, { name, server: extra, i, hash: murmur3(name) }); s.set(`t.${name}`, { dim: false, state: { kind: "token", token: name, server: extra, hash: murmur3(name), hex: hex(murmur3(name)), active: true } }); }
@@ -654,45 +698,54 @@ export function build(s, p, scenario, env) {
     for (const sv of live) refreshServer(sv);
     gaugeLoad();
     const fromList = [...srcs.keys()];
-    say(takes.length
+    say("add.move", takes.length
       ? `${fmt.plural(takes.length, "key")} stream to ${K_(extra)}${fromList.length === 1 ? ` from ${K_(fromList[0])}` : ` from ${fromList.length} servers`}; the other ${K - takes.length} stay exactly where they are.`
-      : `None of the ${K} keys land in ${K_(extra)}'s arc, so nothing moves at all.`, { min: 3 });
+      : `None of the ${K} keys land in ${K_(extra)}'s arc, so nothing moves at all.`,
+      { moved: takes.length, stayed: K - takes.length, extra: SV(extra), extraId: extra, from: fromList.map(SV), fromIds: fromList,
+        keys: takes.map((k) => KEY(k.name)), keyIds: keyIds(takes) }, { min: 3 });
 
-    s.phase("Result", { about: "Only the keys in one slice of the ring moved: on average one key in N. The remainder way moved most of them, and every moved key is data copied across the network." });
+    s.phase("Result", { id: "result", about: `Only the keys just before the new seats moved: on average one key in ${servers.length + 1}. The remainder way moved more, and every moved key is data copied across the network.` });
     s.gauge("modmoved", modm);
     s.focus(...RING, ...modIds, `m.${extra}`);   // both boards: the ring's 3 against the remainder way's 14
     if (takes.length) s.lit(...takes.map((k) => `k.${k.name}`));
     s.line(18, 19);
-    say(`${takes.length} of ${K} keys moved; one in ${servers.length + 1} would be ${fmt.num(K / (servers.length + 1), 1)}. The remainder way moved ${modm}.`, { min: 4 });
+    say("result.moved", `${takes.length} of ${K} keys moved; one in ${servers.length + 1} would be ${fmt.num(K / (servers.length + 1), 1)}. The remainder way moved ${modm}.`,
+      { moved: takes.length, n1: servers.length + 1, fair: fmt.num(K / (servers.length + 1), 1), modm, keyIds: keyIds(takes) }, { min: 4 });
     const sh5 = shareNow(), top = Object.keys(sh5).sort((a, b) => sh5[b] - sh5[a])[0];
     s.lit(top);
     s.focus(...RING);
-    say(P.levels[0] === 1
+    say("result.uneven", P.levels[0] === 1
       ? `But one seat each shares the ring unevenly: ${K_(top)} still owns ${pct(sh5[top])} of it.`
-      : `With ${P.levels[0]} seats each, the busiest server owns ${pct(sh5[top])} of the ring, ${ratioText(maxOverMean(sh5))} the average.`, { min: 3.6 });
+      : `With ${P.levels[0]} seats each, the busiest server owns ${pct(sh5[top])} of the ring, ${ratioText(maxOverMean(sh5))} the average.`,
+      { seats: P.levels[0], top: SV(top), topId: top, share: pct(sh5[top]), ratio: ratioText(maxOverMean(sh5)) }, { min: 3.6 });
   }
 
   // ---- remove a server ----
   const removeServer = (victim) => {
     const tokensOf = ringNow().filter((t) => t.server === victim);
-    s.phase("A server leaves", { about: tokensOf.length === 1
+    s.phase("A server leaves", { id: "leave", about: tokensOf.length === 1
       ? "A server leaves the table. Its guests walk on clockwise to the next server, and no other key moves."
       : "A server leaves the table. The keys at each of its seats walk on to the next seat clockwise, so they spread over several servers." });
     const theirs = keys.filter((k) => owner.get(k.name) === victim);
+    s.gauge("moved", 0);                         // this chapter counts only the moves the departure causes
     const after = ringNow().filter((t) => t.server !== victim);
     const dest = (k) => successor(after, k.hash).server;
     const dests = [...new Set(theirs.map(dest))];
+    // "spread evenly" is the misconception, so it is the wrong option, unless this run's keys really did split evenly
+    const even = dests.length === live.size - 1 && dests.every((d) => theirs.filter((k) => dest(k) === d).length === theirs.length / dests.length);
     s.set(victim, { led: "warn", state: housingState(victim, { leaving: true }) });
     for (const t of tokensOf) s.set(`t.${t.name}`, { dim: true });
     s.tag(victim, "draining", { tone: "warn" });
     s.focus(victim, ...tokensOf.map((t) => `t.${t.name}`), ...theirs.map((k) => `k.${k.name}`));
-    say(`${K_(victim)} is leaving the ring. It holds ${fmt.plural(theirs.length, "key")}, ${pct(shareNow()[victim])} of the ring.`, { min: 2.6 });
+    say("leave.drain", `${K_(victim)} is leaving the ring. It holds ${fmt.plural(theirs.length, "key")}, ${pct(shareNow()[victim])} of the ring.`,
+      { victim: SV(victim), victimId: victim, count: theirs.length, share: pct(shareNow()[victim]), seats: tokensOf.length,
+        tokenIds: tokensOf.map((t) => `t.${t.name}`), keys: theirs.map((k) => KEY(k.name)), keyIds: keyIds(theirs) }, { min: 2.6 });
 
     s.ask(`Where do ${victim}'s ${theirs.length} keys go?`, [
       tokensOf.length === 1 ? `All to the next server clockwise` : `To the next server clockwise of each of its ${tokensOf.length} seats`,
-      tokensOf.length === 1 ? `Spread evenly over the other servers` : `All to one neighbour`,
+      even ? `All to one neighbour` : `Spread evenly over the other servers`,
       `Every key in the cluster is reshuffled`,
-    ], 0, { why: dests.length === 1
+    ], 0, { id: "leave.where", why: dests.length === 1
       ? `Each key walks clockwise to the first seat still there. With ${victim}'s seat gone, that is ${dests[0]}'s for all of them.`
       : `Each key walks clockwise to the first seat still there. ${victim}'s seats sat in different places, so the keys reach different servers.` });
     for (const t of tokensOf) {
@@ -703,11 +756,12 @@ export function build(s, p, scenario, env) {
     for (const sv of live) refreshServer(sv, { leaving: sv === victim });
     s.set(victim, { led: "off" });
     gaugeLoad();
-    say(theirs.length
+    say("leave.move", theirs.length
       ? (dests.length === 1
         ? `Each key walks on clockwise, so all ${theirs.length} land on ${K_(dests[0])}. No other server is touched.`
         : `Each key walks on clockwise: ${theirs.length} keys spread over ${fmt.and(dests.map(K_))}.`)
-      : `${K_(victim)} held no keys, so nothing moves.`, { min: 3 });
+      : `${K_(victim)} held no keys, so nothing moves.`,
+      { victim: SV(victim), victimId: victim, count: theirs.length, dests: dests.map(SV), destIds: dests, keyIds: keyIds(theirs) }, { min: 3 });
 
     for (const t of tokensOf) s.remove(`t.${t.name}`, { style: "sink" });
     s.remove(`spoke.${victim}`, { style: "fade" });
@@ -726,17 +780,18 @@ export function build(s, p, scenario, env) {
 
   if (sc === "remove") {
     const r = removeServer(victimOf());
-    s.phase("Result", { about: r.dests.length === 1
+    s.phase("Result", { id: "result", about: r.dests.length === 1
       ? "Only the leaving server's keys moved, but all of them went to one neighbour. That neighbour now owns a far bigger share of the ring than the rest."
       : "Only the leaving server's keys moved, spread over its neighbours. The remainder way, `hash(key) % N`, would have moved far more." });
-    say(r.dests.length === 1
-      ? `${K_(r.heavy[0])} now owns ${pct(r.heavy[1])} of the ring: it took the whole arc. The remainder way would move ${r.modm}.`
-      : `${K_(r.heavy[0])} now owns ${pct(r.heavy[1])} of the ring. The remainder way would move ${r.modm} keys.`, { min: 4.2 });
+    say("result.leave", r.dests.length === 1
+      ? `${K_(r.heavy[0])} now owns ${pct(r.heavy[1])} of the ring. The remainder way, \`hash % ${live.size}\`, would move ${r.modm}.`
+      : `${K_(r.heavy[0])} now owns ${pct(r.heavy[1])} of the ring. The remainder way, \`hash % ${live.size}\`, would move ${r.modm} keys.`,
+      { heavy: SV(r.heavy[0]), heavyId: r.heavy[0], share: pct(r.heavy[1]), left: live.size, modm: r.modm, dests: r.dests.length, rule: { code: `hash % ${live.size}` } }, { min: 4.2 });
   }
 
   // ---- virtual nodes ----
   if (sc === "vnodes") {
-    s.phase("Many seats each", { about: "Each server takes more seats around the table, called {term:virtual node|virtual nodes}. It then owns many small arcs instead of one big one, and the shares even out." });
+    s.phase("Many seats each", { id: "vnodes", about: "Each server takes more seats around the table, called {term:virtual node|virtual nodes}, so it owns many small arcs and the shares even out. Each new seat splits an arc, so a few keys move; real servers start with all their seats." });
     let prevV = P.levels[0];
     for (const v of P.levels.slice(1)) {
       const before = maxOverMean(shareNow());
@@ -752,18 +807,23 @@ export function build(s, p, scenario, env) {
       const after = maxOverMean(gaugeLoad());
       s.focus(...RING);
       s.line(9, 10);
-      const added = v - prevV;
-      say(`Each server adds ${fmt.plural(added, "seat")}: ${fmt.plural(changed.length, "key")} change server, and the biggest share falls from ${ratioText(before)} to ${ratioText(after)}.`, { min: 3.4 });
+      // more seats even the shares out only on average: one doubling can leave the busiest share level or higher
+      const [b, a] = [ratioText(before), ratioText(after)];
+      const trend = a === b ? `stays at ${a}` : `${parseFloat(a) < parseFloat(b) ? "falls" : "rises"} from ${b} to ${a}`;
+      say("vnodes.more", `Now ${v} seats each: ${fmt.plural(changed.length, "key")} change server; the busiest share ${trend} the average.`,
+        { seats: v, was: prevV, changed: changed.length, keyIds: keyIds(changed), before: ratioText(before), after: ratioText(after), total: active.size }, { min: 3.4 });
       prevV = v;
     }
     const r = removeServer(victimOf());
     const big = [64, 256].map((v) => maxOverMean(shares(buildRing([...live], v), [...live])));
-    s.phase("Result", { about: r.dests.length > 1
+    s.phase("Result", { id: "result", about: r.dests.length > 1
       ? "With many small arcs, the leaving server's keys spread over several servers instead of landing on one, so no single neighbour is overloaded."
       : "With many small arcs per server, the load stays closer to even after a server leaves. More seats per server even it out further." });
-    say(r.dests.length > 1
+    say("result.vnodes", r.dests.length > 1
       ? `${K_(r.theirs.length ? r.heavy[0] : servers[0])} is now the busiest, at ${ratioText(r.ratio)} the average share. With 256 seats each: ${ratioText(big[1])}.`
       : live.size === 1 ? `Only ${K_([...live][0])} is left, so it holds every key and the whole ring.`
-        : `The busiest server is at ${ratioText(r.ratio)} the average; 64 seats each would give ${ratioText(big[0])}, 256 ${ratioText(big[1])}.`, { min: 4.2 });
+        : `The busiest server is at ${ratioText(r.ratio)} the average; 64 seats each would give ${ratioText(big[0])}, 256 ${ratioText(big[1])}.`,
+      { spread: r.dests.length > 1, alone: live.size === 1, heavy: SV(r.theirs.length ? r.heavy[0] : servers[0]), heavyId: r.theirs.length ? r.heavy[0] : servers[0],
+        ratio: ratioText(r.ratio), big64: ratioText(big[0]), big256: ratioText(big[1]), left: live.size, dests: r.dests.length }, { min: 4.2 });
   }
 }
