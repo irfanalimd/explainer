@@ -9,7 +9,12 @@
 // (references/teaching.md): the question, an everyday picture, the problem before the solution, one new idea per
 // chapter, the word for each thing defined in plain words before it is used, a prediction, a recap.
 //
-// Read it:    node __SCRIPTS__/lesson.mjs figure.mjs         (the whole lesson as text, then the teaching checks)
+// The words live in lesson.mjs beside this file, keyed by the ids given here: s.step(caption, { id, vars }),
+// s.phase(name, { about, id }), s.ask(…, { id }). This file owns the facts and passes them as vars; the lesson only
+// formats them. Each caption here is the fallback for a step the lesson has no words for. The model to copy is
+// examples/mapreduce (figure.mjs + lesson.mjs).
+//
+// Read it:    node __SCRIPTS__/lesson.mjs figure.mjs         (the whole lesson as text, every layer, then the teaching checks)
 // Check it:   node __SCRIPTS__/verify.mjs figure.mjs
 // Build it:   node __SCRIPTS__/build.mjs figure.mjs            (one self-contained .html next to this file)
 // Look at it: node __SCRIPTS__/shoot.mjs <page>.html           (screenshots + contact sheet)
@@ -21,7 +26,7 @@ export const meta = {
   kicker: "Algorithms",
   fig: 1,
   cite: { text: "Knuth, The Art of Computer Programming, Vol. 3, §6.2.1", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
-  theme: "dark",
+  theme: "light",
   // "intro" (a first encounter: few slow chapters, one or two numbers), "core" (the default) or "deep"
   level: "intro",
   // the start card's question, in the reader's words: the one thing the run answers
@@ -94,8 +99,9 @@ export const code = {
 };
 
 // The simulation. Calls before the first s.step() set up the opening picture (no animation); every s.step()
-// after that commits one animated step with its caption (what happened and why, at most ~18 words).
-// s.phase(name, { about }) starts a chapter: `about` is 1–2 plain sentences on what it does and why.
+// after that commits one animated step. Its id names it for lesson.mjs (one id for every repeat of a move), its vars
+// carry the run's values the words print, and its caption (what happened and why, at most ~18 words) is the fallback.
+// s.phase(name, { about, id }) starts a chapter: `about` is 1–2 plain sentences on what it does and why.
 export function build(s, p, scenario) {
   // Real data: sorted numbers from the seeded RNG (never Math.random, which would break determinism).
   const keys = [];
@@ -103,17 +109,20 @@ export function build(s, p, scenario) {
   const key = scenario === "missing" ? keys[Math.floor(p.n / 3)] + 1 : keys[s.rng.int(0, p.n - 1)];
 
   const a = s.array("a", keys, { label: "a" });               // -> { id, cells: [tile ids], cell(i) }
+  const num = (v) => ({ code: String(v) });                     // a var printed as inline code: `28`
+  const V = { n: p.n, key: num(key), last: p.n - 1, arrayId: a.id };   // run-wide vars, passed to every step
+  const step = (id, caption, vars = {}, o = {}) => s.step(caption, { ...o, id, vars: { ...V, ...vars } });
   s.pointer("lo", { at: a.cell(0), text: "lo" });
   s.pointer("hi", { at: a.cell(p.n - 1), text: "hi" });
   s.gauge("window", p.n);
   // The first chapter carries the everyday picture and maps it onto the parts on screen.
-  s.phase("The idea", { about: "Think of looking up a word in a dictionary. You open it in the middle, see whether your word comes before or after, and ignore the other half. A sorted list works the same way." });
+  s.phase("The idea", { id: "idea", about: "Think of looking up a word in a dictionary. You open it in the middle, see whether your word comes before or after, and ignore the other half. A sorted list works the same way." });
   s.line(1, 2);
   // The problem before the solution: what the naive way would cost.
-  s.step(`${p.n} numbers in order. We want \`${key}\`. Checking one by one could take ${p.n} looks.`);
-  s.step(`The {term:window} starts as the whole list: every {term:index} from 0 to ${p.n - 1}.`);
+  step("idea.problem", `${p.n} numbers in order. We want \`${key}\`. Checking one by one could take ${p.n} looks.`);
+  step("idea.window", `The {term:window} starts as the whole list: every {term:index} from 0 to ${p.n - 1}.`);
 
-  s.phase("Look in the middle", { about: "Compare the number we want with the middle of the window. The list is in order, so the answer tells us which half cannot hold it, and we drop that half." });
+  s.phase("Look in the middle", { id: "halve", about: "Compare the number we want with the middle of the window. The list is in order, so the answer tells us which half cannot hold it, and we drop that half." });
   let lo = 0, hi = p.n - 1, at = -1, looks = 0, asked = false;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
@@ -123,11 +132,12 @@ export function build(s, p, scenario) {
     s.lit(a.cell(mid));                                         // the one thing to watch this step
     s.tag(a.cell(mid), `a[${mid}] = ${keys[mid]}`);             // a floating chip for this step only
     s.line(4);
-    s.step(`Look at the middle of the window: index ${mid} holds \`${keys[mid]}\`.`);
+    const here = { mid, value: num(keys[mid]), midId: a.cell(mid), looks };
+    step("halve.look", `Look at the middle of the window: index ${mid} holds \`${keys[mid]}\`.`, here);
     if (keys[mid] === key) {
       s.set(a.cell(mid), { tone: "ok" });
       s.line(5);
-      s.step(`\`${keys[mid]}\` is the number we want: {tone:ok|found} after ${looks} ${looks > 1 ? "looks" : "look"}.`);
+      step("halve.found", `\`${keys[mid]}\` is the number we want: {tone:ok|found} after ${looks} ${looks > 1 ? "looks" : "look"}.`, here);
       at = mid;
       break;
     }
@@ -137,7 +147,7 @@ export function build(s, p, scenario) {
       asked = true;
       s.ask(`The middle is ${keys[mid]} and we want ${key}. Which half can we drop?`,
         ["The left half", "The right half", "Neither: we must check both"], right ? 0 : 1,
-        { why: `The list is in order, so every number ${right ? "left" : "right"} of ${keys[mid]} is ${right ? "smaller" : "bigger"} than ${keys[mid]}, and so cannot be ${key}.` });
+        { id: "halve.which", why: `The list is in order, so every number ${right ? "left" : "right"} of ${keys[mid]} is ${right ? "smaller" : "bigger"} than ${keys[mid]}, and so cannot be ${key}.` });
     }
     for (let i = right ? lo : mid; i <= (right ? mid : hi); i++) s.set(a.cell(i), { dim: true });   // ruled out
     if (right) lo = mid + 1; else hi = mid - 1;
@@ -145,12 +155,13 @@ export function build(s, p, scenario) {
     s.gauge("window", Math.max(0, hi - lo + 1));
     s.line(right ? 6 : 7);
     const left = Math.max(0, hi - lo + 1);
-    s.step(`\`${keys[mid]}\` is ${right ? "smaller" : "bigger"} than \`${key}\`, so we drop the ${right ? "left" : "right"} half: ${left} ${left === 1 ? "place" : "places"} left.`);
+    step("halve.drop", `\`${keys[mid]}\` is ${right ? "smaller" : "bigger"} than \`${key}\`, so we drop the ${right ? "left" : "right"} half: ${left} ${left === 1 ? "place" : "places"} left.`,
+      { ...here, side: right ? "left" : "right", than: right ? "smaller" : "bigger", left });
   }
 
-  s.phase("The answer", { about: at >= 0 ? "Found. Each look halved the window, so even a long list needs only a few looks." : "The window is empty, so the number is not in the list. Proving that took only a few looks too." });
+  s.phase("The answer", { id: "answer", about: at >= 0 ? "Found. Each look halved the window, so even a long list needs only a few looks." : "The window is empty, so the number is not in the list. Proving that took only a few looks too." });
   s.focus(a.id);                                                // the payoff: frame the whole list for the closing shot
   s.line(at >= 0 ? 5 : 8);
-  s.step(at >= 0 ? `Found at index ${at} in ${looks} ${looks > 1 ? "looks" : "look"}; one by one could take up to ${p.n}.`
-                 : `Nothing is left in the window: \`${key}\` is {tone:fail|not in the list}, after ${looks} looks.`);
+  if (at >= 0) step("answer.found", `Found at index ${at} in ${looks} ${looks > 1 ? "looks" : "look"}; one by one could take up to ${p.n}.`, { at, looks });
+  else step("answer.missing", `Nothing is left in the window: \`${key}\` is {tone:fail|not in the list}, after ${looks} looks.`, { looks });
 }

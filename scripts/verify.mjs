@@ -3,6 +3,13 @@
 // extremes: compile, determinism (two compiles, same tl.hash and same steps), tl.problems, a caption on every
 // step, invariants on every snapshot, counters declared, step count and phase length sanity, and a sampler pass
 // (no throw, finite poses, focus inside the world, exact backward scrub). Exit 1 on any error.
+// Every s.choose in a run is a set of branches (CONTRACTS.md 10.5): each wrong option is compiled at the same settings
+// (so at every knob extreme too) and gets the same checks, plus: it is the branch it says (tl.branch), it plays the
+// main run's steps up to the pick, and the figure's invariants hold on it (an invariant excuses a branch's broken end
+// itself, with ({ timeline }) => timeline.branch). Its findings are folded into the run's line.
+// The figure is loaded with the lesson.mjs beside it (scripts/lib/lesson-load.mjs), so every run also checks the
+// lesson's templates, look ids, picture rows and misconception ids; a lesson section then reports what the lesson
+// names that no run reaches and what the run does that it has no words for.
 // Then the teaching lint (scripts/lib/teach.mjs, references/teaching.md): the lesson a beginner reads, in its own
 // section: advisory warnings, and errors only for clear defects (an undefined {term:…}, a predict answer out of range).
 // Compiles run in a worker thread so an infinite loop in build() is reported instead of hanging.
@@ -15,6 +22,7 @@ import { tokenize } from "./lib/modules.mjs";
 import { foldPlan, foldedDuration } from "../engine/playback.mjs";
 import { rng as simRng } from "../sim/rng.mjs";   // the page (engine/runtime.mjs) seeds s.rng with this too
 import { extractLesson } from "./lib/lesson.mjs";
+import { loadFigure } from "./lib/lesson-load.mjs";
 import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teach.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -181,10 +189,11 @@ function verifyRun(fig, compile, run, sample) {
   const W = (kind, message, step) => warnings.push({ kind, message, step });
   const t0 = performance.now();
   let tl, tl2;
-  try { tl = compile(fig, { params: run.params, scenario: run.scenario, rng: simRng, ...(run.env ? { env: run.env } : {}) }); }
+  const opts = { params: run.params, scenario: run.scenario, rng: simRng, ...(run.env ? { env: run.env } : {}), ...(run.choices ? { choices: run.choices } : {}) };
+  try { tl = compile(fig, opts); }
   catch (e) { E("compile", `threw ${firstLines(e)}`); return { errors, warnings, ms: performance.now() - t0 }; }
   const ms = performance.now() - t0;
-  try { tl2 = compile(fig, { params: run.params, scenario: run.scenario, rng: simRng, ...(run.env ? { env: run.env } : {}) }); }
+  try { tl2 = compile(fig, opts); }
   catch (e) { E("determinism", `the second compile threw ${firstLines(e)}`); }
   const steps = tl.steps ?? [];
   const cap = (i) => clip(plain(steps[i]?.caption ?? ""));
@@ -198,9 +207,10 @@ function verifyRun(fig, compile, run, sample) {
       E("determinism", `two compiles differ${hashDiff ? ` (hash ${tl.hash} vs ${tl2.hash})` : ""}${i >= 0 ? `, first at step ${i}: "${cap(i)}" vs "${clip(plain(s2[i]?.caption ?? "(none)"))}"` : stepDiff ? " (counters differ)" : " (the script differs although the steps match)"}; something depends on Math.random, Date or iteration order`);
     }
   }
+  if (run.main) branchShape(tl, run, E);
   // steps, captions, timing
   if (steps.length > MAX_STEPS) W("steps", `${steps.length} steps (> ${MAX_STEPS}): consider fewer, bigger beats or a smaller input`);
-  if (steps.length < MIN_STEPS) W("steps", `only ${steps.length} step(s) (< ${MIN_STEPS})`);
+  if (steps.length < MIN_STEPS && !run.main) W("steps", `only ${steps.length} step(s) (< ${MIN_STEPS})`);
   const noCaption = [];
   let prevT1 = 0;
   for (const [i, s] of steps.entries()) {
@@ -305,10 +315,44 @@ function verifyRun(fig, compile, run, sample) {
       }
     } catch (e) { E("sample-throws", `scrub check threw ${firstLines(e)}`); }
   }
+  // the branches every s.choose makes, checked like the run (findings folded in, named by the pick)
+  const branches = run.main ? [] : branchesOf(tl);
+  for (const b of branches) {
+    const r = verifyRun(fig, compile, { ...run, choices: { [b.id]: b.option }, main: tl, step: b.step }, sample);
+    const tag = (x) => ({ ...x, message: `in the branch where the reader picks ${b.label}: ${x.message}` });
+    errors.push(...r.errors.map(tag)); warnings.push(...r.warnings.map(tag));
+    for (const k of r.counters?.used ?? []) used.add(k);
+    for (const k of r.counters?.changed ?? []) changed.add(k);
+  }
   return {
     errors, warnings, ms, steps: steps.length, duration: tl.duration, phases: (tl.phases ?? []).length, hash: tl.hash,
-    counters: { used: [...used], changed: [...changed] },
+    counters: { used: [...used], changed: [...changed] }, branches: branches.length,
   };
+}
+
+/** Every wrong option of every s.choose in a run: { id, option, step, label }. */
+function branchesOf(tl) {
+  const out = [];
+  (tl.steps ?? []).forEach((st, i) => {
+    const c = st.choose;
+    if (!c?.id) return;
+    (c.options ?? []).forEach((o, j) => { if (j !== c.answer) out.push({ id: c.id, option: j, step: i, label: `"${plain(o.text ?? o.pick ?? String(j))}" at ${c.id}` }); });
+  });
+  return out;
+}
+
+// a branch is the branch it says, and the main run up to the pick (the HUD swaps it in there)
+function branchShape(tl, run, E) {
+  const want = JSON.stringify(run.choices), got = JSON.stringify(tl.branch ?? null);
+  if (got !== want) E("branch", `tl.branch is ${got}, expected ${want}`);
+  const a = run.main.steps ?? [], b = tl.steps ?? [];
+  // the steps before the pick read the same and start at the same time, and the pick's step starts where it does there
+  for (let i = 0; i <= run.step; i++) {
+    const same = Math.abs((a[i]?.t0 ?? NaN) - (b[i]?.t0 ?? NaN)) < 1e-6 && (i === run.step || a[i]?.caption === b[i]?.caption);
+    if (same) continue;
+    E("branch", `step ${i} differs from the main run before the pick ("${clip(plain(b[i]?.caption ?? "(none)"))}" vs "${clip(plain(a[i]?.caption ?? "(none)"))}"); a branch must replay the main run up to its s.choose step`, i);
+    break;
+  }
 }
 
 function firstLines(e) {
@@ -318,11 +362,65 @@ function firstLines(e) {
 }
 const listSteps = (xs) => (xs.length > 8 ? xs.slice(0, 8).join(", ") + ` … (${xs.length})` : xs.join(", "));
 
+// ------------------------------------------------------------------ the lesson file (CONTRACTS.md 10)
+// Each compile already merges lesson.mjs (unknown vars, look ids that do not exist, unknown picture rows or
+// misconceptions are tl.problems in that run). These checks span every run: what the lesson names that no run
+// reaches, and what the run does that the lesson has no words for.
+
+function idsReached() {
+  const steps = new Set(), chapters = new Set(), asks = new Set(), chooses = new Set(), checks = new Set(), keyNoWhy = new Set();
+  let unnamed = 0, unnamedChapters = 0;
+  return {
+    steps, chapters, asks, chooses, checks, keyNoWhy,
+    get unnamed() { return unnamed; }, get unnamedChapters() { return unnamedChapters; },
+    add(tl, run, first) {
+      const base = first && !Object.keys(run.changed).length && !run.env;   // missing ids: counted once per story
+      for (const st of tl.steps ?? []) {
+        if (st.id) steps.add(st.id); else if (base) unnamed++;
+        if (st.ask?.id) asks.add(st.ask.id);
+        if (st.choose?.id) chooses.add(st.choose.id);
+        if (st.id && st.layers?.key && !st.layers.why) keyNoWhy.add(st.id);
+      }
+      for (const ph of tl.phases ?? []) if (ph.id) chapters.add(ph.id); else if (base && ph.name) unnamedChapters++;
+      for (const c of tl.checks ?? []) if (c.id) checks.add(c.id);
+    },
+  };
+}
+
+function lessonCoverage(lesson, seen) {
+  const warnings = [], notes = [];
+  const W = (message) => warnings.push({ kind: "lesson", message });
+  const N = (message) => notes.push({ kind: "lesson", message });   // advice that is often fine: not counted
+  const ids = (m) => [...new Set(Object.keys(m ?? {}).map((k) => (k.lastIndexOf("@") > 0 ? k.slice(0, k.lastIndexOf("@")) : k)))];
+  const list = (xs) => listSteps(xs.map((x) => `"${x}"`));
+  const lost = (names, reached) => names.filter((x) => !reached.has(x));
+  const ls = lost(ids(lesson.steps), seen.steps), lc = lost(ids(lesson.chapters), seen.chapters), la = lost(ids(lesson.asks), seen.asks);
+  // a typo or a step the figure no longer makes, or one only knob values verify does not try reach (a short input)
+  const why = "a typo, a step the figure no longer makes, or one only untried knob values reach";
+  if (ls.length) N(`lesson.steps names ${ls.length} step id(s) no run here reaches: ${list(ls)} (${why})`);
+  if (lc.length) N(`lesson.chapters names ${lc.length} chapter id(s) no run here reaches: ${list(lc)} (${why})`);
+  if (la.length) N(`lesson.asks names ${la.length} ask id(s) no run here reaches: ${list(la)} (${why})`);
+  const lp = lost(ids(lesson.choices), seen.chooses), lk = lost(ids(lesson.checks), seen.checks);
+  if (lp.length) N(`lesson.choices names ${lp.length} s.choose id(s) no run here reaches: ${list(lp)} (${why})`);
+  if (lk.length) N(`lesson.checks names ${lk.length} s.check id(s) no run here reaches: ${list(lk)} (${why})`);
+  // run ids the lesson has no words for: those steps show the figure's fallback caption
+  const worded = (id) => Object.entries(lesson.steps ?? {}).some(([k, e]) => (k === id || k.startsWith(`${id}@`)) && (e?.plain || e?.first?.plain));
+  const bare = [...seen.steps].filter((id) => !worded(id));
+  if (bare.length) W(`${bare.length} step id(s) have no plain in lesson.mjs, so they show the figure's caption: ${list(bare)}`);
+  if (seen.unnamed) W(`${seen.unnamed} step(s) have no id, so lesson.mjs cannot reach them: s.step(caption, { id, vars })`);
+  if (seen.unnamedChapters) W(`${seen.unnamedChapters} chapter(s) have no id, so lesson.chapters cannot reach them: s.phase(name, { about, id })`);
+  if (seen.keyNoWhy.size) W(`${seen.keyNoWhy.size} key step(s) have no why: ${list([...seen.keyNoWhy])} (a key step says why it matters)`);
+  // every misconception is named by some option, so a reader who holds it gets feedback written for them
+  const named = new Set(Object.values(lesson.asks ?? {}).flatMap((a) => (a?.options ?? []).map((o) => o?.misconception)).filter(Boolean));
+  const orphan = (lesson.misconceptions ?? []).map((m) => m?.id).filter((id) => id && !named.has(id));
+  if (orphan.length) W(`${orphan.length} misconception(s) no ask option names: ${list(orphan)} (name it on the option that belief picks, with feedback)`);
+  return { warnings, notes, info: { steps: seen.steps.size, chapters: seen.chapters.size, asks: seen.asks.size, chooses: seen.chooses.size, checks: seen.checks.size } };
+}
+
 async function workerMain({ figure, compiler, quick, sample, teach = true }) {
   const post = (m) => parentPort.postMessage(m);
   let fig, compile;
-  await import("./lib/node-hooks.mjs");       // "@internals/<path>" imports resolve in Node too
-  try { fig = await import(pathToFileURL(figure).href); }
+  try { fig = await loadFigure(figure); }    // with the lesson.mjs beside it, so every run below checks the lesson too
   catch (e) { post({ type: "fatal", message: `the figure failed to import: ${firstLines(e)}` }); return; }
   try { ({ compile } = await import(pathToFileURL(compiler).href)); if (typeof compile !== "function") throw new Error("it does not export compile()"); }
   catch (e) { post({ type: "fatal", message: `the compiler ${showPath(compiler)} failed to load: ${firstLines(e)}` }); return; }
@@ -330,13 +428,28 @@ async function workerMain({ figure, compiler, quick, sample, teach = true }) {
   if (typeof fig.build !== "function") { post({ type: "done" }); return; }
   // the words each run at other settings shows, kept from its first compile for the teaching lint (no extra compile)
   const variants = [];
+  const reached = fig.lesson ? idsReached() : null;   // the step, chapter and ask ids every run reaches, for the lesson
   for (const run of planRuns(fig, quick)) {
     post({ type: "start", label: run.label });
     let kept = !(teach && (Object.keys(run.changed).length || run.env));
-    const watched = (f, o) => { const tl = compile(f, o); if (!kept) { kept = true; variants.push({ label: run.label, words: wordsShown(tl) }); } return tl; };
+    let first = true;
+    const branches = new Set();   // the words a branch shows are linted once per run, like another setting's
+    const watched = (f, o) => {
+      const tl = compile(f, o);
+      const bk = o.choices ? JSON.stringify(o.choices) : null;
+      reached?.add(tl, run, first && !bk);
+      if (bk) {
+        if (teach && !branches.has(bk)) { branches.add(bk); variants.push({ label: `${run.label} · branch ${Object.entries(o.choices).map(([k, v]) => `${k}=${v}`).join(", ")}`, words: wordsShown(tl) }); }
+        return tl;
+      }
+      first = false;
+      if (!kept) { kept = true; variants.push({ label: run.label, words: wordsShown(tl) }); }
+      return tl;
+    };
     const r = verifyRun(fig, watched, run, sample);
     post({ type: "run", run: { label: run.label, scenario: run.scenario, changed: run.changed }, result: r });
   }
+  if (reached) post({ type: "lesson", result: lessonCoverage(fig.lesson, reached) });
   if (teach) {
     post({ type: "start", label: "teaching" });
     let result;
@@ -361,7 +474,7 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
   const file = resolve(figure);
   compiler = resolve(compiler ?? DEFAULT_COMPILER);
   return new Promise((ok) => {
-    const out = { figure: file, compiler, static: null, runs: [], teaching: null, fatal: null, timedOut: null, timeout, ms: 0 };
+    const out = { figure: file, compiler, static: null, runs: [], lesson: null, teaching: null, fatal: null, timedOut: null, timeout, ms: 0 };
     if (!existsSync(file)) { out.fatal = `figure not found: ${figure}`; return ok(out); }
     if (!existsSync(compiler)) { out.fatal = compiler === DEFAULT_COMPILER ? "engine/scene/index.mjs does not exist yet; pass --compiler <file>" : `compiler not found: ${compiler}`; return ok(out); }
     const t0 = performance.now();
@@ -374,6 +487,7 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
       if (m.type === "static") out.static = m.result;
       else if (m.type === "start") current = m.label;
       else if (m.type === "run") out.runs.push({ ...m.run, ...m.result });
+      else if (m.type === "lesson") out.lesson = m.result;
       else if (m.type === "teaching") out.teaching = m.result;
       else if (m.type === "fatal") out.fatal = m.message;
       onEvent?.(m);
@@ -400,7 +514,7 @@ export function report(r) {
   for (const run of r.runs) {
     errors += run.errors.length; warnings += run.warnings.length;
     const status = run.errors.length ? "FAIL" : run.warnings.length ? "WARN" : "ok  ";
-    const facts = run.steps != null ? `${String(run.steps).padStart(4)} steps ${run.duration.toFixed(1).padStart(6)} s ${String(run.phases).padStart(2)} phases ${run.ms.toFixed(0).padStart(4)} ms` : "";
+    const facts = run.steps != null ? `${String(run.steps).padStart(4)} steps ${run.duration.toFixed(1).padStart(6)} s ${String(run.phases).padStart(2)} phases ${run.ms.toFixed(0).padStart(4)} ms${run.branches ? `  + ${run.branches} branch${run.branches > 1 ? "es" : ""}` : ""}` : "";
     const fresh = [...run.errors.map((x) => ["error", x]), ...run.warnings.map((x) => ["warn ", x])].filter(([, x]) => !shown.has(x.kind + x.message));
     const repeats = run.errors.length + run.warnings.length - fresh.length;
     lines.push(`  ${status}  ${run.label.padEnd(width)}  ${facts}${repeats ? `  (+${repeats} as above)` : ""}`);
@@ -409,6 +523,14 @@ export function report(r) {
   // counters declared but never moved in any run
   const changed = new Set(r.runs.flatMap((x) => x.counters?.changed ?? []));
   if (r.runs.length) for (const k of r.static?.declared ?? []) if (!changed.has(k)) { warnings++; lines.push(`  WARN  counter "${k}" is declared but never changes in any run`); }
+  // the lesson file over every run: what it names that no run reaches, what the run does that it has no words for
+  const Ls = r.lesson;
+  if (Ls) {
+    warnings += Ls.warnings.length;
+    lines.push(`  ${Ls.warnings.length ? "WARN" : "ok  "}  lesson    lesson.mjs over every run and branch: ${Ls.info.steps} step ids, ${Ls.info.chapters} chapters, ${Ls.info.asks} asks, ${Ls.info.chooses ?? 0} picks, ${Ls.info.checks ?? 0} checks`);
+    for (const x of Ls.warnings) lines.push(`        warn   ${x.message}`);
+    for (const x of Ls.notes) lines.push(`        note   ${x.message}`);
+  }
   if (r.timedOut) { errors++; lines.push(`  FAIL  ${r.timedOut.padEnd(width)}  no result within ${r.timeout} s: an infinite loop in build() (or in the compiler)? Later runs were not checked.`); }
   // the teaching lint: the lesson as a beginner reads it (warnings are advice; errors are clear defects)
   const T = r.teaching;

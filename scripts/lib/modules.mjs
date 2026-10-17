@@ -236,6 +236,12 @@ export function collectGraph(entries, { skillRoot, figure, read = (f) => readFil
   return { modules, order, warnings };
 }
 
+/** The lesson beside a figure (examples/<name>/lesson.mjs, CONTRACTS.md 10), or null when it has none. */
+export function lessonBeside(figure) {
+  const file = resolve(dirname(figure), "lesson.mjs");
+  return existsSync(file) && statSync(file).isFile() ? file : null;
+}
+
 export function display(file, skillRoot) {
   const r = relative(process.cwd(), file);
   const s = relative(skillRoot, file);

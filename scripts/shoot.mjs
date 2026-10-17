@@ -2,7 +2,8 @@
 // Deterministic screenshots of a figure page through window.__internals (freeze + renderAt, settled camera),
 // across themes, sizes and scenarios, plus a contact sheet. Reports page errors and audit problems per shot.
 // --teach also plays the page live to catch what frozen capture never shows: each predict card (asked, then revealed
-// with its why) and the end card with the recap, the takeaway and the what-ifs.
+// with its why), each in-world pick (a wrong pick's branch held on its consequence, then the right pick with its why)
+// and the end card with the recap, the takeaway and the what-ifs.
 import "./lib/websocket.mjs";                // Node 20/21: re-run with --experimental-websocket
 import { mkdirSync, writeFileSync, readdirSync, rmSync } from "node:fs";
 import { join, resolve, dirname, relative } from "node:path";
@@ -22,13 +23,15 @@ usage: node scripts/shoot.mjs <page.html | figure.mjs | url> [options]
   --dpr <n>            device pixel ratio (default 1; use 2 to judge text crispness)
   --camera <mode>      settled (default) | auto
   --runtime <file>     runtime for a figure-module target (default engine/runtime.mjs)
-  --teach              also play the page live and shoot every predict card (asked, then revealed with its why)
-                       and the end card (recap, takeaway, what-ifs), in every theme, size and scenario
+  --teach              also play the page live and shoot every predict card (asked, then revealed with its why),
+                       every pick (a wrong pick's detour, then the right pick) and the end card (recap, takeaway,
+                       what-ifs), in every theme, size and scenario
   --clean              delete existing PNGs in the output directory first
   --no-sheet           skip the contact sheet
   --at none            no phase shots (with --teach: the teaching cards only)
 Files: <scenario>-<theme>-<w>x<h>-<step>-<mid|end|tN.NNs>.png, contact.png (contact-2.png… when long).
---teach adds <scenario>-<theme>-<w>x<h>-<step>-ask.png and -why.png per question, and
+--teach adds <scenario>-<theme>-<w>x<h>-<step>-ask.png and -why.png per question, -wrong.png and -right.png per
+pick, and
 <scenario>-<theme>-<w>x<h>-end-card.png (narrow screens: -end-caption.png too, the caption before the card opens).
 `;
 
@@ -88,14 +91,52 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
 // asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
-// is revealed, shoot again; then play into the end and shoot the end card. A question in a story's shared opening is
-// shot once per theme and size, not again for every story that repeats it.
+// is revealed, shoot again. For each pick (s.choose): play to it, pick the first wrong option, let its branch play to
+// its consequence (fast) and shoot the detour; rewind, pick the right one and shoot its why. Then play into the end and
+// shoot the end card. Every wait has a timeout: a step that never comes is reported and the run moves on. A question in
+// a story's shared opening is shot once per theme and size, not again for every story that repeats it.
 async function teachShots(browser, url, size, o) {
   const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
   const ev = (js) => fp.page.evaluate(js);
   const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
   const settle = () => sleep(1400);   // panel fades and camera springs come to rest
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
+  // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
+  const pickOpen = `(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-open .ix-turn-picks"); })()`;
+  const click = (pick) => ev(`(() => { const b = document.querySelector('.ix-predict.ix-open .ix-turn-pick[data-pick="${pick}"]'); b && b.click(); return !!b; })()`);
+  async function pickShots(c, base, { id, theme }) {
+    const fail = (text) => o.errors.push({ type: "teach", text: `the pick at step ${c.step} ${text}`, shot: base, step: c.step });
+    const entry = (file, tg, caption) => ({ file, scenario: id, theme, size, step: c.step, tag: tg, t: c.t0, phase: c.phase, caption });
+    const wrong = c.picks.find((_, j) => j !== c.answer), right = c.picks[c.answer];
+    await ev(`(() => { __internals.seek(Math.max(0, ${c.t0} - 0.25)); __internals.play(); return true; })()`);
+    if (!(await waitFor(pickOpen, 15000))) return fail("never opened");
+    if (wrong != null) {
+      await click(wrong);
+      await sleep(600);
+      await ev("__internals.setSpeed(4), true");
+      const held = await waitFor(`!!(__internals.timeline.branch && __internals.held && document.querySelector(".ix-predict.ix-open:not(.ix-locked)"))`, 30000);
+      await ev("__internals.setSpeed(1), true");
+      if (!held) { fail("never held its wrong branch's consequence"); return leaveBranch(); }
+      await settle();
+      await fp.page.shot(join(o.outDir, `${base}-wrong.png`));
+      o.shots.push(entry(`${base}-wrong.png`, "wrong", c.caption));
+      // the transport's one way on rewinds the branch to the pick, which opens again
+      await ev(`(() => { const b = document.querySelector(".ix-play"); b && b.click(); return true; })()`);
+      if (!(await waitFor(`!__internals.timeline.branch && ${pickOpen}`, 15000))) { fail("never came back from its branch"); return leaveBranch(); }
+    }
+    await click(right);
+    const revealed = await waitFor(`!!document.querySelector(".ix-predict.ix-open.ix-revealed")`, 10000);
+    await ev("__internals.pause(), true");
+    if (!revealed) return fail("never revealed the right pick");
+    await settle();
+    await fp.page.shot(join(o.outDir, `${base}-right.png`));
+    o.shots.push(entry(`${base}-right.png`, "right", c.prompt));
+  }
+  // never leave the page in a branch (the end card belongs to the main run): scrubbing back before the pick leaves it
+  async function leaveBranch() {
+    await ev("(() => { const I = __internals; I.pause(); I.seek(0); return true; })()");
+    if (!(await waitFor("!__internals.timeline.branch", 5000))) o.errors.push({ type: "teach", text: "the page stayed in a branch of the run", shot: "teach" });
+  }
   try {
     await ev("__internals.intro(false), true");
     const list = (await fp.scenarios()) ?? [];
@@ -108,6 +149,8 @@ async function teachShots(browser, url, size, o) {
         await ev("__internals.intro(false), __internals.setSpeed(1), true");
         const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
           question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
+        const picks = await ev(`__internals.timeline.steps.flatMap((s) => s.choose ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
+          prompt: s.choose.prompt ?? "", picks: (s.choose.options ?? []).map((x) => x.pick), answer: s.choose.answer ?? 0 }] : [])`);
         const errBefore = fp.errors.length;
         // a clean slate: playing from the end restarts and forgets earlier answers
         await ev("(() => { const I = __internals; I.seek(I.timeline.duration); I.play(); I.pause(); return true; })()");
@@ -116,8 +159,8 @@ async function teachShots(browser, url, size, o) {
           if (seen.has(key)) continue;
           seen.add(key);
           await ev(`(() => { __internals.seek(Math.max(0, ${a.t0} - 0.25)); __internals.play(); return true; })()`);
-          // a chapter pause can come first when the question opens a chapter: carry on through it
-          const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play();
+          // a chapter pause, or at the New level a hold after a key step, can come first: carry on through it
+          const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
             return document.querySelector("#ix").classList.contains("ix-asking") && !!document.querySelector(".ix-predict.ix-open"); })()`, 15000);
           if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
           await settle();
@@ -126,7 +169,7 @@ async function teachShots(browser, url, size, o) {
           o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
           const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
           await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
-          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
+          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
           await ev("__internals.pause(), true");
           if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
           await settle();
@@ -134,9 +177,15 @@ async function teachShots(browser, url, size, o) {
           o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
           await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
         }
+        for (const c of picks) {
+          const key = `${c.step}|${c.prompt}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          await pickShots(c, `${tag(id, theme)}-${String(c.step).padStart(3, "0")}`, { id, theme });
+        }
         // the end: play the last moment and let the run finish on its own (that is what holds the end card)
         await ev("(() => { const I = __internals, d = I.timeline.duration; I.seek(Math.max(0, d - 0.4)); I.play(); return true; })()");
-        const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind === "chapter") I.play();
+        const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
           const q = document.querySelector(".ix-predict.ix-open:not(.ix-locked) .ix-opt"); if (q) q.click();
           return !!(I.held && I.held.kind === "end"); })()`, 15000);
         const info = await fp.info();

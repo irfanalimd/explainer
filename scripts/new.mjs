@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Scaffold a figure folder: figure.mjs (from the commented template, or copied from an example) and a README.
+// Scaffold a figure folder: figure.mjs and lesson.mjs (from the commented templates, or copied from an example) and
+// a README.
 //   node scripts/new.mjs <dir> [--from <example name | path>] [--title "Raft"] [--force]
 // Imports that point into the skill are rewritten for the new location: relative when the folder is inside
 // the skill, absolute otherwise (both work in Node and in the build).
@@ -62,9 +63,11 @@ export function scaffold(dir, { from, title, force } = {}) {
     }
     if (!existsSync(join(dir, "figure.mjs"))) throw new Error(`${src} has no figure.mjs`);
   } else {
-    const t = readFileSync(join(here, "templates", "figure.mjs"), "utf8").replaceAll("__TITLE__", title).replaceAll("__SCRIPTS__", scripts);
-    writeFileSync(join(dir, "figure.mjs"), t);
-    written.push(join(dir, "figure.mjs"));
+    for (const name of ["figure.mjs", "lesson.mjs"]) {
+      const t = readFileSync(join(here, "templates", name), "utf8").replaceAll("__TITLE__", title).replaceAll("__SCRIPTS__", scripts);
+      writeFileSync(join(dir, name), t);
+      written.push(join(dir, name));
+    }
   }
   const readme = join(dir, "README.md");
   if (!existsSync(readme) || (force && !from)) {
@@ -80,7 +83,8 @@ One or two sentences: what this figure shows and what the reader should leave kn
 - **Problem first:** the naive way, and why it hurts.
 - **Ladder:** one new idea per chapter: what it is, the basic move, the payoff, the cost, what breaks.
 - **Misconception and aha:** the wrong belief the run disproves; the predict question goes right before it.
-- **Words:** each new term with its plain definition (\`meta.terms\`).
+- **Words:** each new term with its plain definition (\`meta.terms\`, and \`lesson.terms\` with its lead).
+- **Step ids:** the ids each chapter needs (\`chapter.verb-noun\`), which are \`key\`, and where each misconception is met.
 - **Recap:** 2–4 lines (\`meta.recap\`), then the takeaway.
 
 ## Facts
@@ -93,7 +97,7 @@ One or two sentences: what this figure shows and what the reader should leave kn
 
 \`\`\`sh
 node ${scripts}/verify.mjs figure.mjs                 # headless checks: determinism, invariants, captions, param extremes, the lesson
-node ${scripts}/lesson.mjs figure.mjs                 # the lesson as text: read it as a beginner would
+node ${scripts}/lesson.mjs figure.mjs                 # the lesson (lesson.mjs merged) as text: read it as a beginner would
 node ${scripts}/build.mjs figure.mjs                  # one self-contained page next to this file
 node ${scripts}/build.mjs figure.mjs --serve          # live-reloading dev page
 node ${scripts}/shoot.mjs <page>.html                 # screenshots of every phase, both themes, desktop + phone

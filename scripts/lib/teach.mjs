@@ -396,9 +396,10 @@ export function lintVariants(L, variants, fig = {}, findings = {}) {
   const knownJargon = new Set(findings.info?.jargon ?? []), knownFiller = new Set(findings.info?.filler ?? []);
   const knownErrors = new Set((findings.errors ?? []).map((e) => e.message));
   const longCaps = new Map(), longAbouts = new Map(), jargon = new Map(), filler = new Map(), names = new Map(), undefTerms = new Map(), badAsks = new Map();
+  const marked = new Set();
   const jargonOf = (markup, where) => {
     const { text, terms } = wordsOf(markup);
-    for (const t of terms) if (!termNames.has(t) && !undefTerms.has(t)) undefTerms.set(t, where);
+    for (const t of terms) { marked.add(t); if (!termNames.has(t) && !undefTerms.has(t)) undefTerms.set(t, where); }
     for (const j of JARGON) {
       if (knownJargon.has(j.word) || jargon.has(j.word)) continue;
       j.re.lastIndex = 0;
@@ -442,6 +443,11 @@ export function lintVariants(L, variants, fig = {}, findings = {}) {
       if (n > lim.caption) { const prev = longCaps.get(shape); if (!prev || n > prev.n) longCaps.set(shape, { n, where, text }); }
       jargonOf(st.caption, where);
     }
+  }
+  // a word defined for a knob setting (the combiner's word, shown only with it on) is used after all
+  if (findings.warnings) for (let i = findings.warnings.length - 1; i >= 0; i--) {
+    const m = /^meta\.terms\["(.+)"\] is never used/.exec(findings.warnings[i].message);
+    if (m && marked.has(m[1])) findings.warnings.splice(i, 1);
   }
   for (const [t, where] of undefTerms) {
     const msg = `{term:${t}} (${where}) has no definition: add meta.terms["${t}"] = "plain words"`;

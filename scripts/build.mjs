@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, watch } from "node:fs";
 import { dirname, resolve, join, basename, extname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { collectGraph, rewriteImports, tokenize, display, inside, toPosix } from "./lib/modules.mjs";
+import { collectGraph, rewriteImports, tokenize, display, inside, toPosix, lessonBeside } from "./lib/modules.mjs";
 import { parseArgs, fmtBytes, isMain } from "./lib/args.mjs";
 import { PALETTE, THEMES } from "../engine/tokens.mjs";
 import "./lib/node-hooks.mjs";               // "@internals/<path>" imports resolve when the figure is imported for its meta
@@ -25,7 +25,7 @@ const FONTS = [
 const USAGE = `
 usage: node scripts/build.mjs <figure.mjs> [options]
   --out <file>        output page (default: next to the figure, <title-slug>.html; --dev: <title-slug>.dev.html)
-  --theme dark|light  page theme (default: meta.theme, else dark)
+  --theme dark|light  page theme (default: meta.theme, else light)
   --runtime <file>    runtime module exporting mount() (default: engine/runtime.mjs)
   --dev               reference source files over http instead of inlining (for scripts/serve.mjs live reload)
   --serve             --dev, then serve the skill with live reload and print the URL (--port, default 5173)
@@ -99,13 +99,15 @@ export async function buildPage(figurePath, { out, theme, runtime, dev = false, 
   const { meta, importError } = await loadMeta(figure);
   if (importError) warnings.push(`figure did not import in Node (${importError.message.split("\n")[0]}); meta was read from the source`);
   if (!meta.title) warnings.push("meta.title is missing; the page title falls back to the file name");
-  theme = theme || meta.theme || "dark";
+  theme = theme || meta.theme || "light";
   if (!THEMES.includes(theme)) throw new Error(`theme must be one of ${THEMES.join(", ")}, got "${theme}"`);
   const title = meta.title || basename(figure, extname(figure));
   const name = slug(meta.title) || slug(basename(dirname(figure))) || "figure";
   out = resolve(out || join(dirname(figure), `${name}${dev ? ".dev" : ""}.html`));
 
-  const graph = collectGraph([figure, runtimeFile], { skillRoot, figure });
+  // the lesson beside the figure (CONTRACTS.md 10) rides along and is mounted as figure.lesson
+  const lessonFile = lessonBeside(figure);
+  const graph = collectGraph([figure, runtimeFile, ...(lessonFile ? [lessonFile] : [])], { skillRoot, figure });
   warnings.push(...graph.warnings);
   const runtimeSpec = graph.modules.get(runtimeFile).spec;
   const imports = {};
@@ -134,7 +136,7 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-r
 
   const boot = `import { mount } from ${JSON.stringify(runtimeSpec)};
 import * as figure from "@internals/figure";
-window.__ready = mount(document.getElementById("ix"), figure, { theme: ${JSON.stringify(theme)} });`;
+${lessonFile ? `import { lesson } from ${JSON.stringify(graph.modules.get(lessonFile).spec)};\n` : ""}window.__ready = mount(document.getElementById("ix"), ${lessonFile ? "{ ...figure, lesson }" : "figure"}, { theme: ${JSON.stringify(theme)} });`;
 
   const html = `<!doctype html>
 <html lang="en">
