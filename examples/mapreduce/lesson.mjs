@@ -1,0 +1,531 @@
+// The words the MapReduce figure teaches (CONTRACTS.md 10), keyed by the step ids in figure.mjs. The figure owns
+// every fact and passes it as a var; nothing here computes. Every line stays true at every knob value (1–6 readers,
+// 1–4 counters, the combiner on or off, any input text). Paper references are to Dean & Ghemawat, OSDI 2004.
+//   run-wide vars: n, M, R, per, biggest, distinct, text, top, topN, combiner, splitIds, mapIds, shuffleBytes (from the shuffle on)
+//   split:         pieces (each piece's words, as split chips)
+//   map steps:     map, mapId, count, slip (a read); dups, before, after, sends (a combine)
+//   crash:         map, mapId, upto, total; helper, helperId, split, splitId, lost
+//   straggler:     map, mapId, done, total, split, splitId; helper, helperId, had, more, short (0: slow.tie)
+//   shuffle:       w, count, red, redId, slipId, rem, h (the word's hash), eq, from, load, moved, slips; firstRed, otherRed (a repeat)
+//   a wrong pick:  the shuffle's vars plus picked, pickedId; rest (choose.rest); here, there, total (choose.split)
+//   end check:     R, M (this run's) and R2, w, rem2, red2 (check.hash); M2, n, big2 (check.split); w, distinct (check.totals)
+//   reduce:        red, redId, got, sums, sumIds, totals, all (every total), ones (words seen once);  output: red, redId, totals, part
+//   skew end:      hot, hotId, load, moved, share, sent, hotC
+//   scale shot:    machines, paperM, paperR (the paper's figures, §3.5), runMachines (this run's M + R)
+const PAPER = "J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters, OSDI 2004, https://research.google/pubs/pub62/";
+
+export const lesson = {
+  goal: "Count every word of a text exactly, with machines that each read only part of it.",
+  objectives: [
+    { id: "o-split", text: "Say why the text is cut into pieces and read in parallel, and what that buys." },
+    { id: "o-hash", text: "Explain why every copy of a word must reach the same counter, and how a hash does it without asking anyone." },
+    { id: "o-fail", text: "Say why a crashed or slow reading task can simply run again, and which finished work must re-run." },
+    { id: "o-cost", text: "Name what the shuffle costs, and how adding up repeats early cuts it." },
+  ],
+
+  misconceptions: [
+    { id: "m-central", wrong: "Each machine counts its piece, and one machine adds it all up at the end.", fix: "Then one machine would add up every slip. Instead each word's slips meet on one counter, so the adding is shared too." },
+    { id: "m-even", wrong: "Spreading the slips evenly over the counters is best.", fix: "Copies of one word would land on different counters, and none could give its full count." },
+    { id: "m-lost", wrong: "A crashed machine's words are lost, so the count comes out short.", fix: "Its piece is still in the input. Reading it again gives the same slips." },
+    { id: "m-restart", wrong: "One failure restarts the whole job.", fix: "Only the failed machine's tasks run again." },
+    { id: "m-wait", wrong: "The job has to wait for its slowest machine.", fix: "A backup copy of the slow piece on a free machine gives the same slips. The first copy to finish wins." },
+    { id: "m-skip", wrong: "Skipping a slow piece is a fair price for finishing on time.", fix: "Its words would never be counted. MapReduce never trades a correct count for speed." },
+  ],
+
+  picture: {
+    name: "a library counted by a team",
+    rows: [
+      { id: "master", picture: "the coordinator handing out shelves", real: "the master", term: "master" },
+      { id: "split", picture: "one shelf of books", real: "one piece of the text (a split)", term: "split" },
+      { id: "mapper", picture: "a helper tallying their shelf", real: "a reading machine (a mapper)", term: "mapper" },
+      { id: "slip", picture: "a tally slip “fox: 1”", real: "a record `(fox, 1)`: the word, and the number 1" },
+      { id: "hash", picture: "“all slips for one word go to one person”", real: "a fixed rule on the word's letters (a hash) that picks one counting machine", term: "hash" },
+      { id: "reducer", picture: "the person adding them up", real: "a counting machine (a reducer)", term: "reducer" },
+      { id: "output", picture: "the noticeboard", real: "the output: a folder with one file per counting machine" },
+    ],
+    breaks: "Helpers would talk to agree who counts which word. Machines never talk about it: each one runs the same rule on the word and gets the same answer.",
+  },
+
+  terms: {
+    master: { lead: "the coordinator", def: "The machine that hands out pieces of work, keeps track of them, and notices when a machine fails." },
+    split: { lead: "one piece of the text", def: "One piece of the input, read by one machine, like one shelf of a library." },
+    mapper: { lead: "a reading machine", def: "A machine running map: it reads one piece and writes a slip like (fox, 1) for every word." },
+    combiner: { lead: "adding up early", def: "Code that adds up repeats on the reading machine itself, before any slip is sent." },
+    hash: { lead: "a word's fixed number", def: "A function that turns a word into a big number. The same word always gives the same number." },
+    shuffle: { lead: "sending each slip to its counter", def: "The step where every slip travels to the machine that adds up its word." },
+    reducer: { lead: "a counting machine", def: "A machine running reduce: it adds up all the slips for its share of the words." },
+    straggler: { lead: "a slow machine", def: "A machine much slower than the rest, so everyone ends up waiting for it." },
+  },
+
+  chapters: {
+    split: {
+      about: "Think of counting every word in a library with a team. One person would take ages, so a coordinator, the {term:master}, gives each helper one shelf: a {term:split}, one piece of the text.",
+      "about@skew": "The same counting job on a web log. Each line is one website request, and its status code is a number saying how it went (200 OK, 404 not found). The {term:master} gives each machine one {term:split} of the log.",
+      enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. The table names the parts; each comes back when its step plays.", done: "Every word sits in exactly one piece.", picture: true },
+      "enter@skew": { sofar: "On one machine, a loop and a dictionary count things: each code maps to its count so far.", now: "Cut the log into pieces, one per machine.", done: "Every line sits in exactly one piece.", picture: true },
+    },
+    map: {
+      about: "Each helper tallies their own shelf: each reading machine, a {term:mapper}, writes a slip like `(word, 1)`, meaning “this word, seen once”, for every word. Nobody waits for anybody.",
+      "about@skew": "Each reading machine, a {term:mapper}, writes a slip like `(code, 1)` for every line of its piece. Nobody waits for anybody.",
+      "about@crash": "Each reading machine, a {term:mapper}, writes slips like `(word, 1)` to its own disk until the counters fetch them. If it crashes first, they die with it, so its piece is read again, even if it had finished.",
+      "about@straggler": "Each reading machine, a {term:mapper}, writes a slip for every word. One has a failing disk, a {term:straggler}, and the job waits for it unless the master runs a backup copy of its piece.",
+      enter: { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, one per word.", done: "Every word of the text is a `(word, 1)` slip on some machine." },
+      "enter@skew": { sofar: "The log is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, one per line.", done: "Every line of the log is a `(code, 1)` slip on some machine." },
+      "enter@crash": { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, and one of them crashes.", done: "Every word still ends up as exactly one slip that counts." },
+      "enter@straggler": { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, but one has a failing disk.", done: "Every word has exactly one slip that counts, even the slow piece's." },
+    },
+    shuffle: {
+      about: "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters: the remainder, from 0 up to one less, names the counter.",
+      "about@skew": "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. {top} fills {topN} of the {n} lines, so one machine receives every one of those slips.",
+      enter: { sofar: "Every word is a `(word, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one word sit on the same counting machine." },
+      "enter@skew": { sofar: "Every line is a `(code, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one code sit on the same counting machine." },
+    },
+    reduce: {
+      about: "Each counting machine, a {term:reducer}, sorts its slips so equal words sit together, then adds up each group into one total.",
+      "about@skew": "Each counting machine, a {term:reducer}, sorts its slips so equal codes sit together, then adds up each group into one total.",
+      enter: { sofar: "All the slips for any one word sit on the same counting machine.", now: "Each counter adds up its own words.", done: "Each counter holds one total per word it was sent." },
+      "enter@skew": { sofar: "All the slips for any one code sit on the same counting machine.", now: "Each counter adds up its own codes.", done: "Each counter holds one total per code it was sent." },
+    },
+    output: {
+      about: "Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different word.",
+      "about@skew": "Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different status code.",
+      enter: { sofar: "Each counter holds one total per word it was sent.", now: "Post every total to the shared output.", done: "The output holds one count for each of the {distinct} different words." },
+      "enter@skew": { sofar: "Each counter holds one total per code it was sent.", now: "Post every total to the shared output.", done: "The output holds one count for each of the {distinct} different codes." },
+    },
+  },
+
+  steps: {
+    // ---- Split ----
+    "split.problem": {
+      key: true,
+      plain: "Count the words in “{text}”: {n} in all.",
+      "plain@skew": "Count each status code in a web log of {n} requests.",
+      why: "One machine alone would read all {n}, one after another. Shared by {M} machines, none reads more than {biggest}.",
+      "why@skew": "It is the same job as counting words, with codes for words: shared by {M} machines, none reads more than {biggest}.",
+      look: ["input"],
+      deeper: {
+        cost: "Alone: {n} reads, one after another. Shared {M} ways, the reading takes as long as the biggest piece: {biggest} reads.",
+        real: "The paper cuts real input into pieces of 16 to 64 MB, and a typical job runs M = 200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1, §3.5).",
+        source: PAPER,
+      },
+    },
+    "split.alone": {
+      plain: "{n} words to count, and one machine reads every one of them.",
+      "plain@skew": "Count each status code in a web log of {n} requests.",
+      why: "With one machine there is nothing to share yet. Turn up “Reading machines” to split the work.",
+      look: ["input"],
+    },
+    "split.cut": {
+      key: true,
+      plain: "The master cuts the text into {M} pieces of about {per} words, one per machine.",
+      "plain@skew": "The master cuts the log into {M} pieces of about {per} lines, one per machine.",
+      why: "The pieces are {pieces}. Each can be read without the others, so all {M} machines start at once.",
+      look: ["{splitIds}"], picture: "split",
+      deeper: {
+        how: "Each record (here, a word or a line) is read by exactly one machine. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes and has each reader finish the line that crosses its edge. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
+        source: PAPER,
+      },
+    },
+    "split.one": {
+      plain: "With one machine there is one piece: all {n} words.",
+      "plain@skew": "With one machine there is one piece: all {n} lines.",
+      look: ["{splitIds}"], picture: "split",
+    },
+
+    // ---- Map ----
+    "map.handout": {
+      plain: "Each machine gets its piece from the shared input; all {M} start at once.",
+      look: ["{mapIds}"],
+    },
+    "map.handout-one": {
+      plain: "The master hands the machine its piece.",
+      look: ["{mapIds}"],
+    },
+    "map.read": {
+      first: {
+        key: true,
+        why: "That is all map does: label each word with a 1. The adding comes later, so nobody waits.",
+        "why@skew": "Map labels each line with a 1, even repeats: every {slip} travels alone unless its reader adds them up first.",
+        picture: "slip",
+        deeper: {
+          how: "A real mapper buffers its slips, then writes them to its own local disk, divided into one file per counting machine ({R} here). It tells the master where they are (§3.1).",
+          code: "`emit(word, 1)` (lines 1–3)",
+          source: PAPER,
+        },
+      },
+      plain: "{map} writes a slip for each of its {count:count|word}, like {slip}.",
+      "plain@skew": "{map} writes a slip for each of its {count:count|line}, like {slip}.",
+      look: ["{mapId}"],
+    },
+    "map.empty": {
+      plain: "{map} has an empty piece and finishes at once.",
+      why: "There are more machines than words to share.",
+      "why@skew": "There are more machines than lines to share.",
+      look: ["{mapId}"],
+    },
+    "map.combine": {
+      first: {
+        key: true,
+        why: "Fewer slips cross the network, and the counts don't change: adding gives the same total wherever it happens.",
+        deeper: {
+          how: "The paper calls this a combiner: usually the same code as reduce, run on each mapper's own slips. The paper allows it only when reduce is commutative and associative (order and grouping don't change the result), as a sum is; an average, say, cannot be combined this simply (§4.3).",
+          code: "`emit(word, sum(counts))` (lines 5–6)",
+          source: PAPER,
+        },
+      },
+      plain: "{map} runs a {term:combiner} first: its {count:before|slip} for {dups} become {after}.",
+      look: ["{mapId}"],
+    },
+
+    // ---- a machine crashes ----
+    "crash.start": {
+      plain: "{map} starts on its piece, writing a slip for each word.",
+      "plain@skew": "{map} starts on its piece, writing a slip for each line.",
+      look: ["{mapId}"],
+    },
+    "crash.down": {
+      key: true,
+      plain: "{map} {tone:fail|crashes} after {upto} of {total} words; its {count:upto|slip} {be:upto} lost with it.",
+      "plain@skew": "{map} {tone:fail|crashes} after {upto} of {total} lines; its {count:upto|slip} {be:upto} lost with it.",
+      why: "Its slips were on its own disk, so they died with it: the grey slips marked “lost” no longer count.",
+      look: ["{mapId}"],
+      deeper: {
+        how: "The master pings every worker. One that stops answering is marked failed, and its tasks are handed out again. Counters that haven't yet fetched its files are told to fetch from the re-run instead (§3.3).",
+        edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3).",
+        real: "The master itself has no such cover: in the paper, if the master dies the whole job is aborted and the client retries it (§3.3).",
+        source: PAPER,
+      },
+    },
+    "crash.restart": {
+      plain: "No other machine is free, so the master restarts {map}.",
+      why: "A task can run on any machine, even the one that failed, once it is back.",
+      look: ["{mapId}"],
+    },
+    "crash.rerun": {
+      key: true,
+      plain: "{helper} is free, so the master hands it {split}: the text is still in the input.",
+      why: "The input is stored apart from the machines that read it, so a crash loses work, never text.",
+      look: ["{splitId}", "{helperId}"],
+      deeper: {
+        real: "Real input lives in GFS, which keeps several copies of every 64 MB block (usually 3) on different machines, so a surviving copy is almost always there to read (§3.4).",
+        source: PAPER,
+      },
+    },
+    "crash.reread": {
+      plain: "{helper} reads {split} again and writes the same {count:total|slip}.",
+      why: "Map uses nothing but the text, so the same piece gives the same slips: the counts stay exact.",
+      look: ["{helperId}"],
+      deeper: {
+        edge: "This needs a deterministic map. If map used randomness or the clock, a re-run could write different slips, and the paper then promises only weaker guarantees (§3.3).",
+        how: "A map task's slips count only once its machine reports “done” to the master with the names of its files. The crashed copy never reports, so its half-written slips are never handed to a counter. If two copies both report, the master ignores the second (§3.3).",
+        source: PAPER,
+      },
+    },
+
+    // ---- a machine is slow ----
+    "slow.disk": {
+      key: true,
+      plain: "{map}'s failing disk keeps retrying reads: it has written {done} of {total} slips.",
+      why: "Counting can't finish until every piece has been read, so one slow machine holds up the whole job.",
+      look: ["{mapId}"],
+      deeper: {
+        real: "The paper's example: a bad disk with frequent correctable errors slows reads from 30 MB/s to 1 MB/s (§3.6).",
+        source: PAPER,
+      },
+    },
+    "slow.wait": {
+      plain: "With no other machine, there is no backup: the job waits for all {count:total|word}.",
+      why: "A backup needs a second machine. With one, the slowest disk sets the pace.",
+      look: ["{mapId}"],
+    },
+    "slow.backup": {
+      key: true,
+      plain: "{helper} is free, so the master starts a {tone:busy|backup} copy of {split} on it.",
+      why: "Two copies of one piece write the same slips, so whichever finishes first can be kept.",
+      look: ["{helperId}", "{splitId}"],
+      deeper: {
+        how: "The master starts backups only when the job is close to done, for the tasks still running. That costs only a few percent more machine time (§3.6).",
+        cost: "In the paper's sort benchmark, turning backups off made the job take 44% longer (§3.6).",
+        source: PAPER,
+      },
+    },
+    "slow.race": {
+      plain: "Both copies run: the backup writes its {count:total|slip} while {map} manages {more} more.",
+      look: ["{helperId}", "{mapId}"],
+    },
+    "slow.tie": {
+      plain: "Both copies finish: the master keeps the backup's slips and throws away {map}'s.",
+      why: "If both copies counted, every word of {split} would be counted twice, so only one copy's slips are kept.",
+      look: ["{mapId}"],
+    },
+    "slow.win": {
+      plain: "The backup finishes first: the master keeps its slips and stops {map}, {short} of {total} words unread.",
+      why: "If both copies counted, every word of {split} would be counted twice, so the slow copy's slips are thrown away.",
+      look: ["{mapId}"],
+      deeper: {
+        edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one at the end of the map phase, like Hadoop's per-phase speculative execution (§3.6).",
+        source: PAPER,
+      },
+    },
+
+    // ---- Shuffle ----
+    "shuffle.first": {
+      key: true,
+      plain: "{w} goes to {red}: its hash, {h}, divided by {R} leaves remainder {rem}.",
+      why: "Taking turns would scatter one word's slips over several counters, and counters never compare notes, so none would hold the full count.",
+      "why@skew": "Taking turns would scatter one code's slips over several counters, and counters never compare notes, so none would hold the full count.",
+      look: ["{slipId}", "{redId}"], picture: "hash",
+      deeper: {
+        how: "Each mapper has already divided its slips into {R} files, one per counter, and each counter fetches its file from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
+        cost: "In this model {shuffleBytes} bytes cross the network: each slip's word plus a 4-byte count (real formats add length headers, and a reader on the counter's own machine sends nothing). In a cluster, network bandwidth is the scarce resource (§3.4).",
+        edge: "Python's own hash() of a string changes from process to process (hash randomization) unless PYTHONHASHSEED is fixed, and can differ between Python versions, so two machines could disagree. Real jobs use a specified hash; this run uses FNV-1a.",
+        code: "`hash(word) % R` (lines 8–9)",
+        source: PAPER,
+      },
+    },
+    "shuffle.again": {
+      key: true,
+      plain: "{w} from {from} goes to {red} too: the same word always gives the same hash.",
+      "plain@skew": "{w} from {from} goes to {red} too: the same code always gives the same hash.",
+      why: "The hash looks only at the word's letters, so every copy meets on one counter, whichever reader sent it.",
+      "why@skew": "The hash looks only at the code's characters, so every copy meets on one counter, whichever reader sent it.",
+      look: ["{slipId}", "{redId}"],
+    },
+    "shuffle.send": {
+      first: {
+        why: "One counter takes many different words; it keeps each word's count apart.",
+        "why@skew": "One counter takes many different codes; it keeps each code's count apart.",
+      },
+      plain: "{w} from {from} goes to {red} because {eq}.",
+      "plain@skew": "{w} goes to {red} ({eq}); {red} now holds {load} of the {moved} sent.",
+      look: ["{slipId}", "{redId}"],
+    },
+
+    // ---- your turn: a wrong pick in the shuffle, played out (s.choose "shuffle.which") ----
+    "choose.sent": {
+      plain: "{w} goes to {picked}, the counter you picked.",
+      look: ["{slipId}", "{pickedId}"],
+    },
+    "choose.rest": {
+      plain: "The other {count:rest|slip} go where their hash sends them.",
+      look: ["{redId}"],
+    },
+    "choose.split": {
+      key: true,
+      plain: "{red} counts {w} = {here}, {picked} counts {w} = {there}. The text has {total}.",
+      "plain@skew": "{red} counts {w} = {here}, {picked} counts {w} = {there}. The log has {total}.",
+      why: "Each counter adds up only the slips it holds, so neither total is the full count.",
+      look: ["{redId}", "{pickedId}"],
+    },
+
+    // ---- Reduce ----
+    "reduce.sort": {
+      first: {
+        key: true,
+        why: "Sorted, each word's slips sit together, so one pass adds them up, even when they don't fit in memory.",
+        "why@skew": "Sorted, each code's slips sit together, so one pass adds them up, even when they don't fit in memory.",
+        picture: "reducer",
+        deeper: {
+          how: "A dictionary works only while every slip fits in memory. A real reducer sorts by key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here each beat swaps two slips.",
+          code: "`reduce(word, counts)` (lines 11–12)",
+          source: PAPER,
+        },
+      },
+      plain: "{red} sorts its {count:got|slip} so equal words sit together.",
+      "plain@skew": "{red} sorts its {count:got|slip} so equal codes sit together.",
+      look: ["{redId}"],
+    },
+    "reduce.sorted": {
+      plain: "{red}'s {count:got|slip} already arrive in order.",
+      look: ["{redId}"],
+    },
+    "reduce.empty": {
+      plain: "{red} got no slips and finishes empty.",
+      why: "No word in this text hashes to it.",
+      "why@skew": "No code in this log hashes to it.",
+      look: ["{redId}"],
+    },
+    "reduce.sum": {
+      first: {
+        key: true,
+        why: "The hash sent every copy of these words here and nowhere else, so each total is the full count. The rest stay at 1: {ones}.",
+        "why@skew": "The hash sent every copy of these codes here and nowhere else, so each total is the full count. The rest stay at 1: {ones}.",
+      },
+      plain: "{red} adds up each group: {sums}.",
+      why: "The rest, seen only once, stay at 1: {ones}.",
+      look: ["{sumIds}"],
+    },
+    "reduce.sum-all": {
+      first: {
+        key: true,
+        why: "The hash sent every copy of these words here and nowhere else, so each total is the full count.",
+        "why@skew": "The hash sent every copy of these codes here and nowhere else, so each total is the full count.",
+      },
+      plain: "{red} adds up each group: {all}.",
+      look: ["{sumIds}"],
+    },
+    "reduce.single": {
+      plain: "{red} has no repeated words, so each slip's count is already its total.",
+      "plain@skew": "{red} has no repeated codes, so each slip's count is already its total.",
+      look: ["{redId}"],
+    },
+
+    // ---- Output ----
+    "output.write": {
+      first: {
+        why: "The output is a folder with one file per counter; this one is {part}, so counters never share a file.",
+        picture: "output",
+        deeper: {
+          how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3).",
+          edge: "The name part-r-00000 is Hadoop's convention; the paper doesn't name its output files.",
+          source: PAPER,
+        },
+      },
+      plain: "{red} writes its {count:totals|total} to the output.",
+      look: ["output"],
+    },
+    "output.done": {
+      key: true,
+      plain: "Done: all {n} words counted, {distinct} different ones, and no machine read the whole text.",
+      why: "Every count is exact because every copy of a word met on one counter; the what-ifs test that with a crash, a slow disk and a common word.",
+      look: ["output"],
+      deeper: {
+        cost: "The reading took as long as the biggest piece ({count:biggest|word}), not all {n}. The price: every slip crossed the network once, {shuffleBytes} bytes here.",
+        real: "Google ran this on thousands of machines: M = 200,000 map tasks and R = 5,000 reduce tasks on 2,000 machines is a typical job in the paper (§3.5).",
+        source: PAPER,
+      },
+    },
+    "output.done@crash": {
+      key: true,
+      plain: "Done: all {n} words counted exactly once, despite the crash.",
+      why: "The lost piece was read again from the input, and the dead copy's slips never reached a counter.",
+      look: ["output"],
+      first: {
+        when: (v) => v.n === 11 && v.M === 3,
+        deeper: {
+          cost: "Redoing the lost piece cost time: map 0 read 8 words back to back (its own 4, then split 1's 4), twice the biggest piece. In all 13 words were read, not 11: the dead machine's 2 were wasted.",
+          source: PAPER,
+        },
+      },
+      deeper: {
+        cost: "Redoing the lost piece cost time: one machine read two pieces back to back, up to twice the biggest piece ({count:biggest|word}). Words the dead machine read before it crashed are read again, so “words read” can end above {n}.",
+        source: PAPER,
+      },
+    },
+    "output.done@straggler": {
+      key: true,
+      plain: "Done: all {n} words counted exactly once, despite the slow disk.",
+      why: "The backup's slips counted and the slow copy's were thrown away, so no word was counted twice.",
+      look: ["output"],
+      first: {
+        when: (v) => v.n === 11 && v.M === 3,
+        deeper: {
+          cost: "The backup cost map 0 a second piece: 8 words back to back (its own 4, then split 1's 4), but that beat waiting for the failing disk. In all 13 words were read, not 11: map 1's 2 were thrown away.",
+          source: PAPER,
+        },
+      },
+      deeper: {
+        cost: "The backup cost one machine a second piece: up to twice the biggest piece ({count:biggest|word}) back to back, and the slow copy's reads are thrown away, so “words read” can end above {n}. That still beats waiting for the failing disk.",
+        source: PAPER,
+      },
+    },
+    "scale.cluster": {
+      key: true,
+      plain: "The same job at the paper's scale: {paperM} map tasks, {paperR} reduce tasks, {machines} machines. Shown simplified.",
+      why: "These are the numbers from Google's 2004 MapReduce paper: each machine runs many tasks in turn, and every copy of a word still meets on one counter.",
+      look: ["output"],
+      deeper: {
+        real: "The paper often ran jobs with M = 200,000 and R = 5,000 on 2,000 worker machines (§3.5). With far more tasks than machines, each machine runs many small tasks: that balances the load, and when a machine dies its finished map tasks spread over all the others (§3.5).",
+        how: "This view is a simplified picture, not a simulation: the field has the paper's machine count, built from silhouettes of this run's {runMachines} machines, and each light only shows a machine as busy or between tasks. The counts above come from the run on this page.",
+        source: PAPER,
+      },
+    },
+    "output.done-alone": {
+      key: true,
+      plain: "Done: all {n} words counted, {distinct} different ones.",
+      why: "One machine read every word. Turn up “Reading machines” to share the reading.",
+      look: ["output"],
+    },
+
+    // ---- a very common word ----
+    "skew.done": {
+      key: true,
+      plain: "Done. {hot} got {load} of {moved} slips, {share}× a fair share ({moved} ÷ {count:R|counter}).",
+      why: "{top} fills {topN} of the {n} lines, and every raw {top} slip must meet on one counter; other codes can hash there too.",
+      look: ["{hotId}"],
+      deeper: {
+        real: "Real data is like this: word frequencies follow Zipf's law, so a few keys, like “the”, carry much of the data (§4.3).",
+        edge: "With few different keys, the hash alone can lump several on one counter and leave another idle, so part of the overload is chance, not frequency. A hot key's work can still move: adding up repeats on each reader first (a combiner) does most of its adding there, and “salting” splits it over several counters by adding a random suffix, then sums the parts in a second pass.",
+        source: PAPER,
+      },
+    },
+    "skew.combine": {
+      key: true,
+      plain: "If each reader sent one slip per different code, {count:sent|slip} would travel, {hotC} to {hot}.",
+      why: "Each slip would carry its code's count instead of a 1, so the busy counter's load falls and counts stay exact.",
+      look: ["{hotId}"],
+      deeper: {
+        how: "Turn on “Add up repeats first” to watch each reader do it. The paper calls this a combiner. It is safe only because adding is commutative and associative: order and grouping don't change a sum. An average can't be combined naively (§4.3).",
+        source: PAPER,
+      },
+    },
+  },
+
+  // the reader's pick in the world, by choose id: the figure decides which option is right; `wrong` words every other one
+  choices: {
+    "shuffle.which": {
+      prompt: "The first {w} went to {firstRed}. Click the counting machine that should get this one, from {from}.",
+      why: "{w} always hashes to the same number, so every copy of it meets on {firstRed}.",
+      wrong: { misconception: "m-even",
+        feedback: "Now {w}'s slips sit on two counters. Each adds up only what it holds, so neither can give the full count." },
+    },
+  },
+
+  // the end check, by check id: answers come from the figure's own rules at other knob values; the lesson says why
+  checks: {
+    "check.hash": { question: "Suppose a new job with {R2} counting machines instead of {R}. Which one gets every {w} slip?", why: "hash({w}) is the same on every machine. Divided by {R2}, it leaves remainder {rem2}: {red2}." },
+    "check.split": {
+      question: "Suppose a new job with {M2} reading machines instead of {M}. How many words does the busiest one read?",
+      "question@skew": "Suppose a new job with {M2} reading machines instead of {M}. How many lines does the busiest one read?",
+      why: "{n} words shared by {M2} machines: the biggest piece has {big2}.",
+      "why@skew": "{n} lines shared by {M2} machines: the biggest piece has {big2}.",
+    },
+    "check.totals": {
+      question: "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the text. How many totals would the output hold?",
+      "question@skew": "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the log. How many totals would the output hold?",
+      why: "The output holds one total per different word. One more {w} changes its count, not how many totals there are: {distinct}.",
+      "why@skew": "The output holds one total per different code. One more {w} changes its count, not how many totals there are: {distinct}.",
+    },
+  },
+
+  // the figure's predictions, by ask id: options pair with the figure's by index, and the figure decides which is right
+  asks: {
+    "crash.what": {
+      options: [
+        { misconception: "m-lost",
+          feedback: "Only if nobody read the piece again. Its text is still in the shared input, so the master hands it out once more." },
+        { feedback: "Right. Reading the same piece again gives the same slips, so redoing just that one piece is safe." },
+        { misconception: "m-restart",
+          feedback: "Nothing else was lost: the other machines still hold their slips. Only the dead machine's piece runs again." },
+      ],
+    },
+    "slow.what": {
+      options: [
+        { misconception: "m-wait",
+          feedback: "Waiting works, but then the whole job takes as long as the slowest disk. A free machine could read the same piece." },
+        { feedback: "Right. Reading a piece twice gives the same slips, so a backup is safe, and the first copy to finish wins." },
+        { misconception: "m-skip",
+          feedback: "Then those words would never be counted, and the answer would be wrong. Speed never buys a wrong count here." },
+      ],
+    },
+    "shuffle.where": {
+      options: [
+        { misconception: "m-even",
+          feedback: "Even spreading would split {w}'s slips between {firstRed} and {otherRed}, and neither could give its full count." },
+        { feedback: "Right. {w} always hashes to the same number, so every copy of it lands on {firstRed}." },
+        { misconception: "m-central",
+          feedback: "Then one machine would add up every slip, the very work we shared out. Here each counter adds up only its own share." },
+      ],
+    },
+  },
+};

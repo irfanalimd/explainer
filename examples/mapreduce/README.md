@@ -8,8 +8,10 @@ never met MapReduce. The reader should leave knowing:
 - no machine sees the whole input, yet every count is exact, because a hash sends every copy of a word to the
   same counting machine;
 - moving the slips to their counters (the shuffle) is where data crosses the network;
-- a failed or slow piece is simply read again elsewhere, because the text is still on disk;
-- the same rule that makes counts exact puts a very common word's whole load on one machine.
+- a failed or slow piece is simply read again elsewhere, because the text is still in the shared input (a reading
+  machine's slips live on its own disk, so even a finished piece on a dead machine is read again);
+- the same rule that makes counts exact puts a very common word's whole load on one machine; adding up repeats on
+  each reader first (the combiner) shrinks it.
 
 - **Source:** Dean & Ghemawat, "MapReduce: Simplified Data Processing on Large Clusters", OSDI 2004
   ([paper](https://research.google/pubs/pub62/)). Backup tasks are from section 3.6.
@@ -41,7 +43,7 @@ never met MapReduce. The reader should leave knowing:
 | Everything works | 11 words, 8 different, counted by 3 reading and 2 counting machines; 85 bytes cross the network. | The whole pipeline: split, map, shuffle, reduce, output. |
 | One machine crashes | A reading machine crashes after 2 of its 4 words; its slips are lost and the master has split 1 read again. | Reading a piece again is safe: the text survives, and the same piece gives the same slips. |
 | One machine is slow | One machine's disk is failing, so the master races a backup copy of its piece on a free machine. | The backup finishes first, the slow copy is stopped, and the answer is the same. |
-| One word is very common | A web log where the status code `200` is almost every line, over 3 counting machines. | One very common word piles its whole load onto one machine (reduce 0 gets 12 of 14 slips). |
+| One word is very common | A web log where the status code `200` is almost every line, over 3 counting machines. | One very common word piles its whole load onto one machine (reduce 0 gets 12 of 14 slips). A last step computes, from the same run, what the combiner would send instead (7 slips, 5 to reduce 0). |
 
 **Knobs:** reading machines (1–6), counting machines (1–4), add up repeats first (the combiner), text to count, seed.
 
