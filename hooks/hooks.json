@@ -1,0 +1,17 @@
+{
+  "description": "Fences the explainer pipeline agents: the readers and scorer see only the review packet; the authors never see the packet, canaries or benchmark. Does nothing for any other agent or session.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Grep|Glob|Bash|WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "in=$(cat); case \"$in\" in *explainer:novice-reader*|*explainer:expert-reader*|*explainer:scorer*|*explainer:teacher*|*explainer:curriculum-designer*) printf '%s' \"$in\" | node \"${CLAUDE_PLUGIN_ROOT}/hooks/reader-fence.mjs\" ;; esac",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

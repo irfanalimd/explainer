@@ -1,0 +1,12 @@
+{
+  "name": "irfanalimd",
+  "description": "Irfan Ali's Claude Code plugins.",
+  "owner": { "name": "Irfan Ali", "url": "https://github.com/irfanalimd" },
+  "plugins": [
+    {
+      "name": "explainer",
+      "source": "./",
+      "description": "Explain CS concepts by running them."
+    }
+  ]
+}

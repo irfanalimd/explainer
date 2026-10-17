@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "explainer",
+  "displayName": "Explainer",
+  "version": "2.0.0",
+  "description": "Cinematic, interactive explainers of CS concepts as real running simulations, with a multi-agent teacher pipeline.",
+  "author": { "name": "Irfan Ali", "url": "https://github.com/irfanalimd" },
+  "homepage": "https://github.com/irfanalimd/explainer",
+  "repository": "https://github.com/irfanalimd/explainer",
+  "license": "MIT",
+  "keywords": ["education", "visualization", "computer-science", "simulation"],
+  "skills": ["./"]
+}
