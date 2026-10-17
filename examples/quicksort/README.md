@@ -26,9 +26,11 @@ pivot turns green when it lands in its final place.
 Every predict question sits on its chapter's first step (or as early as the run allows), because the HUD withholds a
 chapter's about until its predictions are revealed.
 
-- **Source:** C. A. R. Hoare, "Quicksort", The Computer Journal 5(1), 1962
-  ([doi](https://doi.org/10.1093/comjnl/5.1.10)); the Lomuto scheme as in Cormen et al., *Introduction to
-  Algorithms*, chapter 7.
+- **Source (cited on the page):** the Lomuto scheme that runs, as in Cormen, Leiserson, Rivest & Stein,
+  *Introduction to Algorithms*, 4th ed., §7.1. Quicksort itself is C. A. R. Hoare, "Quicksort", The Computer
+  Journal 5(1), 1962 ([doi](https://doi.org/10.1093/comjnl/5.1.10)), whose partition uses two converging markers.
+- **Partition band:** while `j` scans, the slots before `i` (the left side, no bigger than the pivot) are marked
+  busy, so "on the left side" has something to point at; the band clears when the pivot swaps into place.
 - **What is real:** the whole algorithm on the knob's array; the code panel lights each line as it runs. The simple
   way's first round (n − 1 comparisons to find the smallest) is shown on the array, and its total is computed, not
   played.
@@ -38,8 +40,8 @@ chapter's about until its predictions are revealed.
 | Story | What happens | What it teaches |
 |---|---|---|
 | Shuffled numbers | 9 shuffled numbers, sorted with 21 comparisons and 11 swaps. Predicts: where does the pivot end up? Will 29 and 99 ever be compared? | The usual case: splits near the middle skip most pairs (21 of 36). |
-| Already sorted input | 9 numbers already in order: 36 comparisons, no swaps. Predict: what is left once 99 is placed? | The slowest case: the last number is always the biggest, so every split places one number and every pair is compared. |
-| Lots of repeated numbers | 9 numbers drawn from three values: 36 comparisons. Predict: which side does a copy of the pivot go to? | Equal counts as small, so copies pile onto one side and the splits are lopsided. |
+| Already sorted input | 9 numbers already in order: 36 comparisons, no swaps. Predict: what is left once 99 is placed? | The slowest case for a last-number pivot: it is always the biggest, so every split places one number and every pair is compared. A random or middle pivot avoids it (said in the takeaway). |
+| Lots of repeated numbers | 9 numbers drawn from three values: 36 comparisons. Predict: which side does a copy of the pivot go to? | In this (Lomuto) split, equal counts as small, so copies pile onto one side and the splits are lopsided; a three-way split avoids it. |
 
 **Knobs:** how many numbers (2–12), your own numbers (overrides), seed. The old "Input order" knob is gone: the
 stories set it (`order` is a hidden scenario param).
