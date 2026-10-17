@@ -16,3 +16,10 @@ scripts/test/out/
 
 node_modules/
 .DS_Store
+
+# research screenshots (hundreds of MB; regenerate with the audit scripts)
+docs/next/research/audit-shots/
+
+# teacher-pipeline workspace: reader packets, round findings and canaries
+examples/*/review/packet/
+examples/*/review/round-*/
