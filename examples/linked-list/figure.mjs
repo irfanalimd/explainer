@@ -3,6 +3,8 @@
 // run really does each operation: the array slides its items one slot at a time; each node's `next` holds a real
 // address, every line on the floor is one of those fields, and a walk really follows them from `head`.
 // Nodes sit at fixed spots in a free layout and never move: that is the whole point.
+// The words live in lesson.mjs, keyed by the step ids below; every step passes the run values its words need
+// (vars), and keeps a plain caption as the fallback.
 
 import * as fmt from "../../sim/fmt.mjs";
 import { stateOf } from "../../sim/inspect.mjs";
@@ -14,13 +16,13 @@ export const meta = {
   fig: 8,
   level: "intro",
   cite: { text: "D. E. Knuth, The Art of Computer Programming, Vol. 1, §2.2.3 “Linked Allocation”", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
-  theme: "dark",
+  theme: "light",
   hook: "Putting a number in the middle of an array means sliding everything after it over. Can we insert without moving anything?",
-  takeaway: "A linked list never moves its items: inserting just changes two arrows. The price is finding things: you must follow the arrows from head.",
+  takeaway: "A linked list never moves its items: inserting just changes two arrows. It pays with a walk from head, and more memory and slower visits per node.",
   terms: {
     address: "The number that says where something is stored in memory, like a house number, such as 0x7f3a_2c10.",
     node: "One item of a linked list: a little box holding a value and the address of the next box.",
-    pointer: "A value that holds a memory address, so it says where something else lives. Drawn here as a line.",
+    pointer: "A value that holds a memory address, so it says where something else lives. Drawn here as an arrow.",
     head: "A variable holding the address of the first box. Every trip through the list starts there.",
     null: "A special value meaning “no address”. When next holds it, nothing comes after: the list ends.",
   },
@@ -46,7 +48,7 @@ export const scenarios = [
     description: "An array works out where the 5th item is; the linked list has to walk there, arrow by arrow.",
     takeaway: "An array finds item k with one calculation. A linked list has no shortcut: it follows k − 1 arrows from head.",
     recap: [
-      "The array found the item with one sum: start + position × size.",
+      "The array found the item with one sum: start + (k − 1) × 4.",
       "A node's address is written only in the node before it.",
       "So the list walked from head, one arrow per item.",
     ] },
@@ -81,15 +83,15 @@ export const code = {
     "        self.next = None          # address of the next node",
     "",
     "def walk(head, k):               # reach the k-th node",
-    "    node = head",
+    "    cur = head",
     "    for _ in range(k - 1):",
-    "        node = node.next          # follow one arrow",
-    "    return node",
+    "        cur = cur.next            # follow one arrow",
+    "    return cur",
     "",
-    "def insert_after(node, value):",
+    "def insert_after(prev, value):",
     "    new = Node(value)             # anywhere in memory",
-    "    new.next = node.next          # 1. new points at the rest",
-    "    node.next = new               # 2. node points at new",
+    "    new.next = prev.next          # 1. new points at the rest",
+    "    prev.next = new               # 2. prev points at new",
   ].join("\n"),
 };
 
@@ -100,7 +102,10 @@ const NEW = { value: 42, addr: 0x7f3a5a30 };
 const ARRAY_AT = 0x7f3a1000, INT = 4;   // the array: 4-byte ints from this address
 const hex = (a) => fmt.hex(a, 8);
 const ordinal = (k) => `${k}${k === 1 ? "st" : k === 2 ? "nd" : k === 3 ? "rd" : "th"}`;
-const listOf = (xs) => xs.map((v) => fmt.key(v)).join(", ");
+const listOf = (xs) => xs.map((v) => fmt.key(v)).join(" → ");
+// lesson var kinds (CONTRACTS.md 10.1): a value prints as a key chip, an address as code
+const K = (v) => ({ key: v });
+const A = (addr) => ({ code: hex(addr) });
 
 // ---- invariants: they read the model each node publishes in its inspector state ----
 const nodesOf = (snap) => {
@@ -182,6 +187,15 @@ export function build(s, p, scenario, env = {}) {
   const syncHead = () => s.set("head", { state: { next: nodes[0].addr, expect: expect.slice(), loops } });
   const syncNode = (x) => s.set(x.id, { state: { addr: x.addr, value: x.value, next: x.next, lost: x.lost, fresh: x.fresh, spot: x.spot } });
 
+  // ---- the run values the lesson's words use; a step adds its own (a slide's value, a hop's two nodes) ----
+  const V = { n, first: K(nodes[0].value), second: K(nodes[1].value), secondAddr: A(nodes[1].addr), others: n - 1, lastId: nodes[n - 1].id, arr: A(ARRAY_AT) };
+  if (sc === "find") Object.assign(V, { find: FIND, findth: ordinal(FIND), findAt: A(ARRAY_AT + (FIND - 1) * INT), findV: K(nodes[FIND - 1].value),
+    findPrev: K(nodes[FIND - 2].value), findHops: FIND - 1, findId: nodes[FIND - 1].id });
+  else Object.assign(V, { k, kth: ordinal(k), new: K(NEW.value), newAddr: A(NEW.addr), prev: K(nodes[k - 1].value), prevId: nodes[k - 1].id,
+    after: K(nodes[k].value), afterId: nodes[k].id, moved: n - k, hops: k - 1 });
+  if (sc === "wrong") Object.assign(V, { lost: nodes.slice(k).map((x) => K(x.value)), lostN: n - k });   // what the wrong order cuts off
+  const step = (id, caption, vars = {}, o = {}) => s.step(caption, { ...o, id, vars: { ...V, ...vars } });
+
   // ---- the world: the array on top, memory below ----
   s.column("world", { gap: portrait ? 56 : 64, align: "center" });
 
@@ -248,15 +262,15 @@ export function build(s, p, scenario, env = {}) {
   s.focus("arr");
   if (sc === "find") {
     const at = ARRAY_AT + (FIND - 1) * INT;
-    s.phase("Arrays jump", { about: `An array keeps its items side by side, ${INT} bytes each. So item k sits at start + (k − 1) × ${INT}: one sum finds it.` });
-    s.step(`An array of ${n} numbers, side by side from ${fmt.code(hex(ARRAY_AT))}. Where is the ${ordinal(FIND)} item?`);
+    s.phase("Arrays jump", { id: "array", about: `An array keeps its items side by side, ${INT} bytes each. So item k sits at start + (k − 1) × ${INT}: one sum finds it.` });
+    step("jump.where", `An array of ${n} numbers, side by side from ${fmt.code(hex(ARRAY_AT))}. Where is the ${ordinal(FIND)} item?`);
     s.lit(cells[FIND - 1]);
     s.tag(cells[FIND - 1], `\`${hex(ARRAY_AT)} + ${FIND - 1} × ${INT} = ${hex(at)}\``);
     s.focus("arr");
-    s.step(`Start + ${FIND - 1} × ${INT} bytes: one calculation, one jump. The ${ordinal(FIND)} item is ${fmt.key(slots[FIND - 1])}.`);
+    step("jump.sum", `Start + ${FIND - 1} × ${INT} bytes: one calculation, one jump. The ${ordinal(FIND)} item is ${fmt.key(slots[FIND - 1])}.`);
   } else {
-    s.phase("Arrays shift", { about: "An array keeps its items side by side in one block of memory, with no gaps. To open a gap, every item after it must slide over one slot." });
-    s.step(`${n} numbers side by side, plus one free slot. We want ${fmt.key(NEW.value)} right after ${fmt.key(slots[k - 1])}.`);
+    s.phase("Arrays shift", { id: "array", about: "An array keeps its items side by side in one block of memory, with no gaps. To open a gap, every item after it must slide over one slot." });
+    step("array.goal", `${n} numbers side by side, plus one free slot. We want ${fmt.key(NEW.value)} right after ${fmt.key(slots[k - 1])}.`);
     for (let i = n - 1; i >= k; i--) {
       const v = slots[i];
       s.move(cells[i], "arr", { index: i + 1 });
@@ -265,47 +279,47 @@ export function build(s, p, scenario, env = {}) {
       syncArr();
       s.count("moved");
       // the first slide says why it starts at the end; the rest share one shape, so they speed up
-      s.step(i === n - 1 ? `Start at the end: ${fmt.key(v)} slides one slot to the right, into the free slot.` : `${fmt.key(v)} slides one slot to the right`);
+      step("array.slide", i === n - 1 ? `Start at the end: ${fmt.key(v)} slides one slot to the right, into the free slot.` : `${fmt.key(v)} slides one slot to the right`, { v: K(v) });
     }
     s.set(cells[k], { text: NEW.value, key: NEW.value, tone: null, state: { value: NEW.value } });
     slots[k] = NEW.value;
     syncArr();
     s.focus("arr");
-    s.step(`${fmt.key(NEW.value)} drops into the gap. Inserting one number moved ${fmt.plural(n - k, "other")}.`);
+    step("array.drop", `${fmt.key(NEW.value)} drops into the gap. Inserting one number moved ${fmt.plural(n - k, "other")}.`);
   }
 
   // ---- chapter 2: what a node is ----
   s.free("mem", { in: "world", title: "memory" });   // made here, so no empty zone waits through chapter 1
-  s.phase("Boxes and arrows", { about: "Think of a scavenger hunt: each clue says where the next clue is hidden. A linked list gives each item its own {term:node}, anywhere in memory." });
+  s.phase("Boxes and arrows", { id: "nodes", about: "Think of a treasure hunt: each clue says where the next clue is hidden. A linked list gives each item its own {term:node}, anywhere in memory." });
   nodeHousing(nodes[0]);
   s.focus("n0");
-  s.step(`A {term:node}: the value ${fmt.key(nodes[0].value)}, plus \`next\`, the {term:address} where the next node lives.`);
+  step("nodes.one", `A {term:node}: the value ${fmt.key(nodes[0].value)}, plus \`next\`, the {term:address} where the next node lives.`);
   nodes.slice(1).forEach(nodeHousing);
   s.focus(list);
-  s.step(`The other ${n - 1} nodes sit wherever memory had room, not side by side. Each label is its address.`);
+  step("nodes.scattered", `The other ${n - 1} nodes sit wherever memory had room, not side by side. Each label is its address.`);
   arrow(nodes[0], nodes[1]);
   s.beat();
   nodes.slice(1, -1).forEach((x, i) => arrow(x, nodes[i + 2]));
   s.focus(list);
-  s.step(`${fmt.key(nodes[0].value)}'s \`next\` is ${fmt.code(hex(nodes[1].addr))}, so a line runs to the node there: a {term:pointer}.`);
+  step("nodes.pointer", `${fmt.key(nodes[0].value)}'s \`next\` holds ${fmt.code(hex(nodes[1].addr))}, ${fmt.key(nodes[1].value)}'s address. A stored address is a {term:pointer}, drawn as an arrow.`);
   s.housing("head", { in: "mem", at: headSpot, title: "head", tray: { cols: 1 }, state: { next: nodes[0].addr, expect: expect.slice(), loops } });
   s.tile("head.next", { in: "head", text: hex(nodes[0].addr), sub: "first node", w: 76 });
   s.trace("head->n0", "head", "n0", { ...along, key: nodes[0].value, arrow: true });
   s.focus(list);
-  s.step(`{term:head} holds the first node's address. Every trip through the list starts here.`);
+  step("nodes.head", `{term:head} holds the first node's address. Every trip through the list starts here.`);
   const last = nodes[n - 1];
   s.lit(`${last.id}.next`);
   s.focus(list);
-  s.step(`The last \`next\` is {term:null}, meaning no address: the list ends here.`);
+  step("nodes.null", `The last \`next\` is {term:null}, meaning no address: the list ends here.`);
 
-  // ---- chapter 3: walking (the rod "node" is our finger on the list) ----
+  // ---- chapter 3: walking (the rod `cur` is our finger on the list) ----
   const walkTo = (target, ask) => {
     if (ask) ask();
-    s.pointer("cur", { at: "n0.val", text: "node", follow: "tile", tone: "busy" });
+    s.pointer("cur", { at: "n0.val", text: "cur", follow: "tile", tone: "busy" });
     s.lit("head", "n0");
     s.line(7);
     s.focus(list);
-    s.step(`Start where head points. Our marker, \`node\`, is on ${fmt.key(nodes[0].value)}, the 1st item.`);
+    step("walk.start", `Start where head points. Our marker, \`cur\`, is on ${fmt.key(nodes[0].value)}, the 1st item.`);
     for (let i = 1; i < target; i++) {
       const a = nodes[i - 1], b = nodes[i];
       s.send(s.uid("hop"), a.id, b.id, { via: arrows.get(a.id), key: b.value });
@@ -315,32 +329,33 @@ export function build(s, p, scenario, env = {}) {
       s.count("hops");
       s.line(8, 9);
       s.focus(list);
-      s.step(`Follow ${fmt.key(a.value)}'s \`next\`, ${fmt.code(hex(b.addr))}: it's ${fmt.key(b.value)}, the ${ordinal(i + 1)} item`);
+      step("walk.hop", `Follow ${fmt.key(a.value)}'s \`next\`, ${fmt.code(hex(b.addr))}: it's ${fmt.key(b.value)}, the ${ordinal(i + 1)} item`,
+        { a: K(a.value), aId: a.id, b: K(b.value), bId: b.id, baddr: A(b.addr), ith: ordinal(i + 1) });
     }
   };
 
   if (sc === "find") {
-    s.phase("Walk", { about: "A node's address is written only inside the node before it, so there is no jumping ahead. Start at head and follow the arrows, one by one." });
+    s.phase("Walk", { id: "walk", about: "A node's address is written only inside the node before it, so there is no jumping ahead. Start at head and follow the arrows, one by one." });
     walkTo(FIND, () => s.ask(`Starting on the 1st node, how many arrows must we follow to reach the ${ordinal(FIND)}?`,
       ["1: jump straight there", String(FIND - 1), String(FIND)], 1,
-      { why: `Each arrow moves you one node along. From the 1st node, ${FIND - 1} arrows bring you to the ${ordinal(FIND)}.` }));
+      { id: "walk.hops", why: `Each arrow moves you one node along. From the 1st node, ${FIND - 1} arrows bring you to the ${ordinal(FIND)}.` }));
     s.lit(nodes[FIND - 1].id);
     s.line(10);
     s.focus(list);
-    s.step(`Found the ${ordinal(FIND)} item, ${fmt.key(nodes[FIND - 1].value)}, after ${FIND - 1} arrows. The 1000th would take 999.`);
-    s.phase("Trade-off", { about: "Each is quick at something. An array jumps to any position with one sum. A linked list must walk there from head, one arrow at a time." });
+    step("walk.found", `Found the ${ordinal(FIND)} item, ${fmt.key(nodes[FIND - 1].value)}, after ${FIND - 1} arrows. The 1000th would take 999.`);
+    s.phase("Trade-off", { id: "tradeoff", about: "Each is quick at something. An array jumps to any position with one sum. A linked list must walk there from head, one arrow at a time." });
     s.remove("cur");
     s.line(null);
     s.tag("arr", "1 calculation", { tone: "ok" });
     s.tag(nodes[FIND - 1].id, `${FIND - 1} arrows followed`, { tone: "warn" });
     s.focus("world");
-    s.step(`Array: one calculation. Linked list: ${FIND - 1} arrows followed. Finding by position is slow in a list.`);
+    step("tradeoff.find", `Array: one calculation. Linked list: ${FIND - 1} arrows followed. Finding by position is slow in a list.`);
     return;
   }
 
   const prev = nodes[k - 1];
   const after = nodes[k];
-  s.phase("Walk", { about: `No node knows its own position. To reach the ${ordinal(k)} item, start at head and follow the \`next\` addresses, one arrow at a time.` });
+  s.phase("Walk", { id: "walk", about: `No node knows its own position. To reach the ${ordinal(k)} item, start at head and follow the \`next\` addresses, one arrow at a time.` });
   walkTo(k);
 
   // ---- chapter 4: insert (or the wrong order) ----
@@ -361,7 +376,7 @@ export function build(s, p, scenario, env = {}) {
     s.focus(list);
   };
   // a check, not a search: packets run the whole chain from head, lighting each node they reach
-  const readAll = (caption) => {
+  const readAll = (id, caption) => {
     const chain = [];
     const seen = new Set();
     let from = "head", via = "head->n0", a = nodes[0].addr;
@@ -377,10 +392,10 @@ export function build(s, p, scenario, env = {}) {
     // a node that points at itself: the read goes round its loop once more, and would forever
     if (a !== null && byAddr.get(a)?.id === from && via) { s.send(s.uid("read"), from, from, { via, key: byAddr.get(a).value }); s.lit(from); }
     s.focus(list);
-    s.step(caption(chain), { dur: 1.4 + 0.55 * chain.length });
+    step(id, caption(chain), { chain: { path: chain.map(K) } }, { dur: 1.4 + 0.55 * chain.length });
   };
 
-  s.phase(sc === "wrong" ? "Wrong order" : "Insert", { about: sc === "wrong"
+  s.phase(sc === "wrong" ? "Wrong order" : "Insert", { id: sc, about: sc === "wrong"
     ? `This time ${fmt.key(prev.value)} is pointed at the new node first. But ${fmt.key(prev.value)}'s \`next\` held the only copy of ${fmt.key(after.value)}'s address.`
     : `To add ${fmt.key(NEW.value)} after ${fmt.key(prev.value)}, make a new node anywhere there is room, then change two arrows. Nothing already in the list moves.` });
   nodeHousing(fresh);
@@ -388,32 +403,32 @@ export function build(s, p, scenario, env = {}) {
   byAddr.set(fresh.addr, fresh);
   s.line(13);
   s.focus(list);
-  s.step(`Make a node for ${fmt.key(NEW.value)} wherever memory has room. Its \`next\` is null for now.`);
+  step("insert.make", `Make a node for ${fmt.key(NEW.value)} wherever memory has room; the code calls it \`new\`. Its \`next\` is null for now.`);
 
   if (sc === "insert") {
     s.ask("Two arrows must change. Which one do we change first?",
       [`${NEW.value}'s next: point it at ${after.value}`, `${prev.value}'s next: point it at ${NEW.value}`, "Either order works"], 0,
-      { why: `${prev.value}'s next is the only place ${after.value}'s address is written. Copy it into ${NEW.value} first, or it is gone.` });
+      { id: "insert.order", why: `${prev.value}'s next is the only place ${after.value}'s address is written. Copy it into ${NEW.value} first, or it is gone.` });
     linkNewFirst();
-    s.step(`First, copy ${fmt.key(prev.value)}'s \`next\` into ${fmt.key(NEW.value)}'s. Now ${fmt.key(NEW.value)} points at ${fmt.key(after.value)} too.`);
+    step("insert.save-next", `First, copy ${fmt.key(prev.value)}'s \`next\` into ${fmt.key(NEW.value)}'s. Now ${fmt.key(NEW.value)} points at ${fmt.key(after.value)} too.`);
     pointPrevAtNew();
     fresh.fresh = false;
     syncNode(fresh);
     expect.splice(k, 0, NEW.value);
     syncHead();
-    s.step(`Then point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)}. The chain runs ${fmt.key(prev.value)} → ${fmt.key(NEW.value)} → ${fmt.key(after.value)}.`);
+    step("insert.link-prev", `Then point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)}. The chain runs ${fmt.key(prev.value)} → ${fmt.key(NEW.value)} → ${fmt.key(after.value)}.`);
     s.line(null);
-    readAll((chain) => `Read from head: ${listOf(chain)}. Now ${fmt.key(NEW.value)} is in, and nothing moved.`);
-    s.phase("Trade-off", { about: "Each is quick at something. An array slides items to make room. A linked list just changes two arrows, but must walk from head to find the spot." });
+    readAll("insert.read", (chain) => `Read from head: ${listOf(chain)}. Now ${fmt.key(NEW.value)} is in, and nothing moved.`);
+    s.phase("Trade-off", { id: "tradeoff", about: "Each is quick at something. An array slides items to make room. A linked list just changes two arrows, but must walk from head to find the spot." });
     s.remove("cur");
     s.tag("arr", `${n - k} moved`, { tone: "warn" });
     s.tag(prev.id, "2 arrows changed", { tone: "ok" });
     s.focus("world");
-    s.step(`Array: ${fmt.plural(n - k, "item")} moved. List: none moved, 2 arrows changed, ${fmt.plural(k - 1, "arrow")} followed.`);
+    step("tradeoff.insert", `Array: ${fmt.plural(n - k, "item")} moved. List: none moved, 2 arrows changed, ${fmt.plural(k - 1, "arrow")} followed.`);
     return;
   }
 
-  // ---- the wrong order: node.next = new runs first ----
+  // ---- the wrong order: prev.next = new runs first ----
   const lostOnes = nodes.slice(k, n);
   pointPrevAtNew();
   for (const x of lostOnes) { x.lost = true; syncNode(x); }   // nothing reaches them from here on
@@ -421,10 +436,10 @@ export function build(s, p, scenario, env = {}) {
   syncNode(fresh);
   expect = expect.slice(0, k).concat([NEW.value]);
   syncHead();
-  s.step(`Point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)} first. ${fmt.key(after.value)}'s address was written only there.`);
-  s.ask(`Now \`new.next = node.next\` runs. Where will ${NEW.value}'s next point?`,
+  step("wrong.prev-first", `Point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)} first. ${fmt.key(after.value)}'s address was written only there.`);
+  s.ask(`Next, ${NEW.value} copies ${prev.value}'s next (\`new.next = prev.next\`). Where will ${NEW.value}'s next point?`,
     [`At ${after.value}`, `At ${NEW.value} itself`, "Nowhere: null"], 1,
-    { why: `node.next was just set to ${NEW.value}'s own address, so copying it makes ${NEW.value} point at itself.` });
+    { id: "wrong.self", why: `${prev.value}'s next was just set to ${NEW.value}'s own address, so copying it makes ${NEW.value} point at itself.` });
   setNext(fresh, prev.next);
   arrow(fresh, fresh);   // its next is its own address: an arrow that comes straight back
   loops = true;
@@ -435,7 +450,7 @@ export function build(s, p, scenario, env = {}) {
   s.lit("nx.next");
   s.tag("nx", "points at itself", { tone: "fail" });
   s.focus(list);
-  s.step(`Copy ${fmt.key(prev.value)}'s \`next\` into ${fmt.key(NEW.value)}'s: that's ${fmt.key(NEW.value)}'s own address. It points at itself.`);
+  step("wrong.self-loop", `Copy ${fmt.key(prev.value)}'s \`next\` into ${fmt.key(NEW.value)}'s: that's ${fmt.key(NEW.value)}'s own address. It points at itself.`);
   for (const x of lostOnes) { s.set(x.id, { dim: true }); if (arrows.has(x.id)) s.set(arrows.get(x.id), { dim: true }); }
   // one zone per row of lost nodes (a box round both rows of a two-row list would take in nodes that are not lost);
   // a narrow zone keeps its title short
@@ -449,10 +464,11 @@ export function build(s, p, scenario, env = {}) {
   s.count("lost", lostOnes.length);
   s.line(null);
   s.focus(list);
-  s.step(`No arrow leads to ${fmt.key(after.value)} now, so ${fmt.and(lostOnes.map((x) => fmt.key(x.value)))} are lost for good.`);
-  readAll((chain) => `From head: ${listOf(chain)}, ${fmt.key(NEW.value)}, ${fmt.key(NEW.value)}… forever. It never reaches the end.`);
+  step("wrong.lost", `Nothing points at ${fmt.key(after.value)} now, so ${fmt.plural(lostOnes.length, "node")} ${lostOnes.length === 1 ? "is" : "are"} lost for good: ${fmt.and(lostOnes.map((x) => fmt.key(x.value)))}.`,
+    { lostZones });
+  readAll("wrong.read-loop", (chain) => `From head: ${listOf(chain)} → ${fmt.key(NEW.value)} → … forever. It never reaches the end.`);
 
-  s.phase("Right order", { about: `Swap the two updates. The new node copies ${fmt.key(prev.value)}'s \`next\` first, so ${fmt.key(after.value)}'s address is saved. Then ${fmt.key(prev.value)} can safely point at it.` });
+  s.phase("Right order", { id: "right", about: `Swap the two updates. The new node copies ${fmt.key(prev.value)}'s \`next\` first, so ${fmt.key(after.value)}'s address is saved. Then ${fmt.key(prev.value)} can safely point at it.` });
   // rewind to just after the new node was made
   unarrow(prev);
   setNext(prev, after.addr);
@@ -470,16 +486,16 @@ export function build(s, p, scenario, env = {}) {
   syncHead();
   s.line(13);
   s.focus(list);
-  s.step(`Rewind to before the mistake: ${fmt.key(prev.value)} still points at ${fmt.key(after.value)}.`);
+  step("right.rewind", `Rewind to before the mistake: ${fmt.key(prev.value)} still points at ${fmt.key(after.value)}.`);
   linkNewFirst();
-  s.step(`First, ${fmt.key(NEW.value)}'s \`next\` copies ${fmt.key(prev.value)}'s. ${fmt.key(after.value)}'s address is now in two places.`);
+  step("right.save-next", `First, ${fmt.key(NEW.value)}'s \`next\` copies ${fmt.key(prev.value)}'s. ${fmt.key(after.value)}'s address is now in two places.`);
   pointPrevAtNew();
   fresh.fresh = false;
   syncNode(fresh);
   expect.splice(k, 0, NEW.value);
   syncHead();
-  s.step(`Then point ${fmt.key(prev.value)} at ${fmt.key(NEW.value)}. Every node can still be reached.`);
+  step("right.link-prev", `Then point ${fmt.key(prev.value)} at ${fmt.key(NEW.value)}. Every node can still be reached.`);
   s.line(null);
   s.remove("cur");
-  readAll((chain) => `From head: ${listOf(chain)}. Save the old arrow before you change it.`);
+  readAll("right.read", (chain) => `From head: ${listOf(chain)}. Save the old arrow before you change it.`);
 }
