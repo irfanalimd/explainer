@@ -1,0 +1,573 @@
+{
+ "when": "2026-10-17T00:20:18.396Z",
+ "chromeArgs": [],
+ "results": [
+  {
+   "probe": "file://",
+   "isSecureContext": true,
+   "gpu": true
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 1.704,
+    "bloom": 0.197,
+    "composite": 0.328
+   },
+   "gpuSum": 2.557,
+   "wallPerFrame": 3.027,
+   "cpuEncode": 0,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 1.835,
+    "bloom": 5.046,
+    "composite": 5.177,
+    "ao": 4.85
+   },
+   "gpuSum": 17.236,
+   "wallPerFrame": 5.766,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "ao"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 1.769,
+    "bloom": 2.556,
+    "composite": 2.687,
+    "ssr": 2.359
+   },
+   "gpuSum": 9.699,
+   "wallPerFrame": 4.53,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "ssr"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.459,
+    "main": 2.425,
+    "bloom": 0.721,
+    "composite": 0.852,
+    "taa": 0.459
+   },
+   "gpuSum": 4.916,
+   "wallPerFrame": 4.063,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "taa"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.393,
+    "main": 2.228,
+    "bloom": 0.721,
+    "composite": 0.918,
+    "mb": 0.524
+   },
+   "gpuSum": 4.784,
+   "wallPerFrame": 3.605,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "mb"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.393,
+    "main": 2.097,
+    "bloom": 7.209,
+    "composite": 7.078,
+    "ao": 5.439,
+    "ssr": 2217883602.78,
+    "taa": 6.488,
+    "mb": 6.947
+   },
+   "gpuSum": 2217883638.431,
+   "wallPerFrame": 7.957,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "ao,ssr,taa,mb"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 1.311,
+    "bloom": 0.197,
+    "composite": 0.328
+   },
+   "gpuSum": 2.164,
+   "wallPerFrame": 2.013,
+   "cpuEncode": 0,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 1,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.393,
+    "main": 1.704,
+    "bloom": 0.721,
+    "composite": 0.852,
+    "taa": 0.459
+   },
+   "gpuSum": 4.129,
+   "wallPerFrame": 2.664,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 1,
+   "extras": "taa"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 2.163,
+    "main": 6.685,
+    "bloom": 0.197,
+    "composite": 0.393
+   },
+   "gpuSum": 9.438,
+   "wallPerFrame": 9.81,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 5000,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 7.274,
+    "main": 8.585,
+    "bloom": 0.197,
+    "composite": 0.393
+   },
+   "gpuSum": 16.449,
+   "wallPerFrame": 15.943,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 20000,
+   "particles": 0,
+   "size": "2560x1440",
+   "msaa": 1,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 2.556,
+    "bloom": 0.262,
+    "composite": 0.393,
+    "compute": 0.066
+   },
+   "gpuSum": 3.605,
+   "wallPerFrame": 3.574,
+   "cpuEncode": 0,
+   "errors": [],
+   "n": 300,
+   "particles": 100000,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.59,
+    "main": 14.025,
+    "bloom": 0.262,
+    "composite": 0.393,
+    "compute": 0.262
+   },
+   "gpuSum": 15.532,
+   "wallPerFrame": 17.283,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 1000000,
+   "size": "2560x1440",
+   "msaa": 4,
+   "extras": "-"
+  },
+  {
+   "backend": "webgpu",
+   "adapter": "apple metal-3 ",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.328,
+    "main": 0.852,
+    "bloom": 0.066,
+    "composite": 0.066
+   },
+   "gpuSum": 1.312,
+   "wallPerFrame": 1.438,
+   "cpuEncode": 0.1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "1280x720",
+   "msaa": 4,
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.61,
+    "main": 4.267,
+    "bloom": 3.982,
+    "composite": 4.156
+   },
+   "gpuSum": 13.015,
+   "wallPerFrame": 5.033,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.699,
+    "main": 4.337,
+    "bloom": 5.599,
+    "composite": 5.584,
+    "ao": 5.394
+   },
+   "gpuSum": 21.613,
+   "wallPerFrame": 7.183,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "ao"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.635,
+    "main": 4.866,
+    "bloom": 5.211,
+    "composite": 4.899,
+    "ssr": 4.803
+   },
+   "gpuSum": 20.414,
+   "wallPerFrame": 7.308,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "ssr"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.607,
+    "main": 4.085,
+    "bloom": 4.167,
+    "composite": 4.126,
+    "taa": 3.993
+   },
+   "gpuSum": 16.978,
+   "wallPerFrame": 8.456,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "taa"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.606,
+    "main": 4.225,
+    "bloom": 4.385,
+    "composite": 4.584,
+    "mb": 4.16
+   },
+   "gpuSum": 17.96,
+   "wallPerFrame": 7.284,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "mb"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.708,
+    "main": 5.458,
+    "bloom": 8.292,
+    "composite": 8.206,
+    "ao": 6.615,
+    "ssr": 7.112,
+    "taa": 7.647,
+    "mb": 8.133
+   },
+   "gpuSum": 52.171,
+   "wallPerFrame": 10.995,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "ao,ssr,taa,mb"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.684,
+    "main": 3.515,
+    "bloom": 3.189,
+    "composite": 3.113
+   },
+   "gpuSum": 10.501,
+   "wallPerFrame": 4.509,
+   "cpuEncode": 0.1,
+   "msaa": 1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.743,
+    "main": 3.564,
+    "bloom": 3.672,
+    "composite": 3.259,
+    "taa": 3.382
+   },
+   "gpuSum": 14.62,
+   "wallPerFrame": 5.501,
+   "cpuEncode": 0.2,
+   "msaa": 1,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "taa"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 2.752,
+    "main": 13.011,
+    "bloom": 8.639,
+    "composite": 8.677
+   },
+   "gpuSum": 33.079,
+   "wallPerFrame": 13.897,
+   "cpuEncode": 0.2,
+   "msaa": 4,
+   "errors": [],
+   "n": 5000,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 8.02,
+    "main": 20.977,
+    "bloom": 5.43,
+    "composite": 4.709
+   },
+   "gpuSum": 39.136,
+   "wallPerFrame": 20.367,
+   "cpuEncode": 0.2,
+   "msaa": 1,
+   "errors": [],
+   "n": 20000,
+   "particles": 0,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.788,
+    "main": 5.991,
+    "bloom": 4.845,
+    "composite": 4.776
+   },
+   "gpuSum": 16.4,
+   "wallPerFrame": 7.658,
+   "cpuEncode": 0.2,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 100000,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.874,
+    "main": 24.267,
+    "bloom": 15.187,
+    "composite": 13.61
+   },
+   "gpuSum": 53.938,
+   "wallPerFrame": 21.617,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 1000000,
+   "size": "2560x1440",
+   "extras": "-"
+  },
+  {
+   "backend": "webgl2",
+   "adapter": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+   "timestamps": true,
+   "passes": {
+    "shadow": 0.733,
+    "main": 2.575,
+    "bloom": 2.111,
+    "composite": 2.044
+   },
+   "gpuSum": 7.463,
+   "wallPerFrame": 2.278,
+   "cpuEncode": 0.1,
+   "msaa": 4,
+   "errors": [],
+   "n": 300,
+   "particles": 0,
+   "size": "1280x720",
+   "extras": "-"
+  },
+  {
+   "current": "gallery.html",
+   "size": {
+    "cssW": 1280,
+    "cssH": 720,
+    "dpr": 2,
+    "W": 2560,
+    "H": 1440
+   },
+   "msPerFrame": 10.26,
+   "slabs": 78,
+   "instances": 449,
+   "drawCalls": 27,
+   "ktris": 172,
+   "renderCpuMs": 0.1,
+   "msPerFrameRuns": [
+    10.26,
+    8.78,
+    10.34
+   ],
+   "timerQueryGpuMs": 14.23313699285714
+  }
+ ]
+}

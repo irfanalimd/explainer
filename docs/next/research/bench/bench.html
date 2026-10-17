@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Prism 2 bench: WebGPU vs WebGL2</title>
+<style>html,body{margin:0;background:#0b0c0f;color:#8d929b;font:12px ui-monospace,monospace}canvas{display:block;width:100vw;height:100vh}#out{position:fixed;left:8px;top:8px;white-space:pre}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="out"></div>
+<script type="module">
+// Standalone R1 benchmark (no imports, works from file:// or http). Same scene on both backends:
+//   shadow (2048^2 depth, all slabs) -> main (MSAA, 2x RGBA16F MRT: colour + emission; rounded-box slabs,
+//   key light with 3x3 PCF + 16 point lights; additive particles) -> resolve -> optional proxies
+//   (ao: half-res 16-tap horizon AO; ssr: half-res 32-step ray march; taa: 3x3 clamp + history;
+//   mb: 12-tap velocity blur) -> dual-filter bloom (6 down, 5 up) -> composite (tonemap, vignette, grain).
+// Particles: WebGPU computes them in a compute pass into a storage buffer; WebGL2 evaluates the same
+// stateless function of (seed, t) in the vertex shader. Both are deterministic in t.
+// Query / __bench(opts): backend=webgpu|webgl2 n=300 particles=0 w=2560 h=1440 msaa=4 extras=ao,ssr,taa,mb
+//   frames=120 warm=30
+const Q = new URLSearchParams(location.search);
+const out = document.getElementById("out");
+const PASSES = ["shadow", "compute", "main", "ao", "ssr", "taa", "mb", "bloom", "composite"];
+
+// ---------- shared: deterministic data, mesh, maths ----------
+function pcg(v) { v = (Math.imul(v >>> 0, 747796405) + 2891336453) >>> 0; let w = Math.imul(((v >>> ((v >>> 28) + 4)) ^ v) >>> 0, 277803737) >>> 0; return ((w >>> 22) ^ w) >>> 0; }
+const rnd = (i) => pcg(i) / 4294967295;
+function roundedBox(k = 12, r = 0.25) {          // k x k quads per face, ~ 6*k*k*2 triangles (k=12: 1728)
+  const pos = [], nor = [], idx = [];
+  const faces = [[0, 1, 2, 1], [0, 1, 2, -1], [1, 2, 0, 1], [1, 2, 0, -1], [2, 0, 1, 1], [2, 0, 1, -1]];
+  const inner = 1 - r;
+  for (const [a, b, c, s] of faces) {
+    const base = pos.length / 3;
+    for (let j = 0; j <= k; j++) for (let i = 0; i <= k; i++) {
+      const v = [0, 0, 0]; v[a] = (i / k) * 2 - 1; v[b] = (j / k) * 2 - 1; v[c] = s;
+      if (s < 0) v[a] = -v[a];
+      const cl = v.map((x) => Math.max(-inner, Math.min(inner, x)));
+      const d = v.map((x, q) => x - cl[q]); const L = Math.hypot(...d) || 1;
+      const p = cl.map((x, q) => x + d[q] / L * r);
+      pos.push(p[0] * 0.5, p[1] * 0.5, (p[2] + 1) * 0.5); nor.push(d[0] / L, d[1] / L, d[2] / L);
+    }
+    for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) {
+      const q0 = base + j * (k + 1) + i, q1 = q0 + 1, q2 = q0 + k + 1, q3 = q2 + 1;
+      idx.push(q0, q1, q3, q0, q3, q2);
+    }
+  }
+  const vb = new Float32Array(pos.length * 2);
+  for (let i = 0; i < pos.length / 3; i++) { vb.set(pos.slice(i * 3, i * 3 + 3), i * 6); vb.set(nor.slice(i * 3, i * 3 + 3), i * 6 + 3); }
+  return { vb, ib: new Uint32Array(idx), count: idx.length };
+}
+function instances(n) {        // instance 0 is the floor; 3 vec4 per instance: pos+yaw, size+emissive, colour+pad
+  const a = new Float32Array((n + 1) * 12), side = Math.ceil(Math.sqrt(n)), sp = 70;
+  a.set([0, 0, -1, 0, side * sp * 3, side * sp * 3, 1, 0, 0.06, 0.07, 0.1, 0], 0);
+  for (let i = 0; i < n; i++) {
+    const gx = i % side, gy = Math.floor(i / side), o = (i + 1) * 12;
+    const em = rnd(i * 17 + 3) < 0.08 ? 2.5 : 0;
+    a.set([(gx - side / 2 + 0.5) * sp, (gy - side / 2 + 0.5) * sp, 0, rnd(i * 5) * 0.4 - 0.2,
+      26 + 30 * rnd(i * 7), 26 + 20 * rnd(i * 9), 5 + 12 * rnd(i * 11), em,
+      0.2 + 0.6 * rnd(i * 13), 0.2 + 0.6 * rnd(i * 19), 0.3 + 0.6 * rnd(i * 23), 0], o);
+  }
+  return { data: a, extent: side * sp };
+}
+const norm = (v) => { const l = Math.hypot(...v) || 1; return v.map((x) => x / l); };
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+function mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+function lookAt(eye, tg, up) {
+  const f = norm(tg.map((x, i) => x - eye[i])), s = norm(cross(f, up)), u = cross(s, f);
+  return new Float32Array([s[0], u[0], -f[0], 0, s[1], u[1], -f[1], 0, s[2], u[2], -f[2], 0, -dot(s, eye), -dot(u, eye), dot(f, eye), 1]);
+}
+function persp(fov, asp, n, f, zeroOne) {
+  const t = 1 / Math.tan(fov / 2), m = new Float32Array(16);
+  m[0] = t / asp; m[5] = t; m[11] = -1;
+  if (zeroOne) { m[10] = f / (n - f); m[14] = n * f / (n - f); } else { m[10] = (f + n) / (n - f); m[14] = 2 * f * n / (n - f); }
+  return m;
+}
+function ortho(l, r, b, t, n, f, zeroOne) {
+  const m = new Float32Array(16);
+  m[0] = 2 / (r - l); m[5] = 2 / (t - b); m[12] = -(r + l) / (r - l); m[13] = -(t + b) / (t - b); m[15] = 1;
+  if (zeroOne) { m[10] = -1 / (f - n); m[14] = -n / (f - n); } else { m[10] = -2 / (f - n); m[14] = -(f + n) / (f - n); }
+  return m;
+}
+// one uniform block for every pass: vp, lvp, eye, key, time(t, frame, nInst, nPart), camR, camU, lp[16], lc[16]
+function uniforms(o, t, frame, ext, zeroOne) {
+  const U = new Float32Array(16 * 2 + 4 * 5 + 64 * 2);
+  const dist = ext * 1.25 + 300, yaw = 0.35 + 0.05 * Math.sin(t * 0.3), pitch = 0.62;
+  const eye = [dist * Math.cos(pitch) * Math.sin(yaw), dist * Math.cos(pitch) * Math.cos(yaw), dist * Math.sin(pitch)];
+  const view = lookAt(eye, [0, 0, 0], [0, 0, 1]);
+  const vp = mul(persp(0.55, o.w / o.h, dist * 0.2, dist * 4, zeroOne), view);
+  const key = norm([-0.45, 0.35, 0.82]);
+  const lv = lookAt(key.map((x) => x * ext * 2), [0, 0, 0], [0, 0, 1]);
+  const lvp = mul(ortho(-ext * 0.75, ext * 0.75, -ext * 0.75, ext * 0.75, 1, ext * 4, zeroOne), lv);
+  U.set(vp, 0); U.set(lvp, 16);
+  U.set([...eye, 0], 32); U.set([...key, 0], 36); U.set([t, frame, o.n + 1, o.particles], 40);
+  U.set([view[0], view[4], view[8], 0], 44); U.set([view[1], view[5], view[9], 0], 48);
+  for (let k = 0; k < 16; k++) {
+    const i = 1 + (pcg(k * 31) % Math.max(1, o.n));
+    U.set([0, 0, 0, 0], 52 + k * 4);
+    U.set([(rnd(k * 3) - 0.5) * ext, (rnd(k * 3 + 1) - 0.5) * ext, 20, 120], 52 + k * 4);
+    U.set([0.3 + rnd(k), 0.4, 1.2 - rnd(k), 1], 116 + k * 4);
+  }
+  return U;
+}
+const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
+
+// ---------- WGSL ----------
+const WG_U = /* wgsl */`
+struct U { vp: mat4x4f, lvp: mat4x4f, eye: vec4f, key: vec4f, time: vec4f, camR: vec4f, camU: vec4f, lp: array<vec4f, 16>, lc: array<vec4f, 16> };
+@group(0) @binding(0) var<uniform> u: U;
+fn pcg(v: u32) -> u32 { let s = v * 747796405u + 2891336453u; let w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u; return (w >> 22u) ^ w; }
+fn rnd(v: u32) -> f32 { return f32(pcg(v)) / 4294967295.0; }
+struct FS { @builtin(position) pos: vec4f, @location(0) uv: vec2f };
+@vertex fn fsq(@builtin(vertex_index) i: u32) -> FS {
+  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u)) * 2.0 - 1.0;
+  return FS(vec4f(p, 0.0, 1.0), vec2f(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5));
+}`;
+const WG_SLAB = WG_U + /* wgsl */`
+@group(0) @binding(1) var<storage, read> inst: array<vec4f>;
+@group(0) @binding(2) var shadowTex: texture_depth_2d;
+@group(0) @binding(3) var shadowSmp: sampler_comparison;
+struct VO { @builtin(position) pos: vec4f, @location(0) w: vec3f, @location(1) n: vec3f, @location(2) @interpolate(flat) id: u32 };
+fn place(p: vec3f, nn: vec3f, id: u32) -> array<vec3f, 2> {
+  let a = inst[id * 3u]; let s = inst[id * 3u + 1u]; let c = cos(a.w); let sn = sin(a.w); let q = p * s.xyz;
+  return array<vec3f, 2>(vec3f(c * q.x - sn * q.y, sn * q.x + c * q.y, q.z) + a.xyz, vec3f(c * nn.x - sn * nn.y, sn * nn.x + c * nn.y, nn.z));
+}
+@vertex fn vs(@location(0) p: vec3f, @location(1) nn: vec3f, @builtin(instance_index) id: u32) -> VO {
+  let w = place(p, nn, id); return VO(u.vp * vec4f(w[0], 1.0), w[0], w[1], id);
+}
+@vertex fn vsShadow(@location(0) p: vec3f, @location(1) nn: vec3f, @builtin(instance_index) id: u32) -> @builtin(position) vec4f {
+  return u.lvp * vec4f(place(p, nn, id)[0], 1.0);
+}
+struct FO { @location(0) c: vec4f, @location(1) e: vec4f };
+@fragment fn fs(i: VO) -> FO {
+  let col = inst[i.id * 3u + 2u].rgb; let em = inst[i.id * 3u + 1u].w;
+  let n = normalize(i.n); let v = normalize(u.eye.xyz - i.w); let L = u.key.xyz;
+  let sc = u.lvp * vec4f(i.w, 1.0); let suv = vec2f(sc.x * 0.5 + 0.5, 0.5 - sc.y * 0.5);
+  var sh = 0.0;
+  for (var y = -1; y <= 1; y++) { for (var x = -1; x <= 1; x++) {
+    sh += textureSampleCompareLevel(shadowTex, shadowSmp, suv + vec2f(f32(x), f32(y)) / 2048.0, sc.z - 0.002); } }
+  sh /= 9.0;
+  let h = normalize(L + v);
+  var acc = col * (0.25 + 0.4 * max(n.z, 0.0)) + col * max(dot(n, L), 0.0) * sh * 1.1 + vec3f(pow(max(dot(n, h), 0.0), 64.0)) * 0.3 * sh;
+  for (var k = 0u; k < 16u; k++) {
+    let d = u.lp[k].xyz - i.w; let dist = length(d); let att = max(0.0, 1.0 - dist / u.lp[k].w);
+    acc += col * u.lc[k].rgb * att * att * max(dot(n, d / max(dist, 1e-3)), 0.0);
+  }
+  return FO(vec4f(acc + col * em, 1.0), vec4f(col * em, 1.0));
+}`;
+const WG_PART = WG_U + /* wgsl */`
+@group(0) @binding(1) var<storage, read> inst: array<vec4f>;
+@group(0) @binding(4) var<storage, read_write> parts: array<vec4f>;
+@compute @workgroup_size(64) fn cs(@builtin(global_invocation_id) g: vec3u) {
+  let i = g.x; let np = u32(u.time.w); if (i >= np) { return; }
+  let ni = max(u32(u.time.z) - 1u, 1u);
+  let a = 1u + pcg(i) % ni; let b = 1u + pcg(i ^ 0x9e3779b9u) % ni;
+  let s = fract(u.time.x * (0.1 + 0.3 * rnd(i * 3u + 1u)) + rnd(i * 3u + 2u));
+  var p = mix(inst[a * 3u].xyz, inst[b * 3u].xyz, s);
+  p.z += 10.0 + 30.0 * sin(s * 3.14159);
+  p += (vec3f(rnd(i * 7u), rnd(i * 11u), rnd(i * 13u)) - 0.5) * 6.0;
+  parts[i * 2u] = vec4f(p, 1.6); parts[i * 2u + 1u] = vec4f(vec3f(0.3, 0.7, 1.0) * (1.0 + 2.0 * rnd(i * 5u)), 1.0);
+}`;
+const WG_PDRAW = WG_U + /* wgsl */`
+@group(0) @binding(4) var<storage, read> parts: array<vec4f>;
+struct PO { @builtin(position) pos: vec4f, @location(0) q: vec2f, @location(1) c: vec3f };
+@vertex fn vs(@builtin(vertex_index) v: u32, @builtin(instance_index) i: u32) -> PO {
+  let q = vec2f(f32(v & 1u), f32(v >> 1u)) * 2.0 - 1.0; let p = parts[i * 2u];
+  let w = p.xyz + (u.camR.xyz * q.x + u.camU.xyz * q.y) * p.w;
+  return PO(u.vp * vec4f(w, 1.0), q, parts[i * 2u + 1u].rgb);
+}
+struct FO { @location(0) c: vec4f, @location(1) e: vec4f };
+@fragment fn fs(i: PO) -> FO { let a = max(0.0, 1.0 - dot(i.q, i.q)); return FO(vec4f(i.c * a * 0.2, 0.0), vec4f(i.c * a, 0.0)); }`;
+const WG_POST = WG_U + /* wgsl */`
+@group(1) @binding(0) var src: texture_2d<f32>;
+@group(1) @binding(1) var base: texture_2d<f32>;
+@group(1) @binding(2) var smp: sampler;
+@group(1) @binding(3) var depthMS: texture_depth_multisampled_2d;
+@group(1) @binding(4) var aoT: texture_2d<f32>;
+@group(1) @binding(5) var ssrT: texture_2d<f32>;
+@group(1) @binding(6) var<uniform> P: vec4f;      // halfpixel.xy of src, flags (ao, ssr) packed in zw
+@group(1) @binding(7) var depth1: texture_2d<f32>;  // 1x depth copy (r32float), written by depthCopy
+fn S(uv: vec2f) -> vec3f { return textureSampleLevel(src, smp, uv, 0.0).rgb; }
+@fragment fn down(i: FS) -> @location(0) vec4f {
+  let h = P.xy; return vec4f(S(i.uv) * 4.0 + S(i.uv - h) + S(i.uv + h) + S(i.uv + vec2f(h.x, -h.y)) + S(i.uv - vec2f(h.x, -h.y)), 8.0) / 8.0;
+}
+@fragment fn up(i: FS) -> @location(0) vec4f {
+  let h = P.xy; var s = S(i.uv + vec2f(-h.x * 2.0, 0.0)) + S(i.uv + vec2f(h.x * 2.0, 0.0)) + S(i.uv + vec2f(0.0, h.y * 2.0)) + S(i.uv + vec2f(0.0, -h.y * 2.0));
+  s += (S(i.uv + vec2f(-h.x, h.y)) + S(i.uv + h) + S(i.uv + vec2f(h.x, -h.y)) + S(i.uv - h)) * 2.0;
+  return vec4f(s / 12.0 + textureSampleLevel(base, smp, i.uv, 0.0).rgb * 0.7, 1.0);
+}
+fn D(p: vec2i) -> f32 { return textureLoad(depth1, p, 0).r; }
+@fragment fn depthCopy(i: FS) -> @location(0) vec4f { return vec4f(textureLoad(depthMS, vec2i(i.pos.xy), 0), 0.0, 0.0, 1.0); }
+@fragment fn ao(i: FS) -> @location(0) vec4f {
+  let dim = vec2f(textureDimensions(depth1)); let p = vec2i(i.uv * dim); let d0 = D(p);
+  var occ = 0.0; let j = rnd((u32(p.x) * 73856093u) ^ (u32(p.y) * 19349663u) ^ u32(u.time.y)) * 6.2831;
+  for (var k = 0; k < 2; k++) {
+    let ang = j + f32(k) * 1.5708; let dir = vec2f(cos(ang), sin(ang));
+    var hz = 0.0; var hz2 = 0.0;
+    for (var s = 1; s <= 8; s++) {
+      let o = vec2i(dir * f32(s * s) * 1.5);
+      hz = max(hz, d0 - D(clamp(p + o, vec2i(0), vec2i(dim) - 1)));
+      hz2 = max(hz2, d0 - D(clamp(p - o, vec2i(0), vec2i(dim) - 1)));
+    }
+    occ += clamp(hz * 4000.0, 0.0, 1.0) + clamp(hz2 * 4000.0, 0.0, 1.0);
+  }
+  return vec4f(1.0 - occ * 0.25 * 0.6, 0.0, 0.0, 1.0);
+}
+@fragment fn ssr(i: FS) -> @location(0) vec4f {
+  let dim = vec2f(textureDimensions(depth1)); let p = vec2i(i.uv * dim); let d0 = D(p);
+  var acc = vec3f(0.0); var uv = i.uv; let step = vec2f(0.0, -0.012);
+  var z = d0;
+  for (var s = 0; s < 32; s++) {
+    uv += step; z -= 0.00002;
+    if (uv.y < 0.0) { break; }
+    let dz = D(vec2i(uv * dim));
+    if (dz < z && z - dz < 0.001) { acc = S(uv); break; }
+  }
+  return vec4f(acc, 1.0);
+}
+@fragment fn taa(i: FS) -> @location(0) vec4f {   // src = current colour, base = history
+  let h = P.xy * 2.0; var mn = vec3f(1e9); var mx = vec3f(-1e9); var c = vec3f(0.0);
+  for (var y = -1; y <= 1; y++) { for (var x = -1; x <= 1; x++) {
+    let s = S(i.uv + vec2f(f32(x), f32(y)) * h); mn = min(mn, s); mx = max(mx, s); if (x == 0 && y == 0) { c = s; } } }
+  let hist = clamp(textureSampleLevel(base, smp, i.uv, 0.0).rgb, mn, mx);
+  return vec4f(mix(c, hist, 0.9), 1.0);
+}
+@fragment fn mb(i: FS) -> @location(0) vec4f {
+  let v = vec2f(sin(i.uv.y * 10.0 + u.time.x) * 0.008, 0.0); var s = vec3f(0.0);
+  for (var k = 0; k < 12; k++) { s += S(i.uv + v * (f32(k) / 11.0 - 0.5)); }
+  return vec4f(s / 12.0, 1.0);
+}
+@fragment fn composite(i: FS) -> @location(0) vec4f {
+  var c = S(i.uv) + textureSampleLevel(base, smp, i.uv, 0.0).rgb * 0.35;
+  if (P.z > 0.5) { c *= textureSampleLevel(aoT, smp, i.uv, 0.0).r; }
+  if (P.w > 0.5) { c += textureSampleLevel(ssrT, smp, i.uv, 0.0).rgb * 0.15; }
+  c = c * (2.51 * c + 0.03) / (c * (2.43 * c + 0.59) + 0.14);
+  let d = i.uv - 0.5; c *= 1.0 - dot(d, d) * 0.5;
+  c += (rnd((u32(i.pos.x) * 1973u) ^ (u32(i.pos.y) * 9277u) ^ (u32(u.time.y) * 26699u)) - 0.5) / 255.0;
+  return vec4f(pow(clamp(c, vec3f(0.0), vec3f(1.0)), vec3f(1.0 / 2.2)), 1.0);
+}`;
+
+// ---------- WebGPU backend ----------
+async function benchWebGPU(o, canvas) {
+  if (!navigator.gpu) throw new Error("navigator.gpu missing (isSecureContext=" + isSecureContext + ")");
+  const adapter = await navigator.gpu.requestAdapter({ powerPreference: "high-performance" });
+  if (!adapter) throw new Error("no adapter");
+  const ts = adapter.features.has("timestamp-query");
+  const device = await adapter.requestDevice({ requiredFeatures: ts ? ["timestamp-query"] : [] });
+  const errs = []; device.addEventListener("uncapturederror", (e) => errs.push(e.error.message));
+  const ctx = canvas.getContext("webgpu"), fmt = navigator.gpu.getPreferredCanvasFormat();
+  ctx.configure({ device, format: fmt, alphaMode: "opaque" });
+  const { w: W, h: H, msaa } = o, ex = new Set(o.extras);
+  const mesh = roundedBox(), inst = instances(o.n);
+  const buf = (data, usage) => { const b = device.createBuffer({ size: Math.max(16, data.byteLength), usage: usage | GPUBufferUsage.COPY_DST }); device.queue.writeBuffer(b, 0, data); return b; };
+  const vb = buf(mesh.vb, GPUBufferUsage.VERTEX), ib = buf(mesh.ib, GPUBufferUsage.INDEX), ibuf = buf(inst.data, GPUBufferUsage.STORAGE);
+  const ubuf = device.createBuffer({ size: 4 * (32 + 20 + 128), usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  const pbuf = device.createBuffer({ size: Math.max(32, o.particles * 32), usage: GPUBufferUsage.STORAGE });
+  const tex = (w, h, format, usage, sampleCount = 1) => device.createTexture({ size: [w, h], format, usage, sampleCount });
+  const RT = GPUTextureUsage.RENDER_ATTACHMENT, TB = GPUTextureUsage.TEXTURE_BINDING;
+  const shadow = tex(2048, 2048, "depth32float", RT | TB);
+  const msC = msaa > 1 ? tex(W, H, "rgba16float", RT, msaa) : null, msE = msaa > 1 ? tex(W, H, "rgba16float", RT, msaa) : null;
+  const depth = tex(W, H, "depth32float", RT | TB, msaa > 1 ? msaa : 1);
+  const color = tex(W, H, "rgba16float", RT | TB), emis = tex(W, H, "rgba16float", RT | TB);
+  const hist = [tex(W, H, "rgba16float", RT | TB), tex(W, H, "rgba16float", RT | TB)], mbT = tex(W, H, "rgba16float", RT | TB);
+  const depth1 = tex(W, H, "r32float", RT | TB), aoT = tex(W >> 1, H >> 1, "r16float", RT | TB), ssrT = tex(W >> 1, H >> 1, "rgba16float", RT | TB);
+  const down = [], up = []; { let w = W, h = H; for (let i = 0; i < 6; i++) { w = Math.max(1, w >> 1); h = Math.max(1, h >> 1); down.push({ t: tex(w, h, "rgba16float", RT | TB), w, h }); up.push({ t: tex(w, h, "rgba16float", RT | TB), w, h }); } }
+  const mod = (code) => device.createShaderModule({ code });
+  const mSlab = mod(WG_SLAB), mPart = mod(WG_PART), mPD = mod(WG_PDRAW), mPost = mod(WG_POST);
+  const vlayout = [{ arrayStride: 24, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }, { shaderLocation: 1, offset: 12, format: "float32x3" }] }];
+  const ms = { count: msaa > 1 ? msaa : 1 };
+  const slabPipe = device.createRenderPipeline({ layout: "auto", vertex: { module: mSlab, entryPoint: "vs", buffers: vlayout },
+    fragment: { module: mSlab, entryPoint: "fs", targets: [{ format: "rgba16float" }, { format: "rgba16float" }] },
+    primitive: { topology: "triangle-list", cullMode: "back", frontFace: "ccw" }, depthStencil: { format: "depth32float", depthWriteEnabled: true, depthCompare: "less" }, multisample: ms });
+  const shadowPipe = device.createRenderPipeline({ layout: "auto", vertex: { module: mSlab, entryPoint: "vsShadow", buffers: vlayout },
+    primitive: { topology: "triangle-list" }, depthStencil: { format: "depth32float", depthWriteEnabled: true, depthCompare: "less", depthBias: 2, depthBiasSlopeScale: 1.5 } });
+  const add = { color: { srcFactor: "one", dstFactor: "one" }, alpha: { srcFactor: "one", dstFactor: "one" } };
+  const partPipe = device.createRenderPipeline({ layout: "auto", vertex: { module: mPD, entryPoint: "vs" },
+    fragment: { module: mPD, entryPoint: "fs", targets: [{ format: "rgba16float", blend: add }, { format: "rgba16float", blend: add }] },
+    primitive: { topology: "triangle-strip" }, depthStencil: { format: "depth32float", depthWriteEnabled: false, depthCompare: "less" }, multisample: ms });
+  const compPipe = device.createComputePipeline({ layout: "auto", compute: { module: mPart, entryPoint: "cs" } });
+  // post: one explicit layout so every fullscreen pass shares bind groups
+  const g0 = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: 7, buffer: { type: "uniform" } }] });
+  const g1 = device.createBindGroupLayout({ entries: [
+    { binding: 0, visibility: 2, texture: {} }, { binding: 1, visibility: 2, texture: {} }, { binding: 2, visibility: 2, sampler: {} },
+    { binding: 3, visibility: 2, texture: { sampleType: "depth", multisampled: msaa > 1 } }, { binding: 4, visibility: 2, texture: {} }, { binding: 5, visibility: 2, texture: {} },
+    { binding: 6, visibility: 2, buffer: { type: "uniform" } }, { binding: 7, visibility: 2, texture: { sampleType: "unfilterable-float" } }] });
+  const postLayout = device.createPipelineLayout({ bindGroupLayouts: [g0, g1] });
+  const postCode = msaa > 1 ? WG_POST : WG_POST.replace("texture_depth_multisampled_2d", "texture_depth_2d");
+  const mPost2 = msaa > 1 ? mPost : mod(postCode);
+  const pp = (entry, format) => device.createRenderPipeline({ layout: postLayout, vertex: { module: mPost2, entryPoint: "fsq" }, fragment: { module: mPost2, entryPoint: entry, targets: [{ format }] }, primitive: { topology: "triangle-list" } });
+  const P = { depthCopy: pp("depthCopy", "r32float"), down: pp("down", "rgba16float"), up: pp("up", "rgba16float"), ao: pp("ao", "r16float"), ssr: pp("ssr", "rgba16float"), taa: pp("taa", "rgba16float"), mb: pp("mb", "rgba16float"), composite: pp("composite", fmt) };
+  const lin = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+  const cmp = device.createSampler({ compare: "less", magFilter: "linear", minFilter: "linear" });
+  const bgU = device.createBindGroup({ layout: g0, entries: [{ binding: 0, resource: { buffer: ubuf } }] });
+  const slabBG = device.createBindGroup({ layout: slabPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }, { binding: 1, resource: { buffer: ibuf } }, { binding: 2, resource: shadow.createView() }, { binding: 3, resource: cmp }] });
+  const shadowBG = device.createBindGroup({ layout: shadowPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }, { binding: 1, resource: { buffer: ibuf } }] });
+  const compBG = device.createBindGroup({ layout: compPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }, { binding: 1, resource: { buffer: ibuf } }, { binding: 4, resource: { buffer: pbuf } }] });
+  const partBG = device.createBindGroup({ layout: partPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }, { binding: 4, resource: { buffer: pbuf } }] });
+  const pu = (x, y, z = 0, w = 0) => buf(new Float32Array([x, y, z, w]), GPUBufferUsage.UNIFORM);
+  const dummy = tex(1, 1, "rgba16float", TB), dummyR = tex(1, 1, "r16float", TB), dummyF = tex(1, 1, "r32float", TB);
+  const post = (srcT, baseT, pv, aux = true) => device.createBindGroup({ layout: g1, entries: [
+    { binding: 0, resource: srcT.createView() }, { binding: 1, resource: (baseT ?? dummy).createView() }, { binding: 2, resource: lin },
+    { binding: 3, resource: depth.createView() }, { binding: 4, resource: (aux === true && ex.has("ao") ? aoT : dummyR).createView() }, { binding: 5, resource: (aux === true && ex.has("ssr") ? ssrT : dummy).createView() },
+    { binding: 6, resource: { buffer: pv } }, { binding: 7, resource: (aux ? depth1 : dummyF).createView() }] });
+  const downBG = down.map((lv, i) => { const s = i ? down[i - 1] : { t: emis, w: W, h: H }; return post(s.t, null, pu(0.5 / s.w, 0.5 / s.h)); });
+  const upBG = []; for (let i = down.length - 2; i >= 0; i--) { const from = i === down.length - 2 ? down[i + 1] : up[i + 1]; upBG[i] = post(from.t, down[i].t, pu(0.5 / from.w, 0.5 / from.h)); }
+  const hp = pu(0.5 / W, 0.5 / H, ex.has("ao") ? 1 : 0, ex.has("ssr") ? 1 : 0);
+  const aoBG = post(color, null, hp, "ao"), ssrBG = post(color, null, hp, "ssr"), dcBG = post(color, null, hp, false);
+  const taaBG = [post(color, hist[1], hp), post(color, hist[0], hp)];
+  const bloomOut = up.length > 1 ? up[0] : down[0];
+  const qn = PASSES.length * 2;
+  const qs = ts ? device.createQuerySet({ type: "timestamp", count: qn }) : null;
+  const qres = ts ? device.createBuffer({ size: qn * 8, usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC }) : null;
+  const qread = ts ? device.createBuffer({ size: qn * 8, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST }) : null;
+  const tw = (name, first = true, last = true) => {
+    if (!qs || (!first && !last)) return undefined; const k = PASSES.indexOf(name) * 2;
+    return { querySet: qs, ...(first ? { beginningOfPassWriteIndex: k } : {}), ...(last ? { endOfPassWriteIndex: k + 1 } : {}) };
+  };
+  const used = new Set(["shadow", "main", "bloom", "composite", ...(o.particles ? ["compute"] : []), ...ex]);
+  const fsPass = (enc, view, pipe, bg, name, first, last) => {
+    const p = enc.beginRenderPass({ colorAttachments: [{ view, loadOp: "clear", storeOp: "store", clearValue: [0, 0, 0, 1] }], timestampWrites: name ? tw(name, first, last) : undefined });
+    p.setPipeline(pipe); p.setBindGroup(0, bgU); p.setBindGroup(1, bg); p.draw(3); p.end();
+  };
+
+  function frame(i, timed) {
+    const t = o.t0 + i / 60;
+    device.queue.writeBuffer(ubuf, 0, uniforms(o, t, i, inst.extent, true));
+    const enc = device.createCommandEncoder();
+    const T = (n) => (timed ? tw(n) : undefined);
+    { const p = enc.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: shadow.createView(), depthClearValue: 1, depthLoadOp: "clear", depthStoreOp: "store" }, timestampWrites: T("shadow") });
+      p.setPipeline(shadowPipe); p.setBindGroup(0, shadowBG); p.setVertexBuffer(0, vb); p.setIndexBuffer(ib, "uint32"); p.drawIndexed(mesh.count, o.n + 1); p.end(); }
+    if (o.particles) { const p = enc.beginComputePass({ timestampWrites: T("compute") }); p.setPipeline(compPipe); p.setBindGroup(0, compBG); p.dispatchWorkgroups(Math.ceil(o.particles / 64)); p.end(); }
+    { const ca = (ms, rs) => (ms ? { view: ms.createView(), resolveTarget: rs.createView(), loadOp: "clear", storeOp: "discard", clearValue: [0.03, 0.035, 0.05, 1] } : { view: rs.createView(), loadOp: "clear", storeOp: "store", clearValue: [0.03, 0.035, 0.05, 1] });
+      const needDepth = ex.has("ao") || ex.has("ssr");
+      const p = enc.beginRenderPass({ colorAttachments: [ca(msC, color), ca(msE, emis)], depthStencilAttachment: { view: depth.createView(), depthClearValue: 1, depthLoadOp: "clear", depthStoreOp: needDepth ? "store" : "discard" }, timestampWrites: T("main") });
+      p.setPipeline(slabPipe); p.setBindGroup(0, slabBG); p.setVertexBuffer(0, vb); p.setIndexBuffer(ib, "uint32"); p.drawIndexed(mesh.count, o.n + 1);
+      if (o.particles) { p.setPipeline(partPipe); p.setBindGroup(0, partBG); p.draw(4, o.particles); }
+      p.end(); }
+    if (ex.has("ao") || ex.has("ssr")) fsPass(enc, depth1.createView(), P.depthCopy, dcBG, timed && (ex.has("ao") ? "ao" : "ssr"), true, false);
+    if (ex.has("ao")) fsPass(enc, aoT.createView(), P.ao, aoBG, timed && "ao", false, true);
+    if (ex.has("ssr")) fsPass(enc, ssrT.createView(), P.ssr, ssrBG, timed && "ssr", true, true);
+    let cur = color;
+    if (ex.has("taa")) { const k = i & 1; fsPass(enc, hist[k].createView(), P.taa, taaBG[k], timed && "taa"); cur = hist[k]; }
+    if (ex.has("mb")) { fsPass(enc, mbT.createView(), P.mb, post(cur, null, hp), timed && "mb"); cur = mbT; }
+    down.forEach((lv, k) => fsPass(enc, lv.t.createView(), P.down, downBG[k], timed && "bloom", k === 0, false));
+    for (let k = down.length - 2; k >= 0; k--) fsPass(enc, up[k].t.createView(), P.up, upBG[k], timed && "bloom", false, k === 0);
+    fsPass(enc, ctx.getCurrentTexture().createView(), P.composite, post(cur, bloomOut.t, hp), timed && "composite");
+    if (timed && qs) { enc.resolveQuerySet(qs, 0, qn, qres, 0); enc.copyBufferToBuffer(qres, 0, qread, 0, qn * 8); }
+    device.queue.submit([enc.finish()]);
+  }
+  const per = Object.fromEntries(PASSES.map((n) => [n, []]));
+  for (let i = 0; i < o.warm; i++) frame(i, false);
+  await device.queue.onSubmittedWorkDone();
+  const cpu = [];
+  for (let i = 0; i < o.frames && qs; i++) {
+    const c0 = performance.now(); frame(o.warm + i, true); cpu.push(performance.now() - c0);
+    await qread.mapAsync(GPUMapMode.READ);
+    const v = new BigUint64Array(qread.getMappedRange().slice(0)); qread.unmap();
+    PASSES.forEach((n, k) => { if (used.has(n)) per[n].push(Number(v[k * 2 + 1] - v[k * 2]) / 1e6); });
+  }
+  // throughput: frames submitted back to back, then wait for the GPU
+  const walls = [];
+  for (let rep = 0; rep < 3; rep++) { const t0 = performance.now(); for (let i = 0; i < o.frames; i++) frame(i, false); await device.queue.onSubmittedWorkDone(); walls.push((performance.now() - t0) / o.frames); }
+  const wall = median(walls);
+  const passes = Object.fromEntries([...used].map((n) => [n, +median(per[n]).toFixed(3)]));
+  device.destroy();
+  return { backend: "webgpu", adapter: adapter.info?.vendor + " " + (adapter.info?.architecture ?? "") + " " + (adapter.info?.description ?? ""), timestamps: !!ts, passes, gpuSum: +Object.values(passes).reduce((a, b) => a + b, 0).toFixed(3), wallPerFrame: +wall.toFixed(3), cpuEncode: +median(cpu).toFixed(3), errors: errs.slice(0, 3) };
+}
+
+// ---------- GLSL ----------
+const GH = `#version 300 es
+precision highp float; precision highp int; precision highp sampler2D; precision highp sampler2DShadow;
+layout(std140) uniform UB { mat4 vp; mat4 lvp; vec4 eye; vec4 key; vec4 tm; vec4 camR; vec4 camU; vec4 lp[16]; vec4 lc[16]; };
+uint pcg(uint v) { uint s = v * 747796405u + 2891336453u; uint w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u; return (w >> 22u) ^ w; }
+float rnd(uint v) { return float(pcg(v)) / 4294967295.0; }
+uniform highp sampler2D uInst;
+vec4 inst(uint id, uint k) { uint t = id * 3u + k; return texelFetch(uInst, ivec2(int(t % 1024u), int(t / 1024u)), 0); }
+`;
+const GL_PLACE = `
+layout(location=0) in vec3 aP; layout(location=1) in vec3 aN;
+void place(uint id, out vec3 w, out vec3 n) { vec4 a = inst(id, 0u); vec4 s = inst(id, 1u); float c = cos(a.w), sn = sin(a.w); vec3 q = aP * s.xyz;
+  w = vec3(c*q.x - sn*q.y, sn*q.x + c*q.y, q.z) + a.xyz; n = vec3(c*aN.x - sn*aN.y, sn*aN.x + c*aN.y, aN.z); }`;
+const GL = {
+  slabVS: GH + GL_PLACE + `out vec3 vW; out vec3 vN; flat out uint vId; void main() { vec3 w, n; place(uint(gl_InstanceID), w, n); vW = w; vN = n; vId = uint(gl_InstanceID); gl_Position = vp * vec4(w, 1.0); }`,
+  shadowVS: GH + GL_PLACE + `void main() { vec3 w, n; place(uint(gl_InstanceID), w, n); gl_Position = lvp * vec4(w, 1.0); }`,
+  shadowFS: GH + `out vec4 o; void main() { o = vec4(1.0); }`,
+  slabFS: GH + `uniform highp sampler2DShadow uShadow; in vec3 vW; in vec3 vN; flat in uint vId;
+layout(location=0) out vec4 oC; layout(location=1) out vec4 oE;
+void main() { vec3 col = inst(vId, 2u).rgb; float em = inst(vId, 1u).w; vec3 n = normalize(vN), v = normalize(eye.xyz - vW), L = key.xyz;
+  vec4 sc = lvp * vec4(vW, 1.0); vec3 s3 = sc.xyz * 0.5 + 0.5; float sh = 0.0;
+  for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) sh += texture(uShadow, vec3(s3.xy + vec2(x, y) / 2048.0, s3.z - 0.002));
+  sh /= 9.0; vec3 h = normalize(L + v);
+  vec3 acc = col * (0.25 + 0.4 * max(n.z, 0.0)) + col * max(dot(n, L), 0.0) * sh * 1.1 + vec3(pow(max(dot(n, h), 0.0), 64.0)) * 0.3 * sh;
+  for (int k = 0; k < 16; k++) { vec3 d = lp[k].xyz - vW; float dist = length(d); float att = max(0.0, 1.0 - dist / lp[k].w); acc += col * lc[k].rgb * att * att * max(dot(n, d / max(dist, 1e-3)), 0.0); }
+  oC = vec4(acc + col * em, 1.0); oE = vec4(col * em, 1.0); }`,
+  partVS: GH + `out vec2 vQ; out vec3 vC;
+void main() { uint i = uint(gl_InstanceID), v = uint(gl_VertexID); vec2 q = vec2(float(v & 1u), float(v >> 1u)) * 2.0 - 1.0;
+  uint ni = max(uint(tm.z) - 1u, 1u); uint a = 1u + pcg(i) % ni, b = 1u + pcg(i ^ 0x9e3779b9u) % ni;
+  float s = fract(tm.x * (0.1 + 0.3 * rnd(i * 3u + 1u)) + rnd(i * 3u + 2u));
+  vec3 p = mix(inst(a, 0u).xyz, inst(b, 0u).xyz, s); p.z += 10.0 + 30.0 * sin(s * 3.14159);
+  p += (vec3(rnd(i * 7u), rnd(i * 11u), rnd(i * 13u)) - 0.5) * 6.0;
+  vC = vec3(0.3, 0.7, 1.0) * (1.0 + 2.0 * rnd(i * 5u)); vQ = q;
+  gl_Position = vp * vec4(p + (camR.xyz * q.x + camU.xyz * q.y) * 1.6, 1.0); }`,
+  partFS: GH + `in vec2 vQ; in vec3 vC; layout(location=0) out vec4 oC; layout(location=1) out vec4 oE;
+void main() { float a = max(0.0, 1.0 - dot(vQ, vQ)); oC = vec4(vC * a * 0.2, 0.0); oE = vec4(vC * a, 0.0); }`,
+  fsqVS: GH + `out vec2 vUv; void main() { vec2 p = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0; vUv = p * 0.5 + 0.5; gl_Position = vec4(p, 0.0, 1.0); }`,
+};
+const GP = GH + `in vec2 vUv; out vec4 o; uniform sampler2D uSrc; uniform sampler2D uBase; uniform sampler2D uDepth; uniform sampler2D uAo; uniform sampler2D uSsr; uniform vec4 uP;
+vec3 S(vec2 uv) { return textureLod(uSrc, uv, 0.0).rgb; } float D(ivec2 p) { return texelFetch(uDepth, p, 0).r; }
+`;
+Object.assign(GL, {
+  down: GP + `void main() { vec2 h = uP.xy; o = vec4((S(vUv) * 4.0 + S(vUv - h) + S(vUv + h) + S(vUv + vec2(h.x, -h.y)) + S(vUv - vec2(h.x, -h.y))) / 8.0, 1.0); }`,
+  up: GP + `void main() { vec2 h = uP.xy; vec3 s = S(vUv + vec2(-h.x * 2.0, 0.0)) + S(vUv + vec2(h.x * 2.0, 0.0)) + S(vUv + vec2(0.0, h.y * 2.0)) + S(vUv + vec2(0.0, -h.y * 2.0));
+  s += (S(vUv + vec2(-h.x, h.y)) + S(vUv + h) + S(vUv + vec2(h.x, -h.y)) + S(vUv - h)) * 2.0; o = vec4(s / 12.0 + textureLod(uBase, vUv, 0.0).rgb * 0.7, 1.0); }`,
+  ao: GP + `void main() { vec2 dim = vec2(textureSize(uDepth, 0)); ivec2 p = ivec2(vUv * dim); float d0 = D(p); float occ = 0.0;
+  float j = rnd(uint(p.x) * 73856093u ^ uint(p.y) * 19349663u ^ uint(tm.y)) * 6.2831;
+  for (int k = 0; k < 2; k++) { float ang = j + float(k) * 1.5708; vec2 dir = vec2(cos(ang), sin(ang)); float hz = 0.0, hz2 = 0.0;
+    for (int s = 1; s <= 8; s++) { ivec2 off = ivec2(dir * float(s * s) * 1.5); hz = max(hz, d0 - D(clamp(p + off, ivec2(0), ivec2(dim) - 1))); hz2 = max(hz2, d0 - D(clamp(p - off, ivec2(0), ivec2(dim) - 1))); }
+    occ += clamp(hz * 4000.0, 0.0, 1.0) + clamp(hz2 * 4000.0, 0.0, 1.0); }
+  o = vec4(1.0 - occ * 0.25 * 0.6, 0.0, 0.0, 1.0); }`,
+  ssr: GP + `void main() { vec2 dim = vec2(textureSize(uDepth, 0)); ivec2 p = ivec2(vUv * dim); float z = D(p); vec3 acc = vec3(0.0); vec2 uv = vUv;
+  for (int s = 0; s < 32; s++) { uv += vec2(0.0, 0.012); z -= 0.00002; if (uv.y > 1.0) break; float dz = D(ivec2(uv * dim)); if (dz < z && z - dz < 0.001) { acc = S(uv); break; } }
+  o = vec4(acc, 1.0); }`,
+  taa: GP + `void main() { vec2 h = uP.xy * 2.0; vec3 mn = vec3(1e9), mx = vec3(-1e9), c = vec3(0.0);
+  for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec3 s = S(vUv + vec2(x, y) * h); mn = min(mn, s); mx = max(mx, s); if (x == 0 && y == 0) c = s; }
+  o = vec4(mix(c, clamp(textureLod(uBase, vUv, 0.0).rgb, mn, mx), 0.9), 1.0); }`,
+  mb: GP + `void main() { vec2 v = vec2(sin(vUv.y * 10.0 + tm.x) * 0.008, 0.0); vec3 s = vec3(0.0); for (int k = 0; k < 12; k++) s += S(vUv + v * (float(k) / 11.0 - 0.5)); o = vec4(s / 12.0, 1.0); }`,
+  composite: GP + `void main() { vec3 c = S(vUv) + textureLod(uBase, vUv, 0.0).rgb * 0.35;
+  if (uP.z > 0.5) c *= textureLod(uAo, vUv, 0.0).r; if (uP.w > 0.5) c += textureLod(uSsr, vUv, 0.0).rgb * 0.15;
+  c = c * (2.51 * c + 0.03) / (c * (2.43 * c + 0.59) + 0.14); vec2 d = vUv - 0.5; c *= 1.0 - dot(d, d) * 0.5;
+  c += (rnd(uint(gl_FragCoord.x) * 1973u ^ uint(gl_FragCoord.y) * 9277u ^ uint(tm.y) * 26699u) - 0.5) / 255.0;
+  o = vec4(pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2)), 1.0); }`,
+});
+
+// ---------- WebGL2 backend ----------
+async function benchWebGL2(o, canvas) {
+  const gl = canvas.getContext("webgl2", { antialias: false, depth: false, alpha: false, powerPreference: "high-performance" });
+  if (!gl) throw new Error("no webgl2");
+  if (!gl.getExtension("EXT_color_buffer_float")) throw new Error("no EXT_color_buffer_float");
+  const timer = gl.getExtension("EXT_disjoint_timer_query_webgl2");
+  const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+  const { w: W, h: H } = o, ex = new Set(o.extras), msaa = Math.min(o.msaa, gl.getParameter(gl.MAX_SAMPLES));
+  const prog = (vs, fs) => {
+    const p = gl.createProgram();
+    for (const [type, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) + "\n" + src.slice(0, 200)); gl.attachShader(p, s); }
+    gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const bi = gl.getUniformBlockIndex(p, "UB"); if (bi !== gl.INVALID_INDEX) gl.uniformBlockBinding(p, bi, 0);
+    gl.useProgram(p); const set = (n, u) => { const l = gl.getUniformLocation(p, n); if (l) gl.uniform1i(l, u); };
+    set("uInst", 0); set("uShadow", 1); set("uSrc", 2); set("uBase", 3); set("uDepth", 4); set("uAo", 5); set("uSsr", 6);
+    return { p, uP: gl.getUniformLocation(p, "uP") };
+  };
+  const PR = { slab: prog(GL.slabVS, GL.slabFS), shadow: prog(GL.shadowVS, GL.shadowFS), part: prog(GL.partVS, GL.partFS) };
+  for (const k of ["down", "up", "ao", "ssr", "taa", "mb", "composite"]) PR[k] = prog(GL.fsqVS, GL[k]);
+  const mesh = roundedBox(), inst = instances(o.n);
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  const b0 = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b0); gl.bufferData(gl.ARRAY_BUFFER, mesh.vb, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
+  const ibo = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.ib, gl.STATIC_DRAW);
+  const emptyVao = gl.createVertexArray(); gl.bindVertexArray(null);
+  const texels = (o.n + 1) * 3, rows = Math.ceil(texels / 1024), idata = new Float32Array(rows * 1024 * 4); idata.set(inst.data);
+  const T = (w, h, f, filter = gl.LINEAR) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texStorage2D(gl.TEXTURE_2D, 1, f, w, h);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+  const instTex = T(1024, rows, gl.RGBA32F, gl.NEAREST); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1024, rows, gl.RGBA, gl.FLOAT, idata);
+  const FB = (cols, depth, dTex) => { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f);
+    cols.forEach((c, i) => c.rb ? gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, c.rb) : gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.TEXTURE_2D, c, 0));
+    if (depth) dTex ? gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, depth, 0) : gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depth);
+    gl.drawBuffers(cols.map((_, i) => gl.COLOR_ATTACHMENT0 + i)); const st = gl.checkFramebufferStatus(gl.FRAMEBUFFER); if (st !== gl.FRAMEBUFFER_COMPLETE) throw new Error("fbo " + st); return f; };
+  const RB = (f, s) => { const b = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, b); gl.renderbufferStorageMultisample(gl.RENDERBUFFER, s, f, W, H); return { rb: b }; };
+  const shadowTex = T(2048, 2048, gl.DEPTH_COMPONENT32F, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+  const shadowFbo = FB([], shadowTex, true);
+  const msC = RB(gl.RGBA16F, msaa), msE = RB(gl.RGBA16F, msaa), msD = RB(gl.DEPTH_COMPONENT32F, msaa);
+  const mainFbo = FB([msC, msE], msD.rb);
+  const color = T(W, H, gl.RGBA16F), emis = T(W, H, gl.RGBA16F), depthT = T(W, H, gl.DEPTH_COMPONENT32F, gl.NEAREST);
+  const colorFbo = FB([color]), emisFbo = FB([emis]), depthFbo = FB([], depthT, true);
+  const hist = [T(W, H, gl.RGBA16F), T(W, H, gl.RGBA16F)], histFbo = hist.map((t) => FB([t])), mbT = T(W, H, gl.RGBA16F), mbFbo = FB([mbT]);
+  const aoT = T(W >> 1, H >> 1, gl.R16F), aoFbo = FB([aoT]), ssrT = T(W >> 1, H >> 1, gl.RGBA16F), ssrFbo = FB([ssrT]);
+  const down = [], up = []; { let w = W, h = H; for (let i = 0; i < 6; i++) { w = Math.max(1, w >> 1); h = Math.max(1, h >> 1); const d = T(w, h, gl.RGBA16F), u = T(w, h, gl.RGBA16F); down.push({ t: d, f: FB([d]), w, h }); up.push({ t: u, f: FB([u]), w, h }); } }
+  const ubo = gl.createBuffer(); gl.bindBuffer(gl.UNIFORM_BUFFER, ubo); gl.bufferData(gl.UNIFORM_BUFFER, 4 * (32 + 20 + 128), gl.DYNAMIC_DRAW); gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, ubo);
+  const used = new Set(["shadow", "main", "bloom", "composite", ...ex]);
+  const bindT = (unit, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); };
+  const fs = (fbo, w, h, pr, src, base, P = [0.5 / w, 0.5 / h, 0, 0]) => {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo); gl.viewport(0, 0, w, h); gl.useProgram(pr.p); bindT(2, src); if (base) bindT(3, base);
+    gl.uniform4fv(pr.uP, P); gl.bindVertexArray(emptyVao); gl.drawArrays(gl.TRIANGLES, 0, 3);
+  };
+  let pending = [];
+  const per = Object.fromEntries(PASSES.map((n) => [n, []]));
+  let curQ = null;
+  const beginQ = (timed, name) => { if (!timed || !timer) return; curQ = { q: gl.createQuery(), name }; gl.beginQuery(timer.TIME_ELAPSED_EXT, curQ.q); };
+  const endQ = () => { if (!curQ) return; gl.endQuery(timer.TIME_ELAPSED_EXT); pending.push(curQ); curQ = null; };
+  const poll = () => { pending = pending.filter(({ q, name }) => { if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) return true;
+    if (!gl.getParameter(timer.GPU_DISJOINT_EXT)) per[name].push(gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6); gl.deleteQuery(q); return false; }); };
+  function frame(i, timed) {
+    const t = o.t0 + i / 60;
+    gl.bindBuffer(gl.UNIFORM_BUFFER, ubo); gl.bufferSubData(gl.UNIFORM_BUFFER, 0, uniforms(o, t, i, inst.extent, false));
+    bindT(0, instTex);
+    beginQ(timed, "shadow");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFbo); gl.viewport(0, 0, 2048, 2048); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true); gl.clear(gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 2); gl.useProgram(PR.shadow.p); gl.bindVertexArray(vao); gl.drawElementsInstanced(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0, o.n + 1); gl.disable(gl.POLYGON_OFFSET_FILL);
+    endQ();
+    beginQ(timed, "main");
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mainFbo); gl.viewport(0, 0, W, H);
+    gl.clearBufferfv(gl.COLOR, 0, [0.03, 0.035, 0.05, 1]); gl.clearBufferfv(gl.COLOR, 1, [0, 0, 0, 1]); gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1, 0);
+    gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW);
+    gl.useProgram(PR.slab.p); bindT(1, shadowTex); gl.bindVertexArray(vao); gl.drawElementsInstanced(gl.TRIANGLES, mesh.count, gl.UNSIGNED_INT, 0, o.n + 1);
+    gl.disable(gl.CULL_FACE);
+    if (o.particles) { gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.depthMask(false); gl.useProgram(PR.part.p); gl.bindVertexArray(emptyVao); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, o.particles); gl.disable(gl.BLEND); gl.depthMask(true); }
+    gl.disable(gl.DEPTH_TEST);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, mainFbo);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, colorFbo); gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, emisFbo); gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    if (ex.has("ao") || ex.has("ssr")) { gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, depthFbo); gl.blitFramebuffer(0, 0, W, H, 0, 0, W, H, gl.DEPTH_BUFFER_BIT, gl.NEAREST); }
+    endQ();
+    bindT(4, depthT);
+    if (ex.has("ao")) { beginQ(timed, "ao"); fs(aoFbo, W >> 1, H >> 1, PR.ao, color); endQ(); }
+    if (ex.has("ssr")) { beginQ(timed, "ssr"); fs(ssrFbo, W >> 1, H >> 1, PR.ssr, color); endQ(); }
+    let cur = color;
+    if (ex.has("taa")) { beginQ(timed, "taa"); const k = i & 1; fs(histFbo[k], W, H, PR.taa, color, hist[1 - k]); cur = hist[k]; endQ(); }
+    if (ex.has("mb")) { beginQ(timed, "mb"); fs(mbFbo, W, H, PR.mb, cur); cur = mbT; endQ(); }
+    beginQ(timed, "bloom");
+    let src = emis, sw = W, sh = H;
+    for (const lv of down) { fs(lv.f, lv.w, lv.h, PR.down, src, null, [0.5 / sw, 0.5 / sh, 0, 0]); src = lv.t; sw = lv.w; sh = lv.h; }
+    for (let k = down.length - 2; k >= 0; k--) { const from = k === down.length - 2 ? down[k + 1] : up[k + 1]; fs(up[k].f, up[k].w, up[k].h, PR.up, from.t, down[k].t, [0.5 / from.w, 0.5 / from.h, 0, 0]); }
+    endQ();
+    beginQ(timed, "composite");
+    bindT(5, aoT); bindT(6, ssrT);
+    fs(null, W, H, PR.composite, cur, up[0].t, [0.5 / W, 0.5 / H, ex.has("ao") ? 1 : 0, ex.has("ssr") ? 1 : 0]);
+    endQ();
+  }
+  const px = new Uint8Array(4), sync = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  for (let i = 0; i < o.warm; i++) frame(i, false);
+  sync();
+  const cpu = [];
+  for (let i = 0; i < o.frames && timer; i++) { const c0 = performance.now(); frame(o.warm + i, true); cpu.push(performance.now() - c0); sync(); poll(); await new Promise((r) => setTimeout(r, 0)); }
+  for (let k = 0; k < 50 && pending.length; k++) { await new Promise((r) => setTimeout(r, 5)); poll(); }
+  const walls = [];
+  for (let rep = 0; rep < 3; rep++) { const t0 = performance.now(); for (let i = 0; i < o.frames; i++) frame(i, false); sync(); walls.push((performance.now() - t0) / o.frames); }
+  const wall = median(walls);
+  const passes = Object.fromEntries([...used].map((n) => [n, +median(per[n]).toFixed(3)]));
+  const err = gl.getError();
+  return { backend: "webgl2", adapter: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "?", timestamps: !!timer, passes, gpuSum: +Object.values(passes).reduce((a, b) => a + b, 0).toFixed(3), wallPerFrame: +wall.toFixed(3), cpuEncode: +median(cpu).toFixed(3), msaa, errors: err ? ["glError " + err] : [] };
+}
+
+window.__bench = async (opts = {}) => {
+  const o = { backend: Q.get("backend") || "webgpu", n: +(Q.get("n") || 300), particles: +(Q.get("particles") || 0), w: +(Q.get("w") || 2560), h: +(Q.get("h") || 1440),
+    msaa: +(Q.get("msaa") || 4), extras: (Q.get("extras") || "").split(",").filter(Boolean), frames: +(Q.get("frames") || 120), warm: +(Q.get("warm") || 30), t0: 1.0, ...opts };
+  const old = document.getElementById("c"), canvas = document.createElement("canvas");
+  canvas.id = "c"; canvas.width = o.w; canvas.height = o.h; old.replaceWith(canvas);
+  const r = await (o.backend === "webgl2" ? benchWebGL2 : benchWebGPU)(o, canvas);
+  const res = { ...r, n: o.n, particles: o.particles, size: `${o.w}x${o.h}`, msaa: r.msaa ?? o.msaa, extras: o.extras.join(",") || "-" };
+  out.textContent = JSON.stringify(res, null, 1);
+  return res;
+};
+window.__ready = Promise.resolve(true);
+if (Q.has("run")) window.__bench().catch((e) => { out.textContent = String(e.stack || e); });
+</script>
+</body>
+</html>
