@@ -10,6 +10,7 @@ import { T, hopHeight, travelTime, flightPath, evalSeg } from "./transitions.mjs
 import { growBounds, canonical, hashString, lastLEn } from "./util.mjs";
 import { mentions, plain } from "./narrate.mjs";
 import { createSampler } from "./sampler.mjs";
+import { SCALE, planScale } from "./scale.mjs";
 
 const LAYOUT_SET_PROPS = new Set(["variant", "label", "size"]);
 const PTR = { gap: 8, pitch: SIZE.pointer.flag + 5 };
@@ -286,6 +287,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
       const read = readTime(st.caption);
       if (read > dur) { fill = Math.min(read, dur * MOTION.read.stretch); dur = read; }
     }
+    if (st.scale && st.dur === null) dur = Math.max(dur, SCALE.dur);   // a scale shot needs its whole pull-back
     const t0 = t, t1 = t + dur;
     let bt = t0;
     for (const plan of plans) {
@@ -307,7 +309,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
 
     // phases, events, counters
     const phaseName = st.phase !== undefined ? st.phase : prevPhase;
-    if (i === 0 || phaseName !== prevPhase) phases.push({ name: phaseName ?? "", step: i, t0, t1, about: st.about ?? null });
+    if (i === 0 || phaseName !== prevPhase) phases.push({ name: phaseName ?? "", id: st.phaseId ?? null, step: i, t0, t1, about: st.about ?? null, ...(st.enter ? { enter: st.enter } : {}) });
     else if (st.about && !phases[phases.length - 1].about) phases[phases.length - 1].about = st.about;
     phases[phases.length - 1].t1 = t1;
     prevPhase = phaseName;
@@ -319,7 +321,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
       // a counter changes once its beat's motion has mostly landed (not 70% into a reading hold that follows it)
       if (p.op.op === "count" || p.op.op === "gauge") { counterEvents.push({ t: plan.B0 + 0.7 * (plan.M1 - plan.B0), name: p.op.name, value: p.op.value }); curCounters[p.op.name] = p.op.value; }
     }
-    if (st.ask) events.push({ t: t0, kind: "ask", step: i });
+    if (st.ask || st.choose) events.push({ t: t0, kind: "ask", step: i });
     tagsByStep.push(stepTags);
 
     // focus: everything touched this step, unless the figure says otherwise
@@ -340,9 +342,11 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
 
     beatStates.push(plans.map((p) => p.N));
     stepOut.push({
-      index: i, t0, t1, dur, caption: st.caption, phase: phaseName ?? "", simTime: simTimes[i], ask: st.ask ?? null,
+      index: i, id: st.id ?? null, t0, t1, dur, caption: st.caption, layers: st.layers ?? { plain: st.caption }, phase: phaseName ?? "", simTime: simTimes[i], ask: st.ask ?? null,
       kinds: [...kinds], beats: plans.map((p) => ({ t0: p.B0, t1: p.B1 })), line: st.line,
+      ...(st.choose ? { choose: st.choose } : {}),
       ...(st.keep ? { keep: true } : {}),
+      ...(st.scale ? { scale: { count: st.scale.count } } : {}),
     });
     t = t1;
     prevState = plans[plans.length - 1].N;
@@ -423,6 +427,20 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
   // the world always contains every step's focus
   for (const f of focusByStep) world = growBounds(world, f.minX, f.minY, f.maxX, f.maxY, f.minZ ?? 0, f.maxZ ?? 0);
 
+  // scale shots: each field is laid out once, round the finished world (never part of it: the run's own shots ignore it)
+  const scaleByStep = steps.map((st, i) => {
+    if (!st.scale) return null;
+    const end = beatStates[i][beatStates[i].length - 1], places = placesOf.get(end) ?? new Map();
+    const boxOf = (ids) => {
+      let b = null;
+      for (const id of ids) { const p = places.get(id); if (p) b = growBounds(b, p.wx - p.w / 2, p.wy - p.d / 2, p.wx + p.w / 2, p.wy + p.d / 2, 0, p.h ?? 0); }
+      return b;
+    };
+    const lp = places.get(st.scale.like), rec = end.get(st.scale.like);
+    const like = { w: lp?.w ?? SIZE.housing.minW, d: lp?.d ?? SIZE.housing.minD, h: lp?.h ?? SIZE.housing.h, variant: rec?.variant ?? "node" };
+    return { step: i, ...planScale(st.scale, { world, from: boxOf(st.scale.from) ?? world, like }) };
+  });
+
   // lane boards: rails relative to the board centre, plus ruler labels
   const laneGeo = new Map();
   for (const L of layoutOf.values()) for (const [id, lane] of L.lanes) {
@@ -471,7 +489,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
   });
 
   // ---------- hash ----------
-  const hash = hashString(canonical({ opening: script.opening, steps: steps.map((s) => ({ c: s.caption, d: s.dur, t: s.simTime, p: s.phase, ...(s.about ? { pa: s.about } : {}), a: s.ask, f: s.focus, l: s.line, b: s.beats.map((b) => b.ops) })) }));
+  const hash = hashString(canonical({ opening: script.opening, steps: steps.map((s) => ({ c: s.caption, d: s.dur, t: s.simTime, p: s.phase, ...(s.about ? { pa: s.about } : {}), ...(s.scale ? { sc: s.scale } : {}), a: s.ask, ...(s.choose ? { ch: s.choose } : {}), f: s.focus, l: s.line, b: s.beats.map((b) => b.ops) })) }));
 
   // ---------- snapshots ----------
   const snapState = (i) => (i <= 0 ? script.S0 : steps[i - 1].beats[steps[i - 1].beats.length - 1].state);
@@ -497,12 +515,16 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
   const tl = {
     duration, steps: stepOut, phases, events: events.sort((a, b) => a.t - b.t), keys: script.keys, counters: counterDefs,
     snapshot, get final() { return snapshot(nSteps); }, hash, problems, world,
-    meta: figure.meta ?? {}, values, scenario, code: figure.code ?? null,
+    scales: scaleByStep.filter(Boolean),   // scale shots (engine/scene/scale.mjs), for the director
+    meta: figure.meta ?? {}, lesson: script.lesson ?? null, values, scenario, code: figure.code ?? null,
+    // your turn (CONTRACTS.md 10.5): the end check's questions, and the s.choose options this run plays when it is a
+    // branch of the main run (null for the main run)
+    checks: script.checks ?? [], branch: script.branch ?? null,
     stepAt(time) { if (!nSteps) return 0; const k = lastLEn(stepT0, time); return Math.max(0, Math.min(nSteps - 1, k)); },
     timeOf(step, u = 0) { const s = stepOut[Math.max(0, Math.min(nSteps - 1, step))]; return s ? s.t0 + u * s.dur : 0; },
     sim,
     // internals for the sampler and tests
-    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo },
+    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo },
   };
   const stepT0 = Float64Array.from(stepOut.map((s) => s.t0));
   tl.sample = createSampler(tl);

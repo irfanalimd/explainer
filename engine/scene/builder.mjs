@@ -17,8 +17,11 @@ const KIND_PROPS = { trace: new Set(["tone", "key", "dashed", "dim", "state", "a
 
 const idOf = (x) => (x && typeof x === "object" ? x.id : x);
 
-export function createBuilder({ params = {}, scenario = null, rng: rngFactory, seed } = {}) {
+export function createBuilder({ params = {}, scenario = null, rng: rngFactory, seed, choices = null } = {}) {
   const problems = [];
+  const checks = [];                 // s.check: the end check's questions (CONTRACTS.md 10.5)
+  const chosen = new Map();          // s.choose id -> the option this run plays
+  const branched = {};               // s.choose id -> the wrong option this run plays (a branch of the run)
   const draft = new Draft(new Map([[ROOT, Object.freeze({ id: ROOT, kind: "group", layout: "root", parent: null, children: Object.freeze([]), inc: 0 })]]));
   const opening = [];                // ops applied to S0 (for the hash)
   const steps = [];                  // committed steps
@@ -35,9 +38,10 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
   let autoN = 0;
   let simNow = 0;                    // the sim time of the last committed step (a step without `t` keeps it)
   let openMarks = [];                // create ops of marks recorded without `t`: resolved when their step commits
+  let lastPhaseId = null;            // the chapter id of the last committed step (s.check's default chapter)
 
   function freshPending() {
-    return { beats: [{ ops: [], state: null }], phase: undefined, about: undefined, ask: null, focus: null, says: [], hasWorld: false };
+    return { beats: [{ ops: [], state: null }], phase: undefined, phaseId: undefined, about: undefined, ask: null, choose: null, focus: null, scale: null, says: [], hasWorld: false };
   }
   const problem = (kind, message, id) => { problems.push({ kind, message, step: steps.length, id: id ?? null }); };
   const stepNo = () => steps.length;
@@ -348,6 +352,24 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
     },
     lit(...ids) { const list = ids.flat().map(idOf).filter((x) => need(x, "lit")); if (list.length) annotate({ op: "lit", ids: list }); },
     focus(...ids) { const list = ids.flat().map(idOf).filter((x) => need(x, "focus")); if (list.length) pending.focus = (pending.focus ?? []).concat(list); },
+    // a scale shot for this step ("powers of ten", engine/scene/scale.mjs): the camera pulls back from `from` (default:
+    // the whole world) to a field of `count` machines shaped like `like`, counting the run's own (`run`) among them. A
+    // simplified picture, not a simulation: `title` and `lines` must be facts the run or a cited source gives (say
+    // whose), and `note` (default "shown at scale, simplified") is always printed.
+    scale(o = {}) {
+      const count = Number(o.count);
+      if (!Number.isFinite(count) || count < 1) { problem("bad-scale", `scale: count must be a number of machines (got ${JSON.stringify(o.count)})`); return; }
+      const run = (o.run ?? []).map(idOf).filter((x) => need(x, "scale run"));
+      const like = idOf(o.like) ?? run[0] ?? null;
+      if (!like || !need(like, "scale like")) { problem("bad-scale", "scale: name the machine the field copies (like, or the first of run)"); return; }
+      if (run.length > count) problem("bad-scale", `scale: the run has ${run.length} machines, more than the field's ${count}`);
+      const from = (o.from === undefined ? [] : [o.from].flat()).map(idOf).filter((x) => need(x, "scale from"));
+      pending.scale = Object.freeze({
+        count, run: Object.freeze(run), like, from: Object.freeze(from),
+        title: o.title ? String(o.title) : null, lines: Object.freeze((o.lines ?? []).map(String)),
+        note: o.note ? String(o.note) : null,
+      });
+    },
     tag(entity, text, o = {}) {
       const rec = need(entity, "tag");
       if (rec) annotate({ op: "tag", id: rec.id, text: String(text), tone: o.tone ?? null });
@@ -356,14 +378,56 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
     gauge(name, value) { counters[name] = value; annotate({ op: "gauge", name, value }); },
     line(from, to = from) { line = from === null || from === undefined ? null : [from, to]; annotate({ op: "line", line }); },
     say(markup) { if (markup !== undefined && markup !== null && markup !== "") pending.says.push(String(markup)); },
-    // predict: `why` (optional) is one plain sentence on why the answer is right, shown once the answer is revealed
+    // predict: `why` (optional) is one plain sentence on why the answer is right, shown once the answer is revealed;
+    // `id` names the question for a lesson (CONTRACTS.md 10)
     ask(question, options = [], answer = 0, o = {}) {
       const why = o?.why === undefined || o?.why === null || o?.why === "" ? undefined : String(o.why);
-      pending.ask = Object.freeze({ question: String(question), options: Object.freeze(options.map(String)), answer, ...(why ? { why } : {}) });
+      pending.ask = Object.freeze({ id: o?.id ?? null, question: String(question), options: Object.freeze(options.map(String)), answer, ...(why ? { why } : {}) });
     },
-    // a chapter; `about` is an optional plain-English line on what the chapter does and why (the explain panel shows it)
+    // your turn: at the next step the reader picks a thing in the world (CONTRACTS.md 10.5). options: [{ pick: entity,
+    // right?: true, text? }], exactly one right. Every option is a branch of this same run: compile(figure, { choices:
+    // { [id]: j } }) plays option j, and without one the run plays the right option. Returns the option this run plays,
+    // { index, pick, right }: the figure plays a wrong option's consequence for real, then ends the build.
+    choose(id, o = {}) {
+      const options = (o.options ?? []).map((x) => (x && typeof x === "object" && "pick" in x ? x : { pick: x }));
+      const fail = (m) => { problem("bad-choose", `choose "${id}": ${m}`, id); };
+      if (typeof id !== "string" || !id) fail("needs an id (a string)");
+      if (chosen.has(id)) fail("is declared twice in one run");
+      if (options.length < 2) fail(`needs at least two options (it has ${options.length})`);
+      const right = options.map((x, j) => (x.right || o.answer === j ? j : -1)).filter((j) => j >= 0);
+      if (right.length !== 1) fail(`needs exactly one right option (it has ${right.length})`);
+      const answer = right[0] ?? 0;
+      const list = options.map((x) => {
+        const pid = idOf(x.pick), rec = need(pid, `choose "${id}" option`);
+        return Object.freeze({ pick: pid, text: String(x.text ?? rec?.title ?? rec?.text ?? pid) });
+      });
+      const want = choices?.[id];
+      const index = Number.isInteger(want) && want >= 0 && want < list.length ? want : answer;
+      chosen.set(id, index);
+      if (index !== answer) branched[id] = index;
+      const why = o.why === undefined || o.why === null || o.why === "" ? undefined : String(o.why);
+      pending.choose = Object.freeze({ kind: "choose", id: String(id), prompt: String(o.prompt ?? ""), options: Object.freeze(list), answer, chosen: index, ...(why ? { why } : {}) });
+      return Object.freeze({ index, pick: list[index]?.pick ?? null, right: index === answer });
+    },
+    // the end check: one question the run answers, ideally at other knob values ("with 3 counting machines, which one
+    // gets fox?"), computed by the figure from its own model. `chapter` names the chapter to replay when it is missed
+    // (a chapter id; default the chapter it is recorded in); `transfer: true` marks the one an Expert gets.
+    check(id, o = {}) {
+      const options = (o.options ?? []).map(String);
+      if (options.length < 2 || !(Number.isInteger(o.answer) && o.answer >= 0 && o.answer < options.length)) {
+        problem("bad-check", `check "${id}": needs two or more options and an answer index among them`, id);
+        return;
+      }
+      if (checks.some((c) => c.id === id)) { problem("bad-check", `check "${id}" is declared twice`, id); return; }
+      const why = o.why === undefined || o.why === null || o.why === "" ? undefined : String(o.why);
+      checks.push(Object.freeze({ id: String(id), question: String(o.question ?? ""), options: Object.freeze(options), answer: o.answer,
+        chapter: o.chapter ?? pending.phaseId ?? lastPhaseId ?? null, vars: o.vars ?? null, ...(why ? { why } : {}), ...(o.transfer ? { transfer: true } : {}) }));
+    },
+    // a chapter; `about` is an optional plain-English line on what the chapter does and why (the explain panel shows it);
+    // `id` names the chapter for a lesson
     phase(name, o) {
       pending.phase = String(name);
+      pending.phaseId = o?.id ?? null;
       const about = typeof o === "string" ? o : o?.about;
       pending.about = about === undefined || about === null || about === "" ? undefined : String(about);
     },
@@ -390,12 +454,18 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
       if (openMarks.length) resolveMarks(simNow);
       const text = [caption, ...pending.says].filter((x) => x !== undefined && x !== null && x !== "").join(" ");
       if (!text) problem("no-caption", `step ${steps.length} has no caption`);
+      if (pending.ask && pending.choose) problem("bad-choose", `step ${steps.length} both asks and chooses: one question per step`, pending.choose.id);
       steps.push({
-        index: steps.length, caption: text, dur, simTime, pace, phase: pending.phase, about: pending.about, ask: pending.ask, focus: pending.focus,
+        // id and vars: the step's name and run values for a lesson (CONTRACTS.md 10)
+        index: steps.length, id: o.id ?? null, vars: o.vars ?? null, caption: text, dur, simTime, pace,
+        phase: pending.phase, phaseId: pending.phaseId, about: pending.about, ask: pending.ask, focus: pending.focus,
+        ...(pending.choose ? { choose: pending.choose } : {}),
+        ...(pending.scale ? { scale: pending.scale } : {}),
         beats: pending.beats, line, counters: Object.freeze({ ...counters }),
         ...(o.keep ? { keep: true } : {}),   // never folded into a fast run of repeats (engine/playback.mjs)
       });
       lastCaption = text;
+      if (pending.phaseId !== undefined) lastPhaseId = pending.phaseId;
       pending = freshPending();
     },
     hold(dur, caption) { s.step(caption ?? lastCaption, { dur: dur ?? MOTION.step }); },
@@ -451,8 +521,11 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
     for (const b of pending.beats) for (const op of b.ops) if (WORLD_OPS.has(op.op) || op.op === "tag" || op.op === "count") trailing.push(op);
     if (trailing.length) problems.push({ kind: "trailing-ops", message: `${trailing.length} op(s) after the last s.step() are never shown (${[...new Set(trailing.map((o) => o.op))].join(", ")})`, step: steps.length - 1, id: null });
     // the state the world ends in is the last committed one, not the dropped trailing ops
+    turnCaps(steps, problems);
     return {
-      S0, steps, opening, trailing, problems,
+      S0, steps, opening, trailing, problems, checks,
+      // a branch of the run: the s.choose options this compile plays instead of the right ones (null: the main run)
+      branch: Object.keys(branched).length ? Object.freeze({ ...branched }) : null,
       keys: [...keyNames.entries()].map(([name, index]) => ({ name, index })),
       final: steps.length ? lastState(steps[steps.length - 1]) : S0,
     };
@@ -460,4 +533,20 @@ export function createBuilder({ params = {}, scenario = null, rng: rngFactory, s
   const lastState = (st) => st.beats[st.beats.length - 1].state;
 
   return { s, finish };
+}
+
+// teaching.md §5: at most one interaction (s.ask or s.choose) per chapter, and at most TURN_CAP per story (the HUD then
+// keeps fewer for Basics and Expert). Advice, not an error: reported as a warning.
+export const TURN_CAP = 3;
+function turnCaps(steps, problems) {
+  const turns = steps.filter((st) => st.ask || st.choose);
+  const warn = (message, step) => problems.push({ kind: "turns", level: "warn", message, step, id: null });
+  // only a chapter's first step names it, so carry the name forward to the steps after it
+  const chapterOf = new Map();
+  let current = "";
+  for (const st of steps) { current = st.phaseId ?? st.phase ?? current; chapterOf.set(st, current); }
+  const byChapter = new Map();
+  for (const st of turns) { const k = chapterOf.get(st); byChapter.set(k, [...(byChapter.get(k) ?? []), st]); }
+  for (const [k, list] of byChapter) if (list.length > 1) warn(`chapter "${k}" has ${list.length} questions; one per chapter keeps each one special (the HUD asks only the first)`, list[1].index);
+  if (turns.length > TURN_CAP) warn(`${turns.length} questions in one story; at most ${TURN_CAP} (the HUD asks the first ${TURN_CAP})`, turns[TURN_CAP].index);
 }

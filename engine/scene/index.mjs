@@ -2,6 +2,7 @@
 // DOM-free; runs in Node (verify, tests) and in the browser (runtime, preview).
 import { createBuilder, ROOT } from "./builder.mjs";
 import { buildTimeline } from "./timeline.mjs";
+import { mergeLesson } from "./lesson.mjs";
 
 /** Resolve knob values: definitions' defaults, then the scenario's overrides, then explicit values. */
 export function resolveParams(figure, params, scenario) {
@@ -21,12 +22,13 @@ export function envOf(width, height) {
   return Object.freeze({ width, height, aspect, portrait: aspect < 0.95, phone: Math.min(width, height) < 600 });
 }
 
-/** Run a figure's build() against a fresh builder and return the recorded Script. */
-export function record(figure, { params, scenario, rng, env = DEFAULT_ENV } = {}) {
+/** Run a figure's build() against a fresh builder and return the recorded Script, with figure.lesson merged in. */
+export function record(figure, { params, scenario, rng, env = DEFAULT_ENV, choices = null } = {}) {
   const scenarios = figure.scenarios ?? [];
   const id = scenario ?? scenarios[0]?.id ?? null;
   const values = resolveParams(figure, params, id);
-  const { s, finish } = createBuilder({ params: values, scenario: id, rng, seed: values.seed });
+  // choices: { [s.choose id]: option index } plays a branch of the run (CONTRACTS.md 10.5)
+  const { s, finish } = createBuilder({ params: values, scenario: id, rng, seed: values.seed, choices });
   let error = null;
   try {
     if (typeof figure.build !== "function") throw new Error("figure has no build(s, params, scenario) export");
@@ -36,13 +38,14 @@ export function record(figure, { params, scenario, rng, env = DEFAULT_ENV } = {}
   }
   const script = finish();
   if (error) script.problems.unshift({ kind: "build-error", message: String(error?.stack ?? error), step: script.steps.length, id: null });
+  mergeLesson(script, figure.lesson ?? null, { scenario: id, meta: figure.meta });
   return { script, values, scenario: id, error };
 }
 
 /**
  * Compile a figure module for one scenario and set of parameter values.
- * @param {object} figure  module namespace: { meta, params, scenarios, counters, code, invariants, build }
- * @param {{params?: object, scenario?: string, rng?: (seed) => object}} [opts]
+ * @param {object} figure  module namespace: { meta, params, scenarios, counters, code, invariants, build, lesson? }
+ * @param {{params?: object, scenario?: string, rng?: (seed) => object, choices?: object}} [opts]
  */
 export function compile(figure, opts = {}) {
   const { script, values, scenario, error } = record(figure, opts);

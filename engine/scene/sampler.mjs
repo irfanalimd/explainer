@@ -4,6 +4,7 @@
 import { MOTION, SIZE } from "../tokens.mjs";
 import { T, evalSeg, anchor, flightProgress, ease, easeInOut } from "./transitions.mjs";
 import { clamp01, smoothstep, lastLEn } from "./util.mjs";
+import { emitScale } from "./scale.mjs";
 
 const TAG_LIFT = 12;          // u above a tile's top
 const TAG_EDGE = 4;           // u above a housing's top, at its back edge
@@ -12,7 +13,7 @@ const STATUS = new Set(["ok", "busy", "warn", "fail", "idle", "ghost", "neutral"
 
 export function createSampler(tl) {
   const X = tl._;
-  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, counterEvents, startCounters, steps, beatStates, laneGeo } = X;
+  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, steps, beatStates, laneGeo } = X;
   const n = incs.length;
   const stamp = new Float64Array(n).fill(NaN);
   const kin = incs.map(() => ({ x: 0, y: 0, z: 0, w: 0, d: 0, h: 0, opacity: 1, scale: 1, pitch: 0, bank: 0, yaw: 0, s: -1, zl: 0, ok: false, seg: null }));
@@ -218,6 +219,10 @@ export function createSampler(tl) {
     for (const m of messagesByStep[i] ?? []) emitMessage(m, t, poses);
     for (const pr of printsByStep[i] ?? []) emitPrint(pr, t, poses);
 
+    // a scale shot: the field round the world, and how far the reveal has got (frame.scale, for the director)
+    const sc = st ? scaleByStep[i] : null;
+    const scale = sc ? { step: i, ...emitScale(sc, t - st.t0, poses, !!view.reducedMotion), bounds: sc.box1 } : null;
+
     // tags
     const tags = out?.tags ?? [];
     tags.length = 0;
@@ -260,6 +265,7 @@ export function createSampler(tl) {
     frame.entities = beatStates[i]?.[b] ?? beatStates[i]?.[0] ?? new Map();
     frame.ask = st?.ask ?? null;
     frame.simTime = tl.sim(t);
+    frame.scale = scale;
     return frame;
   };
 
