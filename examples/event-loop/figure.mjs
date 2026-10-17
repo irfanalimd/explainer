@@ -29,6 +29,45 @@
 // `reference()` is a second, independent implementation (closures over a minimal promise + event loop runtime, the
 // programs written again as plain JS). The invariants check, on every step, that the console the world shows is a
 // prefix of what the reference prints (with the same timestamps), and at the end that it is all of it.
+//
+// The words live in lesson.mjs, keyed by the ids below (CONTRACTS.md section 10); each step keeps a plain caption as
+// the fallback. Ids name the move, not the chapter: an arrival or a callback can land in any chapter. Every step
+// passes now (ms, a number), at (the same, printed), tasksQueued, microQueued, depth (frames on the stack), chunks,
+// work, latency and hz. A statement step also passes fn (its frame), fnId (only while the frame stays on screen),
+// returns (the frame ends in this step) and entry: how the frame was entered, "call", "task", "microtask", "resume"
+// or "none" (a later statement); when entered, lead holds the entering words as markup (they open the caption).
+//   chapters            script · micro · timer · network · tasks · turns · clamp (the timer limit, yield story)
+//   script.intro        story
+//   script.take         taskId
+//   script.log · script.done                  printed, lineId
+//   script.set-timeout  callback, callbackId, delay
+//   script.promise      first, second, firstId, secondId          (order)
+//   script.queue-micro  callback, callbackId, behind              (order)
+//   script.fetch        url, requestId, callback, callbackId, reply (order)
+//   script.queue-then   callback, callbackId, behind              (await)
+//   script.end          waiting, waitingIds, queued
+//   load.log-1 · load.log-2 · load.log-3       printed, lineId    (await)
+//   load.await-null · load.await-fetch         settled            (await)
+//   micro.then-1 · micro.then-2 · micro.micro · micro.fetched · micro.then · task.timeout
+//                       printed, lines, lineId                    (a callback that only logs)
+//   settle.ready        ready, readyIds       (a frame returns and the reactions waiting on it queue)
+//   arrive.timer · arrive.timer-late · arrive.render · arrive.network
+//                       what, tileId, idle, idleFor, due, busy, running; a timer adds callback, delay, atOnce
+//                       (arrive.timer-late: a timer that arrives after the thread idled, i.e. a clamped chunk's)
+//   task.reply          ready, readyIds, url
+//   task.render         painted, shown, late, wasLate, repaints, pageId
+//   chunk.work          done, cost, pageId                        (the first chunk, statement by statement)
+//   chunk.log           done, printed, lineId, painted
+//   chunk.requeue       done, how ("last", "microtask", "timer" or "clamped"), level?, delay?
+//   chunk.run           done, from, to, printed, lineId, how, level?, delay?   (every later chunk, one step each)
+//   chunk.clamped       the same: a later chunk whose next timer is forced to 4 ms (how "clamped"); starts Timer limit
+//   end.order · end.await · end.starve · end.yield
+//                       printed, lines, lineIds; starve and yield add timeoutAt, repaints, paints, firstPaint,
+//                       lastPaint, clampIdle, clamped
+//   asks                script.zero · micro.next · script.after-await · micro.repaint (starve: before the chunk the
+//                       first frame falls due in, or chunk 2 when the job ends first) · turns.repaint (yield: before
+//                       the first task.render, when a chunk is still to run)
+// The first chunk.run and the first chunk.clamped step pass { keep: true }: their words differ, so they never fold.
 
 import * as fmt from "../../sim/fmt.mjs";
 
@@ -38,7 +77,7 @@ export const meta = {
   kicker: "Web platform",
   fig: 5,
   cite: { text: "HTML Living Standard, §8.1.7 Event loops; ECMAScript 2025, §9.5 Jobs", url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops" },
-  theme: "dark",
+  theme: "light",
   level: "core",
   hook: "JavaScript does one thing at a time, yet timers and clicks keep coming. Why doesn't the page freeze? Why doesn't setTimeout(fn, 0) run now?",
   terms: {
@@ -50,6 +89,7 @@ export const meta = {
     "Web APIs": "The browser's own helpers, like timers and the network, which work in the background.",
     promise: "An object standing for a result that is not ready yet. Code can wait for it.",
     repaint: "The browser redrawing the screen so it shows the page's latest changes.",
+    await: "Inside an `async` function, it pauses the function until a promise is ready; the rest of the function runs later.",
   },
   recap: [
     "The script runs to the end first; setTimeout only hands its callback to a timer.",
@@ -351,8 +391,10 @@ export function build(s, p, scenario, env) {
   const phone = !!env?.phone && portrait;
   s.housing("webapis", { in: "host", title: "Web APIs", sub: phone ? undefined : sc === "order" ? "timers · network" : sc === "await" ? "network" : "timers", tray: { cols: 1, of: "record" }, led: "idle" });
   if (!chunky) s.housing("pending", { in: "host", title: "waiting on a promise", sub: phone ? undefined : "not ready", tray: { cols: 1, of: "record" } });
-  s.housing("tasks", { in: "queues", variant: "queue", title: "task queue", sub: chunky ? "timer · render" : "timer · network", tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
-  s.housing("micro", { in: "queues", variant: "queue", title: "microtask queue", sub: "promise jobs", tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
+  // the tray fills from the left and its oldest record leaves on the right, toward the stack: say so on the plate
+  const head = portrait ? "" : " · next out →";
+  s.housing("tasks", { in: "queues", variant: "queue", title: "task queue", sub: (chunky ? "timer · render" : "timer · network") + head, tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
+  s.housing("micro", { in: "queues", variant: "queue", title: "microtask queue", sub: "promise jobs" + head, tray: portrait ? { cols: 2, of: "record" } : { cols: 3, rows: 1, of: "record" } });
   s.housing("stack", { in: "engine", title: "call stack", sub: "idle", led: "idle", tray: { cols: 1, of: "record", order: "stack" }, state: { frames: [], begin: null } });
   const out = portrait ? "rt" : "engine";
   if (chunky) {
@@ -388,7 +430,7 @@ function machine(s, cfg, sc, view = {}) {
   let began = null;                   // { what, depth, micro }: recorded when a task or checkpoint begins
   const output = [];                  // { text, key, t }
   const paints = [];                  // painted values, frame by frame
-  let timeoutAt = null, clampIdle = 0, askedRender = false;
+  let timeoutAt = null, clampIdle = 0;
   const id = (base) => `${base.replace(/\s+/g, "-")}#${++uid}`;
   const seen = new Set();
   // one plain-English line per chapter, for the explain panel
@@ -397,13 +439,15 @@ function machine(s, cfg, sc, view = {}) {
       ? "When the stack empties, the loop runs every microtask, even new ones added along the way. Here each chunk adds the next, so timers and repaints must wait."
       : "When the stack empties, the loop runs every waiting microtask: promise callbacks and code after `await`. Microtasks added along the way run too, before any new task.",
     "The timer": "A timer's callback waits in the task queue. The loop takes one task at a time, only once the microtasks are done, so even a 0 ms timer waits its turn.",
-    "Tasks at last": "The microtasks are finally done, so the loop can take tasks again: the long-waiting timer, then the render task that repaints the page at last.",
+    "Tasks at last": "The microtasks are finally done, so the loop can take tasks again: the long-waiting timer, then the render task. This model takes the oldest task first; real browsers often let a repaint go ahead.",
     "Taking turns": "Each chunk is now its own task. Between chunks, the loop can run other tasks, like the waiting timer and the render task that repaints the page.",
-    "The network": "The `fetch` finishes in the background, and its reply arrives as a task. Running it makes the promise ready, which queues the code waiting on it as microtasks.",
+    "The network": "The `fetch` finishes in the background, in the browser's {term:Web APIs}, and its reply arrives as a task. Running it makes the promise ready, which queues the code waiting on it as microtasks.",
     "Timer limit": "Browsers slow down long chains of timers: once timers have set timers more than five deep, a 0 ms delay becomes 4 ms. The thread idles meanwhile.",
   })[name];
   const tasksPhase = () => (sc === "order" ? "The timer" : starve ? "Tasks at last" : "Taking turns");
-  const phase = (name) => { if (!seen.has(name)) { seen.add(name); s.phase(name, { about: about(name) }); } };
+  const PHASE_ID = { "The script": "script", "Before the next task": "micro", "The timer": "timer", "Tasks at last": "tasks",
+    "Taking turns": "turns", "The network": "network", "Timer limit": "clamp" };
+  const phase = (name) => { if (!seen.has(name)) { seen.add(name); s.phase(name, { id: PHASE_ID[name], about: about(name) }); } };
 
   // ---------- narration ----------
   // every step frames the whole runtime (view.whole), unless a step names its own focus (the payoff: the console)
@@ -414,12 +458,15 @@ function machine(s, cfg, sc, view = {}) {
     const led = stack.length ? "busy" : "idle";
     if (sub !== shown.sub || led !== shown.led) { s.set("stack", { sub, led }); shown = { sub, led }; }
   }
-  function step(caption) {
+  // every step passes the clock, the queue lengths and the knobs, plus its own run values (the header lists them)
+  const base = () => ({ now: round(now), at: ms(now), tasksQueued: tasks.length, microQueued: micro.length, depth: stack.length,
+    chunks: cfg.chunks, work: cfg.work, latency: cfg.latency, hz: cfg.hz });
+  function step(sid, caption, vars = {}, o = {}) {
     if (view.whole && !focused) s.focus(view.whole);
     focused = false;
     s.gauge("now", round(now));
     s.set("stack", { state: { frames: stack.map((f) => f.label), began } });
-    s.step(caption, { t: now });
+    s.step(caption, { ...o, t: now, id: sid, vars: { ...base(), ...vars } });
     began = null;
   }
   const line = (a, b = a) => s.line(LN[a], LN[b]);
@@ -511,6 +558,13 @@ function machine(s, cfg, sc, view = {}) {
     s.move(e.tile, "tasks", { via: "t-api-tasks", index });
     return { what: "network", at: e.at, e };
   }
+  // an arrival's id and vars: what arrived, and whether the thread was idle until it did
+  function arrivalVars(f, idleFrom) {
+    const e = f.e, tile = f.what === "render" ? renderQueued.tile : e.tile;
+    return { what: f.what, tileId: tile, idle: idleFrom !== null, idleFor: idleFrom !== null ? ms(f.at - idleFrom) : ms(0), due: ms(f.at),
+      busy: !!(stack.length || micro.length), running: stack.length ? "code" : micro.length ? "microtasks" : "",
+      ...(f.what === "timer" ? { callback: K(e.key), delay: ms(e.delay), atOnce: !!(stack.length && e.delay === 0 && f.at === round(now)) } : {}) };
+  }
   function arrivalText(f, idleFrom) {
     const at = ms(f.at), busy = stack.length || micro.length;
     const idle = idleFrom !== null;
@@ -533,14 +587,8 @@ function machine(s, cfg, sc, view = {}) {
       const e = nextEvent();
       if (!e || e.at > now) break;
       const f = fire(e);
-      if (f.what === "render" && starve && !askedRender) {
-        askedRender = true;
-        s.ask(`${ms(f.at)}: time for a new frame, and the page has changed. Does the browser repaint now?`,
-          ["Yes: repainting interrupts JavaScript", "No: the render task waits until the microtask queue is empty", "Yes, between two microtasks"], 1,
-          { why: "A repaint is a task, and no task starts while microtasks wait. Each chunk keeps adding another microtask." });
-      }
       s.line(null);
-      step(arrivalText(f, null));
+      step(`arrive.${f.what}`, arrivalText(f, null), arrivalVars(f, null));
     }
     while (!dirty && vsync <= now) vsync = round(vsync + cfg.frame);
   }
@@ -554,7 +602,7 @@ function machine(s, cfg, sc, view = {}) {
     loop("idle");
     const f = fire(e);
     s.line(null);
-    step(arrivalText(f, from));
+    step(f.what === "timer" ? "arrive.timer-late" : `arrive.${f.what}`, arrivalText(f, from), arrivalVars(f, from));
     arrivals();
     return true;
   }
@@ -566,10 +614,13 @@ function machine(s, cfg, sc, view = {}) {
     s.remove(fr.tile, { style: "sink" });
     loop();
   }
-  // run a frame's statements, one step each; `lead` (entering the frame) joins the first statement's caption
-  function runFrame(fr, lead) {
+  // run a frame's statements, one step each; `lead` (entering the frame) joins the first statement's caption, and
+  // `entry` says how the frame was entered: "call", "task", "microtask" or "resume" (vars entry and lead)
+  const said = (text, vars = {}) => ({ text, vars });
+  const leadVars = (lead, entry) => (lead ? { entry, lead: { markup: lead } } : { entry: "none" });
+  function runFrame(fr, lead, entry = "none") {
     if (fr.fn.compact && fr.pc === 0) {
-      if (fr.fn.calls++ > 0) return compact(fr, lead);
+      if (fr.fn.calls++ > 0) return compact(fr, lead, entry);
       fr.fn.body = fr.fn.fresh();
     }
     while (fr.pc < fr.fn.body.length) {
@@ -582,8 +633,9 @@ function machine(s, cfg, sc, view = {}) {
         stack.push(callee);
         loop();
         s.beat();
-        runFrame(callee, join(lead, st.say()));
+        runFrame(callee, join(lead, st.say()), "call");
         lead = null;
+        entry = "none";
         continue;
       }
       if (st.await) {
@@ -594,42 +646,52 @@ function machine(s, cfg, sc, view = {}) {
         then(fr, pr, fr.fn, { kind: "resume", frame: fr, tile: fr.tile });
         loop();
         if (st.ask) st.ask();
-        step(join(lead, st.say({ settled: pr.state !== "pending" })));
+        step(st.id, join(lead, st.say({ settled: pr.state !== "pending" })),
+          { ...leadVars(lead, entry), fn: K(fr.key), fnId: fr.tile, settled: pr.state !== "pending" });
         arrivals();
         return { suspended: true };
       }
       if (st.ask) st.ask();
-      const text = st.run(fr);
+      const { text, vars } = st.run(fr);
+      const sv = { ...leadVars(lead, entry), fn: K(fr.key), ...vars };   // fnId only while the frame is still on screen
       if (fr.pc >= fr.fn.body.length && quiet(fr)) {
         s.beat();
         pop(fr);
-        step(join(lead, text) + (st.tail ? st.tail() : ""));
+        step(st.id, join(lead, text) + (st.tail ? st.tail() : ""), { ...sv, returns: true });
         arrivals();
         return { returned: true };
       }
-      step(join(lead, text));
+      step(st.id, join(lead, text), { ...sv, fnId: fr.tile, returns: false });
       lead = null;
+      entry = "none";
       arrivals();
     }
-    return ret(fr, lead);
+    return ret(fr, lead, entry);
   }
-  function compact(fr, lead) {
-    const text = fr.fn.compact(fr, lead);
+  // a later chunk is one step: chunk.clamped when its next timer is forced to 4 ms, else chunk.run; the first of each
+  // carries its own words, so it never folds into a run of repeats
+  const keptIds = new Set();
+  function compact(fr, lead, entry) {
+    const { text, vars } = fr.fn.compact(fr, lead);
+    const sv = { ...leadVars(lead, entry), fn: K(fr.key), ...vars };
+    const sid = vars.how === "clamped" ? "chunk.clamped" : "chunk.run";
+    const o = keptIds.has(sid) ? {} : (keptIds.add(sid), { keep: true });
     fr.pc = fr.fn.body.length;
-    if (quiet(fr)) { s.beat(); pop(fr); step(text); arrivals(); return { returned: true }; }
-    step(text);
+    if (quiet(fr)) { s.beat(); pop(fr); step(sid, text, { ...sv, returns: true }, o); arrivals(); return { returned: true }; }
+    step(sid, text, { ...sv, fnId: fr.tile, returns: false }, o);
     arrivals();
     return ret(fr, null);
   }
   // a return that someone is waiting on (a promise reaction to queue), or the end of the script
-  function ret(fr, lead) {
+  function ret(fr, lead, entry = "none") {
     pop(fr);
     const settled = fr.derived ?? fr.promise;
     if (fr.script) { s.line(null); return { returned: true, script: true }; }
     s.beat();
     const moved = fulfil(settled);
     const names = fmt.and(moved.map((j) => K(j.key)));
-    step(`${lead ? lead + "; " : ""}${K(fr.key)} finishes, so ${names} ${moved.length > 1 ? "are" : "is"} ready: ${moved.length > 1 ? "they join" : "it joins"} the microtask queue`);
+    step("settle.ready", `${lead ? lead + "; " : ""}${K(fr.key)} finishes, so ${names} ${moved.length > 1 ? "are" : "is"} ready: ${moved.length > 1 ? "they join" : "it joins"} the microtask queue`,
+      { ...leadVars(lead, entry), fn: K(fr.key), ready: moved.map((j) => K(j.key)), readyIds: moved.map((j) => j.tile) });
     arrivals();
     return { returned: true };
   }
@@ -645,9 +707,15 @@ function machine(s, cfg, sc, view = {}) {
       s.beat();
       const moved = fulfil(task.promise);
       s.line(null);
-      step(`The loop runs the reply task: the ${C("fetch")} promise is ready, so ${fmt.and(moved.map((j) => K(j.key)))} ${moved.length > 1 ? "become microtasks" : "becomes a microtask"}`);
+      step("task.reply", `The loop runs the reply task: the ${C("fetch")} promise is ready, so ${fmt.and(moved.map((j) => K(j.key)))} ${moved.length > 1 ? "become microtasks" : "becomes a microtask"}`,
+        { ready: moved.map((j) => K(j.key)), readyIds: moved.map((j) => j.tile), url: { code: task.label } });
       arrivals();
     } else if (task.kind === "render") {
+      if (sc === "yield" && !paints.length && dom < cfg.chunks) {
+        s.ask(`The bar changed after chunk ${dom}. Can the screen show it before the next chunk runs?`,
+          [`Only by pausing chunk ${dom + 1} partway through`, `No: the screen waits until all ${cfg.chunks} chunks are done`, `Yes: the render task runs before chunk ${dom + 1}`], 2,
+          { id: "turns.repaint", why: `A repaint is a task, like each chunk. The loop takes one task at a time, and the render task is next, so the screen updates before chunk ${dom + 1}.` });
+      }
       phase(tasksPhase());
       s.remove(task.tile, { to: "stack" });
       loop("render");
@@ -659,8 +727,9 @@ function machine(s, cfg, sc, view = {}) {
       s.count("frames");
       s.line(null);
       const late = round(now - task.at);
-      step(`The render task repaints: the screen shows ${C(`${painted}/${cfg.chunks}`)}` +
-        (late >= 0.1 ? `, ${ms(late)} after it was due` : ""));
+      step("task.render", `The render task repaints: the screen shows ${C(`${painted}/${cfg.chunks}`)}` +
+        (late >= 0.1 ? `, ${ms(late)} after it was due` : ""),
+        { painted, shown: { code: `${painted}/${cfg.chunks}` }, late: ms(late), wasLate: late >= 0.1, repaints: paints.length, pageId: "page" });
       arrivals();
     } else {
       if (task.kind === "timer") phase(tasksPhase());
@@ -671,21 +740,22 @@ function machine(s, cfg, sc, view = {}) {
       let lead = null;
       if (task.kind === "script") {
         s.line(null);
-        step(`The {term:event loop|loop} takes the script and runs it. It sits on the {term:call stack}: what's cooking now`, { keep: true });
+        step("script.take", `The {term:event loop|loop} takes the script and runs it. It sits on the {term:call stack}: what's cooking now`, { taskId: task.tile });
       } else {
         s.beat();
         const late = round(now - task.at);
         if (task.fn.label === "timeout") timeoutAt = now;
         lead = task.fn.lead ? task.fn.lead() : fr.fn.compact ? `The loop takes ${K(task.key)}` : `The loop takes one task: ${K(task.key)}${late >= 0.1 ? `, queued ${ms(late)} ago` : ""}`;
       }
-      const r = runFrame(fr, lead);
+      const r = runFrame(fr, lead, lead ? "task" : "none");
       if (r.script) {
         // clean up after running script: the stack is empty, so a microtask checkpoint is performed
         loop(micro.length ? "microtasks" : "idle");
         if (askAfterScript) askAfterScript();
-        step(micro.length
+        step("script.end", micro.length
           ? "The script ends and leaves the stack. The thread is free: what runs next?"
-          : "The script ends and leaves the stack. No microtask waits, so the loop takes a task");
+          : "The script ends and leaves the stack. No microtask waits, so the loop takes a task",
+          { waiting: micro.map((j) => K(j.key)), waitingIds: micro.map((j) => j.tile), queued: tasks.map((x) => x.label) });
         arrivals();
       }
     }
@@ -707,89 +777,94 @@ function machine(s, cfg, sc, view = {}) {
     s.beat();
     if (job.kind === "resume") {
       stack.push(job.frame);
-      runFrame(job.frame, `${K(job.key)} resumes where its ${C("await")} left off`);
+      runFrame(job.frame, `${K(job.key)} resumes where its ${C("await")} left off`, "resume");
     } else {
       const fr = { tile: job.tile, fn: job.fn, pc: 0, label: job.label, key: job.key, derived: job.derived };
       stack.push(fr);
       if (job.fn.ask) job.fn.ask();
-      runFrame(fr, job.fn.lead ? job.fn.lead() : jobsRun === 1 ? `Microtasks first: ${K(job.key)} runs` : `The loop runs ${K(job.key)}`);
+      runFrame(fr, job.fn.lead ? job.fn.lead() : jobsRun === 1 ? `Microtasks first: ${K(job.key)} runs` : `The loop runs ${K(job.key)}`, "microtask");
     }
     running = null;
   }
 
   // ---------- the four programs ----------
   const fn = (label, body, o = {}) => ({ label, key: o.key ?? label, body, calls: 0, ...o });
-  const logs = (label, lineKey) => fn(label, [{ line: [lineKey], run: (fr) => { log(fr, label); return `It prints ${C(label)}`; } }]);
+  // a callback that only logs: its one statement's id is `sid` (task.* or micro.*, by the queue it runs from)
+  const logs = (label, lineKey, sid) => fn(label, [{ id: sid, line: [lineKey], run: (fr) => { log(fr, label); return said(`It prints ${C(label)}`, { printed: { code: label }, lines: nlines, lineId: `log${nlines}` }); } }]);
 
   function programOrder() {
-    const timeout = logs("timeout", "o.timeout");
+    const timeout = logs("timeout", "o.timeout", "task.timeout");
     let timeoutQueued = 0;
     timeout.lead = () => `Only now does the loop take a task: ${K("timeout")}, waiting since ${ms(timeoutQueued)}`;
-    const then1 = logs("then 1", "o.then1"), then2 = logs("then 2", "o.then2");
-    const mt = logs("micro", "o.micro"), fetched = logs("fetched", "o.fetched");
+    const then1 = logs("then 1", "o.then1", "micro.then-1"), then2 = logs("then 2", "o.then2", "micro.then-2");
+    const mt = logs("micro", "o.micro", "micro.micro"), fetched = logs("fetched", "o.fetched", "micro.fetched");
     then1.lead = () => `Microtasks first: ${K("then 1")} runs before any task`;
     then2.lead = () => `${K("then 2")} was added mid-round, and the queue must empty before any task`;
     mt.lead = () => `First in, first out: ${K("micro")} runs next`;
     fetched.lead = () => `After that task, the loop runs the microtasks: ${K("fetched")}`;
     then1.ask = () => s.ask("The script is done and the stack is empty. Which callback runs next?",
       ["timeout: it was queued first, at 0 ms", "then 1: microtasks go before tasks", "fetched: its request started earlier"], 1,
-      { why: "After every task the loop runs all waiting microtasks first. timeout is a task, so it waits; fetched has no reply yet." });
+      { id: "micro.next", why: "After every task the loop runs all waiting microtasks first. timeout is a task, so it waits; fetched has no reply yet." });
     return fn("script", [
-      { line: ["o.log1"], run: (fr) => { log(fr, "script"); return `${C('console.log("script")')} prints right away: plain code runs line by line`; } },
-      { line: ["o.timeout"],
+      { id: "script.log", line: ["o.log1"], run: (fr) => { log(fr, "script"); return said(`${C('console.log("script")')} prints right away: plain code runs line by line`, { printed: { code: "script" }, lineId: `log${nlines}` }); } },
+      { id: "script.set-timeout", line: ["o.timeout"],
         ask: () => s.ask(`${C("setTimeout")} asks to run its {term:callback} after 0 ms. Does \`timeout\` print now?`,
           ["Yes: 0 ms means right away", "No: it waits until the script is done"], 1,
-          { why: "setTimeout only hands the callback to the browser's timer. Then it must wait its turn in the task queue." }),
-        run: (fr) => { timeoutQueued = setTimer(fr, timeout, 0).at; return `${C("setTimeout")} hands ${K("timeout")} to the browser's timer, one of the {term:Web APIs}, and returns. Nothing prints`; } },
-      { line: ["o.p", "o.then2"], run: (fr) => {
+          { id: "script.zero", why: "setTimeout only hands the callback to the browser's timer. Then it must wait its turn in the task queue." }),
+        run: (fr) => { const tm = setTimer(fr, timeout, 0); timeoutQueued = tm.at; return said(`${C("setTimeout")} hands ${K("timeout")} to the browser's timer and returns. Nothing prints`, { callback: K("timeout"), callbackId: tm.tile, delay: ms(0) }); } },
+      { id: "script.promise", line: ["o.p", "o.then2"], run: (fr) => {
         const p1 = then(fr, promise("p0", "fulfilled"), then1);
         s.beat();
         then(fr, p1, then2);
-        return `${C("Promise.resolve()")} is a ready {term:promise}: ${K("then 1")} joins the {term:microtask} queue, ${K("then 2")} waits for ${K("then 1")}`;
+        return said(`${C("Promise.resolve()")} is a ready {term:promise}: ${K("then 1")} joins the {term:microtask} queue, ${K("then 2")} waits for ${K("then 1")}`,
+          { first: K("then 1"), second: K("then 2"), firstId: `then-1#${uid - 1}`, secondId: `then-2#${uid}` });
       } },
-      { line: ["o.micro"], run: (fr) => { then(fr, promise("q", "fulfilled"), mt); return `${C("queueMicrotask")} puts ${K("micro")} straight into the microtask queue, behind ${K("then 1")}`; } },
-      { line: ["o.fetch", "o.fetched"], run: (fr) => {
+      { id: "script.queue-micro", line: ["o.micro"], run: (fr) => { then(fr, promise("q", "fulfilled"), mt); return said(`${C("queueMicrotask")} puts ${K("micro")} straight into the microtask queue, behind ${K("then 1")}`, { callback: K("micro"), callbackId: `micro#${uid}`, behind: K("then 1") }); } },
+      { id: "script.fetch", line: ["o.fetch", "o.fetched"], run: (fr) => {
         const pr = fetchReq(fr, "/api/user");
+        const req = `req#${uid}`;
         s.beat();
         then(fr, pr, fetched);
-        return `${C("fetch")} asks the network in the background. ${K("fetched")} waits on its promise`;
+        return said(`${C("fetch")} asks the network in the background. ${K("fetched")} waits on its promise`,
+          { url: { code: "/api/user" }, requestId: req, callback: K("fetched"), callbackId: `fetched#${uid}`, reply: ms(now + cfg.latency) });
       } },
-      { line: ["o.done"], run: (fr) => { log(fr, "done"); return `${C('console.log("done")')}, the last line, prints. Every callback is still waiting`; } },
+      { id: "script.done", line: ["o.done"], run: (fr) => { log(fr, "done"); return said(`${C('console.log("done")')}, the last line, prints. Every callback is still waiting`, { printed: { code: "done" }, lineId: `log${nlines}` }); } },
     ], { key: "script" });
   }
 
   function programAwait() {
-    const thenFn = logs("then", "a.then");
+    const thenFn = logs("then", "a.then", "micro.then");
     thenFn.lead = () => `${K("then")} was next in line, so it runs now`;
     const load = fn("load", [
-      { line: ["a.log1"], run: (fr) => { log(fr, "load 1"); return `It runs at once and prints ${C("load 1")}`; } },
-      { line: ["a.await1"], await: () => null, say: () => `${C("await null")} pauses ${K("load")}: it leaves the stack, and the rest of it becomes a microtask` },
-      { line: ["a.log2"], run: (fr) => { log(fr, "load 2"); return `It prints ${C("load 2")}`; } },
-      { line: ["a.await2"], await: (fr) => fetchReq(fr, "/api/user"), say: () => `${C("fetch")} starts a request, and ${C("await")} parks ${K("load")} until its promise is ready` },
-      { line: ["a.log3"], run: (fr) => { log(fr, "load 3"); return `It prints ${C("load 3")}`; }, tail: () => " and finishes" },
+      { id: "load.log-1", line: ["a.log1"], run: (fr) => { log(fr, "load 1"); return said(`It runs at once and prints ${C("load 1")}`, { printed: { code: "load 1" }, lineId: `log${nlines}` }); } },
+      { id: "load.await-null", line: ["a.await1"], await: () => null, say: () => `${C("await null")} pauses ${K("load")}: it leaves the stack, and the rest of it becomes a microtask` },
+      { id: "load.log-2", line: ["a.log2"], run: (fr) => { log(fr, "load 2"); return said(`It prints ${C("load 2")}`, { printed: { code: "load 2" }, lineId: `log${nlines}` }); } },
+      { id: "load.await-fetch", line: ["a.await2"], await: (fr) => fetchReq(fr, "/api/user"), say: () => `${C("fetch")} starts a request, and ${C("await")} parks ${K("load")} until its promise is ready` },
+      { id: "load.log-3", line: ["a.log3"], run: (fr) => { log(fr, "load 3"); return said(`It prints ${C("load 3")}`, { printed: { code: "load 3" }, lineId: `log${nlines}` }); }, tail: () => " and finishes" },
     ], { async: true, key: "load" });
     return fn("script", [
-      { line: ["a.script"], run: (fr) => { log(fr, "script"); return `${C('console.log("script")')} prints right away`; } },
+      { id: "script.log", line: ["a.script"], run: (fr) => { log(fr, "script"); return said(`${C('console.log("script")')} prints right away`, { printed: { code: "script" }, lineId: `log${nlines}` }); } },
       { line: ["a.call"], call: load, say: () => `${C("load()")} goes on top of the script on the stack` },
-      { line: ["a.then"], run: (fr) => { then(fr, promise("p0", "fulfilled"), thenFn); return `${C("load()")} has returned an unfinished promise. ${K("then")} queues behind the rest of ${K("load")}`; } },
-      { line: ["a.done"], ask: () => s.ask("load() hit `await null` and the script went on. What prints next?", ["load 2: the awaited value is ready", "done: the rest of load() is a microtask", "then: it is in the microtask queue"], 1,
-        { why: "Code after await runs as a microtask, and microtasks wait until the script has finished. done is the script's next line." }),
-        run: (fr) => { log(fr, "done"); return `${C('console.log("done")')} prints before anything after the first ${C("await")}`; } },
+      { id: "script.queue-then", line: ["a.then"], run: (fr) => { then(fr, promise("p0", "fulfilled"), thenFn); return said(`${C("load()")} returned early. The next line, ${C("Promise.resolve().then(…)")}, queues ${K("then")} behind the rest of ${K("load")}`, { callback: K("then"), callbackId: `then#${uid}`, behind: K("load") }); } },
+      { id: "script.done", line: ["a.done"], ask: () => s.ask("load() hit `await null` and the script went on. What prints next?", ["load 2: the awaited value is ready", "done: the rest of load() is a microtask", "then: it is in the microtask queue"], 1,
+        { id: "script.after-await", why: "Code after await runs as a microtask, and microtasks wait until the script has finished. done is the script's next line." }),
+        run: (fr) => { log(fr, "done"); return said(`${C('console.log("done")')} prints before anything after the first ${C("await")}`, { printed: { code: "done" }, lineId: `log${nlines}` }); } },
     ], { key: "script" });
   }
 
   function programChunks() {
     let done = 0;
-    const timeout = logs("timeout", "c.timeout");
+    const timeout = logs("timeout", "c.timeout", "task.timeout");
     timeout.lead = () => (now >= 1 ? `${starve ? "At last a task" : "The oldest task"}: ${K("timeout")}, due at 0 ms, runs at ${ms(now)}` : `The loop takes ${K("timeout")}`);
     const chunk = fn("chunk", [], { compact: null, fresh: null });
     const requeueLine = () => (done >= cfg.chunks ? "c.ret" : starve ? "c.qm" : "c.st");
+    // how a chunk hands on (var how): "last", "microtask", "timer" or "clamped" (a timer nested level deep, forced to 4 ms)
     function requeue(fr) {
-      if (done >= cfg.chunks) return { text: `${C(`done === ${cfg.chunks}`)}, so this was the last chunk` };
-      if (starve) { then(fr, promise("q", "fulfilled"), chunk); return { text: `${C("queueMicrotask(chunk)")} queues the next chunk as a microtask` }; }
+      if (done >= cfg.chunks) return { how: "last", text: `${C(`done === ${cfg.chunks}`)}, so this was the last chunk` };
+      if (starve) { then(fr, promise("q", "fulfilled"), chunk); return { how: "microtask", text: `${C("queueMicrotask(chunk)")} queues the next chunk as a microtask` }; }
       const tm = setTimer(fr, chunk, 0);
       if (tm.clamped) phase("Timer limit");
-      return { tm, text: tm.clamped
+      return { tm, how: tm.clamped ? "clamped" : "timer", text: tm.clamped
         ? `${C("setTimeout(chunk, 0)")} again, but this timer is ${tm.level} deep: {tone:warn|forced to 4 ms}`
         : `${C("setTimeout(chunk, 0)")} puts the next chunk back as a new task, 0 ms from now` };
     }
@@ -802,9 +877,9 @@ function machine(s, cfg, sc, view = {}) {
     }
     // the first call, statement by statement
     chunk.fresh = () => [
-      { line: ["c.work", "c.dom"], run: (fr) => { work(fr); return `${C("processBatch()")} keeps the thread busy ${ms(cfg.work)}, then ${C(`bar.value = ${done}`)} changes the page`; } },
-      { line: ["c.log"], run: (fr) => { log(fr, `chunk ${done}`); return `It prints ${C(`chunk ${done}`)}. The bar changed, but the screen can't {term:repaint} while JavaScript runs`; } },
-      { line: [requeueLine()], run: (fr) => requeue(fr).text },
+      { id: "chunk.work", line: ["c.work", "c.dom"], run: (fr) => { work(fr); return said(`${C("processBatch()")} keeps the thread busy ${ms(cfg.work)}, then ${C(`bar.value = ${done}`)} moves the page's progress bar`, { done, cost: ms(cfg.work), pageId: "page" }); } },
+      { id: "chunk.log", line: ["c.log"], run: (fr) => { log(fr, `chunk ${done}`); return said(`It prints ${C(`chunk ${done}`)}. The bar changed, but the screen can't {term:repaint} while JavaScript runs`, { done, printed: { code: `chunk ${done}` }, lineId: `log${nlines}`, painted }); } },
+      { id: "chunk.requeue", line: [requeueLine()], run: (fr) => { const q = requeue(fr); return said(q.text, { done, how: q.how, ...(q.tm ? { level: q.tm.level, delay: ms(q.tm.delay) } : {}) }); } },
     ];
     // later calls: one step each
     chunk.compact = (fr, lead) => {
@@ -817,11 +892,28 @@ function machine(s, cfg, sc, view = {}) {
       const tail = done >= cfg.chunks ? ": the last one" : starve ? ", and queues another" : r.tm.clamped ? `; its next timer is {tone:warn|forced to 4 ms}` : ", and sets a 0 ms timer";
       // a 0 ms timer expires as soon as it is set: queue it in this step instead of narrating it again
       if (r.tm && r.tm.at <= now) { s.beat(); fire(r.tm); }
-      return `${lead}: ${fmt.num(round(t0))} → ${ms(now)}, prints ${C(`chunk ${done}`)}${tail}`;
+      return said(`${lead}: ${fmt.num(round(t0))} → ${ms(now)}, prints ${C(`chunk ${done}`)}${tail}`,
+        { done, from: fmt.num(round(t0)), to: ms(now), printed: { code: `chunk ${done}` }, lineId: `log${nlines}`, how: r.how, ...(r.tm ? { level: r.tm.level, delay: ms(r.tm.delay) } : {}) });
     };
     chunk.lead = () => (starve ? `The next ${K("chunk")} microtask` : `The next ${K("chunk")} task`);
+    // starve's prediction, asked while chunks still run: before the chunk during which the first frame falls due, or,
+    // when the whole job ends before that frame, before chunk 2
+    let askedRepaint = false;
+    chunk.ask = () => {
+      if (!starve || askedRepaint) return;
+      const during = vsync <= round(now + cfg.work), early = done === 1 && vsync > round(now + (cfg.chunks - done) * cfg.work);
+      if (!during && !early) return;
+      askedRepaint = true;
+      s.ask(during
+        ? `A new frame is due at ${ms(vsync)} on a ${cfg.hz} Hz screen, while chunk ${done + 1} runs, and the bar has changed. Does the browser repaint then?`
+        : `Chunk 1 changed the bar, and chunk 2 waits in the microtask queue. Can the screen show the change before the last chunk ends?`,
+        ["Yes: a due frame interrupts JavaScript", "No: a repaint waits until the microtask queue is empty", "Yes, between two chunk microtasks"], 1,
+        { id: "micro.repaint", why: during
+          ? "A repaint is a task, and no task starts while microtasks wait. Each chunk keeps adding another microtask."
+          : `A repaint is a task, and no task starts while microtasks wait. Here the whole job even ends before the first frame, at ${ms(vsync)}.` });
+    };
     return fn("script", [
-      { line: ["c.timeout"], run: (fr) => { setTimer(fr, timeout, 0); return `${C("setTimeout")} asks for ${K("timeout")} in 0 ms`; } },
+      { id: "script.set-timeout", line: ["c.timeout"], run: (fr) => { const tm = setTimer(fr, timeout, 0); return said(`${C("setTimeout")} asks for ${K("timeout")} in 0 ms`, { callback: K("timeout"), callbackId: tm.tile, delay: ms(0) }); } },
       { line: ["c.call"], call: chunk, say: () => `${C("chunk()")} starts` },
     ], { key: "script" });
   }
@@ -846,24 +938,28 @@ function machine(s, cfg, sc, view = {}) {
       const script = sc === "order" ? programOrder() : sc === "await" ? programAwait() : programChunks();
       s.tile("script-task", { in: "tasks", of: "record", text: "script", key: "script" });
       tasks.push({ kind: "script", tile: "script-task", fn: script, label: "script", key: "script", at: 0 });
-      s.phase("The script", { about: "Think of one cook with an order rail. Orders wait their turn on the rail, the {term:task} queue. Notes marked “before the next order” go in the {term:microtask} queue, checked after every dish." });
+      s.phase("The script", { id: "script", about: "Think of one cook with an order rail. Orders wait their turn on the rail, the {term:task} queue. Notes marked “before the next order” go in the {term:microtask} queue, checked after every dish." });
       s.line(null);
       s.gauge("now", 0);
       s.set("stack", { state: { frames: [], began: null } });
       s.step(sc === "order"
-        ? `The page's ${C("<script>")} is the first order on the rail. One thread, the cook, will run it`
+        ? `The ${C("<script>")} in the code panel is the rail's first order. One thread, the cook, runs it`
         : sc === "await"
-          ? `An async function, ${C("load()")}, called from a script. Where does ${C("await")} send the rest of it?`
+          ? `An ${C("async")} function, ${C("load()")}, called from a script. Where does {term:await} send the rest of it?`
           : starve
             ? `A long job cut into ${cfg.chunks} chunks of ${ms(cfg.work)}. Each chunk queues the next with ${C("queueMicrotask")}`
-            : `The same ${cfg.chunks} chunks of ${ms(cfg.work)}, but each queues the next with ${C("setTimeout(chunk, 0)")}`, { t: 0 });
+            : `The same ${cfg.chunks} chunks of ${ms(cfg.work)}, but each queues the next with ${C("setTimeout(chunk, 0)")}`,
+        { t: 0, id: "script.intro", vars: { ...base(), story: sc } });
       for (let guard = 0; guard < 600; guard++) {
         if (tasks.length) { runTask(tasks.shift()); continue; }
         if (!idle()) break;
       }
       focus(...(chunky ? ["console", "page"] : ["console"]));   // the payoff: what the program printed (and painted)
       s.line(null);
-      step(finale());
+      step(`end.${sc}`, finale(), {
+        printed: output.map((o) => ({ markup: fmt.key(o.key, o.text) })), lines: output.length, lineIds: output.map((_, i) => `log${i + 1}`),
+        ...(chunky ? { timeoutAt: ms(timeoutAt), repaints: paints.length, paints: paints.map((x) => ({ code: `${x}/${cfg.chunks}` })),
+          firstPaint: paints.length ? paints[0] : 0, lastPaint: paints.length ? paints[paints.length - 1] : 0, clampIdle: ms(clampIdle), clamped: clampIdle > 0 } : {}) });
     },
   };
 }

@@ -26,8 +26,9 @@ colour moves with it: Web API → queue → call stack → console. The reader s
 - **Misconception, predicted first:** "`setTimeout(fn, 0)` runs immediately": once before `setTimeout` returns
   ("Does `timeout` print now?") and once, the aha, before `then 1` runs ("Which callback runs next?"). The await and
   starvation stories each ask one more. Every question has a `why`.
-- **Words** (`meta.terms`, marked at first use): task, microtask, event loop, call stack, callback, Web APIs,
-  promise, repaint. "Microtask checkpoint", "nesting level", "fulfil" and "rendering opportunity" are no longer
+- **Words** (`meta.terms`, marked at first use): task, microtask, event loop, call stack, callback, promise,
+  Web APIs (at the network chapter, to keep the first chapter lighter), repaint, await (in the await story). The
+  queue plates read "next out →": the oldest record leaves on the right, toward the stack. "Microtask checkpoint", "nesting level", "fulfil" and "rendering opportunity" are no longer
   used in the narration (the code comments and this README keep the spec's words).
 
 ## The model
