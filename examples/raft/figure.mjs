@@ -26,6 +26,66 @@
 //                question at the first client command to reach a majority.
 //   Message types are plain words ("Vote request", "Update") because the runtime's generated captions print them;
 //   the code panel keeps Raft's real names (RequestVote, AppendEntries).
+//
+// Ids for lesson.mjs (CONTRACTS.md 10). The network runtime writes the steps, so each handler notes the move it
+// narrates (say, sing) and the step takes the lead note's id: a handler's own sentence outranks a merged chorus, which
+// outranks a routine (minor) line. The step's vars are every spoken note's vars (the lead's win a clash) plus `moves`,
+// the ids of every move the step's caption says (a minor line the step drops is not one). Handlers run in every chapter, so a move is named by the part of Raft it
+// belongs to (vote., update., commit.), and by its chapter where it has one (elect., split., heal.). The inline
+// captions stay the fallback. Servers are { ref } chips, with their ids as strings for look; commands are { code }.
+//   run-wide    N, majority, commands (every client command, a list), serverIds
+//   chorus      a merged line also passes who (the servers it names, markup: counted from 4), whoIds and n (how many)
+//   chapters    elect · copy · crash · reelect · catchup · split · lead (New leader) · heal · stuck · agree
+//   elect.start        min, max (the election timer's range, ms)
+//   elect.timeout      chorus: term                                  (one server's timer runs out first)
+//   elect.tie          chorus: term                                  (several time out together)
+//   elect.cut-off      cand, candId, term, cutIds                    (it runs, but the split cuts its requests)
+//   vote.grant         chorus: cand, candId, term, stepped (it stepped down from leading or running)
+//   vote.old           chorus: cand, candId, term (the request's), own (the voters' newer term)
+//   vote.taken         chorus: cand, candId, same (the "already voted" follows a grant in this step), takenWho,
+//                      takenIds                                      (vote.grant-taken: the pair in one step)
+//   vote.behind        chorus: cand, candId                          (the voters' logs are more complete)
+//   vote.denied        chorus (the voters who said no): cand, candId, votes, need
+//   vote.tally         cand, candId, votes, need
+//   vote.late          minor chorus (the late voters): cand, candId, leads (it already won)
+//   elect.win          leader, leaderId, term, votes, noop
+//   reelect.win        leader, leaderId, term, votes, kept (committed commands its log still has)
+//   term.newer         who, whoId, from, fromId, term                (a reply carries a newer term: it steps down)
+//   beat.send          chorus (one leader): heartbeats                beat.send-many: two leaders at once
+//   beat.resend        chorus (one leader): leader, leaderId, behindIds, idleIds   beat.resend-many: two leaders
+//   split.send         chorus (the cut-off leaders): cutIds
+//   update.old         chorus: from, fromId, term (the update's), own
+//   update.gap         who, whoId, from, fromId, index, term         (it lacks the entry before the new ones)
+//   update.step-down   chorus: term, was ("leader" | "candidate"), downWho, downIds (its servers, kept in a merge)
+//   update.copy-down   update.copy and update.step-down in one step
+//   update.copy        chorus: from, fromId, entries (one command, a list), first, last (its index)
+//   update.copy-commit as update.copy, with several entries or commit (the same servers learn a commit in this step)
+//   update.replace     chorus: from, fromId, cut (uncommitted entries replaced), commit (as update.copy-commit)
+//   update.learn       minor chorus: from, fromId, commit
+//   update.beat        minor chorus: from, fromId
+//   update.back        who, whoId (the follower), leader, leaderId, missing, next
+//   reply.match        minor chorus: leader, leaderId
+//   reply.old          minor chorus (the senders): leader, leaderId
+//   commit.majority    leader, leaderId, cmd, index, have, more (it commits several entries), older ([])
+//   commit.older       as commit.majority; older (the older-term commands it commits too, Figure 8)
+//   split.no-majority  who, whoId (the follower), leader, leaderId, cmd, held
+//   client.send        cmd, leader, leaderId                         (client.next, right after an answer: + nextCmd)
+//   client.retry       cmd, leader, leaderId, after (ms)
+//   client.wait        cmd
+//   client.refused     who, whoId, cmd, hint, hintId (the leader it points at, when it knows one)
+//   client.redirect    who, whoId
+//   client.done        cmd, leaderId          client.done-next: + nextCmd, leader (client.next in the same step)
+//   client.dup         minor: cmd
+//   command.add        leader, leaderId, cmd, index                  (split.add: cutIds, the copies die at the split)
+//   command.again      leader, leaderId, cmd, index, committed
+//   stuck.old          leader, leaderId, cmd, held, term
+//   crash.down         who, whoId, leader (it led)
+//   catchup.restart    who, whoId, entries
+//   split.cut          sideA, sideB (server ids), leaderId          heal.join (the run-wide values)
+//   net.lost · net.cut · net.down · net.event                      what the runtime says alone: a message dropped
+//                      (net.lost), cut by the split, sent to a crashed server, or anything else (none in the stories)
+//   agree.same         N, upIds, up, log (the committed commands)     agree.where: N, committed, whoId
+//   asks               copy.commit · split.minority · reelect.survive · heal.replaced
 
 import { network } from "../../sim/actors.mjs";
 import { rng } from "../../sim/rng.mjs";
@@ -38,7 +98,7 @@ export const meta = {
   kicker: "Distributed systems",
   fig: 3,
   cite: { text: "Ongaro & Ousterhout, “In Search of an Understandable Consensus Algorithm”, USENIX ATC 2014", url: "https://raft.github.io/raft.pdf" },
-  theme: "dark",
+  theme: "light",
   level: "core",
   hook: "Five servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
   terms: {
@@ -48,18 +108,17 @@ export const meta = {
     term: "An election round number. Each new election raises it, and a newer round beats an older one.",
     entry: "One line of the log: one command, such as x←3, with the round it was written in.",
     client: "The program outside the servers that sends commands, such as x←3, to be saved.",
-    commit: "To make an entry final: it is on a majority of servers, so it can never be lost.",
+    commit: "To make an entry final once a majority store it. A leader counts copies only of its own term's entries.",
     heartbeat: "A short “still here” message the leader sends often, so no one starts an election.",
     partition: "A break in the network that splits the servers into groups that cannot hear each other.",
-    node: "Another word for one server in a group of machines.",
   },
   recap: [
     "The servers elected one leader, by majority vote.",
     "The leader wrote each command into its log and sent copies.",
-    "An entry counted once most servers had it: it was committed.",
+    "An entry counted once the leader heard that most servers had it: it was committed.",
     "In the end every server held the same entries, in the same order.",
   ],
-  takeaway: "An entry counts once most servers store it. Any two majorities share a server, so a committed entry is never lost.",
+  takeaway: "A leader commits an entry of its term once most servers store it. Any two majorities share a server, so a committed entry is never lost.",
 };
 
 export const params = {
@@ -105,7 +164,7 @@ export const counters = {
   term: { label: "election term", short: "term", format: "int", primary: true,
     hint: "The election round number. It goes up by one each time a server runs for leader." },
   committed: { label: "entries committed", short: "committed", format: "int", primary: true,
-    hint: "Entries that more than half of the servers have stored. A committed entry is never lost." },
+    hint: "Entries a leader has heard are stored on more than half of the servers, each empty nop included. A committed entry is never lost." },
   leaderless: { label: "time without a leader", short: "no leader", format: "ms", primary: ["crash", "partition"],
     hint: "The latest stretch with no leader, from boot or a failure until the next election is won." },
   messages: { label: "messages sent", format: "int",
@@ -138,14 +197,19 @@ export const code = {
     "    if m.term < self.term: return reply(AppendReply(self.term, False))",
     "    self.become_follower(m.term); self.reset_election_timer()",
     "    if self.term_at(m.prev_index) != m.prev_term:",
-    "        return reply(AppendReply(self.term, False))",
-    "    self.log.replace_from(m.prev_index + 1, m.entries)   # drop conflicts, append",
+    "        return reply(AppendReply(self.term, False, prev=m.prev_index, last=self.last_index()))",
+    "    for i, e in enumerate(m.entries, m.prev_index + 1):",
+    "        if self.term_at(i) == e.term: continue          # has it already: keep it",
+    "        if i <= self.last_index(): del self.log[i:]      # the first conflict: cut from here",
+    "        self.log.append(e)",
     "    self.commit = max(self.commit, min(m.leader_commit, m.prev_index + len(m.entries)))",
     "    reply(AppendReply(self.term, True, m.prev_index + len(m.entries)))",
     "",
     "def on_append_reply(self, m):",
     "    if m.success: self.match[m.sender] = m.match",
-    "    else: self.next[m.sender] -= 1; self.send_append(m.sender)",
+    "    else:   # back up past the gap: at most to the follower's last entry + 1",
+    "        self.next[m.sender] = max(self.match[m.sender] + 1, min(m.prev, m.last + 1))",
+    "        self.send_append(m.sender)",
     "    n = self.majority_match()",
     "    if n > self.commit and self.log[n].term == self.term:   # only this term's",
     "        self.commit = n",
@@ -156,7 +220,7 @@ export const code = {
 const MSG = { vote: "Vote request", voteReply: "Vote", update: "Update", updateReply: "Update reply", command: "Command", notLeader: "Not leader", answer: "Answer" };
 const LINES = {
   timeout: [1, 4], vote: [6, 11], voteReply: [13, 15], appendStale: [17, 18], heartbeat: [19, 19],
-  appendCheck: [20, 21], append: [22, 24], learn: [23, 23], reply: [27, 27], replyFail: [28, 28], commit: [29, 31],
+  appendCheck: [20, 21], append: [22, 27], learn: [26, 26], reply: [30, 30], replyFail: [31, 33], commit: [34, 36],
 };
 
 // ---- invariants (each reads one snapshot; history comes from the ghost variables) ----
@@ -237,26 +301,28 @@ function payoff(s, net, p) {
   const same = up.length > 0 && up.every((id) => committed(id) === committed(up[0]));
   const st = net.state(up[0] ?? ids[0]);
   const cmds = st.log.slice(0, st.commitIndex).map((e) => e.cmd).filter((c) => c !== "nop");
-  s.phase("Agreement", { about: same
+  s.phase("Agreement", { id: "agree", about: same
     ? "Every server now holds the same committed entries in the same order. That is the one promise Raft makes, whatever crashed or split along the way."
     : "Where the servers stand at the end of the run." });
   s.focus("board");   // the cluster and its client: the payoff shot frames them large, nothing cut under the dock
   s.lit(...up);
   s.step(same && cmds.length
     ? `${up.length === N ? `All ${N}` : `${up.length} of ${N}`} servers hold the same committed log: ${cmds.map((c) => fmt.code(c)).join(", ")}, in the same order.`
-    : `${fmt.plural(st.commitIndex, "entry", "entries")} committed on ${fmt.ref(up[0] ?? ids[0])}.`, { t: net.now });
+    : `${fmt.plural(st.commitIndex, "entry", "entries")} committed on ${fmt.ref(up[0] ?? ids[0])}.`,
+    { t: net.now, id: same && cmds.length ? "agree.same" : "agree.where",
+      vars: same && cmds.length ? { N, upIds: up, up: up.length, log: cmds.map((c) => ({ code: c })) } : { N, committed: st.commitIndex, whoId: up[0] ?? ids[0] } });
 }
 
 // one plain-English line per chapter, for the explain panel (s.phase(name, { about }))
 const ABOUT = {
   election: "Think of a group sharing one notebook. If everyone wrote at once, copies would disagree, so they elect one note-taker, the {term:leader}. A server whose random timer runs out asks for votes; a {term:majority} wins.",
-  replication: "The leader adds each {term:client} command to its log as an {term:entry}, then sends copies. Once a majority store it, it is {term:commit|committed}: final. Waiting for every server would stall on one crash.",
+  replication: "The leader adds each {term:client} command to its log as an {term:entry} and sends copies. Once a majority, not all, store an entry of its term, that entry and all before it are {term:commit|committed}.",
   crash: "The leader stops. The others stop hearing its {term:heartbeat|heartbeats}, so for a while nobody leads. Nothing committed is lost: a majority still holds it.",
   reelection: "A server's timer runs out and it runs in the next term. Servers vote only for one whose log is at least as complete as theirs, so the winner has every committed entry.",
   catchup: "The crashed server restarts with its saved log. The leader's updates find where the two logs differ, then fill in what it missed.",
   partition: "The network splits in two, a {term:partition}. The leader is stuck on the smaller side, too few for a majority, so nothing it adds can be committed.",
   newLeader: "On the bigger side a server's timer runs out, and it wins a newer term. Commands are committed there again, while the old leader still thinks it leads.",
-  heal: "The network joins up again, so every server, or {term:node}, hears the others. The old leader sees the newer term and steps down; its uncommitted entries are replaced.",
+  heal: "The network joins up again, so every server hears every other. The old leader sees the newer term and steps down; its uncommitted entries are replaced.",
   stuck: "A leader may only count copies of entries from its own term. Without an empty entry of its own, the older one can never be committed, even on a majority.",
 };
 
@@ -294,6 +360,53 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   const line = (k) => s.line(...LINES[k]);
   const asks = opt.asks !== false && opt.stopWhen !== false;
 
+  // ---- ids for lesson.mjs (the header): handlers note their moves, the step the runtime commits takes the lead one ----
+  const chip = (id) => ({ ref: id }), K = (c) => ({ code: c });
+  const V = { N, majority, commands: cmds.map((c) => K(c.cmd)), serverIds: ids };
+  let notes = [], lost = null, cut = false;
+  const note = (id, vars, rank) => notes.push({ id, vars, rank });
+  const subjects = new Map();   // chorus key -> the ids it has merged in this step
+  // a handler's own sentence
+  const say = (ctx, id, vars, text, o) => { note(id, vars, o?.minor ? 0 : 2); return ctx.say(text, o); };
+  // a sentence merged across the batch: noted only if the step speaks it (fn may decline, and minor lines drop out);
+  // o.as also names its servers `${as}Who`, `${as}Ids`, so they survive a merge whose lead has its own who
+  function sing(ctx, key, id, vars, fn, subject = ctx.id, o) {
+    if (!subjects.has(key)) subjects.set(key, []);
+    const who = subjects.get(key);
+    if (!who.includes(subject)) who.push(subject);
+    return ctx.chorus(key, (list, n) => {
+      const text = fn(list, n);
+      const named = { markup: crowd(list, n) };   // as the captions say it: 4 or more servers are counted
+      const as = o?.as ? { [`${o.as}Who`]: named, [`${o.as}Ids`]: who.slice() } : {};
+      if (text) note(typeof id === "function" ? id(n) : id, { who: named, whoIds: who.slice(), n, ...as, ...vars }, o?.minor ? 0 : o?.rank ?? 1);
+      return text;
+    }, subject, o);
+  }
+  // the builder the network writes through: each step it commits takes the lead note's id and every spoken note's
+  // vars; a step nobody noted is named by what the runtime said alone (a lost message's tag). Like the runtime, a step
+  // that says anything non-routine drops its minor lines, so their moves (and vars) go too
+  const LOST = { dropped: "net.lost", partitioned: "net.cut" };
+  // two moves that often share a step get words of their own: the lead's id gives way to the pair's (moves keep both)
+  const PAIRS = { "client.done|client.next": "client.done-next", "update.copy|update.step-down": "update.copy-down", "vote.grant|vote.taken": "vote.grant-taken" };
+  const sn = new Proxy(s, {
+    get(t, k) {
+      if (k === "step") return (text, o) => {
+        const said = notes.some((x) => x.rank > 0) ? notes.filter((x) => x.rank > 0) : notes;
+        const lead = said.reduce((a, x) => (!a || x.rank > a.rank ? x : a), null);
+        const vars = { ...V, ...Object.assign({}, ...said.map((x) => x.vars)), ...lead?.vars, moves: said.map((x) => x.id) };
+        const pair = said.length === 2 && PAIRS[`${lead.id}|${said.find((x) => x !== lead).id}`];
+        const id = pair || (lead?.id ?? (lost ? LOST[lost] ?? "net.down" : cut ? "net.cut" : "net.event"));
+        notes = []; lost = null; cut = false; subjects.clear();
+        return t.step(text, { ...o, id, vars });
+      };
+      // the runtime tags the first lost message of a step with why it died; losses at the split go untagged (quiet)
+      if (k === "tag") return (id, text, o) => { if (o?.tone === "fail" && typeof id === "string" && id.startsWith("net.m") && !lost) lost = text; return t.tag(id, text, o); };
+      if (k === "deliver") return (id, o) => { if (o?.lost) cut = true; return t.deliver(id, o); };
+      const v = t[k];
+      return typeof v === "function" ? v.bind(t) : v;
+    },
+  });
+
   // ---- world: the cluster board (ring + client) and, opt-in, the space-time board ----
   // the time board is off by default (lanes: "off"); "on" shows it beside the cluster, "below" under it ("auto", from
   // old links, shows it on wide screens only: it can't be read at phone width). layout auto: side by side on a wide
@@ -313,7 +426,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   if (portrait) s.grid("cluster", { in: "board", cols: 2, gap: 16, title: `Raft cluster · ${N} servers` });
   else s.ring("cluster", { in: "board", title: `Raft cluster · ${N} servers` });
   const tray = opt.tray ?? { cols: 4, rows: 2 };
-  const net = network(s, {
+  const net = network(sn, {
     id: "net",
     nodes: ids.map((id) => ({ id, title: T(id), sub: "term 0", tray: { ...tray, of: "tile", order: "row" }, led: "idle" })),
     clients: [{ id: "client", title: "client", sub: "192.0.2.10", variant: "client", led: "idle", in: "board" }],
@@ -381,7 +494,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   // routine sentences a same-step win or commit already implies are dropped from the merged caption
   let lastWin = { by: null, at: -1 }, lastCommit = { by: null, at: -1 };
   const explainStall = opt.stopWhen !== false;
-  const ask = (k, q, options, answer, why) => { if (asks && !asked.has(k)) { asked.add(k); s.ask(q, options, answer, { why }); } };
+  const ask = (id, q, options, answer, why) => { if (asks && !asked.has(id)) { asked.add(id); s.ask(q, options, answer, { why, id }); } };
 
   function gauges(st) {
     if (st.term > maxTerm) { maxTerm = st.term; s.gauge("term", maxTerm); }
@@ -458,8 +571,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     st.ledTerms.push(st.term);
     ctx.cancel("election");
     for (const f of ctx.peers) { st.nextIndex[f] = lastIndex(st) + 1; st.matchIndex[f] = 0; }
-    if (!sawLeader) { sawLeader = true; ctx.phase("Copying the log", { about: ABOUT.replication }); }
-    else if (scenario === "partition" && !sawNewLeader && cutOff(ctx).length) { sawNewLeader = true; ctx.phase("New leader", { about: ABOUT.newLeader }); }
+    if (!sawLeader) { sawLeader = true; ctx.phase("Copying the log", { id: "copy", about: ABOUT.replication }); }
+    else if (scenario === "partition" && !sawNewLeader && cutOff(ctx).length) { sawNewLeader = true; ctx.phase("New leader", { id: "lead", about: ABOUT.newLeader }); }
     if (leaderlessSince !== null) { s.gauge("leaderless", Math.round(net.now - leaderlessSince)); leaderlessSince = null; }
     if (noop) {
       const e = { term: st.term, cmd: "nop" };
@@ -473,17 +586,18 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     lastWin = { by: ctx.id, at: net.stepSerial };
     line("voteReply");
     // the crash story's question: does the new leader still hold what was committed before the crash?
-    const kept = crashed && ctx.id !== crashed && !asked.has("survive")
+    const won = { leader: chip(ctx.id), leaderId: ctx.id, term: st.term, votes: st.votes.length };
+    const kept = crashed && ctx.id !== crashed && !asked.has("reelect.survive")
       ? st.log.slice(0, maxCommit).filter((e) => e.client).map((e) => e.cmd) : [];
     if (kept.length) {
       const what = kept.join(", ");
-      ask("survive", `${T(crashed)} crashed after ${what} was committed. Will the new leader still have ${what}?`,
+      ask("reelect.survive", `${T(crashed)} crashed after ${what} was committed. Will the new leader still have ${what}?`,
         [`No: it was lost with ${T(crashed)}`, "Yes: voters only back a log as complete as theirs", "Only if the client sends it again"], 1,
         `A majority stored ${what}. Any winning majority includes one of them, and that server refuses a log without it.`);
-      return ctx.say(`${R(ctx.id)} wins term ${st.term} with ${st.votes.length} of ${N} votes. Its log still has ${fmt.and(kept.map(C))}.`);
+      return say(ctx, "reelect.win", { ...won, kept: kept.map(K) }, `${R(ctx.id)} wins term ${st.term} once ${st.votes.length} of ${N} votes arrive. Its log still has ${fmt.and(kept.map(C))}.`);
     }
-    ctx.say(`${R(ctx.id)} wins term ${st.term} with ${st.votes.length} of ${N} votes` +
-      (noop ? ` and writes an empty ${C("nop")} to mark its term.` : "."));
+    say(ctx, "elect.win", { ...won, noop }, `${R(ctx.id)} wins term ${st.term} once ${st.votes.length} of ${N} votes arrive` +
+      (noop ? `; it writes an empty ${C("nop")} for its term.` : "."));
   }
 
   // ---- election ----
@@ -496,15 +610,15 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     st.votedFor = ctx.id;
     st.votes = [ctx.id];
     st.leader = null;
-    if (crashed && !sawCandidateAfterCrash) { sawCandidateAfterCrash = true; ctx.phase("Re-election", { about: ABOUT.reelection }); }
+    if (crashed && !sawCandidateAfterCrash) { sawCandidateAfterCrash = true; ctx.phase("Re-election", { id: "reelect", about: ABOUT.reelection }); }
     resetElection(ctx);
     show(ctx);
     line("timeout");
     if (st.votes.length >= majority) return becomeLeader(ctx);
     ctx.broadcast(MSG.vote, { term: st.term, candidate: ctx.id, lastLogIndex: lastIndex(st), lastLogTerm: lastTerm(st) });
     const t = st.term, cut = cutOff(ctx);
-    if (cut.length) return ctx.say(`${R(ctx.id)}'s timer runs out: it runs in term ${t}, but ${refs(cut)} can't hear it.`);
-    ctx.chorus(`elect|${t}`, (list, n) => n > 1
+    if (cut.length) return say(ctx, "elect.cut-off", { cand: chip(ctx.id), candId: ctx.id, term: t, cutIds: cut }, `${R(ctx.id)}'s timer runs out: it runs in term ${t}, but ${refs(cut)} can't hear it.`);
+    sing(ctx, `elect|${t}`, (n) => (n > 1 ? "elect.tie" : "elect.timeout"), { term: t }, (list, n) => n > 1
       ? `${crowd(list, n)} time out together, each running in term ${t}: the votes may split.`
       : `${list}'s timer runs out first: it runs for leader in {term:term} ${t} and votes for itself.`);
   });
@@ -519,17 +633,18 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const grant = b.term === st.term && free && (upToDate || bugs.has("vote-any-log"));
     if (grant) { st.votedFor = b.candidate; resetElection(ctx); }
     ctx.reply(b0, MSG.voteReply, { term: st.term, granted: grant });
+    const cv = { cand: chip(b.candidate), candId: b.candidate };
     if (grant) {
       grantAt.set(b.candidate, net.stepSerial);
-      ctx.chorus(`grant|${b.candidate}|${st.term}|${stepped}`, (list, n) =>
+      sing(ctx, `grant|${b.candidate}|${st.term}|${stepped}`, "vote.grant", { ...cv, term: st.term, stepped }, (list, n) =>
         `${crowd(list, n)}${stepped ? ` ${v(n, "steps", "step")} down and` : ""} ${v(n, "votes", "vote")} for ${R(b.candidate)}: its log is as complete as ${v(n, "its own", "theirs")}.`);
     } else if (b.term < st.term) {
       const now = st.term;
-      ctx.chorus(`old-vote|${b.candidate}|${b.term}|${now}`, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
-    } else if (!free) ctx.chorus(`voted|${b.candidate}|${st.term}`, (list, n) => (grantAt.get(b.candidate) === net.stepSerial
+      sing(ctx, `old-vote|${b.candidate}|${b.term}|${now}`, "vote.old", { ...cv, term: b.term, own: now }, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
+    } else if (!free) sing(ctx, `voted|${b.candidate}|${st.term}`, "vote.taken", { ...cv, same: grantAt.get(b.candidate) === net.stepSerial }, (list, n) => (grantAt.get(b.candidate) === net.stepSerial
       ? `${crowd(list, n)} already voted.`   // after "s2 and s5 vote for s1" in the same step
-      : `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: ${v(n, "it", "they")} already voted.`));
-    else ctx.chorus(`fuller|${b.candidate}|${st.term}`, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: ${v(n, "its own log is", "their logs are")} more complete.`);
+      : `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: ${v(n, "it", "they")} already voted.`), ctx.id, { as: "taken" });
+    else sing(ctx, `fuller|${b.candidate}|${st.term}`, "vote.behind", cv, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: ${v(n, "its own log is", "their logs are")} more complete.`);
   });
 
   net.on("*", MSG.voteReply, (m, ctx) => {
@@ -537,20 +652,21 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     line("voteReply");
     if (b.term > st.term) {
       becomeFollower(ctx, b.term);
-      return ctx.say(`${R(ctx.id)} sees the newer term ${b.term} in ${R(m.from)}'s reply and steps down.`);
+      return say(ctx, "term.newer", { who: chip(ctx.id), whoId: ctx.id, from: chip(m.from), fromId: m.from, term: b.term }, `${R(ctx.id)} sees the newer term ${b.term} in ${R(m.from)}'s reply and steps down.`);
     }
+    const cv = { cand: chip(ctx.id), candId: ctx.id };
     if (st.role !== "candidate" || b.term !== st.term) {
       const lead = st.role === "leader" && b.term === st.term;
-      return ctx.chorus(`late|${ctx.id}|${b.term}`, (list, n) => (lead && lastWin.by === ctx.id && lastWin.at === net.stepSerial ? null
+      return sing(ctx, `late|${ctx.id}|${b.term}`, "vote.late", { ...cv, leads: lead }, (list, n) => (lead && lastWin.by === ctx.id && lastWin.at === net.stepSerial ? null
         : `${R(ctx.id)} ${lead ? "already leads" : "has moved on"}; the late ${v(n, "vote", "votes")} of ${list} ${v(n, "changes", "change")} nothing.`), m.from, { minor: true });
     }
     // the tally is read when the step is written: if the candidate won in this same step, its win says it all
-    if (!b.granted) return ctx.chorus(`deny|${ctx.id}|${st.term}`, (list, n) => (lastWin.by === ctx.id && lastWin.at === net.stepSerial ? null
+    if (!b.granted) return sing(ctx, `deny|${ctx.id}|${st.term}`, "vote.denied", { ...cv, votes: st.votes.length, need: majority }, (list, n) => (lastWin.by === ctx.id && lastWin.at === net.stepSerial ? null
       : `${crowd(list, n)} ${v(n, "turns", "turn")} ${R(ctx.id)} down; it has ${st.votes.length} of the ${majority} votes it needs.`), m.from);
     if (!st.votes.includes(m.from)) st.votes.push(m.from);
     if (st.votes.length >= majority) return becomeLeader(ctx);
     const term = st.term;
-    ctx.chorus(`tally|${ctx.id}|${term}`, () => (st.role === "candidate" && st.term === term ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
+    sing(ctx, `tally|${ctx.id}|${term}`, "vote.tally", { ...cv, votes: st.votes.length, need: majority }, () => (st.role === "candidate" && st.term === term ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
   });
 
   // ---- replication ----
@@ -563,12 +679,13 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const behind = ctx.peers.filter((f) => st.nextIndex[f] <= lastIndex(st));
     const idle = ctx.peers.filter((f) => !behind.includes(f));
     const cut = cutOff(ctx);
-    if (cut.length) return ctx.chorus("cutsend", (list, n) => (n > 1
+    if (cut.length) return sing(ctx, "cutsend", "split.send", { cutIds: cut }, (list, n) => (n > 1
       ? `${crowd(list, n)} keep sending, but nothing crosses the split.`
       : `${list} keeps sending, but nothing reaches ${refs(cut)} across the split.`));
-    if (!behind.length) return ctx.chorus("heartbeat", (list, n) => `${crowd(list, n)} ${v(n, "sends", "send")} {term:heartbeat|heartbeats}, “still here” messages, so no one starts an election.`);
+    const many = (one) => (n) => (n > 1 ? `${one}-many` : one);
+    if (!behind.length) return sing(ctx, "heartbeat", many("beat.send"), {}, (list, n) => `${crowd(list, n)} ${v(n, "sends", "send")} {term:heartbeat|heartbeats}, “still here” messages, so no one starts an election.`);
     const detail = `${R(ctx.id)} resends entries to ${refs(behind)}${idle.length ? ` and ${v(idle.length, "a heartbeat", "heartbeats")} to ${refs(idle)}` : ""}.`;
-    ctx.chorus("resend", (list, n) => (n > 1 ? `${crowd(list, n)} each resend entries to the servers behind them.` : detail));
+    sing(ctx, "resend", many("beat.resend"), { leader: chip(ctx.id), leaderId: ctx.id, behindIds: behind, idleIds: idle }, (list, n) => (n > 1 ? `${crowd(list, n)} each resend entries to the servers behind them.` : detail));
   });
 
   net.on("*", MSG.update, (m, ctx) => {
@@ -577,7 +694,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
       line("appendStale");
       ctx.reply(m, MSG.updateReply, { term: st.term, success: false, prev: b.prevLogIndex, last: lastIndex(st) });
       const now = st.term;
-      return ctx.chorus(`stale-ae|${m.from}|${b.term}|${now}`, (list, n) => `${crowd(list, n)} ${v(n, "rejects", "reject")} ${R(m.from)}: its term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
+      return sing(ctx, `stale-ae|${m.from}|${b.term}|${now}`, "update.old", { from: chip(m.from), fromId: m.from, term: b.term, own: now }, (list, n) => `${crowd(list, n)} ${v(n, "rejects", "reject")} ${R(m.from)}: its term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
     }
     let stepped = false;
     if (b.term > st.term || st.role !== "follower") { const was = becomeFollower(ctx, b.term); stepped = was !== "follower" && was; }
@@ -586,7 +703,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (b.prevLogIndex > lastIndex(st) || termAt(st, b.prevLogIndex) !== b.prevLogTerm) {
       line("appendCheck");
       ctx.reply(m, MSG.updateReply, { term: st.term, success: false, prev: b.prevLogIndex, last: lastIndex(st) });
-      return ctx.say(`${R(ctx.id)} lacks entry ${b.prevLogIndex} from term ${b.prevLogTerm}, so it refuses the update.`);
+      return say(ctx, "update.gap", { who: chip(ctx.id), whoId: ctx.id, from: chip(m.from), fromId: m.from, index: b.prevLogIndex, term: b.prevLogTerm },
+        `${R(ctx.id)} lacks entry ${b.prevLogIndex} from term ${b.prevLogTerm} and refuses the update.`);
     }
     let i = b.prevLogIndex, added = [], cut = 0, from = 0;
     for (const e of b.entries) {
@@ -594,9 +712,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
       if (i <= lastIndex(st)) {
         if (st.log[i - 1].term === e.term) continue;
         if (bugs.has("no-truncate")) { st.log[i - 1] = { ...e }; continue; }
-        if (scenario === "partition" && ctx.id === stranded && !asked.has("heal")) {
+        if (scenario === "partition" && ctx.id === stranded && !asked.has("heal.replaced")) {
           const old = st.log[i - 1];
-          ask("heal", `The network has joined up again. What happens to ${T(ctx.id)}'s uncommitted ${old.cmd} from term ${old.term}?`,
+          ask("heal.replaced", `The network has joined up again. What happens to ${T(ctx.id)}'s uncommitted ${old.cmd} from term ${old.term}?`,
             [`${T(ctx.id)} copies it to everyone`, `It is replaced by the term-${e.term} leader's log`, `It counts, because ${T(ctx.id)} led first`], 1,
             `${old.cmd} never reached a majority, so it never counted. The leader of the newer term decides what stays.`);
         }
@@ -625,14 +743,18 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const where = added.length > 1 ? `entries ${from}–${from + added.length - 1}` : `entry ${from}`;
     const conflicts = fmt.plural(cut, "uncommitted entry", "uncommitted entries");
     let did = null;   // [key, singular, plural]
-    if (cut) did = [`cut|${conflicts}`, `replaces ${conflicts} with the leader's`, `replace ${conflicts} with the leader's`];
-    else if (added.length) did = [`add|${from}|${added.join(",")}`, `copies ${fmt.and(added.map(C))} as ${where}`, `copy ${fmt.and(added.map(C))} as ${where}`];
+    // several entries are named by their indexes alone (the tiles show them), so a merged step stays short
+    const what = added.length === 1 ? `${C(added[0])} as ${where}` : where;
+    if (cut) did = [`cut|${conflicts}`, `replaces ${conflicts}`, `replace ${conflicts}`];
+    else if (added.length) did = [`add|${from}|${added.join(",")}`, `copies ${what}`, `copy ${what}`];
     // a replacement says enough; the commit it learns shows on the tiles
     const mark = st.commitIndex === 1 ? "entry 1" : `up to entry ${st.commitIndex}`;
-    if (stepped) ctx.chorus(`down|${b.term}|${stepped}`, (list, n) => `${crowd(list, n)} ${v(n, "stops", "stop")} ${stepped === "leader" ? "leading" : "running"}: term ${b.term} is newer.`);
+    const uv = { from: chip(m.from), fromId: m.from };
+    if (stepped) sing(ctx, `down|${b.term}|${stepped}`, "update.step-down", { term: b.term, was: stepped }, (list, n) => `${crowd(list, n)} ${v(n, "stops", "stop")} ${stepped === "leader" ? "leading" : "running"}.`, ctx.id, { rank: 0.5, as: "down" });
     // servers that copied the same entries and learned the same commit share one sentence ("… and mark … committed").
     // A step that says anything non-routine drops its routine items, so a commit learned alongside a copy is compared
-    // only among the servers that also copied (`shown`)
+    // only among the servers that also copied (`shown`). A commit learned on its own is routine: beside a copy its
+    // sentence drops out (the tiles light), so a lossy step never strings three sentences together
     const g = aeStep.at === net.stepSerial ? aeStep : (aeStep = { at: net.stepSerial, did: new Map(), learn: new Map() });
     const dk = did && `${m.from}|${did[0]}`, lk = learned && !cut && `${m.from}|${st.commitIndex}`;
     if (dk) { if (!g.did.has(dk)) g.did.set(dk, new Set()); g.did.get(dk).add(ctx.id); }
@@ -641,13 +763,18 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
       g.learn.get(lk).all.add(ctx.id);
       if (did) g.learn.get(lk).copied.add(ctx.id);
     }
-    if (dk) ctx.chorus(`ae|${dk}`, (list, n) => {
+    const dv = cut ? { ...uv, cut } : { ...uv, entries: added.map(K), first: from, last: from + added.length - 1 };
+    const copyId = () => (cut ? "update.replace" : dv.commit !== undefined || added.length > 1 ? "update.copy-commit" : "update.copy");
+    if (dk) sing(ctx, `ae|${dk}`, copyId, dv, (list, n) => {
       const both = [...g.learn.values()].find((x) => sameSet(x.shown, g.did.get(dk)));
-      return `${crowd(list, n)} ${n > 1 ? did[2] : did[1]}${both ? ` and ${v(n, "marks", "mark")} ${both.mark} committed` : ""}.`;
+      if (both) dv.commit = st.commitIndex;
+      // a replacement alone says whose entries win; beside other lines (a copy, a step-down) it stays short
+      const whose = cut && g.did.size === 1 && ![...subjects.keys()].some((k) => k.startsWith("down|")) ? " with the leader's" : "";
+      return `${crowd(list, n)} ${n > 1 ? did[2] : did[1]}${whose}${both ? ` and ${v(n, "marks", "mark")} ${both.mark} committed` : ""}.`;
     });
-    if (lk) ctx.chorus(`learn|${lk}`, (list, n) => ([...g.did.values()].some((ids) => sameSet(ids, g.learn.get(lk).shown)) ? null
-      : `${crowd(list, n)} ${v(n, "marks", "mark")} ${mark} committed.`), ctx.id, { minor: !did });
-    if (!did && !learned) ctx.chorus(`hb|${m.from}`, (list, n) => `${crowd(list, n)} ${v(n, `takes ${R(m.from)}'s heartbeat and restarts its timer`, `take ${R(m.from)}'s heartbeat and restart their timers`)}.`, ctx.id, { minor: true });
+    if (lk) sing(ctx, `learn|${lk}`, "update.learn", { ...uv, commit: st.commitIndex }, (list, n) => ([...g.did.values()].some((ids) => sameSet(ids, g.learn.get(lk).shown)) ? null
+      : `${crowd(list, n)} ${v(n, "marks", "mark")} ${mark} committed.`), ctx.id, { minor: true });
+    if (!did && !learned) sing(ctx, `hb|${m.from}`, "update.beat", uv, (list, n) => `${crowd(list, n)} ${v(n, `takes ${R(m.from)}'s heartbeat and restarts its timer`, `take ${R(m.from)}'s heartbeat and restart their timers`)}.`, ctx.id, { minor: true });
   });
 
   net.on("*", MSG.updateReply, (m, ctx) => {
@@ -655,13 +782,15 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (b.term > st.term) {
       line("reply");
       becomeFollower(ctx, b.term);
-      return ctx.say(`${R(ctx.id)} sees the newer term ${b.term} in ${R(f)}'s reply and steps down.`);
+      return say(ctx, "term.newer", { who: chip(ctx.id), whoId: ctx.id, from: chip(f), fromId: f, term: b.term }, `${R(ctx.id)} sees the newer term ${b.term} in ${R(f)}'s reply and steps down.`);
     }
-    if (st.role !== "leader" || b.term !== st.term) return ctx.chorus(`stale|${ctx.id}`, (list, n) => `${R(ctx.id)} ignores ${v(n, "an old reply", "old replies")} from ${list}.`, f, { minor: true });
+    const lv = { leader: chip(ctx.id), leaderId: ctx.id };
+    if (st.role !== "leader" || b.term !== st.term) return sing(ctx, `stale|${ctx.id}`, "reply.old", lv, (list, n) => `${R(ctx.id)} ignores ${v(n, "an old reply", "old replies")} from ${list}.`, f, { minor: true });
     if (b.success) {
       st.matchIndex[f] = Math.max(st.matchIndex[f] ?? 0, b.match);
       st.nextIndex[f] = Math.max(st.nextIndex[f], st.matchIndex[f] + 1);
       const before = st.commitIndex;
+      const again = lastCommit.by === ctx.id && lastCommit.at === net.stepSerial;   // a second commit in one step
       const n = advanceCommit(ctx);
       line(n ? "commit" : "reply");
       if (n) {
@@ -671,13 +800,15 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
         // the aha: the first client command to reach a majority counts now, without waiting for every server
         const first = st.log.slice(before, st.commitIndex).find((e) => e.client);
         if (first && have < N) {
-          ask("commit", `${first.cmd} is on ${have} of the ${N} servers. Can ${T(ctx.id)} count it as committed now?`,
+          ask("copy.commit", `${T(ctx.id)} has heard that ${first.cmd} is on ${have} of the ${N} servers, itself included. Can it count it as committed now?`,
             [`No: all ${N} servers must have it first`, `Yes: ${have} of ${N} is a majority`, `Yes: it was safe once ${T(ctx.id)} wrote it`], 1,
             `Any later majority must include one of these ${have} servers, so ${first.cmd} can never be lost.`);
         }
-        const head = `${C(top.cmd)} is on ${have} of ${N} servers, a majority: ${R(ctx.id)} {tone:ok|commits} it`;
-        return ctx.say(older.length ? `${head} and the older ${fmt.and(older.map((e) => C(e.cmd)))} before it.`
-          : n > 1 ? `${head} and every entry before it.` : `${head}.`);
+        const head = `${R(ctx.id)} hears ${C(top.cmd)} is on ${have} of ${N}, a majority: it {tone:ok|commits} it`;
+        // an older-term entry committed by counting a newer one (Figure 8's lesson) is its own move
+        return say(ctx, older.length ? "commit.older" : "commit.majority", { ...lv, cmd: K(top.cmd), index: st.commitIndex, have, older: older.map((e) => K(e.cmd)), more: n > 1 },
+          older.length ? `${head} and the older ${fmt.and(older.map((e) => C(e.cmd)))} too.`
+          : n > 1 ? `${head} and every entry before it.` : `${head}.`, { minor: again });   // the tiles show a second one
       }
       const upTo = st.matchIndex[f];
       const cut = cutOff(ctx);
@@ -689,18 +820,20 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
         strandedSaid = true;
         line("commit");   // the majority check is what fails
         const held = 1 + ctx.peers.filter((x) => (st.matchIndex[x] ?? 0) >= upTo).length;
-        ask("minority", `${T(ctx.id)} is cut off with only ${T(f)}, which has just stored ${pend.cmd}. Can ${T(ctx.id)} commit it?`,
+        ask("split.minority", `${T(ctx.id)} is cut off with only ${T(f)}, which has just stored ${pend.cmd}. Can ${T(ctx.id)} commit it?`,
           [`Yes: ${T(ctx.id)} is still the leader`, `No: ${held} of ${N} servers is not a majority`, `Yes: once ${T(f)} confirms it`], 1,
           `A majority of ${N} is ${majority}. The other ${N - held} servers can't hear ${T(ctx.id)}, so ${pend.cmd} can't reach ${majority}.`);
-        return ctx.say(`${R(f)} stores ${C(pend.cmd)}, but ${held} of ${N} servers is no majority: ${R(ctx.id)} cannot commit it.`);
+        return say(ctx, "split.no-majority", { ...lv, who: chip(f), whoId: f, cmd: K(pend.cmd), held },
+          `${R(f)} stores ${C(pend.cmd)}, but ${held} of ${N} servers is no majority: ${R(ctx.id)} cannot commit it.`);
       }
-      return ctx.chorus(`match|${ctx.id}`, (list, n) => (lastCommit.by === ctx.id && lastCommit.at === net.stepSerial ? null
+      return sing(ctx, `match|${ctx.id}`, "reply.match", lv, (list, n) => (lastCommit.by === ctx.id && lastCommit.at === net.stepSerial ? null
         : `${crowd(list, n)} ${v(n, "confirms", "confirm")}: ${v(n, "its log matches", "their logs match")} ${R(ctx.id)}'s.`), f, { minor: true });
     }
     line("replyFail");
     st.nextIndex[f] = Math.max(1, (st.matchIndex[f] ?? 0) + 1, Math.min(b.prev, b.last + 1));
     sendAppend(ctx, f);
-    ctx.say(`${R(f)} lacks entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${st.nextIndex[f]} and resends.`);
+    say(ctx, "update.back", { ...lv, who: chip(f), whoId: f, missing: b.prev, next: st.nextIndex[f] },
+      `${R(f)} lacks entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${st.nextIndex[f]} and resends.`);
   });
 
   // ---- the client ----
@@ -722,7 +855,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (!cl.leader || why === "retry") cl.leader = discover();
     const target = cl.leader;
     if (!target) {
-      if (why === "retry" && !waiting.has(c.id)) { waiting.add(c.id); net.say(`No answer for ${C(c.cmd)} and no leader to ask: the client waits.`); }
+      if (why === "retry" && !waiting.has(c.id)) { waiting.add(c.id); say(net, "client.wait", { cmd: K(c.cmd) }, `No answer for ${C(c.cmd)} and no leader to ask: the client waits.`); }
       net.at(net.now + 40, () => submit(c, why), { quiet: true });
       return;
     }
@@ -731,7 +864,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (why === "retry") retries[c.id] = (retries[c.id] ?? 0) + 1;   // a retry is a step of its chapter, not a chapter
     net.send("client", target, MSG.command, { id: c.id, cmd: c.cmd });
     net.node("client").timer(`retry ${c.id}`, RETRY, { label: "retry", mark: false });
-    net.say(why === "retry"
+    const next = why === "retry" ? "client.retry" : answeredAt === net.stepSerial ? "client.next" : "client.send";
+    // right after an answer the two share a step (client.done-next): the next command keeps its own name, nextCmd
+    say(net, next, { cmd: K(c.cmd), leader: chip(target), leaderId: target, ...(next === "client.next" ? { nextCmd: K(c.cmd) } : {}), ...(why === "retry" ? { after: RETRY } : {}) }, why === "retry"
       ? `No answer for ${C(c.cmd)} after ${fmt.ms(RETRY)}: the client sends it again, to ${R(target)}.`
       : answeredAt === net.stepSerial ? `Next it sends ${C(c.cmd)} to ${R(target)}.`
         : `The client sends ${C(c.cmd)} to ${R(target)}, the leader it knows.`);
@@ -749,19 +884,22 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     s.line(null);
     if (st.role !== "leader") {
       ctx.reply(m, MSG.notLeader, { id: b.id, hint: st.leader });
-      return ctx.say(`${R(ctx.id)} is not the leader and turns ${C(b.cmd)} away${st.leader ? `, pointing at ${R(st.leader)}` : ""}.`);
+      return say(ctx, "client.refused", { who: chip(ctx.id), whoId: ctx.id, cmd: K(b.cmd), ...(st.leader ? { hint: chip(st.leader), hintId: st.leader } : {}) },
+        `${R(ctx.id)} is not the leader and turns ${C(b.cmd)} away${st.leader ? `, pointing at ${R(st.leader)}` : ""}.`);
     }
     const at = st.log.findIndex((e) => e.id === b.id);
+    const lv = { leader: chip(ctx.id), leaderId: ctx.id, cmd: K(b.cmd) };
     if (at >= 0) {
       if (at < st.commitIndex) ctx.send("client", MSG.answer, { id: b.id, index: at + 1, cmd: b.cmd });
       const held = 1 + ctx.peers.filter((f) => (st.matchIndex[f] ?? 0) > at).length;
       if (at >= st.commitIndex && st.log[at].term < st.term && held >= majority && !noop && explainStall) {
         // §8's liveness gap, shown rather than waited out: nothing of the leader's own term will ever arrive
-        ctx.phase("Stuck", { about: ABOUT.stuck });
-        ctx.say(`${R(ctx.id)} has ${C(b.cmd)} on ${held} of ${N} servers, but from term ${st.log[at].term}: it can never be committed.`);
+        ctx.phase("Stuck", { id: "stuck", about: ABOUT.stuck });
+        say(ctx, "stuck.old", { ...lv, held, term: st.log[at].term }, `${R(ctx.id)} has ${C(b.cmd)} on ${held} of ${N} servers, but from term ${st.log[at].term}: it can never be committed.`);
         return ctx.stop();
       }
-      return ctx.say(`${R(ctx.id)} already has ${C(b.cmd)} as entry ${at + 1}${at < st.commitIndex ? ", committed: it answers again" : "; it waits for a majority"}.`);
+      return say(ctx, "command.again", { ...lv, index: at + 1, committed: at < st.commitIndex },
+        `${R(ctx.id)} already has ${C(b.cmd)} as entry ${at + 1}${at < st.commitIndex ? ", committed: it answers again" : "; it waits for a majority"}.`);
     }
     const e = { term: st.term, cmd: b.cmd, id: b.id, client: true };
     st.log.push(e);
@@ -769,7 +907,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     sendAppends(ctx);
     ctx.timer("heartbeat", hb, { tone: "busy", label: "heartbeat", mark: false });
     const cut = cutOff(ctx);
-    ctx.say(cut.length
+    say(ctx, cut.length ? "split.add" : "command.add", { ...lv, index: lastIndex(st), ...(cut.length ? { cutIds: cut } : {}) }, cut.length
       ? `${R(ctx.id)} adds ${C(b.cmd)} as entry ${lastIndex(st)}, but its copies to ${refs(cut)} die at the split.`
       : `${R(ctx.id)} adds ${C(b.cmd)} to its log as entry ${lastIndex(st)} and sends copies.`);
     if (scenario === "crash" && !crashed && cmdBy.get(b.id)?.n === 2) {
@@ -783,20 +921,20 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const cl = ctx.state, c = cmdBy.get(m.body.id);
     s.line(null);
     cl.leader = m.body.hint ?? null;
-    ctx.say(`The client hears that ${R(m.from)} is not the leader.`);
+    say(ctx, "client.redirect", { who: chip(m.from), whoId: m.from }, `The client hears that ${R(m.from)} is not the leader.`);
     if (c && !cl.acked.includes(c.id)) submit(c, cl.leader ? "redirect" : "retry");
   });
 
   net.on("client", MSG.answer, (m, ctx) => {
     const cl = ctx.state, b = m.body;
     s.line(null);
-    if (cl.acked.includes(b.id)) return ctx.say(`The client already has an answer for ${C(b.cmd)}.`, { minor: true });
+    if (cl.acked.includes(b.id)) return say(ctx, "client.dup", { cmd: K(b.cmd) }, `The client already has an answer for ${C(b.cmd)}.`, { minor: true });
     cl.acked.push(b.id);
     delete cl.pending[b.id];
     cl.leader = m.from;
     ctx.cancel(`retry ${b.id}`);
     answeredAt = net.stepSerial;
-    ctx.say(`The client hears ${C(b.cmd)} is committed.`);
+    say(ctx, "client.done", { cmd: K(b.cmd), leaderId: m.from }, `The client hears ${C(b.cmd)} is committed.`);
     // the crashed leader comes back once the cluster has finished the client's work without it
     if (crashed && !recovered && !net.isUp(crashed) && cl.acked.length === cmds.length) net.recover(crashed, net.now + 30);
     if (scenario === "partition" && !partitioned) {
@@ -804,8 +942,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
       const L = m.from, peer = ids[(ids.indexOf(L) + 1) % N];
       const minority = [L, peer].slice(0, N - majority), rest = ids.filter((x) => !minority.includes(x));
       const at = net.now + 2, heal = at + 450;
-      net.at(at, () => { s.phase("The network splits", { about: ABOUT.partition }); leaderlessSince = net.now; }, { quiet: true });   // the phase lands on the partition's own step
-      net.at(heal, () => s.phase("Heal", { about: ABOUT.heal }), { quiet: true });
+      net.at(at, () => { s.phase("The network splits", { id: "split", about: ABOUT.partition }); note("split.cut", { sideA: minority, sideB: rest }, 2); leaderlessSince = net.now; }, { quiet: true });   // the phase lands on the partition's own step
+      net.at(heal, () => { s.phase("Heal", { id: "heal", about: ABOUT.heal }); note("heal.join", {}, 2); }, { quiet: true });
       net.partition([minority, rest], at, heal);
       net.at(at + 20, () => submitNext(), { quiet: true });
     } else submitNext();
@@ -815,27 +953,28 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (ctx.id === "client") return;
     const lead = ctx.state.role === "leader";
     s.line(null);
-    if (lead) { ctx.phase("Crash", { about: ABOUT.crash }); leaderlessSince = net.now; }
-    ctx.say(`${lead ? "Leader " : ""}${R(ctx.id)} {tone:fail|crashes}. Its log is saved on disk, so it survives.`);
+    if (lead) { ctx.phase("Crash", { id: "crash", about: ABOUT.crash }); leaderlessSince = net.now; }
+    say(ctx, "crash.down", { who: chip(ctx.id), whoId: ctx.id, leader: lead }, `${lead ? "Leader " : ""}${R(ctx.id)} {tone:fail|crashes}. Its log is saved on disk, so it survives.`);
   });
   net.onRecover("*", (ctx) => {
     if (ctx.id === "client") return;
     const st = ctx.state;
     s.line(null);
-    ctx.phase("Catch-up", { about: ABOUT.catchup });
+    ctx.phase("Catch-up", { id: "catchup", about: ABOUT.catchup });
     recovered = true;
     st.role = "follower"; st.commitIndex = 0; st.lastApplied = 0; st.kv = {}; st.votes = []; st.leader = null; st.nextIndex = {}; st.matchIndex = {};
     for (const t of tiles.get(ctx.id)) s.set(t, { dim: true });
     resetElection(ctx);
     show(ctx);
-    ctx.say(`${R(ctx.id)} {tone:ok|restarts} with its ${fmt.plural(st.log.length, "entry", "entries")}, unsure which are committed.`);
+    say(ctx, "catchup.restart", { who: chip(ctx.id), whoId: ctx.id, entries: st.log.length }, `${R(ctx.id)} {tone:ok|restarts} with its ${fmt.plural(st.log.length, "entry", "entries")}, unsure which are committed.`);
   });
 
   // ---- scenario schedule: a closed-loop client sends its next command when the previous one is acked ----
   net.at(eMin, () => submitNext(), { quiet: true });
   if (opt.faults) opt.faults(net, rng(p.seed).fork("faults"), ids);
 
-  s.phase("Election", { about: ABOUT.election });
+  s.phase("Election", { id: "elect", about: ABOUT.election });
+  note("elect.start", { min: eMin, max: eMax }, 2);   // the opening step, which the runtime writes from the intro
   const allDone = () => {
     const cl = net.state("client");
     if (cl.acked.length < cmds.length) return false;

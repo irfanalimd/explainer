@@ -6,7 +6,8 @@ entry, keyed by term and dim until that server knows the entry is committed. It 
 (`meta.level: "core"`) who knows basic programming but has never met consensus. The reader should leave knowing:
 
 - the servers elect one leader by majority vote, so there is one writer deciding the order;
-- an entry counts (is committed) once a majority stores it, not every server, so one crash cannot stall it;
+- an entry counts (is committed) once the leader hears that a majority stores it, not every server, so one crash
+  cannot stall it; a leader counts copies only of its own term's entries (its `nop` carries older ones with it);
 - any two majorities share a server, so a committed entry survives losing the leader;
 - a leader cut off on the smaller side of a split cannot commit anything.
 
@@ -27,7 +28,7 @@ entry, keyed by term and dim until that server knows the entry is committed. It 
   is the leader, "most of us have copied it" is a majority, a line that counts is committed, the note-taker's "still
   here" is a heartbeat, which vote this is is the term.
 - **Problem first:** the first two chapters say why "just copy to everyone" fails: writers at once would disagree on
-  the order (so: one elected writer), and waiting for every copy would stall on one crash (so: a majority).
+  the order (so: one elected writer), and a majority, not every copy, is enough to commit (the commit question asks it).
 - **Chapters:** Election · Replication · Agreement; the crash story adds Crash · Re-election · Catch-up, the split
   story Partition · New leader · Heal (at most six per story).
 - **Predict** (each with a why): at the first command to reach 3 of 5 ("Can S1 count it as committed now?", the aha,
