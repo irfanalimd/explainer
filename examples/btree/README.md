@@ -36,8 +36,8 @@ a chapter's about until its predictions are revealed.
 
 | Story | What happens | What it teaches |
 |---|---|---|
-| Ids in any order | 10 random two-digit ids, 3 per page. Predicts: what happens to a page with 4 ids? How many pages does finding 15's place read? How does the range search reach the next ids? | Leaf splits copy a signpost up; the tree stays 2 levels with leaves 83 % full; a range search goes down once and walks along the leaves. |
-| Ids that only grow | 10 ids, each one bigger than the last. | Every insert takes the rightmost path; each split leaves a half-full leaf behind that never fills again (67 %), and the tree reaches 3 levels with the same 10 ids. |
+| Ids in any order | 10 random two-digit ids, 3 per page. Predicts: what happens to a page with 4 ids? How many pages must the search for 15's leaf read? How does the range search reach the next ids? | The first leaf split grows a new root on top; later leaf splits copy a signpost up; the tree stays 2 levels with leaves 83 % full; a range search goes down once and walks along the leaves. |
+| Ids that only grow | 10 ids, each one bigger than the last. | Every insert takes the rightmost path; each textbook half split leaves a leaf 2 of 3 full that never fills again (67 %; real engines split rising ids unevenly), and the tree reaches 3 levels with the same 10 ids. |
 | The top page fills up | `41 18 63 29 75 52 11 24 84 89 57 35`, chosen so every split leaves two half-full leaves. | The fifth leaf overflows the root at the 10th insert. Predict: where does the new level go? The root splits, 63 moves up into a new root, and the tree grows at the top. Two more inserts then descend 3 levels. |
 
 Knobs: ids per page (3–5), how many ids (4–14), your own ids, finish with a range search, seed. The old "Insert
