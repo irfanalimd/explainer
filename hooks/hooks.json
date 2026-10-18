@@ -1,5 +1,5 @@
 {
-  "description": "Fences the explainer pipeline agents: the readers and scorer see only the review packet; the authors never see the packet, canaries or benchmark. Does nothing for any other agent or session.",
+  "description": "Fences the explainer pipeline agents: the readers and scorer see only the review packet; the authors never see the packet, canaries or benchmark. Does nothing for any other agent or session. If the fence cannot run (no node), it blocks those agents' tools rather than letting them through.",
   "hooks": {
     "PreToolUse": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "in=$(cat); case \"$in\" in *explainer:novice-reader*|*explainer:expert-reader*|*explainer:scorer*|*explainer:teacher*|*explainer:curriculum-designer*) printf '%s' \"$in\" | node \"${CLAUDE_PLUGIN_ROOT}/hooks/reader-fence.mjs\" ;; esac",
+            "command": "in=$(cat); case \"$in\" in *explainer:novice-reader*|*explainer:expert-reader*|*explainer:scorer*|*explainer:teacher*|*explainer:curriculum-designer*) printf '%s' \"$in\" | node \"${CLAUDE_PLUGIN_ROOT}/hooks/reader-fence.mjs\" || { echo 'The explainer reader fence could not run (is node on the PATH Claude Code hooks see? node scripts/doctor.mjs checks), so this tool call is blocked to keep the review blind.' >&2; exit 2; } ;; esac",
             "timeout": 10
           }
         ]
