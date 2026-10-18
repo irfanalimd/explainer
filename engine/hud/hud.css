@@ -983,6 +983,16 @@
 /* the hook: the question the figure answers, in the reader's voice */
 .ix-intro-sub.ix-intro-hook { max-width: 30ch; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); font-weight: 400; letter-spacing: var(--ix-tr-lg); color: var(--ix-ink-muted); }
 .ix-intro-path { display: none; }
+/* opened by a link to a moment: the story, where it opens, that step's words, and what the link could not do */
+.ix-intro-story { display: inline-block; margin: 12px 0 0; padding: 4px 12px; border-radius: 999px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; color: var(--ix-ink-muted); box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
+.ix-intro-at { margin: 24px 0 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); font-variant-numeric: tabular-nums; }
+.ix-intro-quote { margin: 8px auto 0; max-width: 36ch; font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); color: var(--ix-ink); text-wrap: pretty; }
+.ix-intro-arrival .ix-intro-level { margin-top: 24px; }
+.ix-intro-arrival .ix-intro-actions { margin-top: 24px; }
+.ix-intro-notes { display: grid; gap: 8px; margin: 20px 0 0; padding: 12px 16px; list-style: none; text-align: left; border-radius: var(--ix-r-md); background: var(--ix-raised); font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-muted); }
+.ix-intro-notes li { display: flex; gap: 8px; align-items: flex-start; }
+.ix-intro-note-icon { flex: none; display: inline-flex; margin-top: 1px; color: var(--ix-ink-faint); }
+.ix-intro-note-icon svg { width: 14px; height: 14px; }
 .ix-intro-level { display: grid; justify-items: center; gap: 12px; margin-top: 32px; }
 .ix-intro-level-k { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
 .ix-intro-levels { width: 100%; max-width: 360px; height: 36px; }
@@ -1744,6 +1754,52 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
 .ix[data-size="phone"] .ix-turn-picks { gap: 6px; }
 .ix-predict .ix-opt[hidden] { display: none; }
 
+
+/* ---------- share: a link to this moment, an image, an embed, the handout (share.mjs) ----------
+   The settings drawer's place and shape (a bottom sheet on phones); sections set apart by hairlines, never boxes. */
+.ix-share { width: 360px; }
+.ix-share-body { padding: 0 20px; }
+.ix-share-sec { padding: 16px 0; }
+.ix-share-sec + .ix-share-sec { border-top: 1px solid var(--ix-line); }
+.ix-share-sec[hidden] { display: none; }
+.ix-share-title { margin: 0 0 8px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
+.ix-share-field {
+  display: block; width: 100%; height: 36px; padding: 0 12px;
+  border-radius: var(--ix-r-md); border: 1px solid var(--ix-line-strong); background: var(--ix-raised);
+  font: 400 var(--ix-fs-xs)/34px var(--ix-font-mono); color: var(--ix-ink-muted);
+  text-overflow: ellipsis; -webkit-user-select: text; user-select: text;
+  transition: border-color var(--ix-dur-fast) var(--ix-ease);
+}
+textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; resize: none; white-space: pre-wrap; word-break: break-all; }
+.ix-share-field:hover { border-color: rgb(var(--ix-ink-rgb) / 0.24); }
+.ix-share-field:focus { border-color: var(--ix-ink); color: var(--ix-ink); outline: none; }
+.ix-share-row { display: flex; gap: 8px; align-items: center; }
+.ix-share-row .ix-share-field { flex: 1; min-width: 0; }
+.ix-share-row .ix-share-copy { flex: none; height: 36px; }
+.ix-share-native { margin-top: 8px; }
+.ix-share-row + .ix-share-opt { margin-top: 8px; }
+.ix-share-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ix-share-sec > .ix-share-actions:nth-child(2) { margin-top: 0; }
+.ix-share-icon { display: inline-grid; place-items: center; }
+.ix-share-icon svg { width: 14px; height: 14px; }
+.ix-share-copy.ix-done { box-shadow: inset 0 0 0 1px var(--ix-ink); }
+.ix-share .ix-pill:disabled { opacity: 0.5; }
+.ix-share-opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; margin-top: 4px; cursor: pointer; }
+.ix-share-opt + .ix-share-opt { margin-top: 0; border-top: 1px solid var(--ix-line); }
+.ix-share-opt[hidden] { display: none; }
+.ix-share-opt-label { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink); font-variant-numeric: tabular-nums; }
+.ix-share-note { margin: 8px 0 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); text-wrap: pretty; }
+.ix-share-note[hidden] { display: none; }
+.ix-share-foot { display: flex; gap: 8px; align-items: flex-start; }
+.ix-share-foot .ix-share-icon { margin-top: 1px; }
+.ix-share-foot .ix-share-icon svg { width: 12px; height: 12px; }
+/* phones: the share tool keeps its icon (the toolbar has no room for the word), and the panel is a sheet */
+.ix[data-size="phone"] .ix-share-tool { padding: 0 8px; }
+.ix[data-size="phone"] .ix-share-tool .ix-tool-icon { display: inline-grid; }
+.ix[data-size="phone"] .ix-share-tool .ix-tool-label { display: none; }
+.ix[data-size="phone"] .ix-share { overflow-y: auto; }
+.ix[data-size="phone"] .ix-share .ix-panel-body { flex: none; overflow: visible; }
+.ix.ix-present .ix-share-tool { display: none; }
 /* ---------- presenter mode (presenter.mjs): a projector at the back of a room ----------
    The type steps up a size (presenterVars), the inks and hairlines go to full contrast, and the chrome thins out to the
    transport, the timeline and the words: no speed, legend, code or help circle; the knobs lead the drawer (S) and L

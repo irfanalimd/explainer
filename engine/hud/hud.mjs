@@ -21,6 +21,9 @@ import { createTurn, liveTurns, detourOf } from "./turn.mjs";
 import { createCheck, checksFor } from "./check.mjs";
 import { createNudge, beliefBlock } from "./nudge.mjs";
 import { createPresenter, presentQuery } from "./presenter.mjs";
+import { createShare } from "./share.mjs";
+import { composeStill, stillName } from "./still.mjs";
+import { LEVELS } from "./level.mjs";
 
 export { applyTheme, parseHash, formatHash };
 
@@ -55,6 +58,12 @@ const ICON = {
   meter: SVG('<path d="M2.75 13.25h10.5"/><path d="M4.5 10.5V8M8 10.5V4.75M11.5 10.5V6.5"/>'),
   // presenter mode: a projector screen; the presenter view: a second window beside it
   present: SVG('<rect x="1.75" y="2.75" width="12.5" height="8" rx="1.5"/><path d="M8 10.75v2.5M5.5 13.25h5"/>'),
+  // sharing: the share panel (a box with an arrow out), copy, an image, print (the handout), the privacy line's lock
+  share: SVG('<path d="M8 1.9v7.6M5.25 4.4 8 1.65l2.75 2.75"/><path d="M5.5 6.75H4.25a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h7.5a1 1 0 0 0 1-1v-5.5a1 1 0 0 0-1-1H10.5"/>'),
+  copy: SVG('<rect x="5.25" y="5.25" width="8" height="8" rx="1.75"/><path d="M10.75 5.25V3.75a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1.5"/>'),
+  image: SVG('<rect x="2" y="2.75" width="12" height="10.5" rx="1.75"/><circle cx="5.75" cy="6.25" r="1.15"/><path d="m2.5 11.5 3.25-3 2.5 2.25 2-1.75 3.25 2.75"/>'),
+  print: SVG('<path d="M4.25 6V2.75h7.5V6"/><rect x="2" y="6" width="12" height="5.5" rx="1.5"/><path d="M4.25 9.75h7.5v3.5h-7.5z"/>'),
+  lock: SVG('<rect x="3.25" y="7" width="9.5" height="6.75" rx="1.5"/><path d="M5.25 7V5a2.75 2.75 0 0 1 5.5 0v2"/>'),
   windows: SVG('<rect x="1.75" y="4.25" width="8.5" height="7.5" rx="1.5"/><path d="M6 4.25V3.5a1.25 1.25 0 0 1 1.25-1.25h5.75a1.25 1.25 0 0 1 1.25 1.25v5.25A1.25 1.25 0 0 1 13 10h-2.75"/>'),
 };
 
@@ -505,9 +514,14 @@ export function createHud(root, opts = {}, cb = {}) {
   viewBtn.setAttribute("aria-label", "Presenter view");
   const endBtn = iconBtn("close", "End presenting", "P", () => presenter.set(false), "ix-present-end");
   const tuneBtn = toolBtn("tune", "Settings", "S", () => toggleDrawer());
+  // share: a link to this moment, an image, an embed, the handout (share.mjs); phones keep its icon, not its word
+  const shareBtn = toolBtn("share", "Share", null, () => toggleShare());
+  shareBtn.classList.add("ix-share-tool");
+  shareBtn.setAttribute("aria-label", "Share");
+  shareBtn.setAttribute("aria-haspopup", "dialog");
   const themeBtn = iconBtn("moon", "Dark mode", "T", () => toggleTheme());
   const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk ix-full-btn");
-  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, tuneBtn,
+  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, shareBtn, tuneBtn,
     h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), themeBtn, fullBtn, endBtn);
   const helpBtn = h("button", { class: "ix-help-fab ix-glass", type: "button", "aria-label": "Help", "data-tip": "How to use this figure", "data-kbd": "?",
     onclick: () => toggleHelp() }, h("span", { "aria-hidden": "true", text: "?" }));
@@ -564,6 +578,46 @@ export function createHud(root, opts = {}, cb = {}) {
   const drawerHead = panelHead("Settings", resetBtn, () => toggleDrawer(false));
   const drawer = h("section", { class: "ix-panel ix-drawer ix-glass", role: "dialog", "aria-label": "Settings", tabindex: "-1", inert: true },
     drawerHead, knobBody, knobFoot, prefs, presentPrefs);
+
+  // ---------- share: this moment as a link, an image or an embed, and the handout (share.mjs) ----------
+  const shareParamText = (k, v) => {
+    const def = S.params[k] ?? {};
+    const val = def.type === "bool" ? (v ? "on" : "off") : def.type === "text" ? `“${String(v).length > 24 ? `${String(v).slice(0, 23)}…` : v}”` : String(v);
+    return `${def.label ?? k} ${val}`;
+  };
+  const share = createShare({
+    h, doc, win, native: touch,
+    icons: { close: ICON.close, copy: ICON.copy, image: ICON.image, print: ICON.print, present: ICON.present, share: ICON.share, check: ICON.check, lock: ICON.lock },
+    close: () => toggleShare(false),
+    state: () => {
+      const sc = scenarioDef(), st = S.steps.length ? Math.max(0, S.step) : null;
+      const params = paramOverrides(S.values, S.params, sc);
+      return {
+        title: S.meta.title ?? "Figure", scenario: S.scenario, scenarioLabel: sc?.label ?? S.scenario ?? "", step: S.detour ? null : st, steps: S.steps.length,
+        chapter: st != null ? S.phases[phaseAt(st)]?.name ?? "" : "", level: S.lesson ? level.value : null,
+        levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value, params, paramText: Object.entries(params).map(([k, v]) => shareParamText(k, v)),
+      };
+    },
+    saveImage: () => saveStill(),
+    handout: () => { toggleShare(false); fire("onHandout"); },
+    present: () => { toggleShare(false); presenter.set(true); },
+  });
+  // the frame on screen as a PNG (still.mjs): the runtime draws the world again and hands it over (onSnapshot)
+  async function saveStill() {
+    const shot = fire("onSnapshot");
+    if (!shot?.canvas) return null;
+    const st = S.steps[shot.step], sc = scenarioDef();
+    const veiled = shot.step === veilStep();
+    const where = [S.meta.title, sc?.label, S.phases[phaseAt(shot.step)]?.name, `step ${shot.step + 1} of ${S.steps.length}`].filter(Boolean).join("  ·  ");
+    const blob = await composeStill(shot, { root, where, caption: veiled ? null : st?.layers?.plain ?? st?.caption ?? null,
+      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle });
+    if (!blob) return null;
+    const name = stillName(S.meta.title, S.scenario, shot.step);
+    const a = h("a", { href: win.URL.createObjectURL(blob), download: name });
+    root.append(a); a.click(); a.remove();
+    later(() => win.URL.revokeObjectURL(a.href), 4000);
+    return name;
+  }
 
   // ---------- parameters: the figure's inputs, always in view where there is room ----------
   // Wide screens (where the explain panel docks): a card of its own at the foot of the right column, each knob a row
@@ -920,7 +974,7 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("intro-sub"), tabindex: "-1", inert: true });
   const coach = h("div", { class: "ix-coach ix-glass", role: "status", "aria-live": "polite", inert: true });
 
-  hud.append(top, bottom, sheetScrim, codePanel, drawer, about, paramsCard, helpBtn);
+  hud.append(top, bottom, sheetScrim, codePanel, drawer, share.el, about, paramsCard, helpBtn);
   const after = canvas && canvas.parentNode === root ? canvas.nextSibling : root.firstChild;
   const frag = doc.createDocumentFragment();
   // popovers live at root level: a backdrop-filter parent would stop their own blur from seeing the world
@@ -953,6 +1007,7 @@ export function createHud(root, opts = {}, cb = {}) {
   })();
 
   // ---------- state for overlays ----------
+  let shareOpen = false;
   let drawerOpen = false, codeOpen = false, helpOpen = false, menuOpen = false, aboutOpen = false;
   let readoutOpen = false, legendOpen = false;   // false | "hover" | "pinned"
   let lastFocus = null;
@@ -962,13 +1017,14 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   function syncSheets() {
     obstaclesDirty = true;
-    const sheet = S.size === "phone" && (drawerOpen || codeOpen || pinCard.shown || !!readoutOpen);
+    const sheet = S.size === "phone" && (drawerOpen || shareOpen || codeOpen || pinCard.shown || !!readoutOpen);
     sheetScrim.classList.toggle("ix-open", sheet);
     root.classList.toggle("ix-sheet-open", sheet);
   }
   function toggleDrawer(open = !drawerOpen) {
     if (open === drawerOpen) return;
     drawerOpen = open;
+    if (open && shareOpen) toggleShare(false);
     if (open && S.size === "phone" && codeOpen) toggleCode(false);
     setOpen(drawer, open);
     tuneBtn.setAttribute("aria-pressed", String(open));
@@ -980,6 +1036,17 @@ export function createHud(root, opts = {}, cb = {}) {
       raf(knobFades);
     }
     else if (drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
+    syncSheets();
+  }
+  function toggleShare(open = !shareOpen) {
+    if (open === shareOpen) return;
+    shareOpen = open;
+    if (open) { if (drawerOpen) toggleDrawer(false); if (S.size === "phone" && codeOpen) toggleCode(false); share.refresh(); share.resetNotes(); }
+    setOpen(share.el, open);
+    shareBtn.setAttribute("aria-pressed", String(open));
+    shareBtn.setAttribute("aria-expanded", String(open));
+    if (open) { lastFocus = doc.activeElement; share.el.focus({ preventScroll: true }); }
+    else if (share.el.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true });
     syncSheets();
   }
   function toggleCode(open = !codeOpen) {
@@ -1095,6 +1162,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (readoutOpen) { toggleReadout(false); return true; }
     if (legendOpen) { toggleLegend(false); return true; }
     if (drawerOpen) { toggleDrawer(false); return true; }
+    if (shareOpen) { toggleShare(false); return true; }
     if (pinCard.shown) { hideCard(pinCard); fire("onUnpin"); return true; }
     if (Q.q && Q.revealed) { hidePredict(); return true; }
     if (explain.closeSheet()) return true;
@@ -1131,21 +1199,47 @@ export function createHud(root, opts = {}, cb = {}) {
   const introPath = h("p", { class: "ix-intro-path", "aria-label": "Chapters" });
   // the level, asked once up front (built when the figure turns out to have a lesson)
   const introLevel = h("div", { class: "ix-intro-level", hidden: true });
+  // a link to a moment (engine/embed/deeplink.mjs): the story and step it opens at, that step's words, and a quiet
+  // list of what the link asked for that this page could not do
+  const introStory = h("p", { class: "ix-intro-story", hidden: true });
+  const introAt = h("p", { class: "ix-intro-at", hidden: true });
+  const introQuote = h("blockquote", { class: "ix-intro-quote", hidden: true });
+  const introNotes = h("ul", { class: "ix-intro-notes", role: "status", hidden: true });
+  const introBegin = h("button", { class: "ix-cta-2", type: "button", hidden: true, onclick: () => closeIntro("begin") }, "From the start");
+  let arrival = null;   // { step: index | null, notes: [text] } while the card is the link's
   const kbs = (...ks) => ks.map((k) => h("kbd", { class: "ix-kbd ix-kbd-sm", text: k }));
   intro.append(
-    h("div", { class: "ix-intro-head" }, introTitle, introSub, introPath),
+    h("div", { class: "ix-intro-head" }, introTitle, introStory, introSub, introAt, introQuote, introPath),
     introLevel,
-    h("div", { class: "ix-intro-actions" }, introPlay, introStep),
+    h("div", { class: "ix-intro-actions" }, introPlay, introStep, introBegin),
+    introNotes,
     h("p", { class: "ix-intro-keys" }, kbs("Space"), " play", h("span", { class: "ix-dotsep", text: "·" }), kbs("←", "→"), " step"));
   // the start card asks the figure's question (meta.hook), falling back to the subtitle (the header shows only the title), and
-  // names the chapters ahead when they read as ideas (not code-like ranges such as a[0..8])
+  // names the chapters ahead when they read as ideas (not code-like ranges such as a[0..8]). Opened by a link to a
+  // moment, it says where the link opens instead, and offers to start the story from the top.
   function renderIntro() {
     const m = S.meta;
     const hook = m.hook ?? m.subtitle ?? "";
+    const at = arrival?.step != null ? S.steps[arrival.step] : null;
+    const story = scenarioDef();
     introTitle.textContent = m.title ?? "";
+    introStory.textContent = story?.label ?? "";
+    introStory.hidden = !story || (!at && S.scenarios[0]?.id === story.id);
     introSub.textContent = hook;
-    introSub.hidden = !hook;
+    introSub.hidden = !hook || !!at;
     introSub.classList.toggle("ix-intro-hook", !!m.hook);
+    introAt.hidden = introQuote.hidden = !at;
+    if (at) {
+      const ph = S.phases[phaseAt(arrival.step)];
+      introAt.textContent = `Opens at step ${arrival.step + 1} of ${S.steps.length}${ph?.name ? ` · ${ph.name}` : ""}`;
+      put(introQuote, toDOM(parse(at.layers?.plain ?? at.caption ?? ""), doc, markupOpts));
+    }
+    introPlay.lastChild.textContent = at ? `Play from step ${arrival.step + 1}` : "Play";
+    introStep.hidden = !!at;
+    introBegin.hidden = !at;
+    put(introNotes, (arrival?.notes ?? []).map((t) => h("li", null, h("span", { class: "ix-intro-note-icon", "aria-hidden": "true", html: ICON.info }), h("span", { text: t }))));
+    introNotes.hidden = !arrival?.notes?.length;
+    intro.classList.toggle("ix-intro-arrival", !!at);
     // the client asked for no chapter preview on the start card: newcomers don't know the terms yet
     put(introPath, []);
     introPath.hidden = true;
@@ -1160,6 +1254,7 @@ export function createHud(root, opts = {}, cb = {}) {
       hideCoach(); hideTip(); hidePreview();
       renderIntro();
     }
+    else arrival = null;   // the link's card is said once; Replay intro shows the figure's own
     setOpen(intro, open);
     introScrim.classList.toggle("ix-open", open);
     root.classList.toggle("ix-intro-open", open);
@@ -1168,7 +1263,7 @@ export function createHud(root, opts = {}, cb = {}) {
     obstaclesDirty = true;
     fire("onIntro", open);
   }
-  /** Close the start card the way the viewer chose: "play", "step" (one step per Next) or "dismiss". */
+  /** Close the start card the way the viewer chose: "play", "step" (one step per Next), "begin" (a link's story from its top) or "dismiss". */
   function closeIntro(mode) {
     if (!introOpen) return;
     store.set(`intro:${figKey()}`, "1");
@@ -2897,7 +2992,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setMeta(meta) { S.meta = meta ?? {}; renderTitle(); },
     initialState: () => ({ scenario: link.scenario, time: link.time, params: { ...link.params } }),
     /** Show or hide the start card. Hiding it this way is silent: it is not remembered and fires no onStart. */
-    intro(show = true) { openIntro(!!show); },
+    intro(show = true, link = null) { if (show && link && (link.step != null || link.notes?.length)) arrival = link; openIntro(!!show); },
     /** True once this viewer has dismissed this figure's start card (localStorage). */
     get introSeen() { return store.get(`intro:${figKey()}`) === "1"; },
     get introOpen() { return introOpen; },

@@ -16,6 +16,8 @@ import { applyTheme } from "./hud/theme.mjs";
 import { createDirector } from "./director/director.mjs";
 import { createScene } from "./a11y/scene.mjs";
 import { attachEmbed } from "./embed/embed.mjs";
+import { parseMoment, resolveMoment, resolveStep, momentRest } from "./embed/deeplink.mjs";
+import { formatHash, paramOverrides } from "./hud/link.mjs";
 import { foldPlan, rateAt, captionHead, forkOf } from "./playback.mjs";
 import { rng } from "../sim/rng.mjs";
 import { DrawList } from "./contracts.mjs";
@@ -54,7 +56,7 @@ export async function mount(root, figure, options = {}) {
   let looking = null, pace = 1, dwell = 0;
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
-  let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null;
+  let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false;
   // render on demand: something changed the picture (dirty), or the last frame was still moving; the two clocks
   let dirty = true, moving = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
   // the start card is open; step mode (each Next plays one step); a guided pause at a chapter's end or the run's end
@@ -86,7 +88,9 @@ export async function mount(root, figure, options = {}) {
     onToggle: () => (playing ? pause() : play()),
     onStart: (mode) => {
       intro = false;
-      if (mode === "play") { play(); dwell = entryDwell(0); }
+      // "begin": a link opened mid-run, and the reader would rather start this story from the top
+      if (mode === "begin") { seek(0); answered.clear(); }
+      if (mode === "play" || mode === "begin") { play(); dwell = time < 0.05 ? entryDwell(0) : 0; }
       else if (mode === "step") { stepMode = true; step(1); }
       kick();
     },
@@ -131,6 +135,7 @@ export async function mount(root, figure, options = {}) {
       else play();
     },
     onUnpin: () => { selectedId = null; kick(); },
+    onSnapshot: () => snapshot(),
   }));
 
   guided = hud.guided ?? true;
@@ -149,15 +154,17 @@ export async function mount(root, figure, options = {}) {
   // "Speed through repeats" (a viewer preference) and the shared setup skipped on a scenario switch
   let folding = hud.folding ?? true, folds = null, skipped = null, baseTl = null;
 
-  // deep link: scenario, params and playhead from the hash
-  const initial = hud.initialState?.() ?? {};
-  if (initial.scenario && initial.scenario !== scenario.id) {
-    scenario = scenarioOf(figure, initial.scenario);
+  // deep link: the moment a link opens (engine/embed/deeplink.mjs): story, knobs and level now, before the first
+  // compile, so the run is built once with them; the step once the run exists. What the page can't do is noted.
+  const moment = options.hash === false ? resolveMoment(null) : resolveMoment(parseMoment(location.hash), { scenarios: figure.scenarios ?? [], params: figure.params ?? {} });
+  if (moment.scenario && moment.scenario !== scenario.id) {
+    scenario = scenarioOf(figure, moment.scenario);
     values = { ...defaultsOf(figure), ...(scenario.params ?? {}) };
   }
-  if (initial.params) values = { ...values, ...initial.params };
+  values = { ...values, ...moment.params };
   hud.setScenario?.(scenario.id);
   hud.setValues?.(values);
+  if (moment.level) hud.setLevel?.(moment.level);
 
   // every HUD callback can change the picture, so each one asks for a frame (hovering asks only for a pick)
   function redrawing(cbs) {
@@ -355,6 +362,37 @@ export async function mount(root, figure, options = {}) {
     return { minX: p.x - w, maxX: p.x + w, minY: p.y - d, maxY: p.y + d, minZ: 0, maxZ: (p.z ?? 0) + (p.h ?? 10) };
   }
 
+  // a still of the frame on screen, for the reader's "Save image" (engine/hud/still.mjs): drawn again in capture
+  // quality at 2x and copied out in the same task, before the browser presents (and may clear) the drawing buffer.
+  // The world is cropped to the free area the HUD leaves; the HUD then lays the step's words under it.
+  function snapshot() {
+    if (!tl || !frame || !renderer || renderer.lost) return null;
+    const dpr = viewport.dpr, hi = Math.max(dpr, 2);
+    const ins = hud.insets ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    let out = null;
+    if (hi !== dpr) renderer.resize(viewport.width, viewport.height, hi);
+    snapping = true;
+    try {
+      renderFrame(0, shimmer, clock, false);
+      // the renderer may have swapped the canvas for a fresh one (a WebGPU start that fell back to WebGL2)
+      const src = root.querySelector("canvas.ix-canvas") ?? canvas;
+      const k = src.width / viewport.width;
+      const x = Math.round(ins.left * k), y = Math.round(ins.top * k);
+      const w = Math.max(1, src.width - x - Math.round(ins.right * k)), h = Math.max(1, src.height - y - Math.round(ins.bottom * k));
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(src, x, y, w, h, 0, 0, w, h);
+      out = { canvas: c, scale: k, crop: { left: ins.left, top: ins.top, width: w / k, height: h / k }, step: frame.step };
+    } catch (err) {
+      console.error(err);
+    } finally {
+      snapping = false;
+      if (hi !== dpr) renderer.resize(viewport.width, viewport.height, dpr);
+      kick();
+    }
+    return out;
+  }
+
   const holds = () => hud.policy ?? {};
   const entryDwell = (k) => (holds().entry === "full" && tl?.phases[k]?.enter ? DWELL : 0);
 
@@ -374,7 +412,7 @@ export async function mount(root, figure, options = {}) {
     director.keep(keyFocus ? boundsOfIds([keyFocus]) : null, { as: "focus" });   // the keyboard's thing stays in view
     const camera = settle ? director.update(frame, viewport, dt, { settle: true }) : director.update(frame, viewport, dt);
     if (renderer && !renderer.lost) {
-      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture });
+      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping });
       renders++;
       pxPerUnit = renderer.pxPerUnit(camera.target) || pxPerUnit;
       const tags = [];
@@ -508,14 +546,52 @@ export async function mount(root, figure, options = {}) {
   await (renderer?.ready ?? Promise.resolve());
   if (!renderer || renderer.lost) hud.notice?.("WebGL is unavailable here, so the world can't be drawn. The captions and controls still work.", { duration: 0 });
   if (!recompile({ keepPhase: false })) return api();
-  if (initial.time != null) { time = clamp(initial.time, 0, tl.duration); }
-  // the page opens paused on its first step behind a start card; ?autoplay=1 (or autoplay: true) runs straight away
+  const arrival = arrive(moment, location.hash);
+  // the page opens paused on its first step behind a start card; ?autoplay=1 (or autoplay: true) runs straight away.
+  // A link to a moment opens on that step, and the start card says so, even for a reader who has seen it before.
   let query = null;
   try { query = new URLSearchParams(location.search); } catch { /* no location */ }
   const q = query?.get("autoplay");
   const autoplay = options.autoplay ?? (q != null ? !/^(0|false|no)$/i.test(q) : false);
-  if (autoplay) playing = true;
-  else if (options.intro !== false && !capture && !hud.introSeen) hud.intro?.(true);
+  if (autoplay) { playing = true; if (arrival.notes.length) hud.notice?.(arrival.notes.join(" ")); }
+  else if (options.intro !== false && !capture && (arrival.step != null || arrival.notes.length || !hud.introSeen)) hud.intro?.(true, arrival);
+
+  // a moment from a link, once the run exists: the playhead on its step, and the address bar in the HUD's own
+  // spelling (#s=…&t=…&p=…), so a reload opens the same moment. -> { step: index | null, notes: [text] }
+  function arrive(r, hash) {
+    const at = resolveStep(r, tl.steps, tl.duration, `“${scenario.label ?? scenario.id}”`);
+    if (at) time = at.time;
+    if (options.hash !== false && parseMoment(hash).found) {
+      const first = (figure.scenarios ?? [])[0]?.id;
+      const str = formatHash({ scenario: scenario.id !== first ? scenario.id : undefined, time: at?.time ?? 0,
+        params: paramOverrides(values, figure.params ?? {}, scenario), rest: momentRest(hash).split("&").filter(Boolean) });
+      try { history.replaceState(history.state, "", str ? `#${str}` : location.pathname + location.search); } catch { /* sandboxed */ }
+    }
+    return { step: at ? at.index : null, notes: [...r.notes, ...(at?.note ? [at.note] : [])] };
+  }
+  // a link opened while the page is open (hashchange, or an embedding page setting the frame's hash): the same moment
+  function openMoment(hash) {
+    const m = parseMoment(hash);
+    if (!m.found || !tl) return false;
+    const r = resolveMoment(m, { scenarios: figure.scenarios ?? [], params: figure.params ?? {} });
+    // a link that names a story or knobs says the whole setup: the knobs it leaves out are the story's own
+    const next = r.scenario ? scenarioOf(figure, r.scenario) : scenario;
+    const nextValues = { ...defaultsOf(figure), ...(next.params ?? {}), ...r.params };
+    if ((r.scenario || Object.keys(r.params).length) && (next !== scenario || JSON.stringify(nextValues) !== JSON.stringify(values))) {
+      scenario = next;
+      values = nextValues;
+      hud.setScenario?.(scenario.id);
+      hud.setValues?.(values);
+      recompile({ keepPhase: false });
+    }
+    if (r.level) hud.setLevel?.(r.level);
+    hud.intro?.(false);
+    pause();
+    const a = arrive(r, hash);
+    seek(time);
+    if (a.notes.length) hud.notice?.(a.notes.join(" "));
+    return true;
+  }
 
   // the capture and audit contract
   function api() {
@@ -526,6 +602,8 @@ export async function mount(root, figure, options = {}) {
       get values() { return { ...values }; },
       get frame() { return frame; },
       seek: (t) => seek(t), play: () => { hud.intro?.(false); play(); }, pause: () => pause(), setSpeed: (x) => { speed = x; kick(); },
+      // open a link's moment (#scenario-x&step-n&level-y&p=… or #s=…&t=…): true when the hash named one
+      openMoment: (hash) => openMoment(hash),
       get held() { return held; },
       intro: (on = true) => hud.intro?.(on),
       setTheme: (t) => setTheme(t), setScenario: (id) => setScenario(id, { restart: true }), setParams: (v) => setParams(v),

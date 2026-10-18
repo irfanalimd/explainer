@@ -152,7 +152,10 @@ export function attachEmbed(root, figure, { meta = {}, search, log = console } =
   });
 
   // ---- deep links ----
+  // The runtime opens a link's moment itself (story, knobs and level before the first compile, then the step, with a
+  // note for what it could not do): on load it has already done so, and later hashes go to it too.
   function applyLinks(hash, { fromLoad } = {}) {
+    if (typeof figure.openMoment === "function") return fromLoad ? false : figure.openMoment(hash);
     const L = parseLinks(hash);
     if (!L.found || !tl()) return false;
     if (L.scenario && L.scenario !== figure.scenario && (figure.scenarios ?? []).some((s) => s.id === L.scenario)) figure.setScenario(L.scenario);
