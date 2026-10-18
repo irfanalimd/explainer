@@ -273,6 +273,11 @@ export function formatLesson(L, opts = {}) {
     }
     if (story.objectives && H?.objectives?.length) field("CAN NOW", story.objectives.join(", ") || "(none)", "   ");
   }
+  // after the last story, the end card names the lessons that follow (lesson.next)
+  if (H?.next?.length) {
+    out.push("", "KEEP GOING  (after the last story)");
+    for (const n of H.next) { out.push(`  ${n.title}  ${n.href}`); field("why", flat(n.why), "    "); }
+  }
   return out.join("\n");
 }
 

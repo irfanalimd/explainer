@@ -200,14 +200,16 @@ there is one instance per module); everything else is served byte for byte.
     it back to the pick, the right option is picked and shot with its why (`…-<step>-right.png`). A pick that never
     opens, never holds, or never comes back is reported and the page is scrubbed back out of the branch (a branch
     never reaches the end card), so the run never stalls.
+  - the end check, its first question answered (`…-<last step>-end-check.png`), then the rest answered and its
+    "You can now…" (`…-end-cannow.png`);
   - the end card, scrolled to the recap, takeaway and what-ifs (`…-<last step>-end-card.png`). On a narrow screen,
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
+  Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
+  is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
+  on a loaded machine) 1× play would crawl and time out.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error. Live play
   takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
   shoots the cards alone.
-  The run's clock moves at most 1/20 s per drawn frame, so on a slow machine (software rendering, a loaded box) a
-  card can take minutes to come round: `--teach` measures the frame rate first and scales every wait to it (up to
-  12×), and plays at 6× between the moments it shoots (the shots themselves are taken paused, at 1×).
 
 ## audit.mjs
 

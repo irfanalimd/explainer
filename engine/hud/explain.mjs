@@ -38,7 +38,10 @@ const ICON = {
 export const EXPLAIN_MIN_W = 1200;   // the side panel docks at this root width and up
 const EARLIER = 5;                    // earlier steps listed before "Start of chapter"
 export const VEIL = "…";              // what a held-back caption shows until its prediction is revealed
-export const WITHHELD = "Explained once you have made your prediction.";
+// the chapter's about, withheld until its prediction is revealed: before the question opens it says one is coming (the
+// reader has not been asked anything yet); while it is open, where the summary will be
+export const WITHHELD = "A question about this chapter is coming up. Its summary appears once you have answered, so it can't give the answer away.";
+export const WITHHELD_ASK = "This chapter's summary appears once you have answered.";
 
 /** The glossary terms a piece of markup uses, in order, without repeats. */
 export function termsIn(src) {
@@ -76,7 +79,8 @@ export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
   const S = { tl: null, main: null, detour: null, lesson: null, steps: [], phases: [], first: new Map(), step: -1, ph: -1,
     shown: { step: -2, ph: -2, tl: null, sig: "" }, mode: "", size: "", open: store.get("explain") !== "0", sheet: false,
-    held: null, askEl: null, capOverride: null, aboutDefs: null, aboutFirst: -1, aboutOpen: false, pictureOpen: false };
+    held: null, askEl: null, capOverride: null, aboutDefs: null, aboutFirst: -1, aboutOpen: false, pictureOpen: false,
+    mapOpen: null };   // the entry card's picture: null lets fit() fold it, true / false is the reader's choice
 
   // on a detour (a wrong pick's branch) the map is the main run's: its chapters, the reader still in the pick's
   const mapPhases = () => S.detour?.main.phases ?? S.phases;
@@ -241,7 +245,7 @@ export function createExplain(ctx) {
     const short = P.about === "first" ? firstSentence(ph.about) : null;
     const clamp = !!S.askEl && !!ph.about && !withhold;
     const text = short && !S.aboutOpen && !clamp ? short : ph.about;
-    const about = ph.about ? (withhold ? h("p", { class: "ix-ex-about ix-ex-withheld", text: WITHHELD }) : h("p", { class: "ix-ex-about" }, markup(text))) : null;
+    const about = ph.about ? (withhold ? h("p", { class: "ix-ex-about ix-ex-withheld", text: S.askEl ? WITHHELD_ASK : WITHHELD }) : h("p", { class: "ix-ex-about" }, markup(text))) : null;
     const aboutDefs = ph.about && !withhold ? defs(ph.about, { step: first, about: true }) : null;
     if (S.askEl && withhold) about?.classList.add("ix-ex-oneline");
     const expand = !!short && !clamp && !withhold;
@@ -259,7 +263,7 @@ export function createExplain(ctx) {
     const tlChanged = S.shown.tl !== S.tl;
     const sig = stateSig();
     if (!force && !tlChanged && S.shown.step === S.step && S.shown.ph === S.ph && S.shown.sig === sig) return;
-    if (S.shown.ph !== S.ph) S.aboutOpen = false;
+    if (S.shown.ph !== S.ph) { S.aboutOpen = false; S.mapOpen = null; }
     const instant = (force && !animate) || tlChanged || !!ctx.instant?.();
     const P = policy();
     const ph = S.phases[S.ph] ?? { name: "", step: 0 };
@@ -276,7 +280,8 @@ export function createExplain(ctx) {
     const enter = enterOf(ph);
     const entryMode = P.entry === "off" ? null : sheet ? "full" : P.entry;
     const showEntry = !!enter && !!entryMode && S.step === first && !S.askEl && !S.held;
-    entry.replaceChildren(...(showEntry ? [chapterCard(h, markup, enter, entryMode, enter.picture ? S.lesson?.picture : null)] : []));
+    const fold = sheet ? null : { onToggle: () => { S.mapOpen = panel.classList.contains("ix-ex-fit-picmap"); fit(); } };
+    entry.replaceChildren(...(showEntry ? [chapterCard(h, markup, enter, entryMode, enter.picture ? S.lesson?.picture : null, fold)] : []));
     // New: the card speaks for the chapter on its first step, so the about waits a step
     head.classList.toggle("ix-ex-quiet", showEntry && P.entry === "full" && !sheet);
 
@@ -372,9 +377,12 @@ export function createExplain(ctx) {
   // check's "You can now…" lists every objective, so it can need the whole panel). Otherwise the current step must fit: drop
   // definitions, the picture line, the entry card's So far and Done lines (Now stays), then the why.
   const FIT_ASK = ["ix-ex-fit-defs", "ix-ex-fit-about", "ix-ex-fit-earlier", "ix-ex-fit-tight", "ix-ex-fit-top"];
-  const FIT_STEP = ["ix-ex-fit-defs", "ix-ex-fit-picture", "ix-ex-fit-entry", "ix-ex-fit-why"];
+  // (the entry card's picture folds to its heading before the card's outer lines go, so it is never lost from view)
+  const FIT_STEP = ["ix-ex-fit-defs", "ix-ex-fit-picture", "ix-ex-fit-picmap", "ix-ex-fit-entry", "ix-ex-fit-why"];
   function fit() {
     panel.classList.remove(...FIT_ASK, ...FIT_STEP);
+    if (S.mapOpen === false) panel.classList.add("ix-ex-fit-picmap");
+    syncMap();
     if (!docked() || !body.clientHeight) return;
     const target = S.askEl ? askSlot : now;
     if (!target.isConnected || target.hidden) return;
@@ -385,7 +393,17 @@ export function createExplain(ctx) {
       if (!over()) break;
       // the reader asked for the whole about ("More"): keep it, and let the panel scroll for once
       if (cls === "ix-ex-fit-about" && S.aboutOpen) continue;
+      if (cls === "ix-ex-fit-picmap" && S.mapOpen === true) continue;   // the reader opened it: keep it, and scroll
       panel.classList.add(cls);
+    }
+    syncMap();
+  }
+  // the picture's disclosure says whether its rows are showing
+  function syncMap() {
+    const open = !panel.classList.contains("ix-ex-fit-picmap");
+    for (const b of entry.querySelectorAll(".ix-picture-toggle")) {
+      b.setAttribute("aria-expanded", String(open));
+      b.setAttribute("aria-label", `The picture: ${b.querySelector(".ix-picture-name")?.textContent ?? ""}. ${open ? "Hide" : "Show"} the table`);
     }
   }
 
@@ -421,6 +439,8 @@ export function createExplain(ctx) {
   return {
     panel, tab, capBtn,
     setTimeline, step, resize, toggle, closeSheet, inset, setHeld, hostAsk,
+    /** Its room changed (the parameters card under it folded or opened): fit again. */
+    fit: () => fit(),
     /** Re-render: after an answer is revealed, or (force) a level change. */
     refresh(force = false) { if (visible()) render(force, true); },
     /** The panel's rect for tag avoidance, or null when it is not on screen. */

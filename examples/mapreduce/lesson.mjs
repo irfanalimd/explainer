@@ -56,6 +56,14 @@ export const lesson = {
     breaks: "Helpers would talk to agree who counts which word. Machines never talk about it: each one runs the same rule on the word and gets the same answer.",
   },
 
+  // after the last story: the lessons this one leads into (the gallery's published pages)
+  next: [
+    { title: "Consistent hashing", href: "https://sites.irfanali.me/p/learning/consistent-hashing-ring.html",
+      why: "Here `hash % R` picked each word's counter. Add one more counter and most words would move. A hash ring moves only a few." },
+    { title: "Raft", href: "https://sites.irfanali.me/p/learning/raft-consensus.html",
+      why: "The master here has no backup: if it dies, the whole job is stopped and must run again. Raft lets a group of machines agree, so losing one is not fatal." },
+  ],
+
   terms: {
     master: { lead: "the coordinator", def: "The machine that hands out pieces of work, keeps track of them, and notices when a machine fails." },
     split: { lead: "one piece of the text", def: "One piece of the input, read by one machine, like one shelf of a library." },
