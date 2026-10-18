@@ -417,6 +417,8 @@ export function build(s, p, scenario, env = {}) {
     : "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number; its remainder after dividing by the number of counters picks the machine." });
   const inbox = Array.from({ length: R }, () => []);
   const load = new Array(R).fill(0);
+  // the counters open for slips: each header counts from zero, so one that receives none says so as the others fill
+  for (let r = 0; r < R; r++) s.set(`r${r}`, { sub: plural(0, "slip") });
   const sentTo = new Map();   // word -> [reducer, from mapper] of its first copy
   let bytes = 0, moved = 0, noted = false, first = true;
   const slips = tray.flat().map((id) => s.get(id).state.word);
