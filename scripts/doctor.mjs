@@ -123,8 +123,8 @@ else if (chromeInfo) {
     // MapReduce as the yardstick: 160 frozen shots; --teach plays about 40 cards live, each a few seconds of the run
     const shoot = 160 * perShot, teach = 40 * (6 * Math.max(1, ms / 50) / 1 + 3);
     const mins = (s) => s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`;
-    add(ms > 120 ? "warn" : "ok", "speed", `a 1440×900 frame of MapReduce takes ${ms.toFixed(0)} ms: shoot (both themes and sizes) about ${mins(shoot)}, with --teach about ${mins(shoot + teach)}`,
-      ms > 120 ? "use node scripts/check.mjs --quick while you work, and run full shoots in the background" : null);
+    add(ms > 120 ? "warn" : "ok", "speed", `a settled 1440×900 render of MapReduce (about one screenshot) takes ${ms.toFixed(0)} ms: shoot (both themes and sizes) about ${mins(shoot)}, with --teach about ${mins(shoot + teach)}`,
+      ms > 120 ? "use node scripts/check.mjs (the quick tier) while you work, and run check --full and shoot --teach in the background" : null);
   }
 }
 
