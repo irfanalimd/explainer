@@ -2801,6 +2801,9 @@ export function createHud(root, opts = {}, cb = {}) {
     root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
     insets.top = Math.max(0, Math.round(headBottom - rr.top));
     insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
+    // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)
+    root.style.setProperty("--ix-free-l", `${insets.left}px`);
+    root.style.setProperty("--ix-free-r", `${insets.right}px`);
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;

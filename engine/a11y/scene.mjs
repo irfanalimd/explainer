@@ -85,6 +85,9 @@ export function createScene(root, { project, onFocus, onOpen } = {}) {
         }
         if (li.textContent !== it.text) li.textContent = it.text;
         li.dataset.depth = String(it.depth);
+        // the world in words (no GPU, .ix-no-gfx) prints a keyed thing in its identity colour, as the world would
+        const key = poseOf(it.id)?.key;
+        if (key != null && li.dataset.key !== String(key)) { li.dataset.key = String(key); li.style.setProperty("--k", `var(--ix-key-${((key % 8) + 8) % 8})`); }
         if (li.parentNode !== sec.ul || (prev ? prev.nextSibling !== li : sec.ul.firstChild !== li)) (prev ? prev.after(li) : sec.ul.prepend(li));
         prev = li;
       }
@@ -116,6 +119,9 @@ export function createScene(root, { project, onFocus, onOpen } = {}) {
     if (summary.textContent !== text) summary.textContent = text;
     const l = lookLine(s?.layers?.look, ents);
     if (look.textContent !== l) look.textContent = l;
+    // the world in words (no GPU) marks what the step says to watch, as the world lights it
+    const watch = new Set(s?.layers?.look ?? []);
+    for (const [id, li] of items) li.classList.toggle("ix-scene-watch", watch.has(id));
   }
 
   // ---- what changed: said once per step, after the caption ----
@@ -154,13 +160,19 @@ export function createScene(root, { project, onFocus, onOpen } = {}) {
   // reading order on screen: rows top to bottom, left to right within a row (only the things in view: seen)
   function order(seen = false) {
     const pts = [...items.keys()].map((id) => ({ id, b: boxOf(id) })).filter((x) => x.b && (x.b.seen || !seen));
+    if (!pts.length && !seen) return [...body.querySelectorAll("li[data-id]")].map((li) => li.dataset.id);   // no GPU: reading order
     const band = 24;
     return pts.sort((a, b) => Math.round(a.b.cy / band) - Math.round(b.b.cy / band) || a.b.cx - b.b.cx).map((x) => x.id);
   }
   // the nearest thing in a direction: mostly along it, a little across it
   function nearest(fromId, dir) {
     const a = boxOf(fromId);
-    if (!a) return firstId();
+    // nothing on screen to measure (no GPU: the world is this list, in words): the arrows walk it in reading order
+    if (!a) {
+      const list = [...body.querySelectorAll("li[data-id]")].map((li) => li.dataset.id), k = list.indexOf(fromId);
+      if (k < 0) return firstId();
+      return list[k + (dir === "ArrowDown" || dir === "ArrowRight" ? 1 : -1)] ?? null;
+    }
     let best = null, score = Infinity;
     for (const id of items.keys()) {
       if (id === fromId) continue;

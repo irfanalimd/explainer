@@ -1658,6 +1658,49 @@
 :is(.ix-scene-ring, .ix-scene-tag).ix-show { opacity: 1; visibility: visible; transition-delay: 0s; }
 :is(.ix.ix-capture, .ix-capture .ix) :is(.ix-scene-ring, .ix-scene-tag) { display: none; }
 
+/* The world in words: with no GPU at all (.ix-no-gfx, set by the runtime) the described scene steps out of hiding
+   into the free stage, so the reader still sees the run's state, not empty paper. The same live list the screen
+   reader walks: one column per titled group, left to right as the world lays them out; machines in Geist, the data
+   in their trays in Geist Mono with their identity swatch; what the step says to watch in ink, the rest muted. */
+.ix.ix-no-gfx .ix-scene-doc {
+  position: absolute; width: auto; height: auto; margin: 0; clip-path: none; white-space: normal; overflow: auto;
+  left: calc(var(--ix-free-l, 0px) + var(--ix-pad-l)); right: calc(var(--ix-free-r, 0px) + var(--ix-pad-r));
+  top: calc(var(--ix-pad-t) + var(--ix-top-h) + 88px); bottom: calc(var(--ix-pad-b) + var(--ix-bottom-h) + 24px);
+  padding: 0 8px; pointer-events: auto; overscroll-behavior: contain; color: var(--ix-ink);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.ix.ix-no-gfx .ix-scene-doc > h2 { order: -2; margin: 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
+.ix.ix-no-gfx .ix-scene-doc > p { margin: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); max-width: 60ch; }
+.ix.ix-no-gfx .ix-scene-doc > p:first-of-type { order: -1; margin-top: -12px; font-variant-numeric: tabular-nums; }
+.ix.ix-no-gfx .ix-scene-doc > p:nth-of-type(2) { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+/* what the step changed stays for the ear (the list shows it), and touch has no arrows to walk with */
+.ix.ix-no-gfx .ix-scene-doc > div[aria-live], .ix.ix-no-gfx[data-size="phone"] .ix-scene-doc > p:nth-of-type(2) {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.ix.ix-no-gfx .ix-scene-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px 24px; align-items: start; }
+.ix.ix-no-gfx .ix-scene-sec h3 {
+  margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--ix-line);
+  font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 600;
+}
+.ix.ix-no-gfx .ix-scene-sec ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ix.ix-no-gfx .ix-scene-sec li {
+  display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 2px 6px; margin-inline: -6px; border-radius: var(--ix-r-sm);
+  font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; color: var(--ix-ink-muted);
+}
+.ix.ix-no-gfx .ix-scene-sec li[data-depth="1"] {
+  padding-left: 20px; font: 400 var(--ix-fs-xs)/var(--ix-lh-xs) var(--ix-font-mono); min-height: 24px;
+}
+.ix.ix-no-gfx .ix-scene-sec li[data-key]::before {
+  content: ""; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--k);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+.ix.ix-no-gfx .ix-scene-sec li.ix-scene-watch { color: var(--ix-ink); font-weight: 600; }
+.ix.ix-no-gfx .ix-scene-sec li[data-depth="1"].ix-scene-watch { font-weight: 500; }
+.ix.ix-no-gfx .ix-scene-sec li:hover { background: var(--ix-hover); }
+.ix.ix-no-gfx .ix-scene-sec li:focus-visible { outline: var(--ix-ring); outline-offset: 0; color: var(--ix-ink); }
+.ix.ix-no-gfx[data-size="phone"] .ix-scene-doc { top: calc(var(--ix-pad-t) + var(--ix-top-h) + 80px); }
+.ix.ix-no-gfx[data-size="phone"] .ix-scene-body { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 /* help on phones: the about card (opened from the title) carries the way in; help opens as a bottom sheet with the
    interface in plain words (the keys stay on screens with a keyboard) */
 .ix-about-help {

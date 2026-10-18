@@ -506,7 +506,11 @@ export async function mount(root, figure, options = {}) {
   document.fonts?.ready?.then(kick);
 
   await (renderer?.ready ?? Promise.resolve());
-  if (!renderer || renderer.lost) hud.notice?.("WebGL is unavailable here, so the world can't be drawn. The captions and controls still work.", { duration: 0 });
+  // no GPU at all: the described scene (engine/a11y/scene.mjs) steps out of hiding and shows the same run's world in words
+  if (!renderer || renderer.lost) {
+    root.classList.add("ix-no-gfx");
+    hud.notice?.("This device can't draw the 3D world, so it is shown here in words. Everything else works.", { duration: 0 });
+  }
   if (!recompile({ keepPhase: false })) return api();
   if (initial.time != null) { time = clamp(initial.time, 0, tl.duration); }
   // the page opens paused on its first step behind a start card; ?autoplay=1 (or autoplay: true) runs straight away
