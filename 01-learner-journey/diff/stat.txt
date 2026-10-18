@@ -1,0 +1,32 @@
+# git diff --stat 9c8b16d7a1176874e100da8910cae089e2c1cf65..HEAD
+ CONTRACTS.md                  |   2 +
+ DESIGN.md                     |   8 +-
+ engine/hud/chapter-card.mjs   |  25 +++--
+ engine/hud/explain.mjs        |  32 ++++--
+ engine/hud/hud.css            |  52 +++++++++-
+ engine/hud/hud.mjs            | 224 +++++++++++++++++++++++++++++++++++-------
+ engine/hud/journey.mjs        |  57 +++++++++++
+ engine/hud/journey.test.mjs   |  55 +++++++++++
+ engine/hud/level.mjs          |  15 +--
+ engine/runtime.mjs            |  25 ++++-
+ engine/scene/lesson.mjs       |   2 +
+ examples/mapreduce/lesson.mjs |   8 ++
+ references/builder.md         |   2 +-
+ references/tooling.md         |   5 +
+ scripts/lib/lesson.mjs        |   5 +
+ scripts/shoot.mjs             |  47 +++++++--
+ 16 files changed, 494 insertions(+), 70 deletions(-)
+
+# git log --oneline 9c8b16d7a1176874e100da8910cae089e2c1cf65..HEAD
+14ab80f Give the end check's walk-through longer on a slow machine
+6f517fb Let the end check lead: the pill after it waits quietly until it is done
+b6939ea Print the lessons that follow at the end of the lesson script
+956713a Keep the next-story rule beside the pause rules
+cdcd47e Play the teach pass at 16x with four times the waits
+e86ebf4 Shoot teaching cards at 1x speed in the dock
+62ba653 Pick up a question's step before it, so the question opens again
+d21931b Document the reader's journey in the design and lesson contracts
+dd2ae48 Remember the reader's journey: welcome back, finished stories, the next story
+abecdb0 Say what each level changes, and carry the last level to the next figure
+b176611 Keep the chapter card's picture in view and say plainly why a summary waits
+0edb6fb Let shoot --teach reach every card on a slow machine

@@ -1,0 +1,28 @@
+ CONTRACTS.md                  |   7 +-
+ engine/scene/lesson.mjs       |  16 +--
+ examples/mapreduce/README.md  |  17 +++-
+ examples/mapreduce/figure.mjs | 165 +++++++++++++++++++++++++------
+ examples/mapreduce/lesson.mjs | 225 ++++++++++++++++++++++++++++++++----------
+ references/teaching.md        |   2 +-
+ references/tooling.md         |  14 ++-
+ scripts/lib/lesson.mjs        |  69 +++++++++++--
+ scripts/review-packet.mjs     |  40 ++++++++
+ scripts/shoot.mjs             |  35 +++++--
+ scripts/verify.mjs            |   8 +-
+ 11 files changed, 482 insertions(+), 116 deletions(-)
+
+e5e6ea5 Fix the mapreduce lesson's facts from the third expert read
+c4f94cf Bring story 1's ideas back in later mapreduce stories at new numbers, not as repeats
+a671103 Fix the mapreduce lesson's facts from the second expert read, clear up skew numbers
+0c84f56 Pause shoot --teach in the same breath as a reveal, so a revealed card is still there to shoot
+32f7028 Describe each mapreduce story's end check in its README
+6f5c21e Check each mapreduce story's own idea, confront the backup-on-skew belief
+a33e211 Describe the mapreduce questions in its README and plan
+6cf3a03 Document story objectives, wrong check feedback, picks and checks in the lesson tools
+687b5bf Clarify map's why, the shuffle's naive way, the hot key's source
+8ad1c6e Fix the mapreduce lesson's facts from the expert read, keep answers out of the setup
+70ec826 Put picks and the end check in the reader packet
+6457453 Teach mapreduce by doing: new predictions and story-specific end checks
+9d9b5f9 Print picks, their real branches and the end check in the lesson
+489829b Scope objectives to stories, word wrong check options, count every question's misconceptions
+1a4dfc3 Let shoot --teach wait for slow machines

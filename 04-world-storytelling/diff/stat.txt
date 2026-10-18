@@ -1,0 +1,24 @@
+# git diff --stat 9c8b16d7a1176874e100da8910cae089e2c1cf65..HEAD
+ DESIGN.md                     |  8 +++----
+ engine/director/shots.mjs     | 21 ++++++++++++-------
+ engine/gfx/pack.mjs           |  9 ++++----
+ engine/gfx/skin.mjs           | 19 ++++++++++++++---
+ engine/scene/sampler.mjs      | 22 +++++++++++++++++--
+ engine/scene/timeline.mjs     |  3 +++
+ engine/tokens.mjs             | 17 ++++++++-------
+ examples/mapreduce/figure.mjs | 49 +++++++++++++++++++++++++++++++------------
+ references/tooling.md         |  2 +-
+ 9 files changed, 108 insertions(+), 42 deletions(-)
+
+# git log --oneline 9c8b16d7a1176874e100da8910cae089e2c1cf65..HEAD
+fc0aa7b Count every counter's slips from zero, so one that gets none says so
+613e459 Restore the space in MapReduce's handout step call
+3bb628f Document the detail shot's start-to-end framing
+de5fc12 Describe the world's new type sizes, look light and key order in DESIGN.md
+a276a8e Keep each counter's load in its header after it posts
+12172f4 Order the identity colours so the first five stay apart for colour-blind readers
+bfe43aa Let MapReduce's machines say what they hold, and show the hot key's load
+309ae0e Keep a housing's tag off the housing just behind it
+22b4a29 Frame a detail shot from where its look ids start to where they land
+7546c91 Light each step's look ids in the world, as the Look chip does
+2369359 Print slip keys, header state and stage names large enough to read

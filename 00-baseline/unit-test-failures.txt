@@ -1,0 +1,40 @@
+# Subtest: with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+not ok 22 - with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'minZ')"
+--
+# Subtest: the last step frames its focus close and large: the payoff
+not ok 24 - the last step frames its focus close and large: the payoff
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'minZ')"
+--
+# Subtest: housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+not ok 42 - housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+  failureType: 'testCodeFailure'
+  error: |-
+--
+# Subtest: lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line
+not ok 50 - lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line
+  failureType: 'testCodeFailure'
+  error: |-
+# Subtest: zone, text, bracket, pointer, container
+not ok 51 - zone, text, bracket, pointer, container
+  failureType: 'testCodeFailure'
+  error: |-
+--
+# Subtest: real format: lanes put the ruler and time labels where the scene says; messages and prints
+not ok 58 - real format: lanes put the ruler and time labels where the scene says; messages and prints
+  failureType: 'testCodeFailure'
+  error: |-
+--
+# Subtest: theme variables come from tokens
+not ok 75 - theme variables come from tokens
+  failureType: 'testCodeFailure'
+  error: |-
+--
+# Subtest: mapreduce happy {}: motion is continuous (no jumps, no pops)
+not ok 134 - mapreduce happy {}: motion is continuous (no jumps, no pops)
+  failureType: 'testCodeFailure'
+  error: |-
+--
+# Subtest: mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)

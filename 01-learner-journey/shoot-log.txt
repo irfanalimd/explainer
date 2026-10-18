@@ -1,0 +1,6 @@
+shot 232 PNGs -> 01-learner-journey/shots/after/
+sheet 01-learner-journey/shots/after/contact.png
+sheet 01-learner-journey/shots/after/contact-2.png
+audit problems (1 distinct, in 10 of 232 shots; run audit.mjs for every step):
+  focus-outside at steps 4, 19, 22: part of the step's focus is outside the frame (first: "map 1 writes a slip for each of its 4 words, like `(jum…")  [happy-dark-390x844-004-mid, happy-dark-390x844-019-mid, happy-light-390x844-004-mid +7]
+exit 0 after 7326s

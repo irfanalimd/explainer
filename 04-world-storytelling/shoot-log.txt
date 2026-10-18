@@ -1,0 +1,9 @@
+shot 186 PNGs -> 04-world-storytelling/shots/after/
+sheet 04-world-storytelling/shots/after/contact.png
+page errors (24):
+  [teach] the pick at step 12 never held its wrong branch's consequence  (4x, first at happy-dark-1440x900-012)
+  [teach] the run never reached its end card  (8x, first at happy-dark-1440x900)
+  [teach] the question at step 7 was never revealed  (8x, first at crash-dark-1440x900-007)
+  [teach] the question at step 6 was never revealed  (4x, first at straggler-dark-1440x900-006)
+audit problems (1 distinct, in 10 of 186 shots; run audit.mjs for every step):
+  focus-outside at steps 4, 19, 22: part of the step's focus is outside the frame (first: "map 1 writes a slip for each of its 4 words, like `(jum…")  [happy-dark-390x844-004-mid, happy-dark-390x844-019-mid, happy-light-390x844-004-mid +7]

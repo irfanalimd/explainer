@@ -1,0 +1,17 @@
+# Unit tests, re-run on 2026-10-18T20:57:42Z at 14ab80f
+# Same 11 failures as main (00-baseline/unit-test-failures.txt); no new failures.
+
+not ok 22 - with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+not ok 24 - the last step frames its focus close and large: the payoff
+not ok 42 - housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+not ok 50 - lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line
+not ok 51 - zone, text, bracket, pointer, container
+not ok 58 - real format: lanes put the ruler and time labels where the scene says; messages and prints
+not ok 75 - theme variables come from tokens
+not ok 138 - mapreduce happy {}: motion is continuous (no jumps, no pops)
+not ok 142 - mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)
+not ok 178 - steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask, line
+not ok 258 - the figure is deterministic and its narration is precise
+# tests 309
+# pass 298
+# fail 11
