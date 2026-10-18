@@ -3,6 +3,10 @@
 Each branch improves `examples/mapreduce` from one angle. Each one is a **draft pull request**:
 nothing is merged into `main`.
 
+> **To merge: use [#4](https://github.com/irfanalimd/explainer/pull/4).** It combines all three below, resolves
+> where they overlap, and updates the generator's instructions, so new `/explainer` pages come out the same way.
+> #1–#3 stay open for their write-ups and screenshots.
+
 | | Branch | What changes for the reader | Pull request | Size |
 |---|---|---|---|---|
 | **01** | Learner journey | The page remembers where you stopped. The four stories chain into a course. Every waiting state says what is going on. | [#1](https://github.com/irfanalimd/explainer/pull/1) | +494 / −70, 16 files |
@@ -33,17 +37,9 @@ and 02 each include a fix for that; 04 doesn't, so its run misses the same cards
 
 ## If you merge them
 
-They overlap in a few files, so merge one at a time and rebase the next:
-
-- **01 and 02** both edit `examples/mapreduce/lesson.mjs`, `scripts/shoot.mjs`, `scripts/lib/lesson.mjs`,
-  `engine/scene/lesson.mjs` and `CONTRACTS.md`. Both changed the screenshot tool's teaching-card timing in
-  different ways, so keep one version.
-- **02 and 04** both edit `examples/mapreduce/figure.mjs`.
-- **01 and 04** both edit `DESIGN.md`.
-- All three edit `references/tooling.md`.
-
-Suggested order: **04** first (smallest, mostly the 3D engine), then **02** (the lesson), then **01** (the panel and
-journey, rebased on 02's lesson changes).
+Merge [#4](https://github.com/irfanalimd/explainer/pull/4), not the three separately. They overlap in a few files
+(`examples/mapreduce/lesson.mjs`, `figure.mjs`, `scripts/shoot.mjs`, `DESIGN.md`, `references/tooling.md`), and #4
+already resolves those overlaps.
 
 ## Not here yet
 
