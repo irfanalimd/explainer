@@ -14,7 +14,8 @@ import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
 import { createExplain, VEIL } from "./explain.mjs";
 import { createFold } from "./fold.mjs";
-import { createLevel } from "./level.mjs";
+import { createLevel, segmented } from "./level.mjs";
+import { createHandout } from "./handout.mjs";
 import { createLayers } from "./layers.mjs";
 import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
 import { createTurn, liveTurns, detourOf } from "./turn.mjs";
@@ -560,12 +561,14 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("present-help"), onclick: () => presenter.set(!presenter.on) });
   const presentView = h("button", { class: "ix-ghost-btn ix-present-open", type: "button", onclick: () => presenter.openView() },
     h("span", { html: ICON.windows }), "Open presenter view");
+  const presentHandout = h("button", { class: "ix-ghost-btn ix-present-open", type: "button", onclick: () => { toggleDrawer(false); handout.open("teacher"); } },
+    h("span", { html: ICON.print }), "Print a teacher guide");
   const presentPrefs = h("div", { class: "ix-prefs ix-prefs-present" },
     h("div", { class: "ix-prefs-title", text: "Presenting" }),
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: presentSw.id, text: "Presenter mode" }), presentSw)),
     h("p", { class: "ix-knob-help", id: uid("present-help"), text: "Big type and high contrast for a projector. A clicker steps through it: → or Page Down goes on, ← or Page Up goes back. P turns it on and off." }),
-    presentView);
+    h("div", { class: "ix-present-actions" }, presentView, presentHandout));
   function setCharKeys(on) {
     charKeys = !!on;
     keysSw.setAttribute("aria-checked", String(charKeys));
@@ -602,9 +605,33 @@ export function createHud(root, opts = {}, cb = {}) {
       };
     },
     saveImage: () => saveStill(),
-    handout: () => { toggleShare(false); fire("onHandout"); },
+    handout: () => { toggleShare(false); handout.open(); },
     present: () => { toggleShare(false); presenter.set(true); },
   });
+  // the printable handout (handout.mjs): the runtime compiles every story and draws the pictures (onHandoutData)
+  const handout = createHandout({
+    h, doc, segmented, icons: { print: ICON.print, close: ICON.close, check: ICON.check },
+    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex }),
+    data: (o) => fire("onHandoutData", o),
+    pictures: (d, onEach) => fire("onHandoutPictures", d, onEach),
+    result: () => { const r = check.result; return r ? { ...r, levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value } : null; },
+    address: () => {
+      const loc = win.location;
+      if (/^https?:$/.test(loc.protocol)) return { url: `${loc.origin}${loc.pathname}`, file: null };
+      return { url: null, file: loc.protocol === "file:" ? decodeURIComponent(loc.pathname.split("/").pop() || "") || null : null };
+    },
+    onClose: () => { root.classList.remove("ix-handout-open"); hud.removeAttribute("inert"); fire("onCover", false); (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true }); },
+  });
+  // opening it: the run pauses, the HUD goes inert behind it, and the world stops drawing until it closes
+  const openHandout = handout.open;
+  handout.open = (v) => {
+    lastFocus = doc.activeElement; toggleShare(false); toggleDrawer(false);
+    if (S.playing) fire("onPause");
+    root.classList.add("ix-handout-open"); hud.setAttribute("inert", ""); fire("onCover", true); openHandout(v);
+  };
+  on(win, "beforeprint", () => handout.beforePrint());
+  on(win, "afterprint", () => handout.afterPrint());
+
   // the frame on screen as a PNG (still.mjs): the runtime draws the world again and hands it over (onSnapshot)
   async function saveStill() {
     const shot = fire("onSnapshot");
@@ -982,7 +1009,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const frag = doc.createDocumentFragment();
   // popovers live at root level: a backdrop-filter parent would stop their own blur from seeing the world
   frag.append(stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach,
-    helpScrim, help, introScrim, intro, toast, tip, live);
+    helpScrim, help, introScrim, intro, toast, tip, live, handout.el);
   root.insertBefore(frag, after);
 
   // ---------- help: what each part of the interface is for, in plain words, then the keys ----------
@@ -1156,6 +1183,7 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   /** Close the topmost overlay; returns true if something closed. */
   function closeTop() {
+    if (handout.isOpen) { handout.close(); return true; }
     if (introOpen) { closeIntro("dismiss"); return true; }
     if (helpOpen) { toggleHelp(false); return true; }
     if (coachName) { hideCoach(); return true; }
@@ -2777,15 +2805,26 @@ export function createHud(root, opts = {}, cb = {}) {
       : S.playing ? "Pause" : "Play";
     const done = hv?.kind === "end" ? "Run complete" : hv?.kind === "chapter" ? `${S.phases[hv.phase]?.name || `Chapter ${hv.phase + 1}`} complete` : null;
     const q = Q.q && (!Q.q.kind || Q.q.kind === "choose") ? Q.q : null;
-    const ask = q ? { kind: q.kind ?? "predict", question: q.question ?? q.prompt ?? "", options: q.kind ? [] : q.options ?? [], answer: q.kind ? null : q.answer,
-      chosen: q.kind ? null : Q.answered, revealed: Q.revealed } : null;
+    const ask = q ? { ...questionOf(q, q.kind ?? "predict"), chosen: q.kind ? null : Q.answered, revealed: Q.revealed } : null;
+    // the step after this one opens with a question the reader will see (at this level): warn the presenter now
+    const up = nx && !ask && isLive(i + 1) && (nx.ask || nx.choose) ? questionOf(nx.ask ?? nx.choose, nx.ask ? "predict" : "choose") : null;
     return {
       steps: S.steps.length, step: i, chapters: S.phases.map((p) => p.name ?? ""), chapter: k, cur: S.steps[i], next: nx,
       nextChapter: nx && nk !== k ? S.phases[nk]?.name ?? `Chapter ${nk + 1}` : null, held: hv ? { kind: hv.kind, done } : null, primary,
-      playing: S.playing, progress: S.span ? S.time / S.span : 0, ask, about: S.phases[k]?.about ?? null,
+      playing: S.playing, progress: S.span ? S.time / S.span : 0, ask, upcoming: up, about: S.phases[k]?.about ?? null, teach: S.phases[k]?.teach ?? null,
       scenario: S.scenarios.length > 1 ? scenarioDef()?.label ?? S.scenario : null,
+      stories: S.scenarios.length > 1 ? S.scenarios.map((s) => ({ id: s.id, label: s.label ?? s.id })) : null, story: S.scenario,
       sig: [i, S.tl?.hash ?? "", S.steps.length, primary, ask ? `${ask.question}|${ask.chosen}|${ask.revealed}` : "", level.value, S.scenario].join("|"),
     };
+  }
+  // a prediction (s.ask) or an in-world pick (s.choose) as the presenter view reads it: its options in words, the
+  // answer, and what each wrong option means (its feedback, and the lesson's wrong idea it comes from)
+  function questionOf(q, kind) {
+    const wrong = (id) => (S.lesson?.misconceptions ?? []).find((m) => m.id === id)?.wrong ?? null;
+    const opts = kind === "choose" ? (q.options ?? []).map((o) => o.text ?? o.pick) : (q.options ?? []).map((o) => String(o?.text ?? o));
+    const fb = kind === "choose" ? (q.options ?? []).map((o) => (o.feedback || o.misconception ? { text: o.feedback ?? null, wrong: wrong(o.misconception) } : null))
+      : opts.map((_, j) => { const f = q.feedback?.[j]; return f?.text || f?.misconception ? { text: f.text ?? null, wrong: wrong(f.misconception) } : null; });
+    return { kind, question: q.question ?? q.prompt ?? "", options: opts, answer: q.answer ?? null, why: q.why ?? null, feedback: fb };
   }
   let splitWas = null;
   const presenter = createPresenter({
@@ -2811,7 +2850,9 @@ export function createHud(root, opts = {}, cb = {}) {
       makeH: (d) => maker(d).h, markup: (src, d) => toDOM(parse(src), d, markupOpts),
       icons: { back: ICON.back, fwd: ICON.fwd, play: ICON.play, pause: ICON.pause, next: ICON.next, replay: ICON.replay, check: ICON.check },
       key: (e) => presenter.key(e, { charKeys }),
-      actions: { back: () => fire("onStep", -1), advance, primary: () => (S.held && !S.playing ? heldAction() : togglePlay()), answer: (i) => answer(i) },
+      actions: { back: () => fire("onStep", -1), advance, primary: () => (S.held && !S.playing ? heldAction() : togglePlay()), answer: (i) => answer(i),
+        chapter: (k) => { const ph = S.phases[k]; if (ph) { fire("onPause"); fire("onSeek", ph.t0, { scrubbing: false }); } },
+        story: (id) => chooseScenario(id) },
     },
   });
 
@@ -3046,7 +3087,7 @@ export function createHud(root, opts = {}, cb = {}) {
       timers.forEach((id) => win.clearTimeout(id));
       if (countRaf) win.cancelAnimationFrame(countRaf);
       if (fitRaf) win.cancelAnimationFrame(fitRaf);
-      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live]) el.remove();
+      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live, handout.el]) el.remove();
       if (landmark) root.removeAttribute("role");
       root.classList.remove("ix-reduced", "ix-playing", "ix-has-code", "ix-has-meters", "ix-has-legend", "ix-has-scenarios", "ix-stepmode", "ix-intro-open", "ix-held-open");
     },

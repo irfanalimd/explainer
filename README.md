@@ -272,8 +272,10 @@ Read the lesson before you look at a single frame. The process Claude follows is
 ## For teachers
 
 - **Reader levels.** *New to this*, *I know the basics* and *Expert* change how much the panel explains and how many questions it asks, never the facts. The level can be set on the start card or in the panel (<kbd>L</kbd>), and the page remembers it.
-- **Presenter mode.** Use <kbd>P</kbd>, `?present=1` or Settings → Presenting. A clicker works with <kbd>→</kbd>, <kbd>Page Down</kbd> and <kbd>Space</kbd>. The presenter view runs from `file://` too.
-- **Deep links.** `#scenario-crash&step-4` or `#level-expert` opens a page exactly where you want the class to start.
+- **Presenter mode.** Use <kbd>P</kbd>, `?present=1` or Settings → Presenting. A clicker works with <kbd>→</kbd>, <kbd>Page Down</kbd> and <kbd>Space</kbd>. The presenter view, a second window on your laptop, runs from `file://` too. It warns you one step before each question so you can ask the room first, shows what each wrong answer means, gives each chapter's prompt for the room (the lesson's `chapters[id].teach`), and lets you jump to a chapter or switch story.
+- **Share.** The toolbar's **Share** (on phones it is in the title's card) gives a link to this moment (story, step, your level if you want it, and any knobs you changed), *Save image* (this frame and its step's words as a PNG), an iframe snippet that opens at this step, and the handout. Nothing leaves the page.
+- **Handout.** Share → Handout opens a printable **student worksheet** or **teacher guide**, made from the lesson and the real runs: a picture of each chapter, every question with room to answer, the end check, and the answers on a page of their own. The teacher guide adds the plan (each story's measured play time), the wrong ideas to listen for, the talk prompts and what each wrong option means. <kbd>Ctrl</kbd>+<kbd>P</kbd> on the page prints the worksheet.
+- **Deep links.** `#scenario-crash&step-4`, `#level-expert` or `#p=reducers:4` opens a page exactly where you want the class to start. The start card says where the link opens and offers *From the start*; a link that asks for something the page can't do (an unknown story, a knob out of range) opens anyway and says what it changed.
 - **Embedding.** `?embed=1` gives an iframe layout, designed for 800×500 and up. The page speaks a versioned `postMessage` API: you can drive it with `play`, `pause`, `seek`, `step`, `scenario`, `level` and `theme`, and it reports progress, answers and completion as xAPI statements, ready for an LMS.
 
 ```js

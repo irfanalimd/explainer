@@ -18,7 +18,7 @@ import { createScene } from "./a11y/scene.mjs";
 import { attachEmbed } from "./embed/embed.mjs";
 import { parseMoment, resolveMoment, resolveStep, momentRest } from "./embed/deeplink.mjs";
 import { formatHash, paramOverrides } from "./hud/link.mjs";
-import { foldPlan, rateAt, captionHead, forkOf } from "./playback.mjs";
+import { foldPlan, rateAt, captionHead, forkOf, foldedDuration } from "./playback.mjs";
 import { rng } from "../sim/rng.mjs";
 import { DrawList } from "./contracts.mjs";
 import { SIZE, TYPE } from "./tokens.mjs";
@@ -56,7 +56,7 @@ export async function mount(root, figure, options = {}) {
   let looking = null, pace = 1, dwell = 0;
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
-  let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false;
+  let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false, covered = false;
   // render on demand: something changed the picture (dirty), or the last frame was still moving; the two clocks
   let dirty = true, moving = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
   // the start card is open; step mode (each Next plays one step); a guided pause at a chapter's end or the run's end
@@ -136,6 +136,10 @@ export async function mount(root, figure, options = {}) {
     },
     onUnpin: () => { selectedId = null; kick(); },
     onSnapshot: () => snapshot(),
+    onHandoutData: (o) => handoutData(o),
+    onHandoutPictures: (data, onEach) => drawPicturesSlowly(data?.stories ?? [], onEach),
+    // the handout covers the world: no frames until it closes (its pictures are drawn on their own)
+    onCover: (on) => { covered = !!on; if (!covered) restoreFrame(); },
   }));
 
   guided = hud.guided ?? true;
@@ -393,11 +397,149 @@ export async function mount(root, figure, options = {}) {
     return out;
   }
 
+  // the handout (engine/hud/handout.mjs): every story compiled at the figure's own settings, with its play time at 1x
+  // (repeats sped through, as the page plays them), the end check, and, when asked, pictures drawn from those runs:
+  // the end of each chapter of the first story, and each other story's first new key step. The pictures are drawn
+  // in the light theme (paper), framed as the page frames them, and the page is put back exactly as it was.
+  function handoutData({ images = true } = {}) {
+    const list = figure.scenarios?.length ? figure.scenarios : [scenario];
+    const stories = [];
+    let base = null;
+    for (const [i, sc] of list.entries()) {
+      let t = null;
+      try { t = compile(figure, { params: { ...defaultsOf(figure), ...(sc.params ?? {}) }, scenario: sc.id, rng, env }); } catch (err) { console.error(err); continue; }
+      if (i === 0) base = t;
+      const fork = i > 0 && base ? forkOf(sc.start ? null : base, t, { start: sc.start }) : null;
+      const plan = foldPlan(t.steps);
+      stories.push({
+        id: sc.id, label: sc.label ?? sc.id, whatIf: sc.whatIf ?? null, description: sc.description ?? null,
+        takeaway: sc.takeaway ?? meta.takeaway ?? null, recap: sc.recap ?? meta.recap ?? null, tl: t, fork,
+        seconds: foldedDuration(plan, t.duration, fork?.t ?? 0),
+        chapterSeconds: t.phases.map((p) => foldedDuration(plan, p.t1, p.t0)),
+        pictures: [],
+      });
+    }
+    if (images) drawPictures(stories);
+    return { meta, lesson: base?.lesson ?? tl?.lesson ?? null, checks: base?.checks ?? [], stories };
+  }
+  // which pictures: the end of each chapter of the first story, and each other story's first new key step
+  function pictureJobs(stories) {
+    const first = stories[0];
+    const jobs = [];
+    if (first) first.tl.phases.forEach((p, k) => jobs.push({ story: first, chapter: k, step: Math.max(p.step, stepOf(first.tl, p.t1 - 2e-3)), at: p.t1 - 2e-3 }));
+    const seen = new Set((first?.tl.steps ?? []).map((st) => st.caption));
+    for (const sto of stories.slice(1)) {
+      const from = sto.fork?.step ?? 0;
+      const k = sto.tl.steps.findIndex((st, i) => i >= from && st.layers?.key && !seen.has(st.caption));
+      if (k >= 0) jobs.push({ story: sto, chapter: sto.tl.phases.findIndex((p, j) => p.step <= k && (sto.tl.phases[j + 1]?.step ?? Infinity) > k), step: k, at: sto.tl.steps[k].t1 - 2e-3 });
+    }
+    return jobs;
+  }
+  // one picture, in one task: the page's state set aside, the job's run drawn in capture quality and read back before
+  // the browser presents, then the page's state put back (its own frame is drawn again by the caller)
+  function drawJob(job) {
+    const keep = { tl, time, frame, theme, looking, candidates, hoverId, selectedId, refHover, keyFocus };
+    looking = candidates = hoverId = selectedId = refHover = keyFocus = null;
+    if (theme !== "light") { theme = "light"; renderer.setTheme("light"); }
+    snapping = true;
+    try {
+      tl = job.story.tl;
+      director.setTimeline?.(tl);
+      frame = null;
+      time = job.at;
+      const { tags } = renderFrame(10, time, time, true, true);
+      const src = root.querySelector("canvas.ix-canvas") ?? canvas;
+      const k = src.width / viewport.width, ins = hud.insets ?? {};
+      const x = Math.round((ins.left ?? 0) * k), y = Math.round((ins.top ?? 0) * k);
+      const w = Math.max(1, src.width - x - Math.round((ins.right ?? 0) * k)), h = Math.max(1, src.height - y - Math.round((ins.bottom ?? 0) * k));
+      const shown = tags.filter((t) => t.text).map((t) => ({ text: t.text, tone: t.tone, x: t.x - (ins.left ?? 0), y: t.y - (ins.top ?? 0) }));
+      // the page frames the world for a wide screen; a picture in a column of print wants the world, not the stage
+      // around it: trimmed to what was drawn and the tags over it (in CSS px), with a little air
+      const box = trimBox(src, x, y, w, h, k, shown);
+      const c = document.createElement("canvas");
+      c.width = Math.round(box.w * k); c.height = Math.round(box.h * k);
+      c.getContext("2d").drawImage(src, x + Math.round(box.x * k), y + Math.round(box.y * k), c.width, c.height, 0, 0, c.width, c.height);
+      job.story.pictures.push({ chapter: job.chapter, step: job.step, url: c.toDataURL("image/jpeg", 0.9), width: c.width / k, height: c.height / k,
+        tags: shown.map((t) => ({ ...t, x: t.x - box.x, y: t.y - box.y })) });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      snapping = false;
+      ({ tl, time, looking, candidates, hoverId, selectedId, refHover, keyFocus } = keep);
+      if (theme !== keep.theme) { theme = keep.theme; renderer.setTheme(theme); }
+      director.setTimeline?.(tl);
+      frame = keep.frame;
+    }
+  }
+  // the part of a drawn frame that holds the world: pixels that stand out from their row's stage colour (read at an
+  // eighth of the size), joined with each tag's rough extent; -> { x, y, w, h } in CSS px within the crop
+  function trimBox(src, x, y, w, h, k, tags) {
+    const all = { x: 0, y: 0, w: w / k, h: h / k };
+    try {
+      const sw = Math.max(8, Math.round(w / 8)), sh = Math.max(8, Math.round(h / 8));
+      const c = document.createElement("canvas");
+      c.width = sw; c.height = sh;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(src, x, y, w, h, 0, 0, sw, sh);
+      const d = g.getImageData(0, 0, sw, sh).data;
+      let x0 = sw, y0 = sh, x1 = -1, y1 = -1;
+      for (let j = 0; j < sh; j++) {
+        const L = j * sw * 4, R = L + (sw - 1) * 4;
+        const bg = [0, 1, 2].map((q) => (d[L + q] + d[R + q]) / 2);
+        for (let i = 0; i < sw; i++) {
+          const o = L + i * 4;
+          if (Math.abs(d[o] - bg[0]) + Math.abs(d[o + 1] - bg[1]) + Math.abs(d[o + 2] - bg[2]) > 24) {
+            if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j;
+          }
+        }
+      }
+      if (x1 < 0) return all;
+      const f = w / k / sw;
+      let bx0 = x0 * f, by0 = y0 * f, bx1 = (x1 + 1) * f, by1 = (y1 + 1) * f;
+      for (const t of tags) {
+        const half = (String(t.text).length * 6 + 12) / 2;
+        bx0 = Math.min(bx0, t.x - half); bx1 = Math.max(bx1, t.x + half); by0 = Math.min(by0, t.y - 22); by1 = Math.max(by1, t.y);
+      }
+      const pad = Math.max(16, 0.04 * Math.max(bx1 - bx0, by1 - by0));
+      bx0 = Math.max(0, bx0 - pad); by0 = Math.max(0, by0 - pad); bx1 = Math.min(all.w, bx1 + pad); by1 = Math.min(all.h, by1 + pad);
+      // not slimmer than 4:3 nor wider than 2:1, so a column of pictures keeps one rhythm
+      let bw = bx1 - bx0, bh = by1 - by0;
+      if (bw / bh < 4 / 3) { const nw = Math.min(all.w, bh * 4 / 3); bx0 = Math.max(0, Math.min(all.w - nw, bx0 - (nw - bw) / 2)); bw = nw; }
+      if (bw / bh > 2) { const nh = Math.min(all.h, bw / 2); by0 = Math.max(0, Math.min(all.h - nh, by0 - (nh - bh) / 2)); bh = nh; }
+      return bw < 40 || bh < 40 ? all : { x: bx0, y: by0, w: bw, h: bh };
+    } catch {
+      return all;
+    }
+  }
+  // the page's own frame again, the camera settled back on it
+  function restoreFrame() { if (tl) renderFrame(10, shimmer, clock, true); kick(); }
+  // all at once (the print dialog waits for this), or one picture per task so the page stays responsive and the
+  // handout can say how far it has got (a software-rendered browser can take seconds a picture)
+  function drawPictures(stories) {
+    if (!tl || !renderer || renderer.lost) return;
+    for (const job of pictureJobs(stories)) drawJob(job);
+    restoreFrame();
+  }
+  async function drawPicturesSlowly(stories, onEach) {
+    if (!tl || !renderer || renderer.lost) return false;
+    const jobs = pictureJobs(stories);
+    for (const [i, job] of jobs.entries()) {
+      onEach?.(i, jobs.length);
+      await new Promise((ok) => setTimeout(ok, 0));
+      if (!tl || renderer.lost) return false;
+      drawJob(job);
+    }
+    restoreFrame();
+    return true;
+  }
+  const stepOf = (t, at) => { let i = 0; while (i + 1 < t.steps.length && t.steps[i + 1].t0 <= at + 1e-9) i++; return i; };
+
   const holds = () => hud.policy ?? {};
   const entryDwell = (k) => (holds().entry === "full" && tl?.phases[k]?.enter ? DWELL : 0);
 
   // one frame at playhead `time`; shimmerT and clockT are the two clocks (both the playhead in capture)
-  function renderFrame(dt, shimmerT, clockT, settle) {
+  // quiet: a picture for the handout, drawn from another run; the HUD, the described scene and the embed never hear of it
+  function renderFrame(dt, shimmerT, clockT, settle, quiet = false) {
     frame = tl.sample(time, view(), frame);
     if (looking) for (const p of frame.poses) if (looking.has(p.id)) { p.hover = true; p.lit = Math.max(p.lit ?? 0, 1); }
     if (candidates) for (const p of frame.poses) if (candidates.has(p.id)) p.lit = Math.max(p.lit ?? 0, 1);
@@ -420,8 +562,10 @@ export async function mount(root, figure, options = {}) {
         const [x, y, , on] = renderer.project(tag.at);
         if (on) tags.push({ id: tag.id, text: tag.text, tone: tag.tone, x, y, opacity: tag.opacity ?? 1 });
       }
+      if (quiet) return { camera, tags };
       hud.placeTags(tags);
     }
+    if (quiet) return { camera, tags: [] };
     if (skipped && time < skipped.t - 0.01) skipped = null;   // rewound into the skipped setup: it is no longer skipped
     const fold = frozen || capture ? null : foldInfo(frame.step);
     if (fold) frame.caption = fold.caption;
@@ -496,7 +640,7 @@ export async function mount(root, figure, options = {}) {
     }
     if (playing || dirty || moving) schedule(); else rest();
   }
-  function schedule() { if (!raf && visible && !frozen) raf = requestAnimationFrame(tick); }
+  function schedule() { if (!raf && visible && !frozen && !covered) raf = requestAnimationFrame(tick); }
   // something changed the picture: draw a frame
   function kick() { dirty = true; schedule(); }
   // nothing moves: no frames until the next kick. A camera the reader moved still eases back to auto direction
@@ -525,6 +669,8 @@ export async function mount(root, figure, options = {}) {
 
   // size and visibility
   const resize = () => {
+    // printing lays the page out as the handout alone (hud.css @media print): the world keeps its size meanwhile
+    if (window.matchMedia?.("print").matches) return;
     const r = root.getBoundingClientRect();
     viewport = { width: Math.max(1, r.width), height: Math.max(1, r.height), dpr: Math.min(window.devicePixelRatio || 1, 2) };
     renderer?.resize(viewport.width, viewport.height, viewport.dpr);
