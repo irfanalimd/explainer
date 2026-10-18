@@ -160,18 +160,23 @@ function marksOf(tl) {
     let frame = null;
     for (const st of tl.steps) {
       const ids = st.layers?.look, anchors = [];
-      frame = tl.sample((st.t0 + st.t1) / 2, {}, frame);
-      for (const g of frame.tags ?? []) if (g.opacity > 0) anchors.push(g.at.slice());
-      frame = tl.sample(Math.max(st.t0, st.t1 - 1e-3), {}, frame);
-      for (const g of frame.tags ?? []) if (g.opacity > 0) anchors.push(g.at.slice());
+      const want = ids?.length ? new Set(ids) : null;
+      // the look ids where they start and where they land: a detail shot holds the cause with its effect (a slip
+      // seen leaving its reading machine as well as arriving on its counter)
       let b = null;
-      if (ids?.length) {
-        const want = new Set(ids);
+      const take = () => {
+        if (!want) return;
         for (const p of frame.poses) {
           if (!want.has(p.id) || !(p.w > 0)) continue;
           b = union(b, { minX: p.x - p.w / 2, maxX: p.x + p.w / 2, minY: p.y - p.d / 2, maxY: p.y + p.d / 2, minZ: 0, maxZ: (p.z ?? 0) + (p.h ?? 0) });
         }
-      }
+      };
+      if (want) { frame = tl.sample(Math.min(st.t1, st.t0 + 1e-3), {}, frame); take(); }
+      frame = tl.sample((st.t0 + st.t1) / 2, {}, frame);
+      for (const g of frame.tags ?? []) if (g.opacity > 0) anchors.push(g.at.slice());
+      frame = tl.sample(Math.max(st.t0, st.t1 - 1e-3), {}, frame);
+      for (const g of frame.tags ?? []) if (g.opacity > 0) anchors.push(g.at.slice());
+      take();
       out.looks.push(b);
       out.tags.push(anchors);
     }
