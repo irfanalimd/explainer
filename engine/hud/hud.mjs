@@ -14,7 +14,8 @@ import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
 import { createExplain, VEIL } from "./explain.mjs";
 import { createFold } from "./fold.mjs";
-import { createLevel } from "./level.mjs";
+import { createLevel, LEVELS, compiledPace } from "./level.mjs";
+import { createJourney, promiseOf, nextStory } from "./journey.mjs";
 import { createLayers } from "./layers.mjs";
 import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
 import { createTurn, liveTurns, detourOf } from "./turn.mjs";
@@ -224,8 +225,11 @@ export function createHud(root, opts = {}, cb = {}) {
     explain.refresh(true);
     S.captionDirty = true;
     if (S.step >= 0) setCaption(S.caption, S.step);
+    if (introOpen) renderIntro();
     fire("onLevel", v);
   } });
+  // the stories this viewer has finished and where they stopped (journey.mjs): offered back on the start card
+  const journey = createJourney({ store, key: figKey() });
 
   // ---------- small builders ----------
   const iconBtn = (icon, label, kbd, onclick, cls = "") => h("button", {
@@ -307,13 +311,13 @@ export function createHud(root, opts = {}, cb = {}) {
       "aria-label": `Scenario ${i + 1} of ${n}: ${sc.label ?? sc.id}`, "aria-description": sc.description ?? null,
       "data-tip": sc.description ?? null, "data-tip-head": sc.description ? sc.label ?? sc.id : null, "data-kbd": i < 9 ? String(i + 1) : null,
       onclick: () => chooseScenario(sc.id),
-    }, sc.label ?? sc.id));
+    }, h("span", { class: "ix-story-mark", "aria-hidden": "true", html: ICON.check }), sc.label ?? sc.id));
     put(storySeg, storySegK, storyThumb, storyTabs);
     storyItems = S.scenarios.map((sc, i) => h("button", {
       class: "ix-story-item", type: "button", role: "menuitemradio", "aria-checked": "false", tabindex: "-1", "data-id": sc.id,
       onclick: () => { toggleStoryMenu(false); storyBtn.focus({ preventScroll: true }); chooseScenario(sc.id); },
     }, h("span", { class: "ix-story-num", "aria-hidden": "true", text: i < 9 ? String(i + 1) : "" }),
-    h("span", { class: "ix-story-body" }, h("span", { class: "ix-story-label", text: sc.label ?? sc.id }),
+    h("span", { class: "ix-story-body" }, h("span", { class: "ix-story-label" }, sc.label ?? sc.id, h("span", { class: "ix-story-fin", text: "Finished" })),
       sc.description ? h("span", { class: "ix-story-text", text: sc.description }) : null),
     h("span", { class: "ix-menu-check", html: ICON.check })));
     put(storyMenu, h("div", { class: "ix-story-head", "aria-hidden": "true", text: "Same system, different scenarios" }), storyItems);
@@ -322,8 +326,21 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!many) toggleStoryMenu(false);
     root.classList.toggle("ix-has-scenarios", many);
     storyMode = "";   // re-measure: the labels changed
+    renderStoryMarks();
     renderScenario();
     if (S.W) updateInsets();
+  }
+  // a small check on the stories this viewer has finished (journey.mjs), in the strip and the menu; capture never shows
+  // them (hud.css), so a frame does not depend on what the browser remembers
+  function renderStoryMarks() {
+    const n = S.scenarios.length;
+    S.scenarios.forEach((sc, i) => {
+      const done = journey.done.has(sc.id), name = `Scenario ${i + 1} of ${n}: ${sc.label ?? sc.id}${done ? ", finished" : ""}`;
+      const tab = storyTabs[i], item = storyItems[i];
+      if (tab) { tab.classList.toggle("ix-story-done", done); tab.setAttribute("aria-label", name); }
+      if (item) item.classList.toggle("ix-story-done", done);
+    });
+    if (storyMode === "strip" && S.W) { storyMode = ""; updateInsets(); }   // the strip's width changed
   }
   function renderScenario() {
     const n = S.scenarios.length, i = Math.max(0, S.scenarios.findIndex((x) => x.id === S.scenario)), sc = S.scenarios[i];
@@ -567,8 +584,9 @@ export function createHud(root, opts = {}, cb = {}) {
 
   // ---------- parameters: the figure's inputs, always in view where there is room ----------
   // Wide screens (where the explain panel docks): a card of its own at the foot of the right column, each knob a row
-  // with its name, its control and its value, open by default (the header folds it; remembered). On a short screen
-  // it starts folded to its title, so the explain panel above keeps room for the step. Narrower screens:
+  // with its name, its control and its value; its header folds it (remembered). A figure with a lesson starts it folded
+  // to its title: a first-time reader needs the panel's room for the chapter card and the step, and the run's end
+  // invites them to open it ("Try it yourself"). Without a lesson it starts open, folded only on a short screen. Narrower screens:
   // the same knobs lead the drawer, which the toolbar's "Parameters" opens (a bottom sheet on phones). Docked, the
   // drawer keeps only the playback preferences and the toolbar calls it "Settings".
   const PARAMS_TALL = 800;   // px of root height from which the card starts open
@@ -581,7 +599,7 @@ export function createHud(root, opts = {}, cb = {}) {
     h("header", { class: "ix-params-head" }, paramsToggle, paramsReset), paramsBody);
   const hasKnobs = () => Object.keys(knobs).length > 0;
   function syncParamsOpen() {
-    const open = paramsPref ? paramsPref === "1" : S.H >= PARAMS_TALL;
+    const open = paramsPref ? paramsPref === "1" : !S.lesson && S.H >= PARAMS_TALL;
     if (open === paramsOpen) return;
     paramsOpen = open;
     paramsToggle.setAttribute("aria-expanded", String(open));
@@ -610,8 +628,11 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   // the explain panel above it ends where the card begins
   function sizeParams() {
-    const hgt = paramsDocked && !paramsCard.hidden ? paramsCard.offsetHeight : 0;
-    root.style.setProperty("--ix-params-space", hgt ? `${hgt + 12}px` : "0px");
+    const hgt = paramsDocked && !paramsCard.hidden ? paramsCard.offsetHeight : 0, v = hgt ? `${hgt + 12}px` : "0px";
+    if (root.style.getPropertyValue("--ix-params-space") === v) return;
+    root.style.setProperty("--ix-params-space", v);
+    // the explain panel above just grew or shrank: what it had to drop to fit may fit again (or no longer)
+    explain.fit();
   }
   /** Width of the root the parameters card covers, from the right edge, for hud.insets.right. */
   const paramsInset = () => (paramsDocked && paramsCard.offsetWidth && !capturing() ? Math.max(0, Math.round(root.clientWidth - paramsCard.offsetLeft)) : 0);
@@ -857,7 +878,7 @@ export function createHud(root, opts = {}, cb = {}) {
     return b;
   };
   // at a chapter pause the primary button reads "Continue to Shuffle" (Enter), at the end "Replay"; Next steps aside
-  const playBtn = tpBtn("play", "Play", "Play", "Space", () => (S.held && !S.playing ? heldAction() : togglePlay()), "ix-play");
+  const playBtn = tpBtn("play", "Play", "Play", "Space", () => (S.held && !S.playing ? heldAction() : askingNow && !S.playing ? pointToAnswer() : togglePlay()), "ix-play");
   const backBtn = tpBtn("back", "Back", "Back one step", "←", () => fire("onStep", -1), "ix-step ix-back");
   const fwdBtn = tpBtn("fwd", "Next", "Next step", "→", () => { hideCoach("step"); fire("onStep", 1); }, "ix-step ix-next");
   const againBtn = h("button", { class: "ix-again", type: "button", hidden: true, "aria-label": "Replay this chapter", "data-tip": "Replay this chapter",
@@ -1126,31 +1147,78 @@ export function createHud(root, opts = {}, cb = {}) {
   let introOpen = false;
   const introTitle = h("h2", { class: "ix-intro-title", id: uid("intro-title") });
   const introSub = h("p", { class: "ix-intro-sub", id: uid("intro-sub") });
-  const introPlay = h("button", { class: "ix-cta", type: "button", onclick: () => closeIntro("play") }, h("span", { class: "ix-cta-icon", html: ICON.play }), "Play");
-  const introStep = h("button", { class: "ix-cta-2", type: "button", onclick: () => closeIntro("step") }, "Step through it yourself");
+  const introPlayWord = h("span", { text: "Play" });
+  const introPlay = h("button", { class: "ix-cta", type: "button", onclick: () => closeIntro(introBack ? "resume" : "play") }, h("span", { class: "ix-cta-icon", html: ICON.play }), introPlayWord);
+  const introStep = h("button", { class: "ix-cta-2", type: "button", onclick: () => closeIntro(introBack ? "restart" : "step") }, "Step through it yourself");
   const introPath = h("p", { class: "ix-intro-path", "aria-label": "Chapters" });
-  // the level, asked once up front (built when the figure turns out to have a lesson)
+  // a returning reader: "Welcome back" over the title, and where they stopped under it (journey.mjs)
+  const introKicker = h("p", { class: "ix-intro-kicker", hidden: true });
+  const introWhere = h("p", { class: "ix-intro-where", hidden: true });
+  // what the reader is signing up for, from the run: "5 chapters · about 3 min · 4 questions · then 3 what-ifs"
+  const introPromise = h("p", { class: "ix-intro-promise", hidden: true });
+  // the level, asked once up front (built when the figure turns out to have a lesson), and what the chosen one changes
   const introLevel = h("div", { class: "ix-intro-level", hidden: true });
+  const introNote = h("p", { class: "ix-intro-level-note", "aria-live": "polite" });
   const kbs = (...ks) => ks.map((k) => h("kbd", { class: "ix-kbd ix-kbd-sm", text: k }));
   intro.append(
-    h("div", { class: "ix-intro-head" }, introTitle, introSub, introPath),
+    h("div", { class: "ix-intro-head" }, introKicker, introTitle, introSub, introWhere, introPromise, introPath),
     introLevel,
     h("div", { class: "ix-intro-actions" }, introPlay, introStep),
     h("p", { class: "ix-intro-keys" }, kbs("Space"), " play", h("span", { class: "ix-dotsep", text: "·" }), kbs("←", "→"), " step"));
+  // the place a returning reader is offered back: null on a first visit, under a deep link (the link says where to
+  // start), or when there is nothing worth picking up. A story finished last time offers the next one.
+  let introBack = null;
+  function resumeOffer() {
+    if (!S.steps.length || link.time != null || link.scenario != null || Object.keys(link.params).length
+      || link.rest.some((p) => /^(step|scenario|level)-/.test(p))) return null;
+    const r = journey.saved(S.scenarios);
+    if (!r) return null;
+    const story = S.scenarios.find((x) => x.id === r.scenario) ?? null;
+    if (!r.end) return { ...r, story, go: { scenario: r.scenario, time: r.time, params: r.params ?? {} } };
+    const after = S.scenarios.slice(S.scenarios.indexOf(story) + 1).find((x) => !journey.done.has(x.id))
+      ?? S.scenarios.find((x) => !journey.done.has(x.id));
+    return after ? { ...r, story, next: after, go: { scenario: after.id, fork: true } } : null;
+  }
+  const quote = (s) => `“${s}”`;
   // the start card asks the figure's question (meta.hook), falling back to the subtitle (the header shows only the title), and
   // names the chapters ahead when they read as ideas (not code-like ranges such as a[0..8])
   function renderIntro() {
     const m = S.meta;
+    introBack = resumeOffer();
+    const back = introBack, many = S.scenarios.length > 1;
     const hook = m.hook ?? m.subtitle ?? "";
     introTitle.textContent = m.title ?? "";
+    introKicker.textContent = back ? "Welcome back" : "";
+    introKicker.hidden = !back;
+    // welcome back: where they stopped takes the hook's place (they have read the question)
     introSub.textContent = hook;
-    introSub.hidden = !hook;
+    introSub.hidden = !hook || !!back;
     introSub.classList.toggle("ix-intro-hook", !!m.hook);
+    const label = back?.story ? back.story.label ?? back.story.id : "";
+    const at = back && !back.end ? [back.chapter ? `You stopped in ${back.chapter}` : "You stopped", `step ${back.step + 1} of ${back.steps}`].join(", ") : "";
+    introWhere.textContent = !back ? "" : back.end ? `You finished ${many ? quote(label) : "it"}. Next: ${quote(back.next.label ?? back.next.id)}.`
+      : `${at}${many && label ? `, in ${quote(label)}` : ""}.`;
+    introWhere.hidden = !back;
+    // the promise, or for a returning reader how far through the stories they are
+    const done = S.scenarios.filter((x) => journey.done.has(x.id)).length;
+    introPromise.textContent = back ? (many && done ? `${done} of ${S.scenarios.length} stories finished` : "") : promise();
+    introPromise.hidden = !introPromise.textContent;
+    introPlayWord.textContent = !back ? "Play" : back.end ? `Start ${back.next.label ?? back.next.id}` : "Pick up where you left off";
+    introStep.textContent = back ? "Start from the beginning" : "Step through it yourself";
     // the client asked for no chapter preview on the start card: newcomers don't know the terms yet
     put(introPath, []);
     introPath.hidden = true;
-    if (S.lesson && !introLevel.firstChild) introLevel.append(h("p", { class: "ix-intro-level-k", text: "How well do you know this?" }), level.control(h, { cls: "ix-intro-levels" }));
+    if (S.lesson && !introLevel.firstChild) introLevel.append(h("p", { class: "ix-intro-level-k", text: "How well do you know this?" }), level.control(h, { cls: "ix-intro-levels" }), introNote);
+    introNote.textContent = LEVELS.find((l) => l.id === level.value)?.note ?? "";
     introLevel.hidden = !S.lesson;
+  }
+  // the run's own size, at this level: its chapters, its length at 1× and the reading pace, the questions this level
+  // asks on the way and at the end, and the stories after it
+  function promise() {
+    if (!S.tl || !S.steps.length) return "";
+    const pace = compiledPace(S.meta) / (level.policy?.pace ?? compiledPace(S.meta));
+    const questions = liveTurns(S.steps, level.value).size + checksFor(S.tl.checks, level.value).length;
+    return promiseOf({ duration: S.duration, pace, chapters: S.phases.filter((p) => p.name).length, questions, stories: S.scenarios.length });
   }
   function openIntro(open = true) {
     if (open === introOpen || (open && capturing())) return;
@@ -1168,13 +1236,19 @@ export function createHud(root, opts = {}, cb = {}) {
     obstaclesDirty = true;
     fire("onIntro", open);
   }
-  /** Close the start card the way the viewer chose: "play", "step" (one step per Next) or "dismiss". */
+  /**
+   * Close the start card the way the viewer chose: "play", "step" (one step per Next) or "dismiss"; a returning reader
+   * "resume" (with where: { scenario, time, params } or { scenario, fork: true } for the next story) or "restart".
+   */
   function closeIntro(mode) {
     if (!introOpen) return;
     store.set(`intro:${figKey()}`, "1");
+    const where = mode === "resume" ? introBack?.go ?? null : null;
+    if (mode === "resume" && where?.scenario && where.scenario !== S.scenario) { S.scenario = where.scenario; renderScenario(); }
+    if (mode === "restart" && S.scenarios[0] && S.scenarios[0].id !== S.scenario) { S.scenario = S.scenarios[0].id; renderScenario(); }
     openIntro(false);
     root.focus({ preventScroll: true });
-    fire("onStart", mode);
+    fire("onStart", mode, where);
   }
 
   // ---------- pauses: a chapter's end, or the run's end ----------
@@ -1191,9 +1265,11 @@ export function createHud(root, opts = {}, cb = {}) {
   function heldAction() {
     if (!S.held) return;
     if (S.held.kind === "turn") turn.primary();
-    else if (S.held.kind === "end") fire("onRestart"); else cont();
+    else if (S.held.kind === "end") { const after = storyAfter(); if (after) chooseScenario(after.id); else fire("onRestart"); }
+    else cont();
   }
   function replayChapter() {
+    if (S.held?.kind === "end") { fire("onRestart"); return; }   // at a story's end: the story again
     const ph = S.phases[S.held?.phase ?? 0];
     fire("onSeek", ph?.t0 ?? 0, { scrubbing: false });
     fire("onPlay");
@@ -1214,10 +1290,32 @@ export function createHud(root, opts = {}, cb = {}) {
     fillChips(chips);
     const t = withTakeaway ? takeaway() : "", others = chips.childElementCount > 0;
     const recap = withTakeaway && !check.done ? recapNode() : null;   // after the end check, "You can now…" stands for it
-    if (!t && !others && !recap) return null;
+    const after = withTakeaway ? afterNode() : null;
+    if (!t && !others && !recap && !after) return null;
     return h("div", { class: `ix-payoff ${cls}` }, recap,
       t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null,
-      others ? h("div", { class: "ix-whatif" }, h("span", { class: "ix-whatif-label", text: "What if…" }), chips) : null);
+      others ? h("div", { class: "ix-whatif" }, h("span", { class: "ix-whatif-label", text: "What if…" }), chips) : null,
+      after);
+  }
+  // after the run: try it with other inputs (the knobs re-run it at once), and after the last story the lessons that
+  // follow this one (lesson.next)
+  function afterNode() {
+    const knobsHere = Object.keys(S.params).length > 0 && !S.tl?.branch;
+    const next = !storyAfter() ? (S.lesson?.next ?? []) : [];
+    if (!knobsHere && !next.length) return null;
+    const tryIt = knobsHere ? h("div", { class: "ix-after-row" }, h("span", { class: "ix-whatif-label", text: "Try it yourself" }),
+      h("p", { class: "ix-after-text" }, "Change any input and the whole run is computed again. ",
+        h("button", { class: "ix-textbtn ix-after-go", type: "button", text: "Open the parameters", onclick: () => openParams() }))) : null;
+    const keep = next.length ? h("div", { class: "ix-after-row" }, h("span", { class: "ix-whatif-label", text: "Keep going" }),
+      h("ul", { class: "ix-next-list" }, next.map((n) => h("li", null,
+        h("a", { class: "ix-next-link", href: n.href, rel: "noopener" }, h("span", { text: n.title }), h("span", { class: "ix-next-arrow", html: ICON.arrow })),
+        n.why ? h("span", { class: "ix-next-why" }, md(n.why)) : null)))) : null;
+    return h("div", { class: "ix-after" }, tryIt, keep);
+  }
+  // the knobs: the card under the explain panel unfolds (remembered), or the drawer opens where they live in it
+  function openParams() {
+    if (paramsDocked) { paramsPref = "1"; store.set("params", "1"); syncParamsOpen(); paramsCard.querySelector("input, button.ix-switch")?.focus({ preventScroll: true }); }
+    else toggleDrawer(true);
   }
   // a pause: { kind: "chapter" | "end", phase }, or { kind: "key", phase } when New holds after a key step to let it land
   function setHeld(v) {
@@ -1228,6 +1326,8 @@ export function createHud(root, opts = {}, cb = {}) {
     if (a === b) return;
     S.held = next;
     root.classList.toggle("ix-held-open", !!next);
+    // a story played to its end on the main run is finished for this viewer (journey.mjs): its mark in the stories
+    if (kind === "end" && next && !S.tl?.branch && journey.finish(S.scenario)) renderStoryMarks();
     renderPlay();
     explain.setHeld(kind === "key" || kind === "turn" ? null : next);
     S.captionDirty = true;
@@ -1242,9 +1342,24 @@ export function createHud(root, opts = {}, cb = {}) {
     else {
       const done = kind === "end" ? "Run complete" : `${name || `Chapter ${next.phase + 1}`} complete`;
       const t = kind === "end" ? takeaway() : "";
-      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${kind === "end" ? "Press Enter to replay." : `Press Enter to continue with ${nextChapter()}.`}`;
+      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${kind === "end" ? (storyAfter() ? `Press Enter for the next story, ${storyAfter().label ?? storyAfter().id}.` : "Press Enter to replay.") : `Press Enter to continue with ${nextChapter()}.`}`;
     }
     if (keyboardMode) raf(() => { if (S.held) playBtn.focus({ preventScroll: true }); });
+  }
+
+  // where the reader is, for a later visit (journey.mjs): once per step on the main run, never in capture, never in a
+  // detour, and not in the first seconds (a reader who closes a "Welcome back" card keeps the place it offered)
+  let savedKey = "";
+  function saveProgress() {
+    if (capturing() || introOpen || destroyed || !S.steps.length || S.tl?.branch || S.detour || S.step < 0) return;
+    const end = S.held?.kind === "end";
+    if (!end && S.time < 2) return;
+    const params = paramOverrides(S.values, S.params, scenarioDef());
+    const key = `${S.scenario}|${S.step}|${end ? 1 : 0}|${JSON.stringify(params)}`;
+    if (key === savedKey) return;
+    savedKey = key;
+    const k = phaseAt(S.step);
+    journey.save({ scenario: S.scenario, time: S.time, step: S.step, steps: S.steps.length, chapter: S.phases[k]?.name ?? "", phase: k, params, end });
   }
 
   // ---------- coach hints: small one-time pointers, each shown once and remembered ----------
@@ -1334,25 +1449,38 @@ export function createHud(root, opts = {}, cb = {}) {
   on(doc, "fullscreenchange", onFsChange);
   on(doc, "webkitfullscreenchange", onFsChange);
 
+  // the story after this one, the way on from a story's end (none after the last: Replay, and the lesson's next steps)
+  const storyAfter = () => (S.tl?.branch ? null : nextStory(S.scenarios, S.scenario));
+  // an open question is the one way on: the transport says so rather than offer a Play that would only stop again
+  // (syncAsk keeps this in step with the predict card and the pick)
+  let askingNow = false;
   function renderPlay() {
     const hv = S.playing ? null : S.held;
-    const icon = hv ? (hv.kind === "end" || hv.kind === "turn" ? ICON.replay : ICON.next) : S.playing ? ICON.pause : ICON.play;
-    const word = hv ? (hv.kind === "end" ? "Replay" : hv.kind === "key" ? "Continue" : hv.kind === "turn" ? "Rewind and try again" : `Continue to ${nextChapter()}`) : S.playing ? "Pause" : "Play";
-    const name = hv ? (hv.kind === "end" ? "Replay from the start" : word) : word;
+    const after = hv?.kind === "end" ? storyAfter() : null, ask = !hv && !S.playing && askingNow;
+    const icon = hv ? (after ? ICON.next : hv.kind === "end" || hv.kind === "turn" ? ICON.replay : ICON.next) : S.playing ? ICON.pause : ICON.play;
+    const word = hv ? (hv.kind === "end" ? "Replay" : hv.kind === "key" ? "Continue" : hv.kind === "turn" ? "Rewind and try again" : `Continue to ${nextChapter()}`)
+      : ask ? "Answer to go on" : S.playing ? "Pause" : "Play";
+    const name = after ? `Next story: ${after.label ?? after.id}` : hv ? (hv.kind === "end" ? "Replay from the start" : word) : word;
     if (playBtn._iconKey !== icon) { playBtn._iconKey = icon; playBtn._icon.innerHTML = icon; }
     // "Continue to Shuffle  Enter": the chapter it goes to, then the key; a phone keeps the verb alone
-    if (hv && hv.kind !== "end") put(playBtn._word, h("span", { class: "ix-tp-verb", text: hv.kind === "turn" ? "Rewind" : "Continue" }),
+    if (after) put(playBtn._word, h("span", { class: "ix-tp-verb", text: "Next story" }), h("span", { class: "ix-tp-more ix-tp-story", text: `: ${after.label ?? after.id}` }), h("kbd", { class: "ix-tp-kbd", text: "Enter" }));
+    else if (hv && hv.kind !== "end") put(playBtn._word, h("span", { class: "ix-tp-verb", text: hv.kind === "turn" ? "Rewind" : "Continue" }),
       hv.kind === "turn" ? h("span", { class: "ix-tp-more", text: "and try again" }) : null,
       hv.kind === "chapter" ? h("span", { class: "ix-tp-more", text: `to ${nextChapter()}` }) : null, h("kbd", { class: "ix-tp-kbd", text: "Enter" }));
     else playBtn._word.textContent = word;
     playBtn.setAttribute("aria-label", name);
     playBtn.dataset.tip = name;
-    playBtn.dataset.kbd = hv ? "Enter" : "Space";
-    playBtn.classList.toggle("ix-continue", !!hv && hv.kind !== "end");
+    if (ask) delete playBtn.dataset.kbd; else playBtn.dataset.kbd = hv ? "Enter" : "Space";
+    playBtn.classList.toggle("ix-continue", !!hv && (hv.kind !== "end" || !!after));
     playBtn.classList.toggle("ix-held-btn", !!hv);
-    againBtn.hidden = !(hv && hv.kind === "chapter");
+    playBtn.classList.toggle("ix-asking-btn", ask);
+    // at a chapter's pause, Replay is this chapter; at a story's end with a next story, it is this story again
+    againBtn.hidden = !(hv && (hv.kind === "chapter" || after));
+    againBtn.classList.toggle("ix-again-end", !!after);
+    againBtn.setAttribute("aria-label", after ? "Replay this story" : "Replay this chapter");
+    againBtn.dataset.tip = after ? "Replay this story" : "Replay this chapter";
     // a pause has one way on: Continue (or Replay at the end), so Next steps aside rather than say it twice
-    fwdBtn.hidden = !!hv;
+    fwdBtn.hidden = !!hv || ask;
     root.classList.toggle("ix-playing", S.playing);
   }
   function togglePlay() {
@@ -1386,6 +1514,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function setTimeline(tl) {
     S.tl = tl;
     S.lesson = lessonOf(tl);
+    syncParamsOpen();   // a lesson starts the knobs folded
     S.steps = tl?.steps ?? [];
     S.duration = tl?.duration ?? (S.steps.length ? S.steps[S.steps.length - 1].t1 : 0);
     S.phases = tl?.phases?.length ? tl.phases : [{ name: "", step: 0, t0: 0, t1: S.duration }];
@@ -1709,8 +1838,8 @@ export function createHud(root, opts = {}, cb = {}) {
     payoff: () => payoffNode(endChipsPanel, "ix-payoff-panel"),
     // narrow screens: the end's card (it hides the caption while open) carries the recap and the takeaway
     recap: () => {
-      const r = recapNode(), t = takeaway();
-      return r || t ? h("div", { class: "ix-payoff ix-payoff-sheet" }, r, t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null) : null;
+      const r = recapNode(), t = takeaway(), a = afterNode();
+      return r || t || a ? h("div", { class: "ix-payoff ix-payoff-sheet" }, r, t ? h("p", { class: "ix-takeaway" }, toDOM(parse(t), doc, markupOpts)) : null, a) : null;
     },
     onDock: () => hostPredict(),
     onJump: (i) => { const st = S.steps[i]; if (st) { fire("onPause"); fire("onSeek", st.t0, { scrubbing: false }); } },
@@ -2033,6 +2162,16 @@ export function createHud(root, opts = {}, cb = {}) {
 
   // ---------- predict ----------
   const Q = { q: null, sig: "", step: -1, answered: null, revealed: false, revealAt: 0, opts: [] };
+  function syncAsk() {
+    const on = !!Q.q && Q.answered == null && !Q.revealed && (!Q.q.kind || Q.q.kind === "choose");
+    if (on !== askingNow) { askingNow = on; renderPlay(); }
+  }
+  // the transport pressed while a question waits: say where the way on is, and put the keyboard there
+  function pointToAnswer() {
+    notice(Q.q?.kind === "choose" ? "Pick one to go on: here, or click it in the world." : "Pick an answer to go on.", { duration: 2200 });
+    const first = predict.querySelector(".ix-opt:not([aria-disabled]), .ix-turn-pick:not([disabled]), .ix-predict-ponder .ix-pill");
+    first?.focus({ preventScroll: true });
+  }
   // The veil: until a prediction is revealed, nothing on screen may answer it. Its step's caption, tags and new legend
   // keys are held back while the card is open, and a chapter's `about` line waits until every prediction in the
   // chapter up to the playhead has been revealed (an about often states the very answer).
@@ -2078,6 +2217,7 @@ export function createHud(root, opts = {}, cb = {}) {
     hostPredict();
     S.captionDirty = true;
     explain.refresh();
+    syncAsk();
   }
   const turnCtx = { h, md, card: predict, level, nudge, belief, icon: { check: ICON.check, cross: ICON.cross, close: ICON.close },
     keyboard: () => keyboardMode, reduced: () => still(), entities: () => S.entities, steps: () => S.steps, lesson: () => S.lesson,
@@ -2138,6 +2278,7 @@ export function createHud(root, opts = {}, cb = {}) {
     root.classList.add("ix-asking");
     hostPredict();
     S.captionDirty = true;
+    syncAsk();
     if (keyboardMode) raf(() => (ponder ? choices.firstChild : Q.opts[0])?.focus({ preventScroll: true }));
   }
   // Expert skips a question: the run plays on, and the step's words come back with it
@@ -2164,6 +2305,7 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.status.textContent = "Your guess";
     Q.foot.textContent = "Watch the next step.";
     fire("onAnswer", i);
+    syncAsk();
   }
   function maybeReveal() {
     if (!Q.q || Q.q.kind || Q.answered == null || Q.revealed) return;
@@ -2222,6 +2364,7 @@ export function createHud(root, opts = {}, cb = {}) {
     S.captionDirty = true;
     updateInsets();
     if (hadFocus) root.focus({ preventScroll: true });
+    syncAsk();
   }
 
   // ---------- inspector ----------
@@ -2620,7 +2763,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (isTyping(t)) return;
     if (!charKeys && isCharKey(k)) return;
     let used = true;
-    if (k === " " || k === "Spacebar") { if (activates) return; togglePlay(); }
+    if (k === " " || k === "Spacebar") { if (activates) return; if (askingNow && !S.playing) pointToAnswer(); else togglePlay(); }
     else if (k === "Enter") { if (activates) return; if (S.held && !S.playing) heldAction(); else used = false; }
     else if (k === "s" || k === "S") toggleDrawer();
     else if (k === "ArrowLeft" || k === "ArrowRight") { const d = k === "ArrowRight" ? 1 : -1; if (e.shiftKey) fire("onPhase", d); else fire("onStep", d); }
@@ -2675,7 +2818,8 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!S.steps.length) return null;
     const i = clamp(S.step, 0, S.steps.length - 1), nx = S.steps[i + 1] ?? null, k = phaseAt(i), nk = nx ? phaseAt(i + 1) : k;
     const hv = S.playing ? null : S.held;
-    const primary = hv ? (hv.kind === "end" ? "Replay" : hv.kind === "chapter" ? `Continue to ${nextChapter()}` : hv.kind === "turn" ? "Rewind and try again" : "Continue")
+    const after = hv?.kind === "end" ? storyAfter() : null;
+    const primary = hv ? (hv.kind === "end" ? (after ? `Next story: ${after.label ?? after.id}` : "Replay") : hv.kind === "chapter" ? `Continue to ${nextChapter()}` : hv.kind === "turn" ? "Rewind and try again" : "Continue")
       : S.playing ? "Pause" : "Play";
     const done = hv?.kind === "end" ? "Run complete" : hv?.kind === "chapter" ? `${S.phases[hv.phase]?.name || `Chapter ${hv.phase + 1}`} complete` : null;
     const q = Q.q && (!Q.q.kind || Q.q.kind === "choose") ? Q.q : null;
@@ -2850,6 +2994,8 @@ export function createHud(root, opts = {}, cb = {}) {
     // the legend would name keys a held-back step introduces: it waits for the reveal like the caption
     if ((++legendTick >= 6 || legendSig === "\u0000" || capturing()) && veilStep() !== step) { legendTick = 0; updateLegend(frame); }   // captures render one update per shot
     if (Q.q) { maybeReveal(); predictTick(); }
+    syncAsk();
+    saveProgress();
     const sm = !!info.stepMode;
     if (sm !== S.stepMode) {
       S.stepMode = sm;
@@ -2901,6 +3047,10 @@ export function createHud(root, opts = {}, cb = {}) {
     /** True once this viewer has dismissed this figure's start card (localStorage). */
     get introSeen() { return store.get(`intro:${figKey()}`) === "1"; },
     get introOpen() { return introOpen; },
+    /** True when this viewer has a place to pick up (journey.mjs) and no deep link says where to start instead. */
+    get resumable() { return !!resumeOffer(); },
+    /** The stories this viewer has finished (journey.mjs). */
+    get finished() { return [...journey.done]; },
     /** "Pause between chapters" (a viewer preference, default on). */
     get guided() { return guided; },
     /** "Speed through repeats" (a viewer preference, default on). */

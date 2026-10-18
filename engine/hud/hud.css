@@ -1008,6 +1008,43 @@
 .ix-intro-keys { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; margin: 20px 0 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
 .ix-intro-keys .ix-kbd { margin-right: 2px; }
 .ix-dotsep { margin: 0 8px; color: var(--ix-ink-faint); }
+/* the promise ("5 chapters · about 3 min · 4 questions · then 3 what-ifs") and the level's one line; a returning reader's
+   "Welcome back" over the title and where they stopped under it (journey.mjs) */
+.ix-intro-promise { margin: 16px auto 0; max-width: 48ch; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-faint); text-wrap: balance; font-variant-numeric: tabular-nums; }
+.ix-intro-kicker { margin: 0 0 8px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
+.ix-intro-where { margin: 12px auto 0; max-width: 32ch; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); letter-spacing: var(--ix-tr-lg); color: var(--ix-ink-muted); text-wrap: balance; }
+.ix-intro-level-note { margin: -4px auto 0; max-width: 36ch; min-height: var(--ix-lh-sm); font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: balance; }
+:is(.ix-intro-kicker, .ix-intro-where, .ix-intro-promise)[hidden] { display: none; }
+
+/* the stories this viewer has finished: a small check before the name (capture never shows them) */
+.ix-story-mark { display: none; }
+.ix-stories-tab.ix-story-done .ix-story-mark { display: inline-grid; vertical-align: -2px; margin: 0 6px 0 -2px; color: var(--ix-ok); }
+.ix-story-mark svg { width: 14px; height: 14px; stroke-width: 2; }
+.ix-story-fin { display: none; margin-left: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ok); }
+.ix-story-item.ix-story-done .ix-story-fin { display: inline; }
+:is(.ix.ix-capture, .ix-capture .ix) :is(.ix-story-mark, .ix-story-fin) { display: none !important; }
+
+/* the transport while a question waits: it names the way on, quietly (the answer is in the card) */
+.ix-play.ix-asking-btn { background: var(--ix-raised); color: var(--ix-ink-muted); box-shadow: inset 0 0 0 1px var(--ix-line); }
+.ix-play.ix-asking-btn .ix-tp-icon { display: none; }
+.ix[data-size="phone"] .ix-play.ix-asking-btn { width: auto; min-width: 0; padding: 0 16px; }
+.ix[data-size="phone"] .ix-play.ix-asking-btn .ix-tp-label { display: inline; font-size: var(--ix-fs-sm); }
+/* a story's end with a story after it: Replay (this story) stays beside "Next story", a phone included */
+.ix[data-size="phone"] .ix-again.ix-again-end:not([hidden]) { display: inline-flex; }
+
+/* after the run: try it yourself, and after the last story the lessons that follow */
+.ix-after { display: grid; gap: 16px; }
+.ix-after-row { display: grid; gap: 6px; }
+.ix-after-text { margin: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
+.ix-after-go { font-size: var(--ix-fs-sm); font-weight: 500; color: var(--ix-ink); text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px; }
+.ix-after-go:hover { text-decoration-color: currentColor; }
+.ix-next-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.ix-next-list li { display: grid; gap: 2px; }
+.ix-next-link { display: inline-flex; align-items: center; gap: 6px; width: max-content; max-width: 100%; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; color: var(--ix-ink); text-decoration: none; }
+.ix-next-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ix-next-arrow { display: inline-grid; color: var(--ix-ink-faint); }
+.ix-next-why { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
+.ix-payoff-cap .ix-after { display: none; }   /* the phone caption keeps to the takeaway and the what-ifs; its card has these */
 
 /* ---------- pauses: the transport says what comes next (no card over the world) ----------
    At a chapter's end the primary pill reads "Continue to Shuffle  Enter", at the run's end "Replay"; Next steps
@@ -1367,7 +1404,14 @@
 .ix-explain.ix-ex-fit-earlier .ix-ex-earlier { display: none; }
 .ix-explain.ix-ex-fit-picture .ix-l-picture { display: none; }
 .ix-explain.ix-ex-fit-why .ix-l-why { display: none; }
-.ix-explain.ix-ex-fit-entry :is(.ix-entry-sofar, .ix-entry-done, .ix-picture) { display: none; }
+.ix-explain.ix-ex-fit-entry :is(.ix-entry-sofar, .ix-entry-done) { display: none; }
+/* the entry card's picture folds to its heading, a disclosure (chapter-card.mjs), before the card's outer lines go */
+.ix-explain.ix-ex-fit-picmap .ix-picture :is(.ix-picture-rows, .ix-picture-breaks) { display: none; }
+.ix-picture-toggle { width: 100%; text-align: left; border-radius: 6px; }
+.ix-picture-toggle .ix-picture-name { flex: 1; min-width: 0; }
+.ix-picture-chev { display: inline-grid; align-self: center; color: var(--ix-ink-faint); transform: rotate(180deg); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-explain.ix-ex-fit-picmap .ix-picture-chev { transform: none; }
+.ix-picture-toggle:hover .ix-picture-chev { color: var(--ix-ink); }
 .ix-explain.ix-ex-fit-tight .ix-predict-head { margin-bottom: 4px; }
 .ix-explain.ix-ex-fit-tight .ix-predict-q { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); margin-bottom: 8px; }
 .ix-explain.ix-ex-fit-tight .ix-opts { gap: 4px; }
@@ -1895,3 +1939,4 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
 /* ---------- touch screens (no hover, a coarse pointer): help in taps and pinches, and no keys ---------- */
 .ix.ix-touch :is(.ix-help-keys-col, .ix-help-note, .ix-intro-keys) { display: none; }
 .ix.ix-touch .ix-help-grid { grid-template-columns: 1fr; }
+.ix-play.ix-continue .ix-tp-more.ix-tp-story { margin-left: 0; }

@@ -32,6 +32,8 @@ function headerOf(lesson, meta) {
     picture: lesson.picture ? { name: lesson.picture.name, rows: lesson.picture.rows.map((r) => ({ ...r })), breaks: lesson.picture.breaks ?? "" } : null,
     terms,
     misconceptions: (lesson.misconceptions ?? []).map(({ id, wrong, fix }) => ({ id, wrong, fix })),
+    // where a reader goes after the last story: other lessons, each with a line on why it follows this one
+    next: (lesson.next ?? []).filter((n) => n?.title && n?.href).map(({ title, href, why }) => ({ title, href, why: why ?? "" })),
   };
 }
 
