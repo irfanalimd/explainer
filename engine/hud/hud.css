@@ -276,6 +276,11 @@
 .ix-help-fab.ix-glass { border-radius: 50%; }
 .ix-help-fab:hover, .ix-help-fab[aria-pressed="true"] { color: var(--ix-ink); background: var(--ix-raised); }
 .ix[data-size="phone"] .ix-help-fab, .ix.ix-intro-open .ix-help-fab { display: none; }
+/* no docked panel (compact, landscape phones, 200 % zoom): the caption's chips own the bottom-left, so help is a
+   toolbar button there; phones keep it in the about card, embeds keep their own corner */
+.ix-help-tool { display: none; }
+.ix.ix-ex-sheet:not(.ix-embed):not([data-size="phone"]) .ix-help-tool { display: inline-grid; }
+.ix.ix-ex-sheet:not(.ix-embed):not([data-size="phone"]) .ix-help-fab { display: none; }
 /* phones: the words stay, the toolbar's own icons go, so the title keeps its room */
 .ix[data-size="phone"] .ix-tool { padding: 0 10px; }
 .ix[data-size="phone"] .ix-tool-icon { display: none; }
@@ -1187,10 +1192,13 @@
 .ix[data-size="phone"] .ix-cap-stage { min-height: 44px; }
 .ix[data-size="phone"] .ix-cap-text { font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); }
 .ix[data-size="phone"] .ix-bar { border-radius: var(--ix-r-lg); }
-.ix[data-size="phone"] .ix-stats { height: 44px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
+/* phones: the numbers are one line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock gives
+   the world back a row; tapping the strip still opens the full readout */
+.ix[data-size="phone"] .ix-stats { height: 36px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
 .ix[data-size="phone"] .ix-stats-list { column-gap: 16px; }
-.ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); }
-.ix[data-size="phone"] .ix-legend-btn { height: 44px; padding: 0 12px; gap: 0; }
+.ix[data-size="phone"] .ix-stat { flex-direction: row; align-items: baseline; gap: 6px; }
+.ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
+.ix[data-size="phone"] .ix-legend-btn { height: 36px; padding: 0 12px; gap: 0; }
 .ix[data-size="phone"] .ix-legend-count { display: none; }
 
 .ix[data-size="phone"] .ix-transport {
@@ -1792,7 +1800,7 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
    transport, the timeline and the words: no speed, legend, code or help circle; the knobs lead the drawer (S) and L
    cycles the level. Everything else keeps its place, so a teacher who knows the figure knows this. */
 .ix.ix-present { --ix-pad: 32px; --ix-row: 48px; --ix-icon: 40px; }
-.ix.ix-present :is(.ix-help-fab, .ix-speed-wrap, .ix-legend-btn, .ix-code-tool, .ix-ex-level, .ix-stats-chev) { display: none; }
+.ix.ix-present :is(.ix-help-fab, .ix-help-tool, .ix-speed-wrap, .ix-legend-btn, .ix-code-tool, .ix-ex-level, .ix-stats-chev) { display: none; }
 .ix:not(.ix-present) :is(.ix-present-btn, .ix-present-end) { display: none; }
 .ix.ix-present :is(.ix-tool-icon, .ix-btn, .ix-tp-icon) svg { width: 18px; height: 18px; }
 .ix.ix-present .ix-tool { height: 40px; padding: 0 16px 0 12px; gap: 8px; }

@@ -73,7 +73,7 @@ const isCharKey = (k) => k.length === 1 && k !== " ";
 const GUIDE = [
   ["play", "Play and pause", "Runs the simulation. It stops at the end of each chapter so you can catch up."],
   ["fwd", "Back and Next", "Move one step at a time. Every step is one real event from the run."],
-  ["timeline", "The timeline", "Each segment is a chapter. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
+  ["timeline", "The timeline", "Each segment is a chapter. The marks under it are the run's events (green when something succeeds, amber a warning, red a failure) and a dot is a question for you. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
   ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
@@ -507,8 +507,12 @@ export function createHud(root, opts = {}, cb = {}) {
   const tuneBtn = toolBtn("tune", "Settings", "S", () => toggleDrawer());
   const themeBtn = iconBtn("moon", "Dark mode", "T", () => toggleTheme());
   const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk ix-full-btn");
+  // Where the corner circle would crowd the caption's chips (no docked panel: compact, landscape-phone and zoomed
+  // screens, whose caption sits bottom-left), help joins the toolbar instead, beside the theme (CSS picks one)
+  const helpTool = iconBtn("help", "Help", "?", () => toggleHelp(), "ix-help-tool");
+  helpTool.dataset.tip = "How to use this figure";
   const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, tuneBtn,
-    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), themeBtn, fullBtn, endBtn);
+    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), helpTool, themeBtn, fullBtn, endBtn);
   const helpBtn = h("button", { class: "ix-help-fab ix-glass", type: "button", "aria-label": "Help", "data-tip": "How to use this figure", "data-kbd": "?",
     onclick: () => toggleHelp() }, h("span", { "aria-hidden": "true", text: "?" }));
   const toolbar = h("div", { class: "ix-toolbar" }, tools);
@@ -567,11 +571,14 @@ export function createHud(root, opts = {}, cb = {}) {
 
   // ---------- parameters: the figure's inputs, always in view where there is room ----------
   // Wide screens (where the explain panel docks): a card of its own at the foot of the right column, each knob a row
-  // with its name, its control and its value, open by default (the header folds it; remembered). On a short screen
-  // it starts folded to its title, so the explain panel above keeps room for the step. Narrower screens:
+  // with its name, its control and its value (the header folds it; remembered). While a lesson teaches, the step's
+  // words are primary and the knobs are for exploring: the card starts folded to its title unless the screen is tall
+  // enough for both, so the explain panel above keeps room for the whole step (at 1440 x 900 an open card cut the
+  // end of the run off). Without a lesson the knobs are the page's main input and start open. Narrower screens:
   // the same knobs lead the drawer, which the toolbar's "Parameters" opens (a bottom sheet on phones). Docked, the
   // drawer keeps only the playback preferences and the toolbar calls it "Settings".
-  const PARAMS_TALL = 800;   // px of root height from which the card starts open
+  const PARAMS_TALL = 800;   // px of root height from which the card starts open (no lesson)
+  const PARAMS_TALL_LESSON = 1040;   // the same with a lesson: the panel keeps ~640 px for the step above an open card
   let paramsPref = store.get("params"), paramsOpen = null, paramsDocked = null;
   const paramsToggle = h("button", { class: "ix-params-toggle", type: "button", "aria-controls": uid("params-body"),
     onclick: () => { paramsPref = paramsOpen ? "0" : "1"; store.set("params", paramsPref); syncParamsOpen(); } }, h("span", { class: "ix-params-title", text: "Parameters" }), h("span", { class: "ix-params-chev", html: ICON.chevron }));
@@ -581,7 +588,7 @@ export function createHud(root, opts = {}, cb = {}) {
     h("header", { class: "ix-params-head" }, paramsToggle, paramsReset), paramsBody);
   const hasKnobs = () => Object.keys(knobs).length > 0;
   function syncParamsOpen() {
-    const open = paramsPref ? paramsPref === "1" : S.H >= PARAMS_TALL;
+    const open = paramsPref ? paramsPref === "1" : S.H >= (S.lesson ? PARAMS_TALL_LESSON : PARAMS_TALL);
     if (open === paramsOpen) return;
     paramsOpen = open;
     paramsToggle.setAttribute("aria-expanded", String(open));
@@ -1005,6 +1012,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(help, open);
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
+    helpTool.setAttribute("aria-pressed", String(open));
     if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
@@ -1412,6 +1420,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!tl?.branch) spokenPhase = -1;   // a new run says its chapter again; a detour stays in the pick's
     if (!tl?.branch) check.set(checksFor(tl?.checks, level.value));
     explain.setTimeline(tl);
+    syncParamsOpen();   // its default depends on whether a lesson teaches
     renderCount();
     scrub.setAttribute("aria-valuemax", String(+S.duration.toFixed(2)));
     precomputeHistory(tl);
@@ -2093,8 +2102,19 @@ export function createHud(root, opts = {}, cb = {}) {
     updateInsets();
   }
   let keyboardMode = false;
-  on(win, "keydown", () => { keyboardMode = true; }, true);
+  on(win, "keydown", (e) => {
+    keyboardMode = true;
+    // the first Tab says, once, where every shortcut is written down (nothing else on screen shows the keys)
+    if (e.key === "Tab" && !store.get("hint:keys")) later(keysHint, 600);
+  }, true);
   on(win, "pointerdown", () => { keyboardMode = false; }, true);
+  function keysHint() {
+    if (S.size === "phone" || !keyboardMode) return;
+    const fab = helpBtn.offsetWidth ? helpBtn.getBoundingClientRect() : null, rr = root.getBoundingClientRect();
+    hint("keys", charKeys ? "Press ? for every shortcut" : "Help lists every shortcut",
+      fab ? { x: fab.left - rr.left + fab.width / 2, y: fab.top - rr.top - 2 } : { x: (S.W || root.clientWidth) / 2, y: barTop() },
+      { sub: charKeys ? "Space plays, ← → step, E hides the explanation." : "Space plays, ← → step.", free: true });
+  }
 
   // ---------- your turn: an in-world pick (turn.mjs), the end check (check.mjs), level nudges (nudge.mjs) ----------
   // They use the predict card and its place (the explain panel, or above the caption), so the calm rules hold for them.
@@ -2941,7 +2961,14 @@ export function createHud(root, opts = {}, cb = {}) {
       syncReset();
     },
     setScenario(id) { if (id != null && id !== S.scenario) { S.scenario = id; renderScenario(); } },
-    setMeta(meta) { S.meta = meta ?? {}; renderTitle(); },
+    setMeta(meta) {
+      S.meta = meta ?? {};
+      // the language its words are in, for a screen reader's voice: the figure's own (meta.lang), else English where
+      // the host page says nothing (an embed on a page without lang)
+      const lang = S.meta.lang ?? (root.parentElement?.closest("[lang]") ? null : "en");
+      if (lang) root.setAttribute("lang", lang);
+      renderTitle();
+    },
     initialState: () => ({ scenario: link.scenario, time: link.time, params: { ...link.params } }),
     /** Show or hide the start card. Hiding it this way is silent: it is not remembered and fires no onStart. */
     intro(show = true) { openIntro(!!show); },
