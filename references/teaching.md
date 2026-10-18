@@ -455,7 +455,7 @@ every knob extreme) also checks the lesson. These are **errors** in that run (ki
 figure does not pass, a `look` id that does not exist at the end of its step, an unknown `picture` row, `deeper`
 field or misconception id, and an ask whose option count differs from the figure's. Then a **lesson** section looks
 across all the runs and warns about step ids with no `plain`, steps or chapters without an id, `key` steps without a
-`why`, and misconceptions no ask option names; it notes (without counting) lesson ids no run reaches, which is fine
+`why`, and misconceptions no option (of an ask, a pick or an end-check question) names; it notes (without counting) lesson ids no run reaches, which is fine
 for a line only an untried knob value reaches (a very short input), and otherwise a typo.
 
 `node scripts/verify.mjs figure.mjs` ends with a **teaching** section (skip it with `--no-teach`). It reads the same
