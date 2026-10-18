@@ -88,6 +88,7 @@ export async function shoot(target, o = {}) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const FAST = 6;   // --teach: the speed the run plays at between the moments it shoots
 
 // Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
 // asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
@@ -98,7 +99,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function teachShots(browser, url, size, o) {
   const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
   const ev = (js) => fp.page.evaluate(js);
-  const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
+  // the run's clock moves at most 1/20 s per drawn frame, so on a slow machine (software rendering, a loaded box) a
+  // step takes many times its length in wall time: every wait scales with the measured frame rate, and the waits that
+  // only need the run to reach a moment play it at FAST (the shots themselves are taken paused, at 1×)
+  const waitFor = async (js, ms) => { const t0 = Date.now(), end = ms * slow; while (Date.now() - t0 < end) { if (await ev(js)) return true; await sleep(80); } return false; };
+  const fast = () => ev(`__internals.setSpeed(${FAST}), true`), normal = () => ev("__internals.setSpeed(1), true");
+  let slow = 1;
+  // frames per second while the run plays (the drawing is what costs): 30 or more waits as written, fewer waits longer
+  const measure = async () => {
+    const fps = await ev(`new Promise((r) => { const I = __internals; I.seek(0); I.play(); let n = 0; const t0 = performance.now();
+      const f = () => { n++; if (performance.now() - t0 < 1500) requestAnimationFrame(f); else { I.pause(); I.seek(0); r(n / ((performance.now() - t0) / 1000)); } }; requestAnimationFrame(f); })`);
+    slow = Math.max(1, Math.min(12, 30 / Math.max(1, fps || 1)));
+  };
   const settle = () => sleep(1400);   // panel fades and camera springs come to rest
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
   // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
@@ -109,13 +121,16 @@ async function teachShots(browser, url, size, o) {
     const entry = (file, tg, caption) => ({ file, scenario: id, theme, size, step: c.step, tag: tg, t: c.t0, phase: c.phase, caption });
     const wrong = c.picks.find((_, j) => j !== c.answer), right = c.picks[c.answer];
     await ev(`(() => { __internals.seek(Math.max(0, ${c.t0} - 0.25)); __internals.play(); return true; })()`);
-    if (!(await waitFor(pickOpen, 15000))) return fail("never opened");
+    await fast();
+    const opened = await waitFor(pickOpen, 15000);
+    await normal();
+    if (!opened) return fail("never opened");
     if (wrong != null) {
       await click(wrong);
       await sleep(600);
-      await ev("__internals.setSpeed(4), true");
+      await fast();
       const held = await waitFor(`!!(__internals.timeline.branch && __internals.held && document.querySelector(".ix-predict.ix-open:not(.ix-locked)"))`, 30000);
-      await ev("__internals.setSpeed(1), true");
+      await normal();
       if (!held) { fail("never held its wrong branch's consequence"); return leaveBranch(); }
       await settle();
       await fp.page.shot(join(o.outDir, `${base}-wrong.png`));
@@ -125,7 +140,7 @@ async function teachShots(browser, url, size, o) {
       if (!(await waitFor(`!__internals.timeline.branch && ${pickOpen}`, 15000))) { fail("never came back from its branch"); return leaveBranch(); }
     }
     await click(right);
-    const revealed = await waitFor(`!!document.querySelector(".ix-predict.ix-open.ix-revealed")`, 10000);
+    const revealed = await waitFor(`(() => { const r = !!document.querySelector(".ix-predict.ix-open.ix-revealed"); if (r) __internals.pause(); return r; })()`, 10000);
     await ev("__internals.pause(), true");
     if (!revealed) return fail("never revealed the right pick");
     await settle();
@@ -139,6 +154,7 @@ async function teachShots(browser, url, size, o) {
   }
   try {
     await ev("__internals.intro(false), true");
+    await measure();
     const list = (await fp.scenarios()) ?? [];
     let ids = !o.scenario || o.scenario === "all" ? (list.length ? list.map((s) => s.id) : ["default"]) : [o.scenario];
     for (const theme of o.themes) {
@@ -159,9 +175,11 @@ async function teachShots(browser, url, size, o) {
           if (seen.has(key)) continue;
           seen.add(key);
           await ev(`(() => { __internals.seek(Math.max(0, ${a.t0} - 0.25)); __internals.play(); return true; })()`);
+          await fast();
           // a chapter pause, or at the New level a hold after a key step, can come first: carry on through it
           const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
             return document.querySelector("#ix").classList.contains("ix-asking") && !!document.querySelector(".ix-predict.ix-open"); })()`, 15000);
+          await normal();
           if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
           await settle();
           const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
@@ -169,8 +187,11 @@ async function teachShots(browser, url, size, o) {
           o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
           const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
           await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
-          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
+          await fast();
+          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); // pause in the same breath as the reveal: a revealed card leaves a few seconds after the run plays on
+            const r = !!document.querySelector(".ix-predict.ix-revealed"); if (r) I.pause(); return r; })()`, 20000);
           await ev("__internals.pause(), true");
+          await normal();
           if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
           await settle();
           await fp.page.shot(join(o.outDir, `${base}-why.png`));
@@ -185,9 +206,11 @@ async function teachShots(browser, url, size, o) {
         }
         // the end: play the last moment and let the run finish on its own (that is what holds the end card)
         await ev("(() => { const I = __internals, d = I.timeline.duration; I.seek(Math.max(0, d - 0.4)); I.play(); return true; })()");
+        await fast();
         const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
           const q = document.querySelector(".ix-predict.ix-open:not(.ix-locked) .ix-opt"); if (q) q.click();
           return !!(I.held && I.held.kind === "end"); })()`, 15000);
+        await normal();
         const info = await fp.info();
         const last = info.steps.length - 1, endBase = `${tag(id, theme)}-${String(last).padStart(3, "0")}`;
         const entry = (file, tg) => ({ file, scenario: id, theme, size, step: last, tag: tg, t: info.duration, phase: info.steps[last]?.phase ?? "", caption: info.steps[last]?.caption ?? "" });

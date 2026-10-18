@@ -16,6 +16,7 @@ import { loadFigure } from "./lib/lesson-load.mjs";
 import { JARGON } from "./lib/teach.mjs";
 import { tokens } from "../engine/scene/narrate.mjs";
 import { LEVELS, POLICY, defaultLevel } from "../engine/hud/level.mjs";
+import { checksFor } from "../engine/hud/check.mjs";
 import { rng as simRng } from "../sim/rng.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +115,23 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
             cur.lines.push("");
             cur.images.push(img(`${part}-why.png`, { story: k, step: st.index, tag: "why" }));
           }
+          const pick = st.choose;
+          if (pick) {
+            // a pick in the world: the reader commits first; the next chunk plays each wrong pick's real branch
+            cur.lines.push(`**Your turn (you pick in the world).** ${pick.promptText}`, "");
+            pick.options.forEach((o, n) => cur.lines.push(`${String.fromCharCode(65 + n)}) ${o.text}`));
+            cur.lines.push("", "Write down your pick and why, then read on.");
+            const part = `${base}-${++parts}`;
+            cur = open(`${part}.md`, `${heading} (continued)`);
+            cur.lines.push(`**Revealed:** ${String.fromCharCode(65 + pick.answer)}) ${pick.options[pick.answer]?.text ?? ""}${pick.whyText ? `, because ${pick.whyText}` : ""}`);
+            pick.options.forEach((o, n) => {
+              if (n === pick.answer) return;
+              const plays = (o.plays ?? []).filter(Boolean);
+              cur.lines.push(`If you picked ${String.fromCharCode(65 + n)}, the run plays your pick for real: ${plays.length ? plays.join(" ") : o.consequence ?? ""}${o.feedback ? ` Then: ${o.feedback}` : ""} (Then it rewinds to the pick.)`);
+            });
+            cur.lines.push("");
+            cur.images.push(img(`${part}-wrong.png`, { story: k, step: st.index, tag: "wrong" }), img(`${part}-right.png`, { story: k, step: st.index, tag: "right" }));
+          }
           const Ly = st.raw?.layers ?? { plain: st.caption };
           // numbered as the HUD's counter shows it ("6 / 27": 1-based, out of this story's steps)
           cur.lines.push(`**Step ${st.index + 1} of ${story.steps}.** ${say(Ly.plain ?? st.caption, st.refTitle)}`);
@@ -133,12 +151,34 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
         if (recap?.length) { cur.lines.push("**What you saw:**", ""); recap.forEach((r, n) => cur.lines.push(`${n + 1}. ${say(r)}`)); cur.lines.push(""); }
         if (take) cur.lines.push(`**Takeaway:** ${take}`, "");
         cur.images.push(img(`s${k + 1}-${slug(story.label)}-end.png`, { story: k, tag: "end-card" }));
+        endCheck(cur, story, `s${k + 1}-${slug(story.label)}-check`, `Scenario ${k + 1}: check yourself`);
       }
     });
     const end = open("end.md", "The end");
     if (L.recap.length) { end.lines.push("**What you saw:**", ""); L.recap.forEach((r, n) => end.lines.push(`${n + 1}. ${say(r)}`)); end.lines.push(""); }
     if (L.stories[0]?.takeaway || L.takeaway) end.lines.push(`**Takeaway:** ${L.stories[0]?.takeaway || L.takeaway}`, "");
     end.images.push(img("end.png", { story: 0, tag: "end-card" }));
+    if (L.stories[0]) endCheck(end, L.stories[0], "end-check", "Check yourself");
+    // the end check at the reader's level (the HUD's checksFor): the questions end a chunk, the answers open the next
+    function endCheck(at, story, file, title) {
+      const list = checksFor(story.checks ?? [], level);
+      if (!list.length) return;
+      at.lines.push("**Check yourself** (questions about situations the run did not show):", "");
+      list.forEach((c, n) => {
+        at.lines.push(`${n + 1}. ${say(c.question)}`);
+        c.options.forEach((o, j) => at.lines.push(`   ${String.fromCharCode(65 + j)}) ${say(o)}`));
+        at.lines.push("");
+      });
+      at.lines.push("Write down your answers and why, then read on.");
+      const next = open(`${file}.md`, `${title}: answers`);
+      list.forEach((c, n) => {
+        next.lines.push(`${n + 1}. **Answer:** ${String.fromCharCode(65 + c.answer)}) ${say(c.options[c.answer])}. Why: ${say(c.why)}`);
+        (c.feedback ?? []).forEach((f, j) => { if (f?.text && j !== c.answer) next.lines.push(`   If you picked ${String.fromCharCode(65 + j)}: ${say(f.text)}`); });
+        next.lines.push("");
+      });
+      const goals = (L.header?.objectives ?? []).filter((o) => (story.objectives ?? []).includes(o.id));
+      if (goals.length) { next.lines.push("**You can now…**", ""); goals.forEach((o) => next.lines.push(`- ${o.text}`)); next.lines.push(""); }
+    }
 
     const index = ["# Reading order", "", "Read these one at a time, in this order, images included. When a file ends on a prediction, write down your guess before you open the next one.",
       "", "Step numbers match the step counter under the timeline in the images (“Step 6 of 27” is “6 / 27” there).", ""];

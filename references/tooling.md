@@ -99,7 +99,11 @@ the teaching checks (the same findings verify reports).
 
 With a `lesson.mjs` it also prints the goal, the objectives, the picture map and the misconceptions (BELIEFS) up
 top; each chapter's entry card (so far, now, done when); each step's id (`‹map.read›`), a `★` on key steps, and its
-layers (why, look, picture, deeper fields); and each ask option's feedback with the misconception it names.
+layers (why, look, picture, deeper fields); and each ask option's feedback with the misconception it names. Each
+in-world pick (`s.choose`) prints as YOUR TURN with its options, and every wrong option is compiled as the real branch
+of the run it is, so its line shows what it `plays:` (the step it ends on) and its feedback. Each story ends with its
+END CHECK (every `s.check` question, its options, answer, feedback, why and the chapter a miss replays) and the
+objectives its "You can now…" lists.
 
 - `--params n=7,at=4` sets knob values for every story (numbers, `true`/`false`, strings), so a template can be read
   at a knob's extremes, as verify runs it.
@@ -201,6 +205,9 @@ there is one instance per module); everything else is served byte for byte.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error. Live play
   takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
   shoots the cards alone.
+  The run's clock moves at most 1/20 s per drawn frame, so on a slow machine (software rendering, a loaded box) a
+  card can take minutes to come round: `--teach` measures the frame rate first and scales every wait to it (up to
+  12×), and plays at 6× between the moments it shoots (the shots themselves are taken paused, at 1×).
 
 ## audit.mjs
 
@@ -261,7 +268,10 @@ differs, and `end.md` (recap, takeaway). Steps print their layers as that level 
 New gets the full entry card, every why and the picture lines; Expert the first sentence of each about and every
 `deeper` field. A term's definition follows its first use in `[brackets]`. A prediction ends its chunk with the
 question and options; the next chunk (`NN-<chapter>-2.md`) opens with "Revealed: … because …" and the feedback for
-the other options. No ids, file paths, lint output or source.
+the other options. An in-world pick does the same as "Your turn": the next chunk reveals the right pick and, for each
+wrong one, what the run plays when you pick it (its real branch). Each story ends with its end check at the folder's
+level (New 3, Basics 2, Expert the transfer question), the questions in one chunk and the answers, the feedback and
+"You can now…" in the next. No ids, file paths, lint output or source.
 
 `img/` holds one key frame per chapter of the first scenario (its last step), every ask and why card, and each
 scenario's end card, all 1440×900 in the dark theme (`shoot.mjs --teach` underneath; Chrome required, about a
