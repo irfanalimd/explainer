@@ -106,6 +106,13 @@ async function teachShots(browser, url, size, o) {
   // rendering on a loaded machine: seconds a frame) 1× play crawls and every wait below would time out. The pauses,
   // questions and picks still stop the run at their own step at any speed; the cards are shot while it is paused.
   const fast = `__internals.setSpeed(${TEACH_SPEED})`;
+  // a card is shot at the speed a reader sees in the dock (1×), then play goes on fast
+  const snap = async (file) => {
+    await ev("__internals.setSpeed(1), true");
+    await waitFor(`(document.querySelector(".ix-speed-val")?.textContent ?? "1×") === "1×"`, 3000);
+    await fp.page.shot(file);
+    await ev(`${fast}, true`);
+  };
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
   // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
   const pickOpen = `(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-open .ix-turn-picks"); })()`;
@@ -123,7 +130,7 @@ async function teachShots(browser, url, size, o) {
       const held = await waitFor(`!!(__internals.timeline.branch && __internals.held && document.querySelector(".ix-predict.ix-open:not(.ix-locked)"))`, 30000);
       if (!held) { fail("never held its wrong branch's consequence"); return leaveBranch(); }
       await settle();
-      await fp.page.shot(join(o.outDir, `${base}-wrong.png`));
+      await snap(join(o.outDir, `${base}-wrong.png`));
       o.shots.push(entry(`${base}-wrong.png`, "wrong", c.caption));
       // the transport's one way on rewinds the branch to the pick, which opens again
       await ev(`(() => { const b = document.querySelector(".ix-play"); b && b.click(); return true; })()`);
@@ -134,7 +141,7 @@ async function teachShots(browser, url, size, o) {
     await ev("__internals.pause(), true");
     if (!revealed) return fail("never revealed the right pick");
     await settle();
-    await fp.page.shot(join(o.outDir, `${base}-right.png`));
+    await snap(join(o.outDir, `${base}-right.png`));
     o.shots.push(entry(`${base}-right.png`, "right", c.prompt));
   }
   // never leave the page in a branch (the end card belongs to the main run): scrubbing back before the pick leaves it
@@ -170,7 +177,7 @@ async function teachShots(browser, url, size, o) {
           if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
           await settle();
           const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
-          await fp.page.shot(join(o.outDir, `${base}-ask.png`));
+          await snap(join(o.outDir, `${base}-ask.png`));
           o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
           const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
           await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
@@ -178,7 +185,7 @@ async function teachShots(browser, url, size, o) {
           await ev("__internals.pause(), true");
           if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
           await settle();
-          await fp.page.shot(join(o.outDir, `${base}-why.png`));
+          await snap(join(o.outDir, `${base}-why.png`));
           o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
           await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
         }
@@ -203,14 +210,14 @@ async function teachShots(browser, url, size, o) {
           const checking = await ev(`!!document.querySelector(".ix-predict.ix-open .ix-check-actions")`);
           if (checking) {
             await settle();
-            await fp.page.shot(join(o.outDir, `${endBase}-end-check.png`));
+            await snap(join(o.outDir, `${endBase}-end-check.png`));
             o.shots.push(entry(`${endBase}-end-check.png`, "end-check"));
             await waitFor(`(() => { const p = document.querySelector(".ix-predict.ix-open"); if (!p) return true;
               const b = p.querySelector(".ix-opt:not([aria-disabled])"); if (b) { b.click(); return false; }
               const n = p.querySelector(".ix-check-actions .ix-pill"); if (n) { n.click(); return false; }
               return !!p.querySelector(".ix-can"); })()`, 10000);
             await settle();
-            await fp.page.shot(join(o.outDir, `${endBase}-end-cannow.png`));
+            await snap(join(o.outDir, `${endBase}-end-cannow.png`));
             o.shots.push(entry(`${endBase}-end-cannow.png`, "end-cannow"));
           }
           await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
@@ -222,13 +229,13 @@ async function teachShots(browser, url, size, o) {
           // narrow screens: the caption carries the takeaway; the Explain card opens from it with the recap
           const sheet = await ev(`document.querySelector("#ix").classList.contains("ix-ex-sheet")`);
           if (sheet) {
-            await fp.page.shot(join(o.outDir, `${endBase}-end-caption.png`));
+            await snap(join(o.outDir, `${endBase}-end-caption.png`));
             o.shots.push(entry(`${endBase}-end-caption.png`, "end-caption"));
             await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.click(); return !!b; })()`);
             await settle();
             await ev(scrollEnd);
           }
-          await fp.page.shot(join(o.outDir, `${endBase}-end-card.png`));
+          await snap(join(o.outDir, `${endBase}-end-card.png`));
           o.shots.push(entry(`${endBase}-end-card.png`, "end-card"));
           if (sheet) await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.getAttribute("aria-expanded") === "true" && b.click(); return true; })()`);
         }
