@@ -119,9 +119,10 @@ else if (chromeInfo) {
   if (webgl2) add(software ? "warn" : "ok", "webgl2", `${webgl2}${software ? ": software rendering, no GPU" : ""}`, software ? "fine for checks; screenshots are slow (see speed). A machine with a GPU makes them several times faster" : null);
   else if (!webgpu) add("fail", "gpu", "neither WebGPU nor WebGL 2 in headless Chrome: pages show only their captions and controls, and shots are empty", "update Chrome, or run on a machine with a GPU");
   if (chromeInfo.frameMs != null) {
-    const ms = chromeInfo.frameMs, perShot = Math.max(0.4, ms * 3 / 1000 + 0.25);
-    // MapReduce as the yardstick: 160 frozen shots; --teach plays about 40 cards live, each a few seconds of the run
-    const shoot = 160 * perShot, teach = 40 * (6 * Math.max(1, ms / 50) / 1 + 3);
+    // MapReduce as the yardstick: 160 frozen shots, and --teach plays 80 cards live. Calibrated on a 4-core machine
+    // with SwiftShader: a 2.7 s render, the shots in 12.5 min (4.7 s each), the cards in 44 min (33 s each)
+    const ms = chromeInfo.frameMs, perShot = Math.max(0.4, 1.7 * ms / 1000 + 0.1);
+    const shoot = 160 * perShot, teach = 80 * (3 + 6.5 * perShot);
     const mins = (s) => s < 90 ? `${Math.round(s)} s` : `${Math.round(s / 60)} min`;
     add(ms > 120 ? "warn" : "ok", "speed", `a settled 1440×900 render of MapReduce (about one screenshot) takes ${ms.toFixed(0)} ms: shoot (both themes and sizes) about ${mins(shoot)}, with --teach about ${mins(shoot + teach)}`,
       ms > 120 ? "use node scripts/check.mjs (the quick tier) while you work, and run check --full and shoot --teach in the background" : null);
