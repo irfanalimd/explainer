@@ -140,7 +140,7 @@ async function teachShots(browser, url, size, o) {
       if (!(await waitFor(`!__internals.timeline.branch && ${pickOpen}`, 15000))) { fail("never came back from its branch"); return leaveBranch(); }
     }
     await click(right);
-    const revealed = await waitFor(`!!document.querySelector(".ix-predict.ix-open.ix-revealed")`, 10000);
+    const revealed = await waitFor(`(() => { const r = !!document.querySelector(".ix-predict.ix-open.ix-revealed"); if (r) __internals.pause(); return r; })()`, 10000);
     await ev("__internals.pause(), true");
     if (!revealed) return fail("never revealed the right pick");
     await settle();
@@ -188,7 +188,8 @@ async function teachShots(browser, url, size, o) {
           const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
           await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
           await fast();
-          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
+          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); // pause in the same breath as the reveal: a revealed card leaves a few seconds after the run plays on
+            const r = !!document.querySelector(".ix-predict.ix-revealed"); if (r) I.pause(); return r; })()`, 20000);
           await ev("__internals.pause(), true");
           await normal();
           if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
