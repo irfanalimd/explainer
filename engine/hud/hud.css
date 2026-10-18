@@ -1060,6 +1060,7 @@
 }
 .ix-play.ix-continue .ix-tp-label { display: inline-flex; align-items: center; max-width: 30ch; overflow: hidden; }
 .ix-play.ix-continue .ix-tp-more { overflow: hidden; text-overflow: ellipsis; }
+.ix-play.ix-continue .ix-tp-more.ix-tp-story { margin-left: 0; }   /* "Next story: One machine crashes" */
 .ix-tp-kbd {
   display: inline-grid; place-items: center; height: 28px; margin-left: 12px; padding: 0 10px; border-radius: 999px;
   font: 500 var(--ix-fs-xs)/1 var(--ix-font-sans); letter-spacing: 0; color: rgb(var(--ix-on-primary-rgb) / 0.72);
@@ -1939,4 +1940,3 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
 /* ---------- touch screens (no hover, a coarse pointer): help in taps and pinches, and no keys ---------- */
 .ix.ix-touch :is(.ix-help-keys-col, .ix-help-note, .ix-intro-keys) { display: none; }
 .ix.ix-touch .ix-help-grid { grid-template-columns: 1fr; }
-.ix-play.ix-continue .ix-tp-more.ix-tp-story { margin-left: 0; }
