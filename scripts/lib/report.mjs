@@ -156,10 +156,12 @@ export async function renderReport(r, { relTo, thumbs = true } = {}) {
   const status = (s) => `<span class="dot s-${s}" aria-hidden="true"></span>`;
   const word = (s) => ({ ok: "Pass", warn: "Advice", fail: "Fails", skip: "Not run" })[s] ?? s;
 
+  const longestStory = Array.isArray(r.stories) ? Math.max(1, ...r.stories.map((s) => s.chapters.reduce((a, c) => a + c.watch, 0))) : 1;
+  const asksPicks = (s) => [s.asks ? plural(s.asks, "question") : "", s.picks ? plural(s.picks, "pick") : ""].filter(Boolean).join(", ") || "none";
   const storyRows = Array.isArray(r.stories) ? r.stories.map((s) => {
     const total = s.chapters.reduce((a, c) => a + c.watch, 0) || 1;
     const bar = s.chapters.map((c, i) => `<span class="seg${c.watch > MAX_PHASE_S ? " long" : ""}" style="flex:${(c.watch / total).toFixed(4)}" title="${esc(c.name)}: ${secs(c.watch)} to watch, ${plural(c.steps, "step")}"><b>${esc(c.name)}</b><i>${secs(c.watch)}</i></span>`).join("");
-    return `<tr><th scope="row">${esc(s.label)}<small>${esc(s.id)}</small></th><td class="num">${s.steps}</td><td class="num">${secs(s.watch)}${s.fork ? `<small>${secs(s.fork.watch)} from the split</small>` : ""}</td><td class="bar"><div class="segs">${bar}</div></td><td class="num">${s.asks}${s.picks ? ` + ${s.picks}` : ""}</td></tr>`;
+    return `<tr><th scope="row">${esc(s.label)}<small>${esc(s.id)}</small></th><td class="num">${s.steps}</td><td class="num">${secs(s.watch)}${s.fork ? `<small>${secs(s.fork.watch)} from the split</small>` : ""}</td><td class="bar"><div class="segs" style="width:${((total / longestStory) * 100).toFixed(1)}%">${bar}</div></td><td class="num">${asksPicks(s)}</td></tr>`;
   }).join("") : "";
 
   // shots, grouped as the contact sheet groups them
@@ -196,8 +198,8 @@ ${css}
   ${status(r.verdict.ok ? "ok" : "fail")}<div><h2>${esc(r.verdict.label)}</h2><p>${esc(r.verdict.next)}</p>${r.verdict.problems.length ? `<ul>${r.verdict.problems.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>` : ""}</div>
 </section>
 <section class="cards">${cards.map((c) => `<article class="card c-${c.status}"><header>${status(c.status)}<h3>${esc(c.label)}</h3><span class="word">${word(c.status)}</span></header><p class="big">${esc(c.value)}</p>${c.detail.map((d) => `<p class="d">${esc(d)}</p>`).join("")}</article>`).join("")}</section>
-${storyRows ? `<section><h2>Stories</h2><p class="quiet">Time to watch each at 1x, with repeated steps sped up as the page plays them. Questions + picks the reader answers.</p>
-<table class="stories"><thead><tr><th>Story</th><th class="num">Steps</th><th class="num">To watch</th><th>Chapters</th><th class="num">Asks + picks</th></tr></thead><tbody>${storyRows}</tbody></table></section>` : ""}
+${storyRows ? `<section><h2>Stories</h2><p class="quiet">Time to watch each at 1x, with repeated steps sped up as the page plays them; bars to the same scale. What the reader answers on the way.</p>
+<table class="stories"><thead><tr><th>Story</th><th class="num">Steps</th><th class="num">To watch</th><th>Chapters</th><th class="num">Reader answers</th></tr></thead><tbody>${storyRows}</tbody></table></section>` : ""}
 ${reviewHtml ? `<section><h2>Blind review</h2>${reviewHtml}</section>` : ""}
 <section><h2>Findings</h2>${findingHtml}</section>
 ${shotHtml ? `<section><h2>Shots</h2><p class="quiet">Every shot this check took. Click one for the full size.</p>${shotHtml}</section>` : ""}

@@ -77,7 +77,8 @@ export async function check(figure, o = {}) {
         const r = await timed("shoot", () => shoot(res.build.out, { out: shotsDir, clean: true, themes, teach: tier === "full",
           progress: (m) => say(`shoot    ${m}`) }));
         res.shoot = { dir: shotsDir, shots: r.shots, sheets: r.sheets, problems: r.problems, errors: r.errors, themes };
-        say(`shoot    ${r.shots.length} shots, ${r.problems.length} audit finding(s), ${r.errors.length} page error(s)`);
+        const distinct = new Set(r.problems.filter((p) => p.level !== "warn").map((p) => p.kind + p.message)).size;
+        say(`shoot    ${r.shots.length} shots, ${distinct} audit finding(s)${r.problems.length ? ` (in ${new Set(r.problems.map((p) => p.shot)).size} shots)` : ""}, ${r.errors.length} page error(s)`);
       } catch (e) { res.shoot = { error: e.message }; say(`shoot    FAIL ${e.message.split("\n")[0]}`); }
       if (tier === "full") {
         say("audit    every step, mid and end, at 1440x900 and 390x844");
@@ -171,7 +172,7 @@ function reviewsOf(dir) {
   return { mode: state?.mode ?? null, stage: state?.stage ?? null, rounds: history, last: history.filter((h) => h.scores !== null).at(-1) ?? null };
 }
 
-function verdictOf(r) {
+export function verdictOf(r) {
   const problems = [];
   if (r.verify.fatal) problems.push(`verify could not run: ${r.verify.fatal}`);
   if (r.verify.timedOut) problems.push(`verify timed out in ${r.verify.timedOut}`);
@@ -179,10 +180,21 @@ function verdictOf(r) {
   if (r.build?.error) problems.push(`build: ${r.build.error.split("\n")[0]}`);
   if (r.shoot?.error) problems.push(`shoot: ${r.shoot.error.split("\n")[0]}`);
   const hard = (ps) => (ps ?? []).filter((p) => p.level !== "warn");
-  if (hard(r.shoot?.problems).length) problems.push(`audit: ${new Set(hard(r.shoot.problems).map((p) => p.kind + p.message)).size} finding(s) in the shots`);
-  if (r.shoot?.errors?.length) problems.push(`page errors: ${r.shoot.errors.length}`);
-  if (hard(r.audit?.problems).length) problems.push(`audit: ${new Set(hard(r.audit.problems).map((p) => p.kind + p.message)).size} finding(s) over every step`);
-  if (r.audit?.errors?.length) problems.push(`audit page errors: ${r.audit.errors.length}`);
+  // each distinct audit finding once, with the steps and sizes it was seen at
+  const audit = (ps, where) => {
+    const by = new Map();
+    for (const p of hard(ps)) {
+      const k = `${p.kind}: ${p.message}`;
+      if (!by.has(k)) by.set(k, { steps: new Set(), sizes: new Set() });
+      if (p.step != null) by.get(k).steps.add(p.step);
+      const sz = /(\d+x\d+)/.exec(p.shot ?? p.where ?? "")?.[1]; if (sz) by.get(k).sizes.add(sz);
+    }
+    for (const [k, x] of by) problems.push(`audit${where}: ${k}${x.steps.size ? ` (step${x.steps.size > 1 ? "s" : ""} ${[...x.steps].sort((a, b) => a - b).join(", ")}` : " ("}${x.sizes.size ? `${x.steps.size ? ", " : ""}at ${[...x.sizes].join(" and ")}` : ""})`.replace(" ()", ""));
+  };
+  audit(r.shoot?.problems, "");
+  if (r.shoot?.errors?.length) problems.push(`page errors: ${r.shoot.errors.length}, first: ${String(r.shoot.errors[0].text).split("\n")[0]}`);
+  audit(r.audit?.problems, " over every step");
+  if (r.audit?.errors?.length) problems.push(`audit page errors: ${r.audit.errors.length}, first: ${String(r.audit.errors[0].text).split("\n")[0]}`);
   if (r.review?.last && !r.review.last.pass) problems.push(`review: round ${r.review.last.round} did not pass the gate`);
   const ok = !problems.length;
   const label = !ok ? "Needs work" : r.tier === "full" ? (r.review?.last ? "Ready to ship" : "Ready for review") : "Passes the quick check";
