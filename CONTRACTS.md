@@ -519,6 +519,7 @@ export const lesson = {
   asks: { [askId]: { question?, why?, options?: [{ text?, feedback?, misconception? }] } },
   choices: { [chooseId]: { prompt?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
   checks: { [checkId]: { question?, why?, options?: [{ text?, feedback?, misconception? }] } },
+  next: [{ title, href, why? }],                     // the lessons that follow; the end of the last story names them
 };
 ```
 
@@ -539,6 +540,7 @@ tl.lesson = null | {
   picture: null | { name, rows: [{ id, picture, real, term? }], breaks },
   terms: { [name]: { lead: string | null, def } },   // meta.terms merged with the lesson's; read definitions here, not meta.terms
   misconceptions: [{ id, wrong, fix }],
+  next: [{ title, href, why }],                      // why is markup ("" when absent)
 }
 tl.steps[i].id     = string | null
 tl.steps[i].layers = { plain, why?, look?: [entityId], deeper?: { cost?, how?, code?, edge?, real?, source? }, picture?: rowId, key?: true }
