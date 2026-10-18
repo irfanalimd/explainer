@@ -40,9 +40,9 @@ export function createScene(root, { project, onFocus, onOpen } = {}) {
   const live = el("div", { "aria-live": "polite", "aria-atomic": "true" });
   const doc_ = el("section", { class: "ix-scene-doc", "aria-labelledby": `${uid}-h` },
     el("h2", { id: `${uid}-h`, text: "Scene" }), summary, help, body, look, live);
-  // reading order: after the header (title, scenarios, toolbar), before the explain panel and the dock
-  const top = root.querySelector(".ix-top");
-  if (top?.parentNode) top.after(doc_); else root.append(doc_);
+  // reading order: after the header and the right column (the explain panel and the parameters), before the dock
+  const anchor = root.querySelector(".ix-hud > .ix-params") ?? root.querySelector(".ix-explain-tab") ?? root.querySelector(".ix-top");
+  if (anchor?.parentNode) anchor.after(doc_); else root.append(doc_);
 
   // ---- the ring and tag over the world ----
   const tag = el("div", { class: "ix-scene-tag", "aria-hidden": "true" });

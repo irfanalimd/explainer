@@ -106,7 +106,10 @@ export function createExplain(ctx) {
     onclick: () => toggle(true) }, h("span", { html: ICON.panel }), h("span", { text: "Explain" }));
   const capBtn = h("button", { class: "ix-ex-capbtn", type: "button", "aria-label": "Explain this chapter", "aria-expanded": "false",
     onclick: () => toggle() }, h("span", { html: ICON.info }), h("span", { class: "ix-ex-capbtn-label", text: "Explain" }));
-  parent.append(panel, tab);
+  // reading and Tab order: the teacher comes right after the header (title, scenarios, toolbar), before the
+  // parameters, the world and the dock, as the eye meets it beside the world
+  const head0 = parent.querySelector(":scope > .ix-top");
+  if (head0) head0.after(panel, tab); else parent.append(panel, tab);
   caption.append(capBtn);
 
   const hiddenByCapture = () => root.classList.contains("ix-capture") && !root.classList.contains("ix-keep-chrome");
