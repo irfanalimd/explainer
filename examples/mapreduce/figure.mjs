@@ -473,7 +473,7 @@ export function build(s, p, scenario, env = {}) {
     const chip = `{key:${word}}${count > 1 ? ` · ${count}` : ""}`;
     const tally = skewed ? `: it has ${load[r]} of ${moved} slips so far` : "";
     const sh = { w: K(word), count, red: redRef(r), redId: `r${r}`, slipId: id, rem: r, h: hash(word), eq: CODE(`hash(${word}) % ${R} = ${r}`),
-      from: mapRef(k), load: load[r], moved, slips: slips.length,
+      from: mapRef(k), load: load[r], moved, rest: moved - load[r], slips: slips.length,
       ...(again ? { firstRed: `reduce ${again[0]}`, otherRed: `reduce ${(again[0] + 1) % R}` } : {}) };
     const shuffleStep = (id, caption, o) => step(id, caption, sh, o);
     if (first) shuffleStep("shuffle.first", `${chip} goes to {ref:r${r}|reduce ${r}}: its hash, divided by ${plural(R, "counter")}, leaves remainder ${r} (\`hash(${word}) % ${R} = ${r}\`).`, { keep: true });
@@ -486,7 +486,7 @@ export function build(s, p, scenario, env = {}) {
   // counter adds up only what it holds. The run ends on that split count; the HUD rewinds to the pick
   function splitCount({ id, word, k, r, to, again, rest }) {
     const sh = { w: K(word), count: 1, red: redRef(r), redId: `r${r}`, slipId: id, rem: r, h: hash(word), eq: CODE(`hash(${word}) % ${R} = ${r}`),
-      from: mapRef(k), load: load[r], moved, slips: slips.length, firstRed: `reduce ${again[0]}`, otherRed: `reduce ${to}`,
+      from: mapRef(k), load: load[r], moved, rest: moved - load[r], slips: slips.length, firstRed: `reduce ${again[0]}`, otherRed: `reduce ${to}`,
       picked: redRef(to), pickedId: `r${to}` };
     s.move(id, `r${to}`, { via: "shuffle-bus" });
     s.tag(id, `sent to reduce ${to}`);
@@ -595,7 +595,8 @@ export function build(s, p, scenario, env = {}) {
   s.focus("output");   // the payoff: the camera frames the answer large
   if (skewed && moved) {
     const hot = load.indexOf(Math.max(...load));
-    const hv = { hot: redRef(hot), hotId: `r${hot}`, load: load[hot], moved, share: Math.round((load[hot] / (moved / R)) * 10) / 10 };
+    const hv = { hot: redRef(hot), hotId: `r${hot}`, load: load[hot], moved, share: Math.round((load[hot] / (moved / R)) * 10) / 10,
+      codes: new Set(slips.filter((w) => hash(w) % R === hot)).size, distinct };
     step("skew.done", `Done. {ref:r${hot}|reduce ${hot}} got ${load[hot]} of ${moved} slips, ${(load[hot] / (moved / R)).toFixed(1)}× its fair share: one common code overloads it.`, hv, { keep: true });
     // the fix a learner reaches for first, run through the same hash: one more counting machine. Different codes can
     // move; the copies of one code cannot, so the common code's slips still meet on one counter
@@ -603,7 +604,7 @@ export function build(s, p, scenario, env = {}) {
     if (!p.combiner) {
       s.ask(`reduce ${hot} did the adding for ${load[hot]} of the ${moved} slips. Which change takes most of that work off it, and keeps every count exact?`,
         [`Add a ${ordinal(R2)} counting machine`, `Send some "${top[0]}" slips to a quieter counter`, "Have each reader add up its repeats first"], 2,
-        { id: "skew.fix", why: `Every "${top[0]}" slip must meet on one counter, so only fewer "${top[0]}" slips help: each reader sends one, carrying its count.` });
+        { id: "skew.fix", why: `Every "${top[0]}" slip must meet on one counter, so this job needs fewer "${top[0]}" slips: each reader sends one, carrying its count.` });
     }
     s.lit(`r${hot}`);
     step("skew.more", `With ${R2} counting machines, every "${top[0]}" would still go to one counter (\`hash(${top[0]}) % ${R2} = ${hot2}\`): ${load2} of ${slips.length} slips.`,
@@ -612,8 +613,10 @@ export function build(s, p, scenario, env = {}) {
       // the remedy, from the same run: if each reader added up its repeats first, it would send one slip per code
       const sent = splits.flatMap((list) => [...new Set(list)]);
       const hotC = sent.filter((w) => hash(w) % R === hot).length;
+      // the reader with the most repeats of the common code, as the example of a combined slip
+      const reps = splits.map((list) => list.filter((w) => w === top[0]).length), ex = reps.indexOf(Math.max(...reps));
       step("skew.combine", `If each reader added up its repeats first, ${plural(sent.length, "slip")} would travel, ${hotC} of them to {ref:r${hot}|reduce ${hot}}.`,
-        { ...hv, sent: sent.length, hotC });
+        { ...hv, sent: sent.length, hotC, exMap: `map ${ex}`, exN: reps[ex] });
     }
   } else step(biggest < words.length ? "output.done" : "output.done-alone", biggest < words.length
     ? `Done: all ${words.length} words counted, ${distinct} different ones, and no machine read the whole text.`
@@ -633,17 +636,24 @@ export function build(s, p, scenario, env = {}) {
       const R2 = R === 3 ? 4 : 3, rem2 = hash(w2) % R2;
       s.check("check.hash", { chapter: "shuffle", ...(transfer ? { transfer: true } : {}),
         question: `Suppose a new job with ${R2} counting machines instead of ${R}. Where do the ${plural(top[1], `"${w2}" slip`)} go?`,
-        options: [`Spread over the ${R2} counters, to share the work`, `All on one counter: reduce ${rem2}`, "On whichever counter is least busy"], answer: 1,
+        options: [`Spread over the ${R2} counters, to share the work`, "All on one counter, whichever the hash picks", "On whichever counter is least busy"], answer: 1,
         vars: { R, M, R2, w: K(w2), topN: top[1], rem2, red2: `reduce ${rem2}` } });
+    };
+    // one more copy of a word: its total grows, the number of totals does not
+    const totalsCheck = () => {
+      const totals = nums(freq.size, freq.size + 1, words.length + 1);
+      if (totals.options.length > 1) s.check("check.totals", { chapter: "reduce", ...totals,
+        question: `Add one more "${w2}" to the ${text}. How many totals would the output hold?`,
+        vars: { R, M, w: K(w2), distinct: freq.size } });
     };
     if (scenario === "crash" && victim >= 0) {
       // a finished map task on a machine that dies: its slips were on that machine's own disk, so it runs again
       const j = helper(victim), other = [...Array(M).keys()].reverse().find((k) => k !== victim && k !== j) ?? j;
       s.check("check.crash-done", { chapter: "map", transfer: true,
-        question: `Suppose map ${other} had finished all its slips, then crashed before any counting machine fetched them. What happens to its piece?`,
+        question: `Suppose map ${other} had finished all its slips, and then its machine died. What happens to its piece?`,
         options: ["Nothing: that piece was already finished", "It is read again, like the crashed piece", "The whole job starts over"], answer: 1,
         vars: { R, M, other: `map ${other}`, count: splits[other].length } });
-      hashCheck(false);
+      hashCheck(false);   // story 1's idea, brought back
     } else if (scenario === "straggler" && slow >= 0 && M > 1 && splits[slow].length) {
       // keeping both copies' slips: the words the slow copy wrote would count twice
       const list = splits[slow], w = list[0], kept = freq.get(w) + list.slice(0, slowWrote).filter((x) => x === w).length;
@@ -655,29 +665,31 @@ export function build(s, p, scenario, env = {}) {
         question: "Same failing disk, but the job has only 1 reading machine. What does the master do?",
         options: ["Starts a backup copy on another machine", "Waits for the slow disk to finish", "Skips the slow piece's words"], answer: 1,
         vars: { R, M } });
-      hashCheck(false);
-    } else if (skewed) {
+      totalsCheck();   // story 1's idea, brought back
+    } else if (skewed && !p.combiner) {
+      const hot = load.indexOf(Math.max(...load));
       // adding up repeats first: each reader's slip carries its count, so the total is the same
       const parts = splits.map((list) => list.filter((x) => x === w2).length).filter((c) => c > 0);
       const combined = nums(top[1], parts.length, top[1] + parts.length);
-      if (!p.combiner && combined.options.length > 2) s.check("check.combine", { chapter: "output", transfer: true,
+      if (combined.options.length > 2) s.check("check.combine", { chapter: "output", transfer: true,
         ...combined, options: combined.options.map((o) => `${w2} = ${o}`),
         question: `Suppose “Add up repeats first” were on. What would the output say for "${w2}"?`,
         vars: { R, M, w: K(w2), topN: top[1], readers: parts.length, parts } });
+      // the slow-machine story's cure on the busy counter: a backup copy gets the same slips, so it adds the same work
+      s.check("check.backup", { chapter: "output",
+        question: `Would a backup copy of reduce ${hot}, on a free machine, finish its adding sooner?`,
+        options: [`Yes: the two copies share its ${load[hot]} slips`, `No: the copy gets the same ${load[hot]} slips to add`, "Yes: the first copy to finish wins"], answer: 1,
+        vars: { R, M, hot: `reduce ${hot}`, load: load[hot], moved } });
       // more reading machines: the counter is picked by the code alone, so the busiest counter's load does not move
-      const hot = load.indexOf(Math.max(...load)), M2 = M === 6 ? 5 : M + 1;
+      const M2 = M === 6 ? 5 : M + 1;
       const fair = Math.ceil(moved / R), spread = Math.round(load[hot] * M / M2);
       const readers = nums(load[hot], fair, spread);
-      if (!p.combiner && readers.options.length > 1) s.check("check.readers", { chapter: "shuffle", ...readers,
+      if (readers.options.length > 1) s.check("check.readers", { chapter: "shuffle", ...readers,
         question: `Suppose ${M2} reading machines instead of ${M}, nothing else changed. How many of the ${moved} slips would reduce ${hot} get?`,
         vars: { R, M, M2, hot: `reduce ${hot}`, load: load[hot], moved, w: K(w2) } });
-      hashCheck(!!p.combiner);
     } else {
       hashCheck(true);
-      const totals = nums(freq.size, freq.size + 1, words.length + 1);
-      if (totals.options.length > 1) s.check("check.totals", { chapter: "reduce", ...totals,
-        question: `Add one more "${w2}" to the ${text}. How many totals would the output hold?`,
-        vars: { R, M, w: K(w2), distinct: freq.size } });
+      totalsCheck();
       const M2 = M === 4 ? 5 : 4, big2 = Math.ceil(words.length / M2);
       const split = nums(big2, words.length, Math.floor(words.length / M2) === big2 ? M2 : Math.floor(words.length / M2));
       if (split.options.length > 1) s.check("check.split", { chapter: "split", ...split,
