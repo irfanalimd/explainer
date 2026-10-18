@@ -35,6 +35,9 @@ export const lesson = {
     window: { lead: "where it could still be", def: "The part of the list where the number could still be." },
   },
 
+  // objectives only some stories teach take stories: ["missing"]; next: [{ title, href, why }] names the lessons that
+  // follow at the end of the last story (examples/mapreduce/lesson.mjs has both)
+
   chapters: {
     idea: {
       about: "Think of looking up a word in a dictionary. You open it in the middle, see whether your word comes before or after, and ignore the other half. A sorted list works the same way.",

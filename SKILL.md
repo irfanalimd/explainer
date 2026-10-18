@@ -61,7 +61,8 @@ When the plugin agents are loaded, run these steps inside the **Teacher pipeline
 6. **Write `figure.mjs`**:
    - `meta` (with a `level`, a `hook`, `terms`, a `recap` and a `takeaway`), `params` (knobs), `scenarios` (each with a one-line `description` of its story, a `whatIf`, and its own `takeaway` when the lesson differs), `counters` (numbers in real units, each with a plain `label` and a one-line `hint`, the 1–3 that tell the story marked `primary`), optional `code`
    - `invariants` (the properties that must hold on every step)
-   - `build(s, params, scenario)`, naming what the lesson keys on: `s.step(caption, { id, vars })` for every step, `s.phase(name, { about, id })` for every chapter, `s.ask(question, options, answer, { why, id })` for every prediction. `vars` carries every run value the words need (counts, names, entity ids for `look`); the caption is the fallback, so keep it true and short. Steps that repeat share one id.
+   - each housing's `sub` is its live state from the run (`waiting`, `reading`, `4 slips`, `down`), kept current with `s.set`, so the world reads without the panel; identifiers such as an address go in `state`, which the inspector shows
+   - `build(s, params, scenario)`, naming what the lesson keys on: `s.step(caption, { id, vars })` for every step, `s.phase(name, { about, id })` for every chapter, `s.ask(question, options, answer, { why, id })` for every prediction. Each story ends with its own `s.check` questions: what that story taught, on a situation the run did not show (one marked `transfer`), and after the first story one earlier idea at new numbers (`references/teaching.md` section 5). `vars` carries every run value the words need (counts, names, entity ids for `look`); the caption is the fallback, so keep it true and short. Steps that repeat share one id.
 
    Use the simulation runtimes in `sim/` rather than hand-rolling: `actors` for anything with messages and time, `tracked` for arrays and structures, `lockstep` to race two algorithms, `machine` for bits, caches and page tables. All randomness goes through `s.rng` (or `s.rng.fork(label)`); the runtimes fork it by default and take a `seed` only to decouple their stream (`references/sim.md`).
 7. **Write `lesson.mjs`**, the words, against the real run (`node scripts/lesson.mjs figure.mjs --json --all --no-lint` lists every step id and its vars). In the pipeline the `explainer:teacher` agent writes it; otherwise follow `skills/teacher/SKILL.md` yourself. Per step: `plain` (what happened), `why` (only where it adds to the chapter's purpose), `look` (the entity ids to watch), `deeper` (`cost`, `how`, `code`, `edge`, `real`, `source`), `picture`, `key`. Per chapter: `about` and an `enter` card. Per ask: feedback on every option, naming the misconception it holds. Templates print the figure's vars; the lesson never computes. The format is `CONTRACTS.md` section 10; the rules are `references/teaching.md` section 5.
@@ -144,7 +145,7 @@ export function build(s, p, scenario) {
   s.row("job", { gap: 84 });
   s.housing("input", { in: "job", variant: "store", title: "input", tray: { cols: 1, of: "page" } });
   s.column("map", { in: "job", title: "map" });
-  s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", tray: { cols: 2, of: "record" }, led: "idle" });
+  s.housing("m0", { in: "map", title: "map 0", sub: "waiting", tray: { cols: 2, of: "record" }, led: "idle", state: { host: "192.0.2.10" } });
   s.trace("in-m0", "input", "m0");
   s.phase("Split", { id: "split", about: "The input is cut into splits, one per map task, so every machine can work at once." });
   s.step("Count the 11 words: 3 machines share them.", { id: "split.problem", vars: { n: 11, M: 3 } });

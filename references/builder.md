@@ -184,15 +184,16 @@ s.column("reduce", { in: "job", title: "reduce" });
 ### `s.housing(id, o)`: a machined body with a header, an LED and an optional tray
 
 ```js
-s.housing("m0", { in: "map", title: "map 0", sub: "192.0.2.10", led: "idle",
+s.housing("m0", { in: "map", title: "map 0", sub: "waiting", led: "idle",
                   tray: { cols: 2, of: "record" }, state: { host: "192.0.2.10" } });
+s.set("m0", { led: "busy", sub: "reading" });   // later: sub: "4 slips", then "down" if it crashes
 ```
 
 | option | meaning |
 |---|---|
 | `variant` | `"node"` (default: a server or worker), `"client"`, `"store"` (a disc with a round well; input, output, databases), `"queue"` (a low trough), `"chip"` (a square: CPU, cache, TLB) |
 | `tray: { cols, rows, of = "tile", order = "row" \| "column" \| "stack", capacity }` | without a tray, the housing holds no tiles (sends and traces still work) |
-| `title` (the id), `sub` | engraved in the header: the title top-left, the sub right-aligned |
+| `title` (the id), `sub` | engraved in the header: the title top-left, the sub right-aligned. Make `sub` the housing's live state from the run (`waiting`, `reading`, `4 slips`, `down`) and keep it current with `s.set`, so the world tells the story without the panel. Identifiers such as an address belong in `state`, which the inspector shows. |
 | `led` | `"ok"`, `"busy"`, `"warn"`, `"fail"` (blinks), `"idle"`, `"off"` |
 | `meter` | progress inlay, 0..1 |
 | `key`, `tone`, `dim`, `state`, `w`/`d` (minimum size), `at` (in `free`), `index`, `lod` | |
@@ -299,7 +300,7 @@ Every op is recorded into the current step (or the current beat). An id or a han
 | `s.say(markup)` | Appended to this step's caption. Sim runtimes use it. |
 | `s.ask(question, options, answerIndex, { why, id })` | Predict mode: playback pauses before this step. Until the answer is revealed (70 % into the step) nothing gives it away: the step's caption shows "…", its tags and new legend keys wait, and the chapter's `about` is withheld from the chapter's start ("A question about this chapter is coming up…", and while it is open "This chapter's summary appears once you have answered."), since an about often states the answer. On wide screens the question sits in the explain panel. `why` (optional, recommended) is one plain sentence on why the answer is right; it replaces the card's footer once revealed, and the card stays long enough to read it. Put the question right before the step that disproves a beginner's likely misconception, and make the wrong options real misconceptions. `id` keys the lesson's wording and per-option feedback (section 7). |
 | `s.choose(id, { prompt, options: [{ pick, right?, text? }], why? })` | Your turn, in the world: playback pauses before this step and the reader clicks (or tabs to) one of the `pick` entities, which light up. Exactly one option is `right`. Every option is a branch of the same run: `compile(figure, { choices: { [id]: j } })` plays option `j`, and without one the run plays the right option. It returns `{ index, pick, right }` for this run: on a wrong pick, play its consequence for real (the real ops, with their own step ids), then `return` from `build`; the run holds on that last step and the HUD rewinds to the pick. One per step (never with `s.ask` on the same step). Section 7 and `examples/mapreduce/figure.mjs` ("shuffle.which"). |
-| `s.check(id, { question, options, answer, chapter?, why?, vars?, transfer? })` | One end-check question, shown when the main run ends (New 3, Basics 2, Expert 1: the one marked `transfer`). Compute `answer` from the figure's own rules, ideally at other knob values ("with 3 counting machines, which one gets `fox`?"), never as a literal. `chapter` (a chapter id; default the current one) is what "Replay" offers on a miss; `vars` fill the lesson's `checks[id]` templates. Not a step: record it anywhere in `build`. |
+| `s.check(id, { question, options, answer, chapter?, why?, vars?, transfer? })` | One end-check question, shown when the main run ends (New 3, Basics 2, Expert 1: the one marked `transfer`). Compute `answer` from the figure's own rules, ideally at other knob values ("with 3 counting machines, which one gets `fox`?"), never as a literal. Write a set per story (branch on `scenario.id`): what that story taught, and in the stories after the first one earlier idea at new numbers, so no story repeats another's questions. `chapter` (a chapter id; default the current one) is what "Replay" offers on a miss; `vars` fill the lesson's `checks[id]` templates. Not a step: record it anywhere in `build`. |
 | `s.scale({ count, run, like, from, title, lines, note })` | A scale shot on this step: the camera pulls back from the run into a field of `count` machines (section 11). |
 
 ```js
