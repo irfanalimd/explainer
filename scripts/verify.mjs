@@ -207,15 +207,16 @@ function lessonFolded(problems, fig, run, tl) {
   for (const p of problems) {
     const m = p?.kind === "lesson" && /^step (\d+) \(([^)]+)\): (.*)$/s.exec(p.message ?? "");
     if (!m) {
-      // a chip naming an entity that is not there: suggest the one it probably meant
-      const u = p?.kind === "unknown-ref" && /unknown entity "([^"]+)"/.exec(p.message ?? "");
-      if (u) {
-        let known = [];
-        try { known = [...(tl.final?.entities?.keys?.() ?? [])]; } catch {}
-        const near = nearest(u[1], known);
-        if (near) { out.push({ ...p, message: `${p.message}; did you mean "${near}"?` }); continue; }
-      }
-      out.push(p); continue;
+      // a chip naming an entity that is not there: one line per step id, with the one it probably meant
+      const u = p?.kind === "unknown-ref" && /^caption of step (\d+) refers to unknown entity "([^"]+)"/.exec(p.message ?? "");
+      const sid = u && tl.steps?.[Number(u[1])]?.id;
+      if (!sid) { out.push(p); continue; }
+      const key = `${sid}|ref`;
+      if (!groups.has(key)) { const g = { ...p, id: sid, rest: "", ref: true, steps: [], names: [] }; groups.set(key, g); out.push(g); }
+      const g = groups.get(key);
+      g.steps.push(Number(u[1]));
+      if (!g.names.includes(u[2])) g.names.push(u[2]);
+      continue;
     }
     const [, at, id, rest] = m;
     const names = [...rest.matchAll(/"([^"]*)"/g)].map((x) => x[1]);
@@ -226,6 +227,18 @@ function lessonFolded(problems, fig, run, tl) {
     for (const n of names) if (!g.names.includes(n)) g.names.push(n);
   }
   for (const g of groups.values()) {
+    if (g.ref) {
+      let known = [];
+      try { known = [...(tl.final?.entities?.keys?.() ?? [])]; } catch {}
+      const near = g.names.map((n) => [n, nearest(n, known)]).filter(([, x]) => x);
+      const line = FIGURE_FILE ? textLine(FIGURE_FILE, `"${g.id}"`) : null;
+      const quote = (xs) => xs.slice(0, 4).map((n) => `"${n}"`).join(", ") + (xs.length > 4 ? ", …" : "");
+      g.message = `${g.id} at step${g.steps.length > 1 ? "s" : ""} ${listSteps(g.steps)}: its caption has a {ref:…} chip for ${quote(g.names)}, which ${g.names.length > 1 ? "do" : "does"} not exist`
+        + (near.length ? `; did you mean ${near.length > 1 ? quote(near.map(([, x]) => x)) : `"${near[0][1]}"`}?` : " (a ref names an entity id the figure adds with s.add)")
+        + (line ? ` (${FIGURE_FILE.split(/[\\/]/).pop()}:${line}, or a var it passes)` : "");
+      g.step = undefined;
+      continue;
+    }
     const v = /uses \{([\w.]+)\}, which the figure does not pass/.exec(g.rest);
     const near = v ? nearest(v[1], varsOf(g.steps[0])) : null;
     let line = LESSON_FILE ? keyLine(LESSON_FILE, g.id) : null;
@@ -283,7 +296,11 @@ function verifyRun(fig, compile, run, sample) {
     const name = FIGURE_FILE ? FIGURE_FILE.split(/[\\/]/).pop() : "figure.mjs";
     const ex = f ? excerpt(FIGURE_FILE, f.line, f.col) : "";
     const rest = (tl.problems ?? []).length - 1;
-    E("build", `build() threw ${head}${f ? ` at ${name}:${f.line}` : ""}${steps.length > 1 ? ` after step ${steps.length - 1} "${cap(steps.length - 1)}"` : " before its first step"}${ex ? `\n${ex.replace(/^/gm, "          ")}` : ""}${rest ? `\n          (${rest} finding(s) that follow from it are left out until build() runs to the end)` : ""}`, steps.length - 1);
+    // a name that is not defined: the one the figure probably meant
+    const undef = /ReferenceError: ([\w$]+) is not defined/.exec(head);
+    let src = ""; try { src = FIGURE_FILE ? readFileSync(FIGURE_FILE, "utf8") : ""; } catch {}
+    const meant = undef && nearest(undef[1], (src.match(/[A-Za-z_$][\w$]*/g) ?? []).filter((w) => w !== undef[1]));
+    E("build", `build() threw ${head}${meant ? ` (did you mean ${meant}?)` : ""}${f ? ` at ${name}:${f.line}` : ""}${steps.length > 1 ? ` after step ${steps.length - 1} "${cap(steps.length - 1)}"` : " before its first step"}${ex ? `\n${ex.replace(/^/gm, "          ")}` : ""}${rest ? `\n          (${rest} finding(s) that follow from it are left out until build() runs to the end)` : ""}`, steps.length - 1);
     return { errors, warnings, ms, steps: steps.length, duration: tl.duration, phases: (tl.phases ?? []).length, hash: tl.hash, counters: { used: [], changed: [] }, branches: 0 };
   }
   // steps, captions, timing
@@ -663,14 +680,19 @@ export function report(r) {
   }
   const width = Math.min(34, Math.max(12, ...r.runs.map((x) => x.label.length)));
   const shown = new Set();     // an identical finding in a later run is counted, not repeated
+  // nor is one that differs only in its numbers (the same mistake at other knob values: "steps 3, 4" vs "steps 3, 4, 5")
+  const shape = (x) => `${x.kind}|${x.message.replace(/\d+(\.\d+)?/g, "#").replace(/"[^"]*#[^"]*"/g, "#").replace(/#(, #)+(, …)?/g, "#")}`;
+  const alike = new Set();
   for (const run of r.runs) {
     errors += run.errors.length; warnings += run.warnings.length;
     const status = run.errors.length ? "FAIL" : run.warnings.length ? "WARN" : "ok  ";
     const facts = run.steps != null ? `${String(run.steps).padStart(4)} steps ${run.duration.toFixed(1).padStart(6)} s ${String(run.phases).padStart(2)} phases ${run.ms.toFixed(0).padStart(4)} ms${run.branches ? `  + ${run.branches} branch${run.branches > 1 ? "es" : ""}` : ""}` : "";
-    const fresh = [...run.errors.map((x) => ["error", x]), ...run.warnings.map((x) => ["warn ", x])].filter(([, x]) => !shown.has(x.kind + x.message));
-    const repeats = run.errors.length + run.warnings.length - fresh.length;
-    lines.push(`  ${status}  ${run.label.padEnd(width)}  ${facts}${repeats ? `  (+${repeats} as above)` : ""}`);
-    for (const [level, x] of fresh) { shown.add(x.kind + x.message); lines.push(`        ${level}  ${x.kind}: ${x.message}`); }
+    const all = [...run.errors.map((x) => ["error", x]), ...run.warnings.map((x) => ["warn ", x])];
+    const fresh = all.filter(([, x]) => !shown.has(x.kind + x.message) && !alike.has(shape(x)));
+    const same = all.filter(([, x]) => shown.has(x.kind + x.message)).length, near = all.length - fresh.length - same;
+    const tail = [same ? `${same} as above` : "", near ? `${near} alike` : ""].filter(Boolean).join(", ");
+    lines.push(`  ${status}  ${run.label.padEnd(width)}  ${facts}${tail ? `  (+${tail})` : ""}`);
+    for (const [level, x] of fresh) { shown.add(x.kind + x.message); alike.add(shape(x)); lines.push(`        ${level}  ${x.kind}: ${x.message}`); }
   }
   // counters declared but never moved in any run
   const changed = new Set(r.runs.flatMap((x) => x.counters?.changed ?? []));
@@ -699,7 +721,8 @@ export function report(r) {
     lines.push(`  ${T.errors.length ? "FAIL" : T.warnings.length ? "WARN" : "ok  "}  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)`);
     lines.push(formatFindings(T, "        "));
   }
-  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0);
+  // what fails: each run with an error, and the exports, the teaching lint and a run that never finished, once each
+  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0) + (r.static?.errors.length ? 1 : 0) + (r.timedOut ? 1 : 0);
   lines.push(`summary  ${r.runs.length} run(s), ${failing} failing, ${errors} error(s), ${warnings} warning(s)  ${(r.ms / 1000).toFixed(1)} s`);
   return { text: lines.join("\n"), errors, warnings };
 }
