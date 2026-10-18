@@ -15,7 +15,7 @@ A deep ink-blue studio whose floor rises into a soft indigo-to-teal glow behind 
 ## 3. Principles (the grammar)
 
 1. **Position is structure. Motion is data flow. Colour is identity. Light is attention.**
-   - Identity colour (8 keys, `PALETTE.*.keys`) is given to a *thing in the data*: a key, a partition, a thread, a node, a term. It never changes for that thing, across every view and the HUD. Colour is never decoration.
+   - Identity colour (8 keys, `PALETTE.*.keys`) is given to a *thing in the data*: a key, a partition, a thread, a node, a term. It never changes for that thing, across every view and the HUD. Colour is never decoration. The order keeps the first five keys distinct for red-green colour-blind readers (blue, orange, pink, cyan, amber; then green, violet, lime), so a figure with up to five keys never relies on a pair they cannot tell apart.
    - Light (emission, bloom, the floor light pool) marks the one or two things the reader should watch this step. Everything else is lit only by the studio.
    - In light theme, attention is elevation plus ink: the watched thing lifts (`MOTION.litRise`) and gets a crisp ink rim.
 2. **Time runs left to right** (space-time lanes, Gantt lanes, pipelines) or **top to bottom** (stacks of layers). Never both in one board.
@@ -39,7 +39,7 @@ All solids are one primitive: an extruded rounded rectangle with a rounded top e
 
 | Object | Built from | Notes |
 |---|---|---|
-| **Housing** (node, worker, server, stage, cache, CPU, TLB) | slab `h 16, r 11, bevel 2.2`, matte graphite | A header strip (28 u) carries the printed title (Geist 560, 12 u, the author's case: `map 1`) at top-left and a status LED puck at top-right. Below it a recessed **well** (tray) inset 7 u, r 7, darker, with an inner shadow. Tiles sit in the well. Optional sub-label right-aligned in the header, in Geist Mono 400 7.2 u, muted (`192.0.2.11`). The top bevel carries a fine machined catch-light in the dark studio (`MATERIAL.*.edge`). |
+| **Housing** (node, worker, server, stage, cache, CPU, TLB) | slab `h 16, r 11, bevel 2.2`, matte graphite | A header strip (28 u) carries the printed title (Geist 560, 12 u, the author's case: `map 1`) at top-left and a status LED puck at top-right. Below it a recessed **well** (tray) inset 7 u, r 7, darker, with an inner shadow. Tiles sit in the well. Optional sub-label right-aligned in the header, in Geist Mono 400 8.4 u, muted: preferably the housing's live state from the run (`7 slips`, `down`, `empty`), else an address (`192.0.2.11`). The top bevel carries a fine machined catch-light in the dark studio (`MATERIAL.*.edge`). |
 | Housing kinds | silhouette changes, not colour | `node` rounded rect; `client` more rounded (r 18) and lower (h 12); `store` a disc/puck (database = cylinder) with a round well; `queue` a long low trough (h 10) with a channel well; `chip` square with fine pin ticks printed along its edges (CPU, cache, TLB). |
 | **Tile** (cell, token, item) | slab `26×26×5, r 5, bevel 1.3`, ceramic | Label printed in Geist Mono 500 (a record's value in 400 at 74 %). Neutral tiles are graphite ceramic with light ink; keyed tiles take their identity colour on the whole body with dark ink (`keyInk`), like coloured keycaps: the skin picks whichever of near-black and white contrasts more (WCAG), which is near-black for every identity colour, and small dark labels are dilated and blended in sRGB so they stay at least 4.5:1 in the rendered pixels. |
 | **Record** (key/value pair) | slab `54×24×5` | `fox · 1`: key left in key ink, value right in a lighter weight. |
@@ -69,7 +69,7 @@ All solids are one primitive: an extruded rounded rectangle with a rounded top e
 - Ink is mixed in sRGB on every surface, as a print (and the browser's text) would, so light-on-dark labels keep their real weight instead of swelling bold; small dark ink is dilated only a hair (≤ 0.07 of the field). Far, minified text keeps its weight (the edge never softens past a fifth of the field). On white ceramic, muted floor print is set in ink at 78 % so it holds at a distance.
 - The HUD's type scale (title, captions, panel) is in section 9.1: five sizes, 12 to 28 px, sentence case, no tracked uppercase.
 - Captions: max 60 ch, centred above the transport like film subtitles on wide screens, left-aligned in layers on narrow ones; inline key chips (identity colour), entity chips (hover lights the entity), inline code in mono.
-- The world scale (u): housing title Geist 560 12; zone label Geist 500 11; lane label Geist 500 8; header sub-label Geist Mono 400 7.2; tile key Geist Mono 500 9.5 (value 400); floor data Geist Mono 400 6–7.
+- The world scale (u): housing title Geist 560 12; zone label Geist 560 13, in ink; lane label Geist 500 8; header sub-label Geist Mono 400 8.4; tile key Geist Mono 500 9.5 (value 400); a record's key and value as large as its face allows, 9 to 11.5 (`SIZE.record.fill`), so a slip's word fills it like a keycap's legend; floor data Geist Mono 400 6–7.
 
 ## 8. Motion
 
@@ -166,7 +166,7 @@ Wide screens (≥ 1200 px) dock it on the right, `clamp(320px, 25vw, 376px)` wid
   | predict | card | card | "Think first": Predict or Skip |
 
   The default comes from `meta.level` (intro → New, else Basics) and the viewer's choice is remembered per figure. The switch sits in the panel header and on the start card.
-- **Look**: hover, focus or tap lights the step's `look` entities in the world (tap keeps them lit).
+- **Look**: the step's `look` entities light in the world for the whole step at every level (the timeline adds them to the step's attention), so the world and the chip always point at the same thing; hover, focus or tap adds the hover ring (tap keeps it).
 - **Calm**: while a question is open only the question speaks; `fit()` drops what is left in order so it never scrolls (definitions, about, Earlier, a tighter card); without a question it keeps the current step in view by dropping definitions, the picture line, the entry card's outer lines, then the why.
 - **Narrow screens**: no side panel. The caption tells the step in layers, left-aligned (a meta line "Shuffle · step 2 of 11", the Now line on a chapter's first step, the plain line in `md`, the why, the chips); a 32 px Explain circle opens the panel as a sheet above the dock, headed "Chapter 3 of 5 · Shuffle", with the goal, level, about, entry card, this step's deeper layer and the picture.
 - **Without a lesson file** the panel still works: the plain layer is the caption, there is no goal line or level switch, everything else is simply absent.
