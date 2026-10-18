@@ -88,8 +88,8 @@ export async function shoot(target, o = {}) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const TEACH_SPEED = 8;    // --teach: the playback speed between cards
-const TEACH_WAIT = 3;     // --teach: how much longer than the nominal timeouts a slow machine may take
+const TEACH_SPEED = 16;   // --teach: the playback speed between cards
+const TEACH_WAIT = 4;     // --teach: how much longer than the nominal timeouts a slow machine may take
 
 // Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
 // asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
