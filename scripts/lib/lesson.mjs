@@ -218,6 +218,11 @@ export function formatLesson(L, opts = {}) {
     if (recap.length) { out.push("   RECAP"); recap.forEach((r, j) => out.push(`     ${j + 1}. ${wrap(flat(r), W - 8, "        ")}`)); }
     field("TAKEAWAY", take || "(none)", "   ");
   }
+  // after the last story, the end card names the lessons that follow (lesson.next)
+  if (H?.next?.length) {
+    out.push("", "KEEP GOING  (after the last story)");
+    for (const n of H.next) { out.push(`  ${n.title}  ${n.href}`); field("why", flat(n.why), "    "); }
+  }
   return out.join("\n");
 }
 
