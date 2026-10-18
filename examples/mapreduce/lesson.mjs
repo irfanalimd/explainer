@@ -578,6 +578,15 @@ export const lesson = {
       why: "{n} words shared by {M2} machines: the biggest piece has {big2}.",
       "why@skew": "{n} lines shared by {M2} machines: the biggest piece has {big2}.",
     },
+    "check.new-word": {
+      question: "Add the word {w}, which the text does not have yet. How many totals would the output hold?",
+      why: "The output holds one total per different word. {w} is a new one, so it gets a total of its own: {distinct} becomes {distinct2}.",
+      options: [
+        { feedback: "A total belongs to one word. {w} matches none of the {distinct}, so it can't join one of their totals." },
+        {},
+        { misconception: "m-one", feedback: "That counts every word read. Repeats share one total, so the output holds one per different word: {distinct2}." },
+      ],
+    },
     "check.totals": {
       question: "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the text. How many totals would the output hold?",
       "question@skew": "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the log. How many totals would the output hold?",

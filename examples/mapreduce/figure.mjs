@@ -632,12 +632,23 @@ export function build(s, p, scenario, env = {}) {
     const nums = (answer, ...others) => { const o = [...new Set([answer, ...others])].sort((a, b) => a - b); return { options: o.map(String), answer: o.indexOf(answer) }; };
     const w2 = top[0], text = skewed ? "log" : "text";
     // the hash rule at another number of counters: every copy still meets on one counter (which one, the run computes)
-    const hashCheck = (transfer) => {
-      const R2 = R === 3 ? 4 : 3, rem2 = hash(w2) % R2;
+    // brought back in a later story (spaced), it asks about another word at another number of counters, so it is the
+    // rule that answers it, not the memory of story 1's question
+    const hashCheck = (transfer, spaced = false) => {
+      const next = [...freq.entries()].filter(([w, c]) => w !== w2 && c > 1).sort((a, b) => b[1] - a[1])[0];
+      const [w, n] = spaced && next ? next : top, R2 = spaced ? R + 2 : R === 3 ? 4 : 3, rem2 = hash(w) % R2;
       s.check("check.hash", { chapter: "shuffle", ...(transfer ? { transfer: true } : {}),
-        question: `Suppose a new job with ${R2} counting machines instead of ${R}. Where do the ${plural(top[1], `"${w2}" slip`)} go?`,
+        question: `Suppose a new job with ${R2} counting machines instead of ${R}. Where do the ${plural(n, `"${w}" slip`)} go?`,
         options: [`Spread over the ${R2} counters, to share the work`, "All on one counter, whichever the hash picks", "On whichever counter is least busy"], answer: 1,
-        vars: { R, M, R2, w: K(w2), topN: top[1], rem2, red2: `reduce ${rem2}` } });
+        vars: { R, M, R2, w: K(w), topN: n, rem2, red2: `reduce ${rem2}` } });
+    };
+    // a word the text does not have yet: one more total (story 1's one-more-copy question, turned around)
+    const newWordCheck = () => {
+      const fresh = ["cat", "sun", "map", "ink", "owl"].find((w) => !freq.has(w));
+      const totals = nums(freq.size + 1, freq.size, words.length + 1);
+      if (fresh && totals.options.length > 2) s.check("check.new-word", { chapter: "reduce", ...totals,
+        question: `Add the word "${fresh}", which the ${text} does not have yet. How many totals would the output hold?`,
+        vars: { R, M, w: K(fresh), distinct: freq.size, distinct2: freq.size + 1, n: words.length } });
     };
     // one more copy of a word: its total grows, the number of totals does not
     const totalsCheck = () => {
@@ -653,7 +664,7 @@ export function build(s, p, scenario, env = {}) {
         question: `Suppose map ${other} had finished all its slips, and then its machine died. What happens to its piece?`,
         options: ["Nothing: that piece was already finished", "It is read again, like the crashed piece", "The whole job starts over"], answer: 1,
         vars: { R, M, other: `map ${other}`, count: splits[other].length } });
-      hashCheck(false);   // story 1's idea, brought back
+      hashCheck(false, true);   // story 1's idea, brought back
     } else if (scenario === "straggler" && slow >= 0 && M > 1 && splits[slow].length) {
       // keeping both copies' slips: the words the slow copy wrote would count twice
       const list = splits[slow], w = list[0], kept = freq.get(w) + list.slice(0, slowWrote).filter((x) => x === w).length;
@@ -665,7 +676,7 @@ export function build(s, p, scenario, env = {}) {
         question: "Same failing disk, but the job has only 1 reading machine. What does the master do?",
         options: ["Starts a backup copy on another machine", "Waits for the slow disk to finish", "Skips the slow piece's words"], answer: 1,
         vars: { R, M } });
-      totalsCheck();   // story 1's idea, brought back
+      newWordCheck();   // story 1's idea, brought back
     } else if (skewed && !p.combiner) {
       const hot = load.indexOf(Math.max(...load));
       // adding up repeats first: each reader's slip carries its count, so the total is the same
