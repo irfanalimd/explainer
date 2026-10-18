@@ -5,7 +5,7 @@
 <p align="center">A Claude Code skill. <code>/explainer &lt;concept&gt;</code> writes a small, real simulation of the idea,<br>has a team of agents teach it and test the teaching, and hands you one HTML page.</p>
 
 <p align="center">
-  <a href="https://sites.irfanali.me/p/random/linked-list.html"><b>Live demo</b></a>
+  <a href="https://sites.irfanali.me/p/learning/linked-list.html"><b>Live demo</b></a>
   &nbsp;·&nbsp;
   <a href="#install"><b>Install</b></a>
   &nbsp;·&nbsp;
@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="https://sites.irfanali.me/p/random/mapreduce-cluster.html">
+  <a href="https://sites.irfanali.me/p/learning/mapreduce-cluster.html">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/hero-dark.jpg">
       <img src=".github/assets/hero-light.jpg" width="880" alt="MapReduce in its 'One word is very common' scenario. Three reading machines and three counting machines sit on glass plinths. A slip for the status code 500 glides along a lit trace towards reduce 2, tagged hash(500) % 3 = 2. Reduce 0 already holds eight slips, almost all of them 200. The panel on the right explains that one code fills most of the log, so one machine receives most of the slips; the dock reads 14 words read, 56 B sent between machines, and a busiest-counter load of 3.0×.">
@@ -94,16 +94,16 @@ Also on every page:
 
 ## Gallery
 
-Every image is a frame of an example in [`examples/`](examples). Click one to open it live. The B+ tree isn't online yet; build it with `node scripts/build.mjs examples/btree/figure.mjs`.
+Every image is a frame of an example in [`examples/`](examples). Click one to open it live.
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/mapreduce-cluster.html"><img src=".github/assets/mapreduce.jpg" alt="MapReduce at the start of the shuffle, at the 'New to this' level: three reading machines hold coloured word slips, and 'the' has gone to reduce 0, tagged hash(the) % 2 = 0. The panel's entry card reads 'Now: Send each slip to one of the 2 counting machines.'"></a>
+      <a href="https://sites.irfanali.me/p/learning/mapreduce-cluster.html"><img src=".github/assets/mapreduce.jpg" alt="MapReduce at the start of the shuffle, at the 'New to this' level: three reading machines hold coloured word slips, and 'the' has gone to reduce 0, tagged hash(the) % 2 = 0. The panel's entry card reads 'Now: Send each slip to one of the 2 counting machines.'"></a>
       <p><b>MapReduce</b><br><sub>A team counts the words of a library. Everything works, one machine crashes, one machine is slow, one word is very common.</sub></p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/raft-consensus.html"><img src=".github/assets/raft.jpg" alt="Raft after the leader crashes, in the Re-election chapter: S1, the old leader, is greyed out in term 1. S5 has won term 2, and the panel says S5 hears its new entry is on 3 of 5 servers, a majority, so it commits it and the older y←7 too."></a>
+      <a href="https://sites.irfanali.me/p/learning/raft-consensus.html"><img src=".github/assets/raft.jpg" alt="Raft after the leader crashes, in the Re-election chapter: S1, the old leader, is greyed out in term 1. S5 has won term 2, and the panel says S5 hears its new entry is on 3 of 5 servers, a majority, so it commits it and the older y←7 too."></a>
       <p><b>Raft</b><br><sub>A group keeps one shared notebook. Everything works, the leader crashes, the network splits in two.</sub></p>
     </td>
   </tr>
@@ -112,11 +112,11 @@ Every image is a frame of an example in [`examples/`](examples). Click one to op
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/virtual-memory-page-walk.html"><img src=".github/assets/virtual-memory.jpg" alt="Virtual memory in 'The page isn't in memory': the program's address split into coloured fields, the TLB's sticky notes, the four directory levels with the last entry marked P=0, and a line from the disk. The panel says copying 4 KiB from disk slot 0x712 into a free room takes 60,000 cycles."></a>
+      <a href="https://sites.irfanali.me/p/learning/virtual-memory-page-walk.html"><img src=".github/assets/virtual-memory.jpg" alt="Virtual memory in 'The page isn't in memory': the program's address split into coloured fields, the TLB's sticky notes, the four directory levels with the last entry marked P=0, and a line from the disk. The panel says copying 4 KiB from disk slot 0x712 into a free room takes 60,000 cycles."></a>
       <p><b>Virtual memory</b><br><sub>Apartment numbers and a building directory. A new address, a recent address, a page that isn't in memory, two programs using the same address.</sub></p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/javascript-event-loop.html"><img src=".github/assets/event-loop.jpg" alt="The JavaScript event loop: Web APIs, a task queue, a microtask queue holding 'fetched', the call stack and a console that already shows script, done, then 1, micro, then 2 and timeout. The panel says the fetch promise is ready, so fetched becomes a microtask."></a>
+      <a href="https://sites.irfanali.me/p/learning/javascript-event-loop.html"><img src=".github/assets/event-loop.jpg" alt="The JavaScript event loop: Web APIs, a task queue, a microtask queue holding 'fetched', the call stack and a console that already shows script, done, then 1, micro, then 2 and timeout. The panel says the fetch promise is ready, so fetched becomes a microtask."></a>
       <p><b>Event loop</b><br><sub>One cook with an order rail. Which runs first, code after <code>await</code>, promises that never stop, taking turns with <code>setTimeout</code>.</sub></p>
     </td>
   </tr>
@@ -125,11 +125,11 @@ Every image is a frame of an example in [`examples/`](examples). Click one to op
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/consistent-hashing-ring.html"><img src=".github/assets/consistent-hashing.jpg" alt="Consistent hashing as a server joins: keys around a hash ring, coloured by the server that owns them, beside the remainder way's five servers. The panel says 3 keys stream to db05 from db04 and the other 13 stay where they are; the dock compares 0 keys moved on the ring so far with 14 moved the remainder way."></a>
+      <a href="https://sites.irfanali.me/p/learning/consistent-hashing-ring.html"><img src=".github/assets/consistent-hashing.jpg" alt="Consistent hashing as a server joins: keys around a hash ring, coloured by the server that owns them, beside the remainder way's five servers. The panel says 3 keys stream to db05 from db04 and the other 13 stay where they are; the dock compares 0 keys moved on the ring so far with 14 moved the remainder way."></a>
       <p><b>Consistent hashing</b><br><sub>Seats around a round table. Add a server (the remainder way moves 14 of 16 keys; the ring moves 3), a server leaves, many seats per server.</sub></p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/quicksort-partitioning.html"><img src=".github/assets/quicksort.jpg" alt="Quicksort splitting around the pivot 87, which waits in orange at the right end of the tray. 29, 79 and 65 are already on the left side; the panel says 99 is bigger than 87, so it stays where it is."></a>
+      <a href="https://sites.irfanali.me/p/learning/quicksort-partitioning.html"><img src=".github/assets/quicksort.jpg" alt="Quicksort splitting around the pivot 87, which waits in orange at the right end of the tray. 29, 79 and 65 are already on the left side; the panel says 99 is bigger than 87, so it stays where it is."></a>
       <p><b>Quicksort</b><br><sub>A line of people sorted around one chosen person. Shuffled numbers, already sorted input, lots of repeated numbers.</sub></p>
     </td>
   </tr>
@@ -138,11 +138,11 @@ Every image is a frame of an example in [`examples/`](examples). Click one to op
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="examples/btree"><img src=".github/assets/btree.jpg" alt="A B+ tree doing a range scan for ids 33 to 75: the root page p3 above four leaf pages linked left to right. The search has walked from p5 (51, 61, 75) on to p2, where 80 is past 75, so it stops."></a>
+      <a href="https://sites.irfanali.me/p/learning/b-plus-tree.html"><img src=".github/assets/btree.jpg" alt="A B+ tree doing a range scan for ids 33 to 75: the root page p3 above four leaf pages linked left to right. The search has walked from p5 (51, 61, 75) on to p2, where 80 is past 75, so it stops."></a>
       <p><b>B+ tree</b><br><sub>A library's signposts. First without an index, then ids in any order, ids that only grow, and the top page filling up.</sub></p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://sites.irfanali.me/p/random/linked-list.html"><img src=".github/assets/linked-list.jpg" alt="The linked list in 'Arrows in the wrong order': nodes at real memory addresses. The new node 42 at 0x7f3a_5a30 now holds its own address in its next field, tagged 'points at itself', with a looping arrow. The panel explains that 12's next already held 42's address, so the copy took what was there."></a>
+      <a href="https://sites.irfanali.me/p/learning/linked-list.html"><img src=".github/assets/linked-list.jpg" alt="The linked list in 'Arrows in the wrong order': nodes at real memory addresses. The new node 42 at 0x7f3a_5a30 now holds its own address in its next field, tagged 'points at itself', with a looping arrow. The panel explains that 12's next already held 42's address, so the copy took what was there."></a>
       <p><b>Linked list</b><br><sub>A scavenger hunt in memory. Insert in the middle, find the 5th item, arrows in the wrong order. The model for beginner lessons.</sub></p>
     </td>
   </tr>
