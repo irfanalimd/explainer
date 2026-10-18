@@ -253,6 +253,18 @@ function mixHex(a, b, t) {
   return "#" + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
 }
 
+// a record prints its key (and value) as large as its face allows, from S.label up to S.fill: Geist Mono advances
+// 0.6 em a character, and the key keeps a gap of 2 characters from its value. A key that is too long even at
+// S.label keeps that size (the audit reports it).
+const MONO_ADVANCE = 0.6, KEY_GAP = 2;
+function recordSize(S, w, m, key, val, valOut) {
+  const k = key == null ? 0 : String(key).length;
+  const v = val == null || val === "" ? 0 : Math.max(String(val).length, valOut == null ? 0 : String(valOut).length);
+  const chars = k + (v ? v + KEY_GAP : 0);
+  if (!chars || !(S.fill > S.label)) return S.label;
+  return clamp((w - 2 * m) / (MONO_ADVANCE * chars), S.label, S.fill);
+}
+
 function tileLike(p, dl, ctx) {
   const { theme } = ctx;
   const P = PALETTE[theme];
@@ -272,9 +284,10 @@ function tileLike(p, dl, ctx) {
     if (typeof valOut === "string" && valOut.includes("·")) valOut = valOut.split("·")[1].trim();
     const m = Math.max(5.5, S.r + 0.5);
     const K = WORLD_TYPE.key, Vt = WORLD_TYPE.value;
-    if (key != null && key !== "") labels.push({ text: String(key), font: K.font, weight: K.weight, size, color: tc.ink, align: "left", dx: -w / 2 + m, dy: 0 });
-    if (val != null && val !== "") labels.push(...rollingLabels({ font: Vt.font, weight: Vt.weight, size, color: tc.ink, opacity: Vt.opacity, align: "right", dx: w / 2 - m, dy: 0 },
-      String(val), valOut == null ? null : String(valOut), p.roll, size));
+    const fit = recordSize(S, w, m, key, val, valOut);
+    if (key != null && key !== "") labels.push({ text: String(key), font: K.font, weight: K.weight, size: fit, color: tc.ink, align: "left", dx: -w / 2 + m, dy: 0 });
+    if (val != null && val !== "") labels.push(...rollingLabels({ font: Vt.font, weight: Vt.weight, size: fit, color: tc.ink, opacity: Vt.opacity, align: "right", dx: w / 2 - m, dy: 0 },
+      String(val), valOut == null ? null : String(valOut), p.roll, fit));
   } else {
     const hasSub = p.sub != null && p.sub !== "" && S.sub;
     const dy = hasSub ? -d * 0.1 : 0;

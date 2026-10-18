@@ -306,6 +306,9 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     // 3. instantiate
     const stepTags = [];
     for (const plan of plans) instantiate(plan, i, { t0, t1, touch, touchPoint, stepTags });
+    // the lesson's look ids light for the whole step, as the Look chip lights them on hover: the world points where
+    // the words do, at every reader level (attention only: they are not touched, so the camera's focus is unchanged)
+    for (const id of st.layers?.look ?? []) { const idx = live.get(id); if (idx !== undefined) incs[idx].lits.push([t0, t1]); }
 
     // phases, events, counters
     const phaseName = st.phase !== undefined ? st.phase : prevPhase;

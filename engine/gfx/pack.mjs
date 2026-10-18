@@ -342,7 +342,7 @@ export class Packer {
         x: z.x, y: z.y, z: 0, w: z.w, d: z.d, h: G.h, r, bevel: G.bevel, material: "glass", color: PRISM2.glass[colors.name === "light" ? "light" : "dark"].tint,
         shadow: false, _glass: true,
         label: { text: worldCase(z.title, T), font: T.font, weight: T.weight, size: T.size, tracking: T.tracking, align: "left",
-          color: colors.P.ink, dx: -z.w / 2 + Math.max(12, r * 0.75), dy: -z.d / 2 + Math.max(9, T.size * 0.95) },
+          color: colors.P.ink, dx: -z.w / 2 + Math.max(12, r * 0.75), dy: -z.d / 2 + Math.max(9, T.size * 0.78) },
       };
       out.push({ zone: z, slab, hw: z.w / 2, hd: z.d / 2, r, h: G.h, ramp: G.ramp });
     }
@@ -596,10 +596,11 @@ export class Packer {
     // the zone's name: a calm printed label in the HUD's family, sentence case, set in from the corner
     if (z.title) {
       const T = WORLD_TYPE.zone;
-      const tc = dashed ? border : srgba(P.inkMuted);
+      // in ink, a little quieter than a housing's title, so the stage reads as a name and not as a caption
+      const tc = dashed ? border : srgba(P.ink);
       this.text({
-        x: z.x - z.w / 2 + Math.max(12, r * 0.75), y: z.y - z.d / 2 + Math.max(9, T.size * 0.95), text: worldCase(z.title, T), size: T.size,
-        font: T.font, weight: T.weight, tracking: T.tracking, align: "left", color: [tc[0], tc[1], tc[2], Math.min(1, dashed ? tc[3] + 0.35 : 0.82)],
+        x: z.x - z.w / 2 + Math.max(12, r * 0.75), y: z.y - z.d / 2 + Math.max(9, T.size * 0.78), text: worldCase(z.title, T), size: T.size,
+        font: T.font, weight: T.weight, tracking: T.tracking, align: "left", color: [tc[0], tc[1], tc[2], Math.min(1, dashed ? tc[3] + 0.35 : 0.66)],
         opacity: op,
       }, colors, atlas, null);
     }

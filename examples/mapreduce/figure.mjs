@@ -206,11 +206,13 @@ export function build(s, p, scenario, env = {}) {
   flow("job", { gap: portrait ? 46 : 44 });   // landscape: narrow enough to fit beside the explain panel at 1440 px, at a readable size
   s.housing("input", { in: "job", variant: "store", title: "input", sub: `${words.length} ${skewed ? "requests" : "words"}`, tray: { cols: 1, of: "page" }, state: { words: words.length, text: words.join(" ") } });
   stage("map", { in: "job", title: "map", gap: 18, align: portrait ? "start" : "center" });
-  for (let k = 0; k < M; k++) s.housing(`m${k}`, { in: "map", title: `map ${k}`, sub: ip(10, k), tray: { cols, of: "record" }, led: "idle", state: { host: ip(10, k), task: null } });
+  // each machine's header says what it holds right now, from the run (its address stays in the inspector); in the
+  // skew story each counter also carries a meter: its share of all the slips sent
+  for (let k = 0; k < M; k++) s.housing(`m${k}`, { in: "map", title: `map ${k}`, sub: "waiting", tray: { cols, of: "record" }, led: "idle", state: { host: ip(10, k), task: null } });
   s.spacer("shuffle", { in: "job" });
   stage("reduce", { in: "job", title: "reduce", gap: 18, align: portrait ? "start" : "center" });
-  for (let r = 0; r < R; r++) s.housing(`r${r}`, { in: "reduce", title: `reduce ${r}`, sub: ip(20, r), tray: { cols, of: "record" }, led: "idle", state: { host: ip(20, r), partition: r } });
-  s.housing("output", { in: "job", variant: "store", title: "output", sub: "part-r-0000*", tray: { cols: 2, of: "record" } });
+  for (let r = 0; r < R; r++) s.housing(`r${r}`, { in: "reduce", title: `reduce ${r}`, sub: "waiting", tray: { cols, of: "record" }, led: "idle", ...(skewed ? { meter: 0 } : {}), state: { host: ip(20, r), partition: r } });
+  s.housing("output", { in: "job", variant: "store", title: "output", sub: "empty", tray: { cols: 2, of: "record" } });
   // the job flows one way, input to mappers and reducers to output: those traces end in arrows
   for (let k = 0; k < M; k++) s.trace(`in-m${k}`, "input", `m${k}`, { ...sides, arrow: true });
   s.bus("shuffle-bus", { from: Array.from({ length: M }, (_, k) => `m${k}`), to: Array.from({ length: R }, (_, r) => `r${r}`), via: "shuffle" });
@@ -247,7 +249,7 @@ export function build(s, p, scenario, env = {}) {
   const tray = Array.from({ length: M }, () => []);       // live record ids per mapper, in tray order
   for (let k = 0; k < M; k++) {
     s.spawn(`m${k}.split${k}`, { from: `split${k}`, in: `m${k}`, of: "page", text: `split ${k}`, sub: `${splits[k].length} ${unit}` });
-    s.set(`m${k}`, { led: "busy", state: { host: ip(10, k), task: `map ${k}` } });
+    s.set(`m${k}`, { led: "busy", sub: "reading", state: { host: ip(10, k), task: `map ${k}` } });
   }
   step(M > 1 ? "map.handout" : "map.handout-one", M > 1 ? `The master hands each machine its piece; all ${M} pieces travel at once.` : "The master hands the machine its piece.");
 
@@ -259,12 +261,13 @@ export function build(s, p, scenario, env = {}) {
       s.spawn(id, { from: src, in: `m${k}`, of: "record", text: rec(w, 1), key: w, state: { word: w, count: 1 } });
       s.count("records");
       tray[k].push(id);
+      if (k !== slow) s.set(`m${k}`, { sub: plural(tray[k].length, "slip") });   // a straggler's header says why it lags
     }
   };
   const finish = (k, src) => {
     s.beat();
     s.remove(src, { style: "sink" });
-    s.set(`m${k}`, { led: "ok", state: { host: ip(10, k), task: null } });
+    s.set(`m${k}`, { led: "ok", sub: plural(tray[k].length, "slip"), state: { host: ip(10, k), task: null } });
     s.count("tasks");
   };
   const combine = (k) => {
@@ -283,6 +286,7 @@ export function build(s, p, scenario, env = {}) {
       s.set(keep, { text: rec(w, total), state: { word: w, count: total } });
       tray[k] = tray[k].filter((x) => !rest.includes(x));
     }
+    s.set(`m${k}`, { sub: plural(tray[k].length, "slip") });
     s.line(5, 6);
     const before = dup.reduce((a, [, ids]) => a + ids.length, 0);
     step("map.combine", `{ref:m${k}|map ${k}} adds up its repeats first: ${dup.map(([w, ids]) => `{key:${w}} × ${ids.length}`).join(", ")} leave as one slip each.`,
@@ -314,7 +318,7 @@ export function build(s, p, scenario, env = {}) {
       emit(k, k, list, `m${k}.split${k}`, 0, upto);
       s.line(2, 3);
       step("crash.start", `{ref:m${k}|map ${k}} starts on its piece, writing a slip for each ${thing}.`, { map: mapRef(k), mapId: `m${k}` });
-      s.set(`m${k}`, { led: "fail", dim: true, state: { host: ip(10, k), task: `map ${k}`, status: "down" } });
+      s.set(`m${k}`, { led: "fail", dim: true, sub: "down", state: { host: ip(10, k), task: `map ${k}`, status: "down" } });
       s.tag(`m${k}`, "stopped answering", { tone: "fail" });
       discard(k, `m${k}.split${k}`, true);
       step("crash.down", `{ref:m${k}|map ${k}} {tone:fail|crashes} after ${upto} of ${list.length} ${unit}; ${upto === 1 ? "its slip is" : `its ${upto} slips are`} lost with it.`,
@@ -343,7 +347,7 @@ export function build(s, p, scenario, env = {}) {
       split: `split ${victim}`, splitId: `split${victim}`, lost, total: splits[victim].length };
     if (j === victim) {
       // nobody else can take the task: the master restarts the worker; its lost output stays dead in the tray
-      s.set(`m${j}`, { led: "ok", dim: false, state: { host: ip(10, j), task: null, status: "restarted" } });
+      s.set(`m${j}`, { led: "ok", dim: false, sub: "restarted", state: { host: ip(10, j), task: null, status: "restarted" } });
       step("crash.restart", `No other machine is free, so the master restarts {ref:m${j}|map ${j}}.`, cv);
     }
     s.ask(`map ${victim} crashed after ${lost} of its ${splits[victim].length} ${unit}. What happens to its piece?`,
@@ -395,7 +399,7 @@ export function build(s, p, scenario, env = {}) {
       s.count("tasks");
       s.beat();
       discard(slow, `m${slow}.split${slow}`);
-      s.set(`m${slow}`, { led: "idle", sub: ip(10, slow) });
+      s.set(`m${slow}`, { led: "idle", sub: list.length - straggled ? "stopped" : "unused" });
       // a short piece: the slow copy finishes too, so nothing is stopped; the master still keeps one copy's slips
       const short = list.length - straggled;
       s.tag(`m${slow}`, short ? "stopped" : "copy unused", { tone: "warn" });
@@ -413,6 +417,8 @@ export function build(s, p, scenario, env = {}) {
     : "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number; its remainder after dividing by the number of counters picks the machine." });
   const inbox = Array.from({ length: R }, () => []);
   const load = new Array(R).fill(0);
+  // the counters open for slips: each header counts from zero, so one that receives none says so as the others fill
+  for (let r = 0; r < R; r++) s.set(`r${r}`, { sub: plural(0, "slip") });
   const sentTo = new Map();   // word -> [reducer, from mapper] of its first copy
   let bytes = 0, moved = 0, noted = false, first = true;
   const slips = tray.flat().map((id) => s.get(id).state.word);
@@ -421,6 +427,13 @@ export function build(s, p, scenario, env = {}) {
   // story asks it in the world: the reader picks the counter, and a wrong pick plays out for real (s.choose)
   const asks = scenario === "happy" || skewed;
   const queue = tray.flatMap((ids, k) => ids.map((id) => ({ k, id })));
+  const left = tray.map((ids) => ids.length);                 // slips each reading machine still has to send
+  // a slip leaves its reading machine and lands on its counter: both headers count it
+  const arrive = (k, r) => {
+    left[k]--;
+    s.set(`m${k}`, { sub: left[k] ? plural(left[k], "slip") : "all sent" });
+    s.set(`r${r}`, { sub: plural(load[r], "slip"), ...(skewed ? { meter: load[r] / Math.max(1, queue.length) } : {}) });
+  };
   for (let qi = 0; qi < queue.length; qi++) {
     const { k, id } = queue[qi];
     const { word, count } = s.get(id).state;
@@ -451,6 +464,7 @@ export function build(s, p, scenario, env = {}) {
     s.tag(id, `hash(${word}) % ${R} = ${r}`);
     const b = word.length + 4;
     bytes += b; moved++; load[r]++;
+    arrive(k, r);
     s.count("bytes", b);
     s.gauge("skew", Math.round((Math.max(...load) / (moved / R)) * 100) / 100);
     s.line(8, 9);
@@ -476,9 +490,16 @@ export function build(s, p, scenario, env = {}) {
     s.move(id, `r${to}`, { via: "shuffle-bus" });
     s.tag(id, `sent to reduce ${to}`);
     s.count("bytes", word.length + 4);
+    load[to]++;
+    arrive(k, to);
     s.line(8, 9);
     step("choose.sent", `{key:${word}} goes to {ref:r${to}|reduce ${to}}, the counter you picked.`, sh, { keep: true });
-    for (const x of rest) { const w = s.get(x).state.word; s.move(x, `r${hash(w) % R}`, { via: "shuffle-bus" }); s.count("bytes", w.length + 4); }
+    for (const x of rest) {
+      const w = s.get(x).state.word, q = hash(w) % R;
+      s.move(x, `r${q}`, { via: "shuffle-bus" }); s.count("bytes", w.length + 4);
+      load[q]++;
+      arrive(queue.find((e) => e.id === x).k, q);
+    }
     if (rest.length) step("choose.rest", `The other ${plural(rest.length, "slip")} go where their hash sends them.`, { ...sh, rest: rest.length });
     // each counter adds up its own copies of the word: two totals for one word
     const totals = [r, to].map((q) => {
@@ -505,12 +526,12 @@ export function build(s, p, scenario, env = {}) {
   for (let r = 0; r < R; r++) {
     const ids = inbox[r];
     if (!ids.length) {
-      s.set(`r${r}`, { led: "ok" });
+      s.set(`r${r}`, { led: "ok", sub: "no slips" });
       s.count("tasks");
       step("reduce.empty", `{ref:r${r}|reduce ${r}} got no slips and finishes empty.`, { red: redRef(r), redId: `r${r}` });
       continue;
     }
-    s.set(`r${r}`, { led: "busy" });
+    s.set(`r${r}`, { led: "busy", sub: "sorting" });
     // selection sort by swaps: each beat two records trade places, nothing else moves
     const order = ids.slice();
     const word = (id) => s.get(id).state.word;
@@ -547,7 +568,7 @@ export function build(s, p, scenario, env = {}) {
       s.set(keep, { text: rec(run.word, run.total), state: { word: run.word, count: run.total } });
     }
     if (!merged.length) s.lit(`r${r}`);
-    s.set(`r${r}`, { led: "ok" });
+    s.set(`r${r}`, { led: "ok", sub: plural(runs.length, "total") });
     s.count("tasks");
     s.line(11, 12);
     results[r] = runs.map((x) => x.ids[0]);
@@ -561,9 +582,11 @@ export function build(s, p, scenario, env = {}) {
 
   // ---- Output ----
   s.phase("Output", { id: "output", about: `Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different ${skewed ? "status code" : "word"}.` });
+  let posted = 0;
   for (let r = 0; r < R; r++) {
     if (!results[r].length) continue;
-    results[r].forEach((id, j) => { if (j) s.beat(); s.move(id, "output", { via: `r${r}-out` }); });
+    results[r].forEach((id, j) => { if (j) s.beat(); s.move(id, "output", { via: `r${r}-out` }); s.set("output", { sub: plural(++posted, "total") }); });
+    s.set(`r${r}`, { sub: `got ${plural(inbox[r].length, "slip")}` });   // its load stays on record
     step("output.write", `{ref:r${r}|reduce ${r}} writes its ${plural(results[r].length, "total")} to the output.`, { red: redRef(r), redId: `r${r}`, totals: results[r].length, part: `part-r-0000${r}` });
   }
   const distinct = new Set(words).size;
