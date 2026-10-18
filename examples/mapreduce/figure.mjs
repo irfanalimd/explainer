@@ -60,7 +60,8 @@ export const scenarios = [
   { id: "happy", label: "Everything works", whatIf: "nothing goes wrong",
     description: "Every machine stays healthy: the whole job, from cutting up the text to the final counts." },
   { id: "crash", label: "One machine crashes", params: { crash: 1 }, whatIf: "a machine crashes halfway through",
-    description: "One reading machine crashes halfway through its piece, and the master has that piece read again.",
+    // the description is shown before the prediction, so it sets up the situation and keeps the answer back
+    description: "One reading machine crashes halfway through its piece, and the slips it wrote are lost with it.",
     takeaway: "A machine died mid-task and the answer did not change: its piece was still in the shared input, so the master had it read again.",
     recap: [
       "A reading machine crashed halfway, and its slips were lost with it.",
@@ -68,7 +69,7 @@ export const scenarios = [
       "Reading the same piece again gives the same slips: the counts are still exact.",
     ] },
   { id: "straggler", label: "One machine is slow", params: { straggler: 1 }, whatIf: "one machine is much slower than the rest",
-    description: "One reading machine has a failing disk, so the master races a backup copy of its piece on a free machine.",
+    description: "One reading machine has a failing disk and falls far behind, while the others finish.",
     takeaway: "One slow disk could have held up the whole job. A backup copy of its piece finished first, and the answer is the same.",
     recap: [
       "One reading machine had a failing disk and fell far behind.",
@@ -82,7 +83,7 @@ export const scenarios = [
     recap: [
       "Almost every line of the log was the code 200.",
       "The hash sent every 200 to the same counting machine.",
-      "So one machine did most of the adding while the others sat idle.",
+      "So one machine did most of the adding while the others had little to do.",
     ] },
 ];
 
@@ -419,7 +420,7 @@ export function build(s, p, scenario, env = {}) {
   // ---- Shuffle ----
   s.phase("Shuffle", { id: "shuffle", about: skewed
     ? "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. One code fills most of the log, so one machine receives most of the slips."
-    : "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number; its remainder after dividing by the number of counters picks the machine." });
+    : "In {term:shuffle|the shuffle}, each slip travels to one counting machine. A {term:hash} turns the word into a number; its remainder after dividing by the number of counters picks the machine." });
   const inbox = Array.from({ length: R }, () => []);
   const load = new Array(R).fill(0);
   const sentTo = new Map();   // word -> [reducer, from mapper] of its first copy

@@ -76,7 +76,7 @@ export const lesson = {
     map: {
       about: "Each helper tallies their own shelf: each reading machine, a {term:mapper}, writes a slip like `(word, 1)`, meaning “this word, seen once”, for every word. Nobody waits for anybody.",
       "about@skew": "Each reading machine, a {term:mapper}, writes a slip like `(code, 1)` for every line of its piece. Nobody waits for anybody.",
-      "about@crash": "Each reading machine, a {term:mapper}, writes slips like `(word, 1)` to its own disk until the counters fetch them. If it crashes first, they die with it, so its piece is read again, even if it had finished.",
+      "about@crash": "Each reading machine, a {term:mapper}, writes slips like `(word, 1)` to its own disk, where the counters fetch them. If its machine dies, they die with it, so its piece is read again, even if it had finished.",
       "about@straggler": "Each reading machine, a {term:mapper}, writes a slip for every word. One has a failing disk, a {term:straggler}, and the job waits for it unless the master runs a backup copy of its piece.",
       enter: { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, one per word.", done: "Every word of the text is a `(word, 1)` slip on some machine." },
       "enter@skew": { sofar: "The log is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, one per line.", done: "Every line of the log is a `(code, 1)` slip on some machine." },
@@ -84,10 +84,10 @@ export const lesson = {
       "enter@straggler": { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, but one has a failing disk.", done: "Every word has exactly one slip that counts, even the slow piece's." },
     },
     shuffle: {
-      about: "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters: the remainder, from 0 up to one less, names the counter.",
+      about: "In {term:shuffle|the shuffle}, each slip travels to one counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters: the remainder (with 2 counters, 0 or 1) names the counter.",
       "about@skew": "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. {top} fills {topN} of the {n} lines, so one machine receives every one of those slips.",
-      enter: { sofar: "Every word is a `(word, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one word sit on the same counting machine." },
-      "enter@skew": { sofar: "Every line is a `(code, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one code sit on the same counting machine." },
+      enter: { sofar: "Every word is a `(word, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "Every slip sits on a counting machine, and you can say why it went there." },
+      "enter@skew": { sofar: "Every line is a `(code, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "Every slip sits on a counting machine, and you can say why it went there." },
     },
     reduce: {
       about: "Each counting machine, a {term:reducer}, sorts its slips so equal words sit together, then adds up each group into one total.",
@@ -131,7 +131,7 @@ export const lesson = {
       why: "The pieces are {pieces}. Each can be read without the others, so all {M} machines start at once.",
       look: ["{splitIds}"], picture: "split",
       deeper: {
-        how: "Each record (here, a word or a line) is read by exactly one machine. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes and has each reader finish the line that crosses its edge. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
+        how: "Each record (here, a word or a line) is read by exactly one machine. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes: each reader skips the part line at its start (unless it starts at byte 0) and finishes the line that crosses its end, so every line is read once. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
         source: PAPER,
       },
     },
@@ -157,7 +157,7 @@ export const lesson = {
         "why@skew": "Map labels each line with a 1, even repeats: every {slip} travels alone unless its reader adds them up first.",
         picture: "slip",
         deeper: {
-          how: "A real mapper buffers its slips, then writes them to its own local disk, divided into one file per counting machine ({R} here). It tells the master where they are (§3.1).",
+          how: "A real mapper buffers its slips, then writes them to its own local disk, divided into R regions, one per reduce task ({R} here, one per counting machine; Hadoop keeps them as parts of one indexed file). It tells the master where they are (§3.1).",
           code: "`emit(word, 1)` (lines 1–3)",
           source: PAPER,
         },
@@ -201,7 +201,7 @@ export const lesson = {
       deeper: {
         how: "The master pings every worker. One that stops answering is marked failed, and its tasks are handed out again. Counters that haven't yet fetched its files are told to fetch from the re-run instead (§3.3).",
         edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3).",
-        real: "The master itself has no such cover: in the paper, if the master dies the whole job is aborted and the client retries it (§3.3).",
+        real: "The master itself has no such cover: in the paper, if the master dies the job is aborted, and the client can notice and retry it if it wants (§3.3).",
         source: PAPER,
       },
     },
@@ -213,7 +213,7 @@ export const lesson = {
     "crash.rerun": {
       key: true,
       plain: "{helper} is free, so the master hands it {split}: the text is still in the input.",
-      why: "The input is stored apart from the machines that read it, so a crash loses work, never text.",
+      why: "The input is kept in several copies on other machines, so a crash loses work, not text.",
       look: ["{splitId}", "{helperId}"],
       deeper: {
         real: "Real input lives in GFS, which keeps several copies of every 64 MB block (usually 3) on different machines, so a surviving copy is almost always there to read (§3.4).",
@@ -273,7 +273,7 @@ export const lesson = {
       why: "If both copies counted, every word of {split} would be counted twice, so the slow copy's slips are thrown away.",
       look: ["{mapId}"],
       deeper: {
-        edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one at the end of the map phase, like Hadoop's per-phase speculative execution (§3.6).",
+        edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one once the other map tasks are done. Hadoop starts backups for map and reduce tasks separately, for any attempt it estimates will finish late (§3.6).",
         source: PAPER,
       },
     },
@@ -286,7 +286,7 @@ export const lesson = {
       "why@skew": "Taking turns would scatter one code's slips over several counters, and counters never compare notes, so none would hold the full count.",
       look: ["{slipId}", "{redId}"], picture: "hash",
       deeper: {
-        how: "Each mapper has already divided its slips into {R} files, one per counter, and each counter fetches its file from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
+        how: "Each mapper has already divided its slips into {R} regions, one per reduce task, and each counter fetches its region from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
         cost: "In this model {shuffleBytes} bytes cross the network: each slip's word plus a 4-byte count (real formats add length headers, and a reader on the counter's own machine sends nothing). In a cluster, network bandwidth is the scarce resource (§3.4).",
         edge: "Python's own hash() of a string changes from process to process (hash randomization) unless PYTHONHASHSEED is fixed, and can differ between Python versions, so two machines could disagree. Real jobs use a specified hash; this run uses FNV-1a.",
         real: "`hash(key) mod R` is only the paper's default partitioning function. A job can supply its own: `hash(Hostname(urlkey)) mod R` puts every page of one website in the same output file (§4.1). Within one counter, keys are handed to reduce in increasing order, which is why each output file comes out sorted (§4.2).",
@@ -308,7 +308,7 @@ export const lesson = {
         "why@skew": "One counter takes many different codes; it keeps each code's count apart.",
       },
       plain: "{w} from {from} goes to {red} because {eq}.",
-      "plain@skew": "{w} goes to {red} ({eq}); {red} now holds {load} of the {moved} sent.",
+      "plain@skew": "{w} goes to {red} ({eq}); {red} holds {load} of the {moved} slips so far.",
       look: ["{slipId}", "{redId}"],
     },
 
@@ -337,7 +337,7 @@ export const lesson = {
         "why@skew": "Sorted, each code's slips sit together, so one pass adds them up, even when they don't fit in memory.",
         picture: "reducer",
         deeper: {
-          how: "A dictionary works only while every slip fits in memory. A real reducer sorts by key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here each beat swaps two slips.",
+          how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Spark adds up in a hash table that spills to disk instead. Here each beat swaps two slips.",
           code: "`reduce(word, counts)` (lines 11–12)",
           source: PAPER,
         },
@@ -351,7 +351,7 @@ export const lesson = {
       look: ["{redId}"],
     },
     "reduce.empty": {
-      plain: "{red} got no slips and finishes empty.",
+      plain: "{red} got no slips, so its output file stays empty.",
       why: "No word in this text hashes to it.",
       "why@skew": "No code in this log hashes to it.",
       look: ["{redId}"],
@@ -384,7 +384,7 @@ export const lesson = {
     // ---- Output ----
     "output.write": {
       first: {
-        why: "The output is a folder with one file per counter; this one is {part}, so counters never share a file.",
+        why: "The output is a folder with one file per counting job; this one is {part}, so counters never share a file.",
         picture: "output",
         deeper: {
           how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3).",
@@ -461,12 +461,13 @@ export const lesson = {
     // ---- a very common word ----
     "skew.done": {
       key: true,
-      plain: "Done. {hot} got {load} of {moved} slips, {share}× a fair share ({moved} ÷ {count:R|counter}).",
+      plain: "Done. {hot} got {load} of {moved} slips, {share}× an even share ({moved} ÷ {R}).",
       why: "{top} fills {topN} of the {n} lines, and every raw {top} slip must meet on one counter; other codes can hash there too.",
       look: ["{hotId}"],
       deeper: {
         real: "Real data is like this: word frequencies follow Zipf's law, so a few keys, like “the”, carry much of the data (§4.3).",
-        edge: "With few different keys, the hash alone can lump several on one counter and leave another idle, so part of the overload is chance, not frequency. A hot key's work can still move: adding up repeats on each reader first (a combiner) does most of its adding there, and “salting” splits it over several counters by adding a random suffix, then sums the parts in a second pass.",
+        edge: "With few different keys, the hash alone can lump several on one counter and leave another idle, so part of the overload is chance, not frequency. A hot key's work can still move: adding up repeats on each reader first (a combiner) does most of its adding there, and “salting” splits it over several counters by adding a suffix to the key, then sums the parts in a second pass. Like map, the suffix must be deterministic (from the line's position, not a random draw), or a re-run task could send one line to two counters.",
+        real: "The job ends when its last counter ends, so the busy counter sets the pace, like the slow disk in “One machine is slow”. A backup copy cannot help here: it would get the same {load} slips (§3.6).",
         source: PAPER,
       },
     },
@@ -487,8 +488,8 @@ export const lesson = {
       why: "Each slip would carry its code's count instead of a 1, so the busy counter's load falls and counts stay exact.",
       look: ["{hotId}"],
       deeper: {
-        how: "Turn on “Add up repeats first” to watch each reader do it. The paper suggests a combiner where reduce is commutative and associative, as a sum is: order and grouping don't change the result. An average can't be combined naively: an average of averages is wrong unless each slip carries its count too (§4.3).",
-        edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. Then the remedy is “salting”: add a random suffix to the hot key so its slips spread over several counters, and add up the parts in a second job.",
+        how: "Turn on “Add up repeats first” to watch each reader do it. The paper suggests a combiner where reduce is commutative and associative, as a sum is: order and grouping don't change the result (§4.3). Its output must be the same kind of (word, count) slip that reduce takes. An average, say, must travel as (sum, count) pairs: an average of averages is wrong.",
+        edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. Then the remedy is “salting”: add a suffix to the hot key so its slips spread over several counters, and add up the parts in a second job; the suffix must be deterministic, so a re-run task sends each line where the first run did.",
         real: "Spark's reduceByKey adds up on each reader first, like a combiner; groupByKey ships every value, and Spark's guide warns to prefer reduceByKey or aggregateByKey for sums and averages.",
         source: `${PAPER}; T. White, Hadoop: The Definitive Guide, 4th ed., O'Reilly 2015, ch. 2, “Combiner Functions”; Apache Spark, RDD Programming Guide, https://spark.apache.org/docs/latest/rdd-programming-guide.html`,
       },
