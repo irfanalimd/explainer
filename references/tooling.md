@@ -333,7 +333,7 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   any playhead time, so playing, scrubbing, stepping and capture agree. Per chapter: **establish** (the whole world
   at the chapter's first step, from the chapter's own yaw, alternating sides, held while the entry card reads),
   **push** (the chapter's stage: the union of its steps' focus and `look` boxes), **detail** (a `key` step's `look`
-  ids, close), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
+  ids, close, from where they start to where they land, so a move's source and target share the frame), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
   last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
   box, craning up as it widens). Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
   `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).

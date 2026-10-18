@@ -5,7 +5,7 @@
 // The vocabulary, per chapter:
 //   establish  the chapter opens on the whole world, from the chapter's own angle, and holds while the entry reads
 //   push       the chapter's stage: everything its steps touch, framed to fill the free area
-//   detail     a key step's look ids (the lesson's strongest signal), close enough to read the tiles
+//   detail     a key step's look ids (the lesson's strongest signal), where they start and where they land, close
 //   pull       the chapter's last step pulls back to the whole world (phones: to the stage), its result in view at the recap
 //   payoff     the run's last step (before any scale shot) frames the answer close and large
 //   scale      s.scale: a tracking shot that follows the reveal box from the answer out to the whole field
