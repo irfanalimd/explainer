@@ -584,7 +584,7 @@ export function build(s, p, scenario, env = {}) {
   for (let r = 0; r < R; r++) {
     if (!results[r].length) continue;
     results[r].forEach((id, j) => { if (j) s.beat(); s.move(id, "output", { via: `r${r}-out` }); s.set("output", { sub: plural(++posted, "total") }); });
-    s.set(`r${r}`, { sub: "posted" });
+    s.set(`r${r}`, { sub: `got ${plural(inbox[r].length, "slip")}` });   // its load stays on record
     step("output.write", `{ref:r${r}|reduce ${r}} writes its ${plural(results[r].length, "total")} to the output.`, { red: redRef(r), redId: `r${r}`, totals: results[r].length, part: `part-r-0000${r}` });
   }
   const distinct = new Set(words).size;
