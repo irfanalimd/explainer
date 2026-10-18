@@ -680,8 +680,9 @@ export function report(r) {
   }
   const width = Math.min(34, Math.max(12, ...r.runs.map((x) => x.label.length)));
   const shown = new Set();     // an identical finding in a later run is counted, not repeated
-  // nor is one that differs only in its numbers (the same mistake at other knob values: "steps 3, 4" vs "steps 3, 4, 5")
-  const shape = (x) => `${x.kind}|${x.message.replace(/\d+(\.\d+)?/g, "#").replace(/"[^"]*#[^"]*"/g, "#").replace(/#(, #)+(, …)?/g, "#")}`;
+  // nor is one that differs only in its numbers (the same mistake at other knob values: "steps 3, 4" vs "step 3")
+  const shape = (x) => `${x.kind}|${x.message.replace(/\d+(\.\d+)?/g, "#").replace(/"[^"]*#[^"]*"/g, "#").replace(/#(, #)+(, …)?/g, "#")
+    .replace(/\b(steps|does)\b/g, (w) => (w === "steps" ? "step" : "do"))}`;
   const alike = new Set();
   for (const run of r.runs) {
     errors += run.errors.length; warnings += run.warnings.length;
