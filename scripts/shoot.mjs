@@ -28,11 +28,13 @@ usage: node scripts/shoot.mjs <page.html | figure.mjs | url> [options]
                        what-ifs), in every theme, size and scenario
   --clean              delete existing PNGs in the output directory first
   --no-sheet           skip the contact sheet
+  --quiet              no progress lines on stderr
   --at none            no phase shots (with --teach: the teaching cards only)
 Files: <scenario>-<theme>-<w>x<h>-<step>-<mid|end|tN.NNs>.png, contact.png (contact-2.png… when long).
 --teach adds <scenario>-<theme>-<w>x<h>-<step>-ask.png and -why.png per question, -wrong.png and -right.png per
-pick, and
-<scenario>-<theme>-<w>x<h>-end-card.png (narrow screens: -end-caption.png too, the caption before the card opens).
+pick, and at the last step -check.png (the first end-check question, answered), -check-done.png ("You can now…")
+and -end-card.png (the recap, takeaway and what-ifs; narrow screens: -end-caption.png too, the caption before the card opens).
+On a slow machine the live play paces itself by the page's measured frame time (it says so on stderr).
 `;
 
 export async function shoot(target, o = {}) {
@@ -58,6 +60,7 @@ export async function shoot(target, o = {}) {
         const info = await fp.info();
         const times = o.at === "none" ? [] : shotTimes(info, o.at ?? "phases");
         for (const theme of themes) {
+          const g0 = Date.now();
           await fp.setTheme(theme);
           await fp.freeze();
           await fp.still();
@@ -72,6 +75,7 @@ export async function shoot(target, o = {}) {
             for (const p of audit) problems.push({ ...p, shot: name, step: p.step ?? s.step, caption });
             for (const e of fp.errors.slice(errBefore)) errors.push({ ...e, shot: name, step: s.step });
           }
+          if (times.length) o.progress?.(`shot ${size.width}x${size.height} ${id} ${theme}: ${times.length} frames (${((Date.now() - g0) / 1000).toFixed(0)} s)`);
         }
       }
       for (const e of fp.errors) if (!errors.some((x) => x.text === e.text)) errors.push({ ...e, shot: `boot ${size.width}x${size.height}` });
@@ -92,15 +96,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
 // asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
 // is revealed, shoot again. For each pick (s.choose): play to it, pick the first wrong option, let its branch play to
-// its consequence (fast) and shoot the detour; rewind, pick the right one and shoot its why. Then play into the end and
-// shoot the end card. Every wait has a timeout: a step that never comes is reported and the run moves on. A question in
-// a story's shared opening is shot once per theme and size, not again for every story that repeats it.
+// its consequence (fast) and shoot the detour; rewind, pick the right one and shoot its why. Then play into the end,
+// answer the end check through to "You can now…" and shoot the end card. Every wait has a timeout: a step that never
+// comes is reported and the run moves on. A question in a story's shared opening is shot once per theme and size, not
+// again for every story that repeats it.
+//
+// On a slow machine (software rendering, a busy CPU) the page plays slower than real time: the runtime advances the run
+// by at most 1/20 s a frame (engine/runtime.mjs), so at 300 ms a frame one second of the run takes six. So the pass
+// measures the page's frame time first and paces itself by it: the run plays at `slow`× while it travels to the next
+// card (real time again, on screen), every timeout stretches by `slow`, and a card is shot once the page has stopped
+// drawing (the camera at rest) rather than after a fixed wait. A page that draws at 20 fps or better gets slow = 1:
+// the same speeds, waits and shots as before.
 async function teachShots(browser, url, size, o) {
   const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
-  const ev = (js) => fp.page.evaluate(js);
-  const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
-  const settle = () => sleep(1400);   // panel fades and camera springs come to rest
+  // no call may hang the run: a page that stops answering is an error, not a stuck job holding a Chrome
+  let slow = 1;
+  const ev = (js) => fp.page.evaluate(js, { timeout: 45000 * slow });
+  const pace = await framePace(ev);
+  slow = pace.slow;
+  const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms * slow) { if (await ev(js)) return true; await sleep(80); } return false; };
+  const renders = () => ev("__internals.stats().renders ?? 0");
+  // panel fades and camera springs come to rest: 1.4 s, and on a slow page until it stops drawing
+  const settle = async () => {
+    await sleep(1400);
+    if (slow <= 1) return;
+    const end = Date.now() + 1400 * slow;
+    let last = await renders(), quiet = 0;
+    while (Date.now() < end && quiet < 2) { await sleep(Math.max(150, pace.ms * 1.5)); const n = await renders(); quiet = n === last ? quiet + 1 : 0; last = n; }
+  };
+  const travel = (x = 1) => ev(`__internals.setSpeed(${x * slow}), true`);
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
+  const say = (msg) => o.progress?.(`teach ${size.width}x${size.height} ${msg}`);
+  if (slow > 1) say(`the page draws a frame in ${pace.ms.toFixed(0)} ms, so it plays ${slow.toFixed(1)}× slower than real time: pacing the waits by that`);
   // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
   const pickOpen = `(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-open .ix-turn-picks"); })()`;
   const click = (pick) => ev(`(() => { const b = document.querySelector('.ix-predict.ix-open .ix-turn-pick[data-pick="${pick}"]'); b && b.click(); return !!b; })()`);
@@ -108,12 +135,13 @@ async function teachShots(browser, url, size, o) {
     const fail = (text) => o.errors.push({ type: "teach", text: `the pick at step ${c.step} ${text}`, shot: base, step: c.step });
     const entry = (file, tg, caption) => ({ file, scenario: id, theme, size, step: c.step, tag: tg, t: c.t0, phase: c.phase, caption });
     const wrong = c.picks.find((_, j) => j !== c.answer), right = c.picks[c.answer];
+    await travel();
     await ev(`(() => { __internals.seek(Math.max(0, ${c.t0} - 0.25)); __internals.play(); return true; })()`);
     if (!(await waitFor(pickOpen, 15000))) return fail("never opened");
     if (wrong != null) {
       await click(wrong);
       await sleep(600);
-      await ev("__internals.setSpeed(4), true");
+      await travel(4);
       const held = await waitFor(`!!(__internals.timeline.branch && __internals.held && document.querySelector(".ix-predict.ix-open:not(.ix-locked)"))`, 30000);
       await ev("__internals.setSpeed(1), true");
       if (!held) { fail("never held its wrong branch's consequence"); return leaveBranch(); }
@@ -121,12 +149,13 @@ async function teachShots(browser, url, size, o) {
       await fp.page.shot(join(o.outDir, `${base}-wrong.png`));
       o.shots.push(entry(`${base}-wrong.png`, "wrong", c.caption));
       // the transport's one way on rewinds the branch to the pick, which opens again
+      await travel();
       await ev(`(() => { const b = document.querySelector(".ix-play"); b && b.click(); return true; })()`);
       if (!(await waitFor(`!__internals.timeline.branch && ${pickOpen}`, 15000))) { fail("never came back from its branch"); return leaveBranch(); }
     }
     await click(right);
     const revealed = await waitFor(`!!document.querySelector(".ix-predict.ix-open.ix-revealed")`, 10000);
-    await ev("__internals.pause(), true");
+    await ev("__internals.pause(), __internals.setSpeed(1), true");
     if (!revealed) return fail("never revealed the right pick");
     await settle();
     await fp.page.shot(join(o.outDir, `${base}-right.png`));
@@ -134,8 +163,44 @@ async function teachShots(browser, url, size, o) {
   }
   // never leave the page in a branch (the end card belongs to the main run): scrubbing back before the pick leaves it
   async function leaveBranch() {
-    await ev("(() => { const I = __internals; I.pause(); I.seek(0); return true; })()");
+    await ev("(() => { const I = __internals; I.pause(); I.setSpeed(1); I.seek(0); return true; })()");
     if (!(await waitFor("!__internals.timeline.branch", 5000))) o.errors.push({ type: "teach", text: "the page stayed in a branch of the run", shot: "teach" });
+  }
+  // the end check (engine/hud/check.mjs): the first question answered with a wrong option (its feedback and why), then
+  // every question through to "You can now…", which closes onto the end card
+  const checkCard = `(() => { const c = document.querySelector(".ix-predict.ix-open"); if (!c) return "none";
+    if (c.querySelector(".ix-can")) return "done"; if (c.querySelector(".ix-check-actions")) return "answered";
+    return c.querySelector(".ix-opt:not([aria-disabled])") ? "asked" : "other"; })()`;
+  async function endCheck(endBase, entry) {
+    for (let k = 0; k < 8; k++) {
+      const state = await ev(checkCard);
+      if (state === "none" || state === "other") return;
+      if (state === "done") {
+        await settle();
+        await fp.page.shot(join(o.outDir, `${endBase}-check-done.png`));
+        o.shots.push(entry(`${endBase}-check-done.png`, "check-done"));
+        await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
+        return;
+      }
+      if (state === "asked") {
+        const first = k === 0, opts = await ev(`document.querySelectorAll(".ix-predict.ix-open .ix-opt").length`);
+        // the first question a level gets (check.mjs checksFor): Expert the transfer one, the others the first
+        const answer = await ev(`(() => { const I = __internals, cs = I.timeline.checks ?? [];
+          const c = I.level === "expert" ? cs.find((x) => x.transfer) ?? cs[0] : cs[0]; return c ? c.answer ?? 0 : 0; })()`);
+        const pick = first && opts > 1 ? (answer === 0 ? 1 : 0) : 0;
+        await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
+        await waitFor(`${checkCard} !== "asked"`, 3000);
+        if (first) {
+          await settle();
+          await fp.page.shot(join(o.outDir, `${endBase}-check.png`));
+          o.shots.push(entry(`${endBase}-check.png`, "check"));
+        }
+        continue;
+      }
+      // answered: Next question, or Finish
+      await ev(`(() => { const b = document.querySelector(".ix-predict.ix-open .ix-check-actions .ix-pill"); b && b.click(); return !!b; })()`);
+      await waitFor(`${checkCard} !== "answered"`, 3000);
+    }
   }
   try {
     await ev("__internals.intro(false), true");
@@ -145,77 +210,96 @@ async function teachShots(browser, url, size, o) {
       await fp.setTheme(theme);
       const seen = new Set();
       for (const id of ids) {
-        if (id !== "default") await fp.setScenario(id);
-        await ev("__internals.intro(false), __internals.setSpeed(1), true");
-        const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
-          question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
-        const picks = await ev(`__internals.timeline.steps.flatMap((s) => s.choose ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
-          prompt: s.choose.prompt ?? "", picks: (s.choose.options ?? []).map((x) => x.pick), answer: s.choose.answer ?? 0 }] : [])`);
-        const errBefore = fp.errors.length;
-        // a clean slate: playing from the end restarts and forgets earlier answers
-        await ev("(() => { const I = __internals; I.seek(I.timeline.duration); I.play(); I.pause(); return true; })()");
-        for (const a of asks) {
-          const key = `${a.step}|${a.question}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          await ev(`(() => { __internals.seek(Math.max(0, ${a.t0} - 0.25)); __internals.play(); return true; })()`);
-          // a chapter pause, or at the New level a hold after a key step, can come first: carry on through it
-          const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
-            return document.querySelector("#ix").classList.contains("ix-asking") && !!document.querySelector(".ix-predict.ix-open"); })()`, 15000);
-          if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
-          await settle();
-          const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
-          await fp.page.shot(join(o.outDir, `${base}-ask.png`));
-          o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
-          const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
-          await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
-          const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
-          await ev("__internals.pause(), true");
-          if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
-          await settle();
-          await fp.page.shot(join(o.outDir, `${base}-why.png`));
-          o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
-          await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
-        }
-        for (const c of picks) {
-          const key = `${c.step}|${c.prompt}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          await pickShots(c, `${tag(id, theme)}-${String(c.step).padStart(3, "0")}`, { id, theme });
-        }
-        // the end: play the last moment and let the run finish on its own (that is what holds the end card)
-        await ev("(() => { const I = __internals, d = I.timeline.duration; I.seek(Math.max(0, d - 0.4)); I.play(); return true; })()");
-        const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
-          const q = document.querySelector(".ix-predict.ix-open:not(.ix-locked) .ix-opt"); if (q) q.click();
-          return !!(I.held && I.held.kind === "end"); })()`, 15000);
-        const info = await fp.info();
-        const last = info.steps.length - 1, endBase = `${tag(id, theme)}-${String(last).padStart(3, "0")}`;
-        const entry = (file, tg) => ({ file, scenario: id, theme, size, step: last, tag: tg, t: info.duration, phase: info.steps[last]?.phase ?? "", caption: info.steps[last]?.caption ?? "" });
-        if (!ended) o.errors.push({ type: "teach", text: "the run never reached its end card", shot: tag(id, theme), step: last });
-        else {
-          await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
-          await settle();
-          // a long card: scroll it so the run's end (the recap, the takeaway and the what-ifs) is in view
-          const scrollEnd = `(() => { const b = document.querySelector(".ix-explain .ix-ex-body"), n = b && b.querySelector(".ix-ex-now:not([hidden])");
-            if (n) b.scrollTop += n.getBoundingClientRect().top - b.getBoundingClientRect().top - 4; return true; })()`;
-          await ev(scrollEnd);
-          // narrow screens: the caption carries the takeaway; the Explain card opens from it with the recap
-          const sheet = await ev(`document.querySelector("#ix").classList.contains("ix-ex-sheet")`);
-          if (sheet) {
-            await fp.page.shot(join(o.outDir, `${endBase}-end-caption.png`));
-            o.shots.push(entry(`${endBase}-end-caption.png`, "end-caption"));
-            await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.click(); return !!b; })()`);
+        const t0 = Date.now(), n0 = o.shots.length;
+        try {
+          if (id !== "default") await fp.setScenario(id);
+          await ev("__internals.intro(false), __internals.setSpeed(1), true");
+          const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
+            question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
+          const picks = await ev(`__internals.timeline.steps.flatMap((s) => s.choose ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
+            prompt: s.choose.prompt ?? "", picks: (s.choose.options ?? []).map((x) => x.pick), answer: s.choose.answer ?? 0 }] : [])`);
+          const errBefore = fp.errors.length;
+          // a clean slate: playing from the end restarts and forgets earlier answers
+          await ev("(() => { const I = __internals; I.seek(I.timeline.duration); I.play(); I.pause(); return true; })()");
+          for (const a of asks) {
+            const key = `${a.step}|${a.question}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            await travel();
+            await ev(`(() => { __internals.seek(Math.max(0, ${a.t0} - 0.25)); __internals.play(); return true; })()`);
+            // a chapter pause, or at the New level a hold after a key step, can come first: carry on through it
+            const asked = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play();
+              return document.querySelector("#ix").classList.contains("ix-asking") && !!document.querySelector(".ix-predict.ix-open"); })()`, 15000);
+            if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
+            await ev("__internals.setSpeed(1), true");
             await settle();
-            await ev(scrollEnd);
+            const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
+            await fp.page.shot(join(o.outDir, `${base}-ask.png`));
+            o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
+            const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
+            await travel();
+            await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
+            const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
+            await ev("__internals.pause(), __internals.setSpeed(1), true");
+            if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
+            await settle();
+            await fp.page.shot(join(o.outDir, `${base}-why.png`));
+            o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
+            await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
           }
-          await fp.page.shot(join(o.outDir, `${endBase}-end-card.png`));
-          o.shots.push(entry(`${endBase}-end-card.png`, "end-card"));
-          if (sheet) await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.getAttribute("aria-expanded") === "true" && b.click(); return true; })()`);
-        }
-        for (const e of fp.errors.slice(errBefore)) o.errors.push({ ...e, shot: `teach ${tag(id, theme)}` });
+          for (const c of picks) {
+            const key = `${c.step}|${c.prompt}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            await pickShots(c, `${tag(id, theme)}-${String(c.step).padStart(3, "0")}`, { id, theme });
+          }
+          // the end: play the last moment and let the run finish on its own (that is what holds the end card)
+          await travel();
+          await ev("(() => { const I = __internals, d = I.timeline.duration; I.seek(Math.max(0, d - 0.4)); I.play(); return true; })()");
+          const ended = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!(I.held && I.held.kind === "end"); })()`, 15000);
+          await ev("__internals.setSpeed(1), true");
+          const info = await fp.info();
+          const last = info.steps.length - 1, endBase = `${tag(id, theme)}-${String(last).padStart(3, "0")}`;
+          const entry = (file, tg) => ({ file, scenario: id, theme, size, step: last, tag: tg, t: info.duration, phase: info.steps[last]?.phase ?? "", caption: info.steps[last]?.caption ?? "" });
+          if (!ended) o.errors.push({ type: "teach", text: "the run never reached its end card", shot: tag(id, theme), step: last });
+          else {
+            await endCheck(endBase, entry);
+            await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
+            await settle();
+            // a long card: scroll it so the run's end (the recap, the takeaway and the what-ifs) is in view
+            const scrollEnd = `(() => { const b = document.querySelector(".ix-explain .ix-ex-body"), n = b && b.querySelector(".ix-ex-now:not([hidden])");
+              if (n) b.scrollTop += n.getBoundingClientRect().top - b.getBoundingClientRect().top - 4; return true; })()`;
+            await ev(scrollEnd);
+            // narrow screens: the caption carries the takeaway; the Explain card opens from it with the recap
+            const sheet = await ev(`document.querySelector("#ix").classList.contains("ix-ex-sheet")`);
+            if (sheet) {
+              await fp.page.shot(join(o.outDir, `${endBase}-end-caption.png`));
+              o.shots.push(entry(`${endBase}-end-caption.png`, "end-caption"));
+              await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.click(); return !!b; })()`);
+              await settle();
+              await ev(scrollEnd);
+            }
+            await fp.page.shot(join(o.outDir, `${endBase}-end-card.png`));
+            o.shots.push(entry(`${endBase}-end-card.png`, "end-card"));
+            if (sheet) await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.getAttribute("aria-expanded") === "true" && b.click(); return true; })()`);
+          }
+          for (const e of fp.errors.slice(errBefore)) o.errors.push({ ...e, shot: `teach ${tag(id, theme)}` });
+        } catch (e) { o.errors.push({ type: "teach", text: `the live play of ${id} stopped: ${e.message.split("\n")[0]}`, shot: tag(id, theme) }); }
+        say(`${id} ${theme}: ${o.shots.length - n0} cards (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
       }
     }
   } finally { await fp.close(); }
+}
+
+/** How fast the page draws while it plays: ms a frame, and how many times slower than real time the run plays. */
+async function framePace(ev) {
+  await ev("(() => { const I = __internals; I.intro(false); I.seek(0); I.play(); return true; })()");
+  const r0 = await ev("__internals.stats().renders ?? 0"), t0 = Date.now();
+  await sleep(1200);
+  const n = (await ev("__internals.stats().renders ?? 0")) - r0, ms = (Date.now() - t0) / Math.max(1, n);
+  await ev("(() => { const I = __internals; I.pause(); I.seek(0); return true; })()");
+  // the runtime steps the run by at most 50 ms a frame; past that it falls behind the clock
+  return { ms, slow: Math.min(16, Math.max(1, ms / 50)) };
 }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -297,10 +381,12 @@ export function report(r, { cwd = process.cwd() } = {}) {
 }
 
 if (isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { at: "string", themes: "list", sizes: "list", scenario: "string", out: "string", dpr: "number", camera: "string", runtime: "string", clean: "boolean", sheet: "boolean", teach: "boolean" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { at: "string", themes: "list", sizes: "list", scenario: "string", out: "string", dpr: "number", camera: "string", runtime: "string", clean: "boolean", sheet: "boolean", teach: "boolean", quiet: "boolean" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
   try {
-    const r = await shoot(a._[0], a);
+    // progress on stderr, one line per group, so a long run shows it is alive (stdout keeps the report)
+    const t0 = Date.now(), clock = () => { const s = Math.round((Date.now() - t0) / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+    const r = await shoot(a._[0], { ...a, progress: a.quiet ? null : (m) => console.error(`[${clock()}] ${m}`) });
     console.log(report(r));
     process.exit(r.errors.length ? 1 : 0);
   } catch (e) {

@@ -4,26 +4,62 @@
 //   await page.evaluate("1 + 1"); await page.shot("x.png"); await page.close(); browser.close();
 // Page errors (console.error, uncaught exceptions, failed loads) are collected in page.errors.
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, existsSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve, relative, dirname, isAbsolute } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync, existsSync, statSync, readdirSync } from "node:fs";
+import { tmpdir, homedir } from "node:os";
+import { join, resolve, relative, dirname, isAbsolute, delimiter } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const skillRoot = resolve(here, "..", "..");
 
-export const CHROME = process.env.CHROME_PATH || [
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-  "/Applications/Chromium.app/Contents/MacOS/Chromium",
-  "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
-  "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser",
-].find((p) => existsSync(p));
+/**
+ * Find a Chrome or Chromium to drive: CHROME_PATH, then the usual install places on macOS, Linux and Windows, then
+ * the names on PATH, then the browsers Playwright and Puppeteer download into their caches.
+ * Returns { path, how } or { path: null, tried: [...] }. scripts/doctor.mjs prints what it tried and how to fix it.
+ */
+export function findChrome(env = process.env) {
+  const tried = [];
+  const ok = (p, how) => { tried.push(p); try { return existsSync(p) && statSync(p).isFile() ? { path: p, how } : null; } catch { return null; } };
+  if (env.CHROME_PATH) return ok(env.CHROME_PATH, "CHROME_PATH") ?? { path: null, tried, bad: env.CHROME_PATH };
+  const home = homedir(), pf = [env.PROGRAMFILES, env["PROGRAMFILES(X86)"], env.LOCALAPPDATA].filter(Boolean);
+  const fixed = [
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+    join(home, "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+    "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser",
+    "/snap/bin/chromium", "/opt/google/chrome/chrome",
+    ...pf.flatMap((d) => [join(d, "Google/Chrome/Application/chrome.exe"), join(d, "Chromium/Application/chrome.exe")]),
+  ];
+  for (const p of fixed) { const r = ok(p, "installed"); if (r) return r; }
+  const names = process.platform === "win32" ? ["chrome.exe"] : ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "chrome"];
+  for (const dir of String(env.PATH ?? "").split(delimiter).filter(Boolean)) for (const n of names) { const r = ok(join(dir, n), "PATH"); if (r) return r; }
+  // browsers downloaded by test tools (npx playwright install chromium, npx puppeteer browsers install chrome)
+  const caches = [
+    [join(env.PLAYWRIGHT_BROWSERS_PATH || (process.platform === "darwin" ? join(home, "Library/Caches/ms-playwright") : join(home, ".cache/ms-playwright"))), /^chromium-\d+$/,
+      ["chrome-linux/chrome", "chrome-linux64/chrome", "chrome-mac/Chromium.app/Contents/MacOS/Chromium", "chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium", "chrome-win/chrome.exe"]],
+    [join(home, ".cache/puppeteer/chrome"), /./,
+      ["chrome-linux64/chrome", "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing", "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing", "chrome-win64/chrome.exe"]],
+  ];
+  for (const [dir, re, subs] of caches) {
+    let builds = [];
+    try { builds = readdirSync(dir).filter((d) => re.test(d)).sort().reverse(); } catch {}
+    for (const b of builds) for (const sub of subs) { const r = ok(join(dir, b, sub), "cache"); if (r) return r; }
+  }
+  return { path: null, tried };
+}
 
+const found = findChrome();
+export const CHROME = found.path;
+const CHROME_HINT = "Run node " + join(skillRoot, "scripts", "doctor.mjs") + " to see what is missing on this machine and how to fix it.";
+
+// every Chrome this process started, until its profile is gone: killed and cleaned on exit, Ctrl-C included
 const live = new Set();
-process.on("exit", () => { for (const b of live) b.close(); });
+process.on("exit", () => { for (const b of [...live]) b.kill(); });
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(sig, () => { for (const b of [...live]) b.kill(); process.exit(128 + (sig === "SIGINT" ? 2 : sig === "SIGTERM" ? 15 : 1)); });
 
 export async function launch({ args = [], timeout = 20000 } = {}) {
-  if (!CHROME) throw new Error("Chrome not found. Install Google Chrome or set CHROME_PATH to a Chrome/Chromium binary.");
+  if (!CHROME) throw new Error(found.bad ? `CHROME_PATH is set to ${found.bad}, which does not exist.\n${CHROME_HINT}` : `Chrome not found (needed for screenshots, audit, video and the review packet). Install Google Chrome or Chromium, or set CHROME_PATH to one.\n${CHROME_HINT}`);
   const profile = mkdtempSync(join(tmpdir(), "explainer-chrome-"));
   const chrome = spawn(CHROME, [
     "--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--no-first-run",
@@ -33,8 +69,10 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
     ...(process.platform === "linux" ? ["--no-sandbox"] : []), ...args, "about:blank",
   ], { stdio: ["ignore", "ignore", "pipe"] });
   let stderr = "";
-  const wsUrl = await new Promise((ok, fail) => {
+  const removeProfile = () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 }); } catch {} };
+  const started = new Promise((ok, fail) => {
     const timer = setTimeout(() => fail(new Error("Chrome did not start within " + timeout + " ms:\n" + stderr.slice(-2000))), timeout);
+    chrome.on("error", (e) => { clearTimeout(timer); fail(new Error(`could not run ${CHROME}: ${e.message}`)); });
     chrome.on("exit", (code) => { clearTimeout(timer); fail(new Error(`Chrome exited (${code}) before DevTools was ready:\n${stderr.slice(-2000)}`)); });
     chrome.stderr.on("data", (d) => {
       stderr += d;
@@ -42,9 +80,11 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
       if (m) { clearTimeout(timer); ok(m[1]); }
     });
   });
+  // a Chrome that never came up leaves nothing behind either
+  const wsUrl = await started.catch((e) => { try { chrome.kill("SIGKILL"); } catch {} removeProfile(); throw new Error(`${e.message}\n${CHROME_HINT}`); });
   const ws = new WebSocket(wsUrl);
   await new Promise((ok, fail) => { ws.addEventListener("open", ok, { once: true }); ws.addEventListener("error", () => fail(new Error("DevTools socket failed")), { once: true }); });
-  let id = 0, closed = false;
+  let id = 0, closed = false, closing = false;
   const pending = new Map();
   const listeners = new Set();
   ws.addEventListener("message", (ev) => {
@@ -69,12 +109,23 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
   const browser = {
     send,
     on: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+    // The profile (about 150 MB once a page has drawn) must go even when the script exits right after: an unref'd timer
+    // never fires then, and /tmp is often RAM. So remove it as soon as Chrome has exited, and on the way out of the
+    // process kill Chrome outright and remove it synchronously.
     close: () => {
-      if (!live.has(browser)) return;
+      if (closing) return;
+      closing = true;
+      try { ws.close(); } catch {}
+      const gone = () => { removeProfile(); live.delete(browser); };
+      if (chrome.exitCode !== null || chrome.signalCode !== null) gone();
+      else { chrome.once("exit", gone); chrome.kill(); }
+    },
+    kill: () => {
+      closing = true;
       live.delete(browser);
       try { ws.close(); } catch {}
-      chrome.kill();
-      setTimeout(() => rmSync(profile, { recursive: true, force: true }), 300).unref?.();
+      try { chrome.kill("SIGKILL"); } catch {}
+      removeProfile();
     },
     get stderr() { return stderr; },
   };
