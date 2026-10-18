@@ -2,14 +2,14 @@
 // The golden path in one command: is this figure ready to ship? Verify (every scenario, knob extreme, branch and the
 // lesson), the teaching lint, build the page, shoot it (audit included) and write a report: a scorecard the owner can
 // glance at, beside the figure, in HTML and Markdown.
-//   node scripts/check.mjs <figure.mjs> [--full] [--out dir] [--no-shots] [--json]
+//   node scripts/check.mjs <figure.mjs> [--full] [--out dir] [--page file] [--no-shots] [--json]
 // Tiers:
 //   quick (default, the authoring loop): verify, build, then every chapter of every scenario in the page's own theme
 //     at 1440x900 and 390x844, with the runtime's audit on each shot and a contact sheet.
 //   --full (before shipping): the same plus both themes, every teaching card (shoot --teach: predictions, picks, the
 //     end check and the end card) and audit.mjs over every step at both sizes.
 // Writes <figure dir>/check/: report.html, report.md, check.json, shots/ (with contact.png). The page itself goes where
-// build.mjs puts it (<figure dir>/<title-slug>.html). Progress lines go to stderr. Exit 1 when anything fails.
+// build.mjs puts it (<figure dir>/<title-slug>.html), or --page. Progress lines go to stderr. Exit 1 when anything fails.
 import "./lib/websocket.mjs";                // Node 20/21: re-run with --experimental-websocket
 import { mkdirSync, writeFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";
@@ -24,6 +24,7 @@ usage: node scripts/check.mjs <figure.mjs> [options]
   --full        ship tier: both themes, every teaching card (shoot --teach) and audit over every step
                 (default: quick, the page's theme at 1440x900 and 390x844, one frame per chapter half)
   --out <dir>   where the report goes (default: <figure dir>/check)
+  --page <file> where the built page goes (default: beside the figure, as build.mjs puts it)
   --no-shots    verify and build only (no Chrome)
   --json        print check.json instead of the summary
 Writes report.html, report.md, check.json and shots/ (contact.png included). Exit 1 when anything fails.
@@ -57,7 +58,7 @@ export async function check(figure, o = {}) {
     say("build    one self-contained page");
     const { buildPage } = await import("./build.mjs");
     try {
-      const b = await timed("build", () => buildPage(file, {}));
+      const b = await timed("build", () => buildPage(file, o.page ? { out: resolve(o.page) } : {}));
       res.build = { out: b.out, theme: b.theme, ...b.stats, warnings: b.warnings, title: b.meta?.title ?? "", subtitle: b.meta?.subtitle ?? "" };
       say(`build    ${showPath(b.out)}  ${fmtBytes(b.stats.bytes)}`);
     } catch (e) { res.build = { error: e.message }; say(`build    FAIL ${e.message.split("\n")[0]}`); }
@@ -205,11 +206,11 @@ export function verdictOf(r) {
 }
 
 if (isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { full: "boolean", out: "string", shots: "boolean", json: "boolean", quick: "boolean" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { full: "boolean", out: "string", page: "string", shots: "boolean", json: "boolean", quick: "boolean" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
   const clock = (ms) => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
   try {
-    const r = await check(a._[0], { full: a.full && !a.quick, out: a.out, shots: a.shots, progress: (m, ms) => console.error(`[${clock(ms)}] ${m}`) });
+    const r = await check(a._[0], { full: a.full && !a.quick, out: a.out, page: a.page, shots: a.shots, progress: (m, ms) => console.error(`[${clock(ms)}] ${m}`) });
     if (a.json) console.log(JSON.stringify(r, null, 2));
     else {
       if (r.verify.failing || r.verify.fatal) console.log(r.verify.text);
