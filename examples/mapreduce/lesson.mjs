@@ -115,7 +115,7 @@ export const lesson = {
       look: ["input"],
       deeper: {
         cost: "Alone: {n} reads, one after another. Shared {M} ways, the reading takes as long as the biggest piece: {biggest} reads.",
-        real: "The paper cuts real input into pieces of 16 to 64 MB, and a typical job runs M = 200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1, §3.5).",
+        real: "The paper cuts real input into pieces of 16 to 64 MB, and it often ran jobs of M = 200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1, §3.5).",
         source: PAPER,
       },
     },
@@ -201,7 +201,7 @@ export const lesson = {
       look: ["{mapId}"],
       deeper: {
         how: "The master pings every worker. One that stops answering is marked failed (§3.3). In Hadoop a finished map can also be re-run while its machine is still up: when counters keep failing to fetch its slips, they report it and the master runs the map again.",
-        edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3).",
+        edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3). Hadoop re-runs finished maps only while some reduce still needs their slips, and Spark with its external shuffle service keeps a dead worker's map output, so only a lost host forces a re-run.",
         real: "The master itself has no such cover: in the paper, if the master dies the job is aborted, and the client can notice and retry it if it wants; the paper notes that checkpoints of the master would be easy to add (§3.3). Hadoop on YARN restarts a job's master (its ApplicationMaster, mapreduce.am.max-attempts) and can recover the tasks already done.",
         source: PAPER,
       },
@@ -339,7 +339,7 @@ export const lesson = {
         "why@skew": "Sorted, each code's slips sit together, so one pass adds them up, even when they don't fit in memory.",
         picture: "reducer",
         deeper: {
-          how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Hadoop does most of that sorting on the map side, and its reducer merges the sorted runs; Spark adds up in a hash table that spills to disk instead. Here each beat swaps two slips.",
+          how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Hadoop does most of that sorting on the map side, and its reducer merges the sorted runs; for reduceByKey, Spark adds up in a hash table that spills sorted runs to disk instead. Here each beat swaps two slips.",
           code: "`reduce(word, counts)` (lines 11–12)",
           source: PAPER,
         },
@@ -389,8 +389,8 @@ export const lesson = {
         why: "The output is a folder with one file per reduce task (here, per counter); this is {part}.",
         picture: "output",
         deeper: {
-          how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3). That needs a file system whose rename is atomic: Hadoop lets only one attempt of each task commit, through an output committer, and on object stores without an atomic rename, like S3, it needs special committers.",
-          edge: "The name part-r-00000 is Hadoop's convention; the paper doesn't name its output files.",
+          how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3). That needs a file system whose rename is atomic: Hadoop lets only one attempt of each task commit, through an output committer (atomic with the v1 algorithm on HDFS; v2 trades that for speed), and on object stores without an atomic rename, like S3, it needs special committers.",
+          edge: "The name part-r-00000 is Hadoop's convention. In the paper the user names the files: its word-count program writes /gfs/test/freq-00000-of-00100 and so on (§3.1, Appendix A).",
           source: `${PAPER}; Apache Hadoop, S3A committers, https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/committers.html`,
         },
       },
@@ -404,7 +404,7 @@ export const lesson = {
       look: ["output"],
       deeper: {
         cost: "The reading took as long as the biggest piece ({count:biggest|word}), not all {n}. The price: every slip crossed the network once, {shuffleBytes} bytes here.",
-        real: "Google ran this on thousands of machines: M = 200,000 map tasks and R = 5,000 reduce tasks on 2,000 machines is a typical job in the paper (§3.5).",
+        real: "Google often ran jobs as large as M = 200,000 map tasks and R = 5,000 reduce tasks on 2,000 machines (§3.5); the average job in August 2004 used 157 machines, 3,351 map tasks and 55 reduce tasks (Table 1).",
         source: PAPER,
       },
     },
@@ -480,7 +480,7 @@ export const lesson = {
       look: ["{hotId}"],
       deeper: {
         cost: "This line runs the run's own hash with one more counter: {eq2}. A counter's share of a key is all of it or none of it, so the busiest counter gets at least {topN} of the {slips} slips whatever the count of counters.",
-        edge: "The library hands reduce every value of a key in one call (§2), so the paper has no way to split one key over machines. The fix has to shrink the key's data before the shuffle, or rename the key.",
+        edge: "The partitioning function sees only the key (§4.1), so every value of a key goes to one reduce task, which gets them in one call (§2). The fix has to shrink the key's data before the shuffle, or rename the key.",
         source: PAPER,
       },
     },

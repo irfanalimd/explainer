@@ -714,7 +714,7 @@ export function build(s, p, scenario, env = {}) {
     s.scale({
       count: PAPER_JOB.machines, run: [...V.mapIds, ...Array.from({ length: R }, (_, r) => `r${r}`)], from: "output",
       title: `${fmt(PAPER_JOB.machines)} machines`,
-      lines: [`The paper's typical job: M = ${fmt(PAPER_JOB.M)} map tasks, R = ${fmt(PAPER_JOB.R)} reduce tasks`, "Dean & Ghemawat, OSDI 2004, §3.5"],
+      lines: [`A large job in the paper: M = ${fmt(PAPER_JOB.M)} map tasks, R = ${fmt(PAPER_JOB.R)} reduce tasks`, "Dean & Ghemawat, OSDI 2004, §3.5"],
     });
     step("scale.cluster", `The same job at the paper's scale: ${fmt(PAPER_JOB.M)} map tasks, ${fmt(PAPER_JOB.R)} reduce tasks, ${fmt(PAPER_JOB.machines)} machines. Shown simplified.`,
       { machines: fmt(PAPER_JOB.machines), paperM: fmt(PAPER_JOB.M), paperR: fmt(PAPER_JOB.R), runMachines: M + R }, { keep: true });
