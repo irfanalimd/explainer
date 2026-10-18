@@ -120,9 +120,10 @@ async function teachShots(browser, url, size, o) {
   const settle = async () => {
     await sleep(1400);
     if (slow <= 1) return;
-    const end = Date.now() + 1400 * slow;
-    let last = await renders(), quiet = 0;
-    while (Date.now() < end && quiet < 2) { await sleep(Math.max(150, pace.ms * 1.5)); const n = await renders(); quiet = n === last ? quiet + 1 : 0; last = n; }
+    // until a frame's time passes without a new frame (the page draws only while something moves), at most 8 frames
+    const end = Date.now() + Math.min(1400 * slow, 8 * pace.ms);
+    let last = await renders();
+    while (Date.now() < end) { await sleep(Math.max(150, pace.ms * 1.1)); const n = await renders(); if (n === last) break; last = n; }
   };
   const travel = (x = 1) => ev(`__internals.setSpeed(${x * slow}), true`);
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
@@ -215,7 +216,7 @@ async function teachShots(browser, url, size, o) {
           if (id !== "default") await fp.setScenario(id);
           await ev("__internals.intro(false), __internals.setSpeed(1), true");
           const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
-            question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
+            question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0, dur: s.dur }] : [])`);
           const picks = await ev(`__internals.timeline.steps.flatMap((s) => s.choose ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
             prompt: s.choose.prompt ?? "", picks: (s.choose.options ?? []).map((x) => x.pick), answer: s.choose.answer ?? 0 }] : [])`);
           const errBefore = fp.errors.length;
@@ -237,8 +238,10 @@ async function teachShots(browser, url, size, o) {
             await fp.page.shot(join(o.outDir, `${base}-ask.png`));
             o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
             const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
-            await travel();
+            // the HUD reveals once the run is 70% into the step (hud.mjs maybeReveal): answer, then go straight there
+            // (on a fast machine playing gets there within a frame of the same moment; on a slow one it saves the trip)
             await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
+            if (slow > 1) await ev(`(() => { const I = __internals; I.setSpeed(1); I.seek(${a.t0 + 0.7 * a.dur + 0.02}); return true; })()`);
             const revealed = await waitFor(`(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-revealed"); })()`, 20000);
             await ev("__internals.pause(), __internals.setSpeed(1), true");
             if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
