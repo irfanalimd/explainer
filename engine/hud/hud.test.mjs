@@ -5,7 +5,7 @@ import { formatCounter, formatText } from "./format.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
 import { highlight } from "./highlight.mjs";
 import { cssVars } from "./theme.mjs";
-import { PALETTE } from "../tokens.mjs";
+import { PALETTE, UI } from "../tokens.mjs";
 
 test("counter formats", () => {
   assert.deepEqual(formatCounter(1234, "int"), ["1,234", ""]);
@@ -114,15 +114,15 @@ test("highlighter reproduces the source exactly", () => {
 
 test("theme variables come from tokens", () => {
   for (const th of ["dark", "light"]) {
+    // the world's colours come from PALETTE, the monochrome chrome from UI (DESIGN.md 9.1)
     const v = cssVars(th);
     assert.equal(v["--ix-stage"], PALETTE[th].stage);
-    assert.equal(v["--ix-ink"], PALETTE[th].ink);
     assert.equal(v["--ix-key-0"], PALETTE[th].keys[0]);
-    assert.match(v["--ix-glass"], /^rgb\(\d+ \d+ \d+ \/ [\d.]+\)$/);
+    assert.equal(v["--ix-ink"], UI[th].ink);
+    assert.equal(v["--ix-shadow"], UI[th].shadow);
+    assert.match(v["--ix-line"], /^rgb\(\d+ \d+ \d+ \/ [\d.]+\)$/);
     assert.match(v["--ix-ease"], /^cubic-bezier\(/);
-    assert.equal(v["--ix-blur"], "18px");
-    assert.equal(v["--ix-radius"], "14px");
+    assert.equal(v["--ix-blur"], `${UI.blur}px`);
+    for (const [k, r] of Object.entries(UI.radius)) assert.equal(v[`--ix-r-${k}`], `${r}px`);
   }
-  assert.match(cssVars("dark")["--ix-shadow"], /0\.35\)$/);
-  assert.match(cssVars("light")["--ix-shadow"], /0\.08\)$/);
 });

@@ -338,9 +338,10 @@ test("a focus the panel side can't reach keeps the focus, even if the world must
 
 test("with a docked panel, a close-up that would leave the world under it shows the whole world when it fits", () => {
   const W = { minX: -480, maxX: 480, minY: -200, maxY: 200 };
-  const tl = { phases: [{ name: "Map", t0: 0 }], steps: [{}, {}, {}, {}] };
-  const dir = createDirector({ reducedMotion: true, timeline: tl });
   const left = { minX: -460, maxX: -330, minY: -60, maxY: 20 };
+  const tl = { phases: [{ name: "Map", t0: 0, step: 0 }], world: W, steps: [0, 1, 2, 3].map((i) => ({ t0: 2 * i, dur: 2 })),
+    _: { focusByStep: [W, left, left, left] } };
+  const dir = createDirector({ reducedMotion: true, timeline: tl });
   const fr = (t, focus) => ({ time: t, phase: "Map", step: 1, focus, world: W });
   dir.update(fr(DIRECTOR.establish + 1, left), PANEL, 0, { settled: true });
   const cam = { ...dir.camera, target: dir.camera.target.slice() };
@@ -365,7 +366,9 @@ test("a small board fills a fair share of the free area instead of sitting tiny"
 
 test("the last step frames its focus close and large: the payoff", () => {
   const out = { minX: 380, maxX: 540, minY: -90, maxY: 90, minZ: 0, maxZ: 20 };
-  const tl = { phases: [{ name: "Map", t0: 0 }, { name: "Output", t0: 30 }], steps: [{}, {}, {}] };
+  // a compiled timeline's shape: the planner reads steps' times, phases' first steps, the world and each step's focus
+  const tl = { phases: [{ name: "Map", t0: 0, step: 0 }, { name: "Output", t0: 30, step: 2 }], world: WORLD,
+    steps: [{ t0: 0, dur: 10 }, { t0: 10, dur: 20 }, { t0: 30, dur: 5 }], _: { focusByStep: [WORLD, WORLD, out] } };
   const dir = createDirector({ reducedMotion: true, timeline: tl });
   dir.update({ time: 31, phase: "Output", step: 2, focus: out, world: WORLD }, PANEL, 0, { settled: true });
   assert.equal(dir.state.shot, "payoff");
