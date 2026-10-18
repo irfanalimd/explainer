@@ -13,8 +13,11 @@
 //                choosing.
 //   Problem      one machine alone reads every word, one after another (the opening caption and the split's tag).
 //   Ladder       Split (the parts, the naive way) · Map (the basic move) · Shuffle (the payoff) · Reduce · Output.
-//   Misconception "the pieces are counted apart and one machine adds it all up at the end": the predict question
-//                at the first word that comes back a second time, in the shuffle (the aha step).
+//   Misconception "the pieces are counted apart and one machine adds it all up at the end", and "spreading the slips
+//                evenly is best": the pick at the first word that comes back a second time, in the shuffle (the aha
+//                step). Then "a counter writes one sum" (Reduce), and per story: a crash loses words, a slow piece
+//                must be waited for, more counters fix a common word, adding up early changes the counts.
+//   End check    per story, from the run's rules at situations it did not show, plus story 1's hash rule again.
 //   Stories      Everything works · One machine crashes · One machine is slow · One word is very common.
 //   Scale        Everything works ends on a scale shot (s.scale): the run pulls back into the paper's 2,000-machine
 //                cluster, a simplified picture whose every printed number is the paper's, labelled as such.

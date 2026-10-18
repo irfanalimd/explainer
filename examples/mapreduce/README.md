@@ -30,9 +30,18 @@ never met MapReduce. The reader should leave knowing:
   one after another) against three machines sharing them.
 - **Chapters:** Split (the parts and the slow way) · Map (each machine writes a slip per word) · Shuffle (every slip
   for one word goes to one counter, picked by its hash; the aha) · Reduce (sort, then add each group) · Output.
-- **Predict:** at the first word that comes back a second time ("The first "the" went to reduce 0. Where does this
-  "the" go?"), against the misconception that one machine adds everything up at the end. The crash and slow-machine
-  stories add one question each (what happens to the crashed piece; what the master does about the slow one).
+- **Your turn and predict** (at most one per chapter, each right before the step that settles it):
+  - Everything works: a pick in the world at the first word that comes back a second time ("Click the counting
+    machine that should get this one"; a wrong pick plays out for real and splits the word's count in two), and in
+    Reduce, "reduce 0 holds 7 slips, sorted. How many totals will it write?" (one per different word, not one sum).
+  - One machine crashes: what happens to the crashed piece. One machine is slow: what the master does about it.
+  - One word is very common: where all ten "200" slips go (a hash spreads different words, never the copies of one),
+    and which fix takes the work off the busy counter (more counters, sending some 200s elsewhere, or adding up
+    repeats first). The step after it runs the run's own hash with one more counter: every 200 still meets on one.
+- **End check, per story** (`s.check`, answered from the run's rules at a situation it did not show): another number
+  of counters (every story, so later stories bring the first one back); a machine that dies after finishing (crash);
+  keeping both copies' slips, and one reading machine (slow); the combiner turned on, and more reading machines
+  (common word). "You can now…" lists only the objectives that story taught (`objectives[].stories`).
 - **Words** (`meta.terms`): master, split, mapper, hash, shuffle, reducer, straggler.
 - **Recap and takeaway** at the end; each failure story has its own.
 
