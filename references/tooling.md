@@ -99,7 +99,11 @@ the teaching checks (the same findings verify reports).
 
 With a `lesson.mjs` it also prints the goal, the objectives, the picture map and the misconceptions (BELIEFS) up
 top; each chapter's entry card (so far, now, done when); each step's id (`‹map.read›`), a `★` on key steps, and its
-layers (why, look, picture, deeper fields); and each ask option's feedback with the misconception it names.
+layers (why, look, picture, deeper fields); and each ask option's feedback with the misconception it names. Each
+in-world pick (`s.choose`) prints as YOUR TURN with its options, and every wrong option is compiled as the real branch
+of the run it is, so its line shows what it `plays:` (the step it ends on) and its feedback. Each story ends with its
+END CHECK (every `s.check` question, its options, answer, feedback, why and the chapter a miss replays) and the
+objectives its "You can now…" lists.
 
 - `--params n=7,at=4` sets knob values for every story (numbers, `true`/`false`, strings), so a template can be read
   at a knob's extremes, as verify runs it.
@@ -196,8 +200,13 @@ there is one instance per module); everything else is served byte for byte.
     it back to the pick, the right option is picked and shot with its why (`…-<step>-right.png`). A pick that never
     opens, never holds, or never comes back is reported and the page is scrubbed back out of the branch (a branch
     never reaches the end card), so the run never stalls.
+  - the end check, its first question answered (`…-<last step>-end-check.png`), then the rest answered and its
+    "You can now…" (`…-end-cannow.png`);
   - the end card, scrolled to the recap, takeaway and what-ifs (`…-<last step>-end-card.png`). On a narrow screen,
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
+  Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
+  is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
+  on a loaded machine) 1× play would crawl and time out.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error. Live play
   takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
   shoots the cards alone.
@@ -261,7 +270,10 @@ differs, and `end.md` (recap, takeaway). Steps print their layers as that level 
 New gets the full entry card, every why and the picture lines; Expert the first sentence of each about and every
 `deeper` field. A term's definition follows its first use in `[brackets]`. A prediction ends its chunk with the
 question and options; the next chunk (`NN-<chapter>-2.md`) opens with "Revealed: … because …" and the feedback for
-the other options. No ids, file paths, lint output or source.
+the other options. An in-world pick does the same as "Your turn": the next chunk reveals the right pick and, for each
+wrong one, what the run plays when you pick it (its real branch). Each story ends with its end check at the folder's
+level (New 3, Basics 2, Expert the transfer question), the questions in one chunk and the answers, the feedback and
+"You can now…" in the next. No ids, file paths, lint output or source.
 
 `img/` holds one key frame per chapter of the first scenario (its last step), every ask and why card, and each
 scenario's end card, all 1440×900 in the dark theme (`shoot.mjs --teach` underneath; Chrome required, about a
@@ -333,7 +345,7 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   any playhead time, so playing, scrubbing, stepping and capture agree. Per chapter: **establish** (the whole world
   at the chapter's first step, from the chapter's own yaw, alternating sides, held while the entry card reads),
   **push** (the chapter's stage: the union of its steps' focus and `look` boxes), **detail** (a `key` step's `look`
-  ids, close), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
+  ids, close, from where they start to where they land, so a move's source and target share the frame), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
   last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
   box, craning up as it widens). Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
   `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).

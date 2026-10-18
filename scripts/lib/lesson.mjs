@@ -91,9 +91,8 @@ export function extractLesson(fig, compile, opts = {}) {
     };
     lesson.stories.push(story);
     let tl;
-    try {
-      tl = compile(fig, { params: { ...defaults, ...(sc.params ?? {}), ...(opts.params ?? {}) }, scenario: sc.id, ...(opts.rng ? { rng: opts.rng } : {}), ...(opts.env ? { env: opts.env } : {}) });
-    } catch (e) { story.error = String(e?.message ?? e); continue; }
+    const run = (extra = {}) => compile(fig, { params: { ...defaults, ...(sc.params ?? {}), ...(opts.params ?? {}) }, scenario: sc.id, ...(opts.rng ? { rng: opts.rng } : {}), ...(opts.env ? { env: opts.env } : {}), ...extra });
+    try { tl = run(); } catch (e) { story.error = String(e?.message ?? e); continue; }
     const steps = tl.steps ?? [], phases = tl.phases ?? [];
     story.steps = steps.length;
     lesson.header ??= tl.lesson ?? null;
@@ -114,11 +113,41 @@ export function extractLesson(fig, compile, opts = {}) {
           whyText: st.ask.why ? flat(st.ask.why, title(i)) : "",
           ...(st.ask.feedback ? { feedback: st.ask.feedback.map((f) => ({ ...(f.text ? { text: flat(f.text, title(i)) } : {}), ...(f.misconception ? { misconception: f.misconception } : {}) })) } : {}),
         } : null;
-        chapter.steps.push(hidden({ index: i, id: st.id ?? null, caption: st.caption ?? "", text: flat(st.caption, title(i)), template: captionTemplate(st.caption ?? ""), ask,
+        // an in-world pick: each wrong option is a real branch of the run, so compile it and keep the consequence it
+        // ends on (its last step's words), as the page plays it
+        const choose = st.choose ? {
+          id: st.choose.id, prompt: String(st.choose.prompt ?? ""), promptText: flat(st.choose.prompt, title(i)), answer: st.choose.answer,
+          why: st.choose.why ?? "", whyText: st.choose.why ? flat(st.choose.why, title(i)) : "",
+          options: (st.choose.options ?? []).map((o, j) => {
+            const out = { pick: o.pick, text: flat(o.text, title(i)), ...(o.feedback ? { feedback: flat(o.feedback, title(i)) } : {}), ...(o.misconception ? { misconception: o.misconception } : {}) };
+            if (j === st.choose.answer) return out;
+            try {
+              const b = run({ choices: { [st.choose.id]: j } }), last = b.steps[b.steps.length - 1];
+              const bt = titleFinder(b)(b.steps.length - 1);
+              out.plays = (b.steps.slice(i).map((x) => flat(x.layers?.plain ?? x.caption, bt)));
+              out.consequence = last ? flat(last.layers?.plain ?? last.caption, bt) : "";
+            } catch (e) { out.consequence = `(the branch failed to compile: ${e?.message ?? e})`; }
+            return out;
+          }),
+        } : null;
+        chapter.steps.push(hidden({ index: i, id: st.id ?? null, caption: st.caption ?? "", text: flat(st.caption, title(i)), template: captionTemplate(st.caption ?? ""), ask, ...(choose ? { choose } : {}),
           ...(tl.lesson && st.layers ? { layers: flatLayers(st.layers, title(i)) } : {}) }, { raw: { layers: st.layers ?? null, ask: st.ask ?? null }, refTitle: title(i) }));
       }
       story.chapters.push(hidden(chapter, { raw: { about: ph.about ?? null, enter: ph.enter ?? null }, refTitle: title(from) }));
     });
+    // the end check (s.check): asked when the main run ends; its words come from lesson.checks, filled from its vars
+    const endTitle = title(steps.length);
+    story.checks = (tl.checks ?? []).map((c) => ({
+      id: c.id, question: flat(c.question, endTitle), options: (c.options ?? []).map((o) => flat(o, endTitle)), answer: c.answer,
+      why: c.why ? flat(c.why, endTitle) : "", chapter: c.chapter ?? null, ...(c.transfer ? { transfer: true } : {}),
+      ...(c.feedback ? { feedback: c.feedback.map((f) => ({ ...(f.text ? { text: flat(f.text, endTitle) } : {}), ...(f.misconception ? { misconception: f.misconception } : {}) })) } : {}),
+    }));
+    // what the end card's "You can now…" lists for this story
+    story.objectives = (tl.lesson?.objectives ?? []).map((o) => o.id);
+  }
+  // the header comes from the first story's run, whose objectives are only that story's: list them all, with their stories
+  if (lesson.header && Array.isArray(fig.lesson?.objectives)) {
+    lesson.header = { ...lesson.header, objectives: fig.lesson.objectives.map(({ id, text, stories }) => ({ id, text, ...(Array.isArray(stories) ? { stories: [...stories] } : {}) })) };
   }
   return lesson;
 }
@@ -203,9 +232,21 @@ export function formatLesson(L, opts = {}) {
           });
           out.push(`              why: ${st.ask.whyText ? wrap(st.ask.whyText, W - 19, " ".repeat(19)) : "(none: add { why } so the reveal explains itself)"}`);
         }
-        if (!opts.all && !st.ask && run && run.template === st.template) {
+        if (st.choose) {
+          flush();
+          const c = st.choose;
+          out.push(`     YOUR TURN  ${wrap(c.promptText, W - 16, " ".repeat(16))}`);
+          c.options.forEach((o, j) => {
+            out.push(`              ${String.fromCharCode(65 + j)}) ${o.text}${j === c.answer ? "   ✓" : ""}`);
+            if (o.consequence !== undefined) out.push(`                 ${wrap(`plays: ${o.consequence}`, W - 17, " ".repeat(24))}`);
+            if (o.feedback || o.misconception) out.push(`                 ${wrap(`→ ${o.feedback ?? ""}${o.misconception ? ` [${o.misconception}]` : ""}`, W - 17, " ".repeat(19))}`);
+          });
+          out.push(`              why: ${c.whyText ? wrap(c.whyText, W - 19, " ".repeat(19)) : "(none: add { why } so the right pick explains itself)"}`);
+        }
+        const asks = st.ask || st.choose;
+        if (!opts.all && !asks && run && run.template === st.template) {
           if (run.shown < 2) { run.shown++; } else { run.hidden.push(st.index); continue; }
-        } else if (!st.ask) { flush(); run = { template: st.template, shown: 1, hidden: [] }; }
+        } else if (!asks) { flush(); run = { template: st.template, shown: 1, hidden: [] }; }
         const n = String(st.index).padStart(4);
         out.push(`${n}  ${st.layers?.key ? "★ " : ""}${wrap(defineFirst(st.caption, st.text), W - 8, "      ")}${st.id ? `   ‹${st.id}›` : ""}`);
         if (st.layers) formatLayers(st.layers, H, field);
@@ -217,6 +258,25 @@ export function formatLesson(L, opts = {}) {
     out.push("");
     if (recap.length) { out.push("   RECAP"); recap.forEach((r, j) => out.push(`     ${j + 1}. ${wrap(flat(r), W - 8, "        ")}`)); }
     field("TAKEAWAY", take || "(none)", "   ");
+    if (story.checks?.length) {
+      out.push("");
+      out.push(`   END CHECK  (New asks ${Math.min(3, story.checks.length)}, Basics ${Math.min(2, story.checks.length)}, Expert 1: the one marked transfer)`);
+      story.checks.forEach((c, n) => {
+        out.push(`     ${n + 1}. ${wrap(`${c.question}${c.transfer ? "   [transfer]" : ""}`, W - 8, "        ")}`);
+        c.options.forEach((o, j) => {
+          out.push(`          ${String.fromCharCode(65 + j)}) ${o}${j === c.answer ? "   ✓" : ""}`);
+          const f = c.feedback?.[j];
+          if (f?.text || f?.misconception) out.push(`             ${wrap(`→ ${f.text ?? ""}${f.misconception ? ` [${f.misconception}]` : ""}`, W - 13, " ".repeat(15))}`);
+        });
+        out.push(`          why: ${c.why ? wrap(c.why, W - 15, " ".repeat(15)) : "(none)"}${c.chapter ? `   (a miss offers: replay ${c.chapter})` : ""}`);
+      });
+    }
+    if (story.objectives && H?.objectives?.length) field("CAN NOW", story.objectives.join(", ") || "(none)", "   ");
+  }
+  // after the last story, the end card names the lessons that follow (lesson.next)
+  if (H?.next?.length) {
+    out.push("", "KEEP GOING  (after the last story)");
+    for (const n of H.next) { out.push(`  ${n.title}  ${n.href}`); field("why", flat(n.why), "    "); }
   }
   return out.join("\n");
 }
@@ -224,7 +284,7 @@ export function formatLesson(L, opts = {}) {
 // the lesson's goal, objectives and picture map
 function formatHeader(H, out, field, W) {
   field("GOAL", H.goal);
-  if (H.objectives.length) { out.push("OBJECTIVES"); for (const o of H.objectives) out.push(`  ${o.id}: ${wrap(o.text, W - o.id.length - 4, " ".repeat(o.id.length + 4))}`); }
+  if (H.objectives.length) { out.push("OBJECTIVES"); for (const o of H.objectives) out.push(`  ${o.id}: ${wrap(`${o.text}${o.stories ? `  (${o.stories.join(", ")})` : ""}`, W - o.id.length - 4, " ".repeat(o.id.length + 4))}`); }
   if (H.picture) {
     out.push(`PICTURE   ${H.picture.name}`);
     for (const r of H.picture.rows) out.push(`  ${r.id.padEnd(8)}${r.picture}  =  ${r.real}${r.term ? `  (${r.term})` : ""}`);

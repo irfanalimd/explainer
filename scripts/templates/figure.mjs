@@ -164,4 +164,8 @@ export function build(s, p, scenario) {
   s.line(at >= 0 ? 5 : 8);
   if (at >= 0) step("answer.found", `Found at index ${at} in ${looks} ${looks > 1 ? "looks" : "look"}; one by one could take up to ${p.n}.`, { at, looks });
   else step("answer.missing", `Nothing is left in the window: \`${key}\` is {tone:fail|not in the list}, after ${looks} looks.`, { looks });
+
+  // The end check (references/teaching.md section 5): give each story its own s.check questions, answered by this
+  // run's rules at other knob values, one marked { transfer: true }, and after the first story one earlier idea at
+  // new numbers. A housing's sub carries its live state (s.set(id, { sub: "4 slips" })). examples/mapreduce shows both.
 }

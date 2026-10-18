@@ -22,16 +22,19 @@ export function forStory(obj, story) {
 
 
 /** The lesson's header as the HUD reads it: meta.terms (plain strings) merged with the lesson's { lead, def }. */
-function headerOf(lesson, meta) {
+function headerOf(lesson, meta, story) {
   const terms = {};
   for (const [name, def] of Object.entries(meta?.terms ?? {})) terms[name] = { lead: null, def: String(def) };
   for (const [name, t] of Object.entries(lesson.terms ?? {})) terms[name] = { lead: t.lead ?? null, def: t.def ?? terms[name]?.def ?? "" };
   return {
     goal: lesson.goal ?? "",
-    objectives: (lesson.objectives ?? []).map(({ id, text }) => ({ id, text })),
+    // an objective with `stories` is taught only in those stories: the end card's "You can now…" lists what this one taught
+    objectives: (lesson.objectives ?? []).filter((o) => !Array.isArray(o.stories) || !story || o.stories.includes(story)).map(({ id, text }) => ({ id, text })),
     picture: lesson.picture ? { name: lesson.picture.name, rows: lesson.picture.rows.map((r) => ({ ...r })), breaks: lesson.picture.breaks ?? "" } : null,
     terms,
     misconceptions: (lesson.misconceptions ?? []).map(({ id, wrong, fix }) => ({ id, wrong, fix })),
+    // where a reader goes after the last story: other lessons, each with a line on why it follows this one
+    next: (lesson.next ?? []).filter((n) => n?.title && n?.href).map(({ title, href, why }) => ({ title, href, why: why ?? "" })),
   };
 }
 
@@ -40,7 +43,7 @@ function headerOf(lesson, meta) {
  * opts: { scenario, meta }
  */
 export function mergeLesson(script, lesson, { scenario = null, meta = {} } = {}) {
-  script.lesson = lesson ? headerOf(lesson, meta) : null;
+  script.lesson = lesson ? headerOf(lesson, meta, scenario) : null;
   if (!lesson) {
     for (const st of script.steps) st.layers = { plain: st.caption };
     return script;
@@ -161,11 +164,12 @@ function chooseOf(choose, c, { text, problem, beliefs }) {
 function askOf(ask, a, { text, problem, beliefs }) {
   const out = { ...ask, question: a.question ? text(a.question, "ask question") : ask.question };
   if (a.why) out.why = text(a.why, "ask why");
-  if (a.options) {
-    if (a.options.length !== ask.options.length) problem(`ask "${ask.id}" has ${a.options.length} options in the lesson and ${ask.options.length} in the figure`);
-    out.options = ask.options.map((o, j) => (a.options[j]?.text ? text(a.options[j].text, `ask option ${j + 1}`) : o));
+  // per option by index, or `wrong`: one entry for every wrong option (when the figure's options vary with a knob)
+  if (a.options || a.wrong) {
+    if (a.options && a.options.length !== ask.options.length) problem(`ask "${ask.id}" has ${a.options.length} options in the lesson and ${ask.options.length} in the figure`);
+    out.options = ask.options.map((o, j) => (a.options?.[j]?.text ? text(a.options[j].text, `ask option ${j + 1}`) : o));
     const feedback = ask.options.map((_, j) => {
-      const opt = a.options[j] ?? {};
+      const opt = a.options?.[j] ?? (j !== ask.answer ? a.wrong : null) ?? {};
       if (opt.misconception && !beliefs.has(opt.misconception)) problem(`ask "${ask.id}" option ${j + 1} names an unknown misconception "${opt.misconception}"`);
       return {
         ...(opt.feedback ? { text: text(opt.feedback, `ask option ${j + 1} feedback`) } : {}),

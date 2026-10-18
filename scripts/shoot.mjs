@@ -88,6 +88,8 @@ export async function shoot(target, o = {}) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const TEACH_SPEED = 16;   // --teach: the playback speed between cards
+const TEACH_WAIT = 4;     // --teach: how much longer than the nominal timeouts a slow machine may take
 
 // Live playback, on a page of its own: frozen capture drops pauses and predictions, so play to each question, shoot it
 // asked, pick the first wrong option (the card then shows the wrong pick, the right answer and the why), play until it
@@ -98,8 +100,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function teachShots(browser, url, size, o) {
   const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
   const ev = (js) => fp.page.evaluate(js);
-  const waitFor = async (js, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
+  const waitFor = async (js, ms) => { ms *= TEACH_WAIT; const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await ev(js)) return true; await sleep(80); } return false; };
   const settle = () => sleep(1400);   // panel fades and camera springs come to rest
+  // Live play runs fast between cards. The runtime caps each frame's step at 1/20 s, so where frames are slow (software
+  // rendering on a loaded machine: seconds a frame) 1× play crawls and every wait below would time out. The pauses,
+  // questions and picks still stop the run at their own step at any speed; the cards are shot while it is paused.
+  const fast = `__internals.setSpeed(${TEACH_SPEED})`;
+  // a card is shot at the speed a reader sees in the dock (1×), then play goes on fast
+  const snap = async (file) => {
+    await ev("__internals.setSpeed(1), true");
+    await waitFor(`(document.querySelector(".ix-speed-val")?.textContent ?? "1×") === "1×"`, 3000);
+    await fp.page.shot(file);
+    await ev(`${fast}, true`);
+  };
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
   // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
   const pickOpen = `(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-open .ix-turn-picks"); })()`;
@@ -113,12 +126,11 @@ async function teachShots(browser, url, size, o) {
     if (wrong != null) {
       await click(wrong);
       await sleep(600);
-      await ev("__internals.setSpeed(4), true");
+      await ev(`${fast}, true`);
       const held = await waitFor(`!!(__internals.timeline.branch && __internals.held && document.querySelector(".ix-predict.ix-open:not(.ix-locked)"))`, 30000);
-      await ev("__internals.setSpeed(1), true");
       if (!held) { fail("never held its wrong branch's consequence"); return leaveBranch(); }
       await settle();
-      await fp.page.shot(join(o.outDir, `${base}-wrong.png`));
+      await snap(join(o.outDir, `${base}-wrong.png`));
       o.shots.push(entry(`${base}-wrong.png`, "wrong", c.caption));
       // the transport's one way on rewinds the branch to the pick, which opens again
       await ev(`(() => { const b = document.querySelector(".ix-play"); b && b.click(); return true; })()`);
@@ -129,7 +141,7 @@ async function teachShots(browser, url, size, o) {
     await ev("__internals.pause(), true");
     if (!revealed) return fail("never revealed the right pick");
     await settle();
-    await fp.page.shot(join(o.outDir, `${base}-right.png`));
+    await snap(join(o.outDir, `${base}-right.png`));
     o.shots.push(entry(`${base}-right.png`, "right", c.prompt));
   }
   // never leave the page in a branch (the end card belongs to the main run): scrubbing back before the pick leaves it
@@ -146,7 +158,7 @@ async function teachShots(browser, url, size, o) {
       const seen = new Set();
       for (const id of ids) {
         if (id !== "default") await fp.setScenario(id);
-        await ev("__internals.intro(false), __internals.setSpeed(1), true");
+        await ev(`__internals.intro(false), ${fast}, true`);
         const asks = await ev(`__internals.timeline.steps.flatMap((s) => s.ask ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
           question: s.ask.question ?? "", options: (s.ask.options ?? []).length, answer: s.ask.answer ?? 0 }] : [])`);
         const picks = await ev(`__internals.timeline.steps.flatMap((s) => s.choose ? [{ step: s.index, t0: s.t0, phase: s.phase ?? "", caption: s.caption ?? "",
@@ -165,7 +177,7 @@ async function teachShots(browser, url, size, o) {
           if (!asked) { o.errors.push({ type: "teach", text: `the question at step ${a.step} never opened`, shot: tag(id, theme), step: a.step }); continue; }
           await settle();
           const base = `${tag(id, theme)}-${String(a.step).padStart(3, "0")}`;
-          await fp.page.shot(join(o.outDir, `${base}-ask.png`));
+          await snap(join(o.outDir, `${base}-ask.png`));
           o.shots.push({ file: `${base}-ask.png`, scenario: id, theme, size, step: a.step, tag: "ask", t: a.t0, phase: a.phase, caption: a.question });
           const pick = a.answer === 0 && a.options > 1 ? 1 : 0;
           await ev(`(() => { const b = document.querySelectorAll(".ix-predict.ix-open .ix-opt")[${pick}]; b && b.click(); return !!b; })()`);
@@ -173,7 +185,7 @@ async function teachShots(browser, url, size, o) {
           await ev("__internals.pause(), true");
           if (!revealed) { o.errors.push({ type: "teach", text: `the question at step ${a.step} was never revealed`, shot: base, step: a.step }); continue; }
           await settle();
-          await fp.page.shot(join(o.outDir, `${base}-why.png`));
+          await snap(join(o.outDir, `${base}-why.png`));
           o.shots.push({ file: `${base}-why.png`, scenario: id, theme, size, step: a.step, tag: "why", t: a.t0, phase: a.phase, caption: a.caption });
           await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
         }
@@ -193,6 +205,21 @@ async function teachShots(browser, url, size, o) {
         const entry = (file, tg) => ({ file, scenario: id, theme, size, step: last, tag: tg, t: info.duration, phase: info.steps[last]?.phase ?? "", caption: info.steps[last]?.caption ?? "" });
         if (!ended) o.errors.push({ type: "teach", text: "the run never reached its end card", shot: tag(id, theme), step: last });
         else {
+          // the end check opens over the payoff: shoot its first question answered, then answer the rest, shoot
+          // "You can now…", and put it away so the end card below shows the recap, the takeaway and what comes next
+          const checking = await ev(`!!document.querySelector(".ix-predict.ix-open .ix-check-actions")`);
+          if (checking) {
+            await settle();
+            await snap(join(o.outDir, `${endBase}-end-check.png`));
+            o.shots.push(entry(`${endBase}-end-check.png`, "end-check"));
+            await waitFor(`(() => { const p = document.querySelector(".ix-predict.ix-open"); if (!p) return true;
+              const b = p.querySelector(".ix-opt:not([aria-disabled])"); if (b) { b.click(); return false; }
+              const n = p.querySelector(".ix-check-actions .ix-pill"); if (n) { n.click(); return false; }
+              return !!p.querySelector(".ix-can"); })()`, 30000);
+            await settle();
+            await snap(join(o.outDir, `${endBase}-end-cannow.png`));
+            o.shots.push(entry(`${endBase}-end-cannow.png`, "end-cannow"));
+          }
           await ev(`(() => { const c = document.querySelector(".ix-predict.ix-open .ix-close"); c && c.click(); return true; })()`);
           await settle();
           // a long card: scroll it so the run's end (the recap, the takeaway and the what-ifs) is in view
@@ -202,13 +229,13 @@ async function teachShots(browser, url, size, o) {
           // narrow screens: the caption carries the takeaway; the Explain card opens from it with the recap
           const sheet = await ev(`document.querySelector("#ix").classList.contains("ix-ex-sheet")`);
           if (sheet) {
-            await fp.page.shot(join(o.outDir, `${endBase}-end-caption.png`));
+            await snap(join(o.outDir, `${endBase}-end-caption.png`));
             o.shots.push(entry(`${endBase}-end-caption.png`, "end-caption"));
             await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.click(); return !!b; })()`);
             await settle();
             await ev(scrollEnd);
           }
-          await fp.page.shot(join(o.outDir, `${endBase}-end-card.png`));
+          await snap(join(o.outDir, `${endBase}-end-card.png`));
           o.shots.push(entry(`${endBase}-end-card.png`, "end-card"));
           if (sheet) await ev(`(() => { const b = document.querySelector(".ix-ex-capbtn"); b && b.getAttribute("aria-expanded") === "true" && b.click(); return true; })()`);
         }

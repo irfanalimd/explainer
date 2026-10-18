@@ -9,6 +9,8 @@ import { emitScale } from "./scale.mjs";
 const TAG_LIFT = 12;          // u above a tile's top
 const TAG_EDGE = 4;           // u above a housing's top, at its back edge
 const TAG_BLEND = 36;         // u outside a housing over which a tile's tag anchor moves from the edge to the tile
+const TAG_CROWD = 30;         // u: a housing closer than this behind another leaves no room for that one's chip
+const TAG_INSET = 0.42;       // share of the tray's depth below the header where a crowded housing's chip points
 const STATUS = new Set(["ok", "busy", "warn", "fail", "idle", "ghost", "neutral", "key"]);
 
 export function createSampler(tl) {
@@ -275,17 +277,33 @@ export function createSampler(tl) {
   function tagAnchor(tg, k) {
     const top = k.z + (k.h ?? 0) + TAG_LIFT;
     const idx = tg.inc;
-    if (incs[idx].kind === "housing") return [k.x, edgeY(k.x, k.y - k.d / 2), k.z + k.h + TAG_EDGE];
+    if (incs[idx].kind === "housing") {
+      // a housing with another just behind it would hang its chip over that one (a column of machines): the chip
+      // sits on its own tray instead, under its header, so it cannot be read as the neighbour's
+      if (crowded(k)) return [k.x, k.y - k.d / 2 + SIZE.housing.header + TAG_INSET * (k.d - SIZE.housing.header), k.z + k.h + TAG_EDGE];
+      return [k.x, edgeY(k.x, k.y - k.d / 2), k.z + k.h + TAG_EDGE];
+    }
     let best = null, bd = Infinity;
     for (const h of housings) {
       const dx = Math.max(0, Math.abs(k.x - h.x) - h.w / 2), dy = Math.max(0, Math.abs(k.y - h.y) - h.d / 2);
       const d = Math.hypot(dx, dy);
       if (d < bd) { bd = d; best = h; }
     }
-    if (!best || bd >= TAG_BLEND) return [k.x, k.y, top];
+    if (!best || bd >= TAG_BLEND || crowded(best)) return [k.x, k.y, top];
     const w = smoothstep(bd / TAG_BLEND);
     const ey = edgeY(k.x, best.y - best.d / 2), ez = best.z + best.h + TAG_EDGE;
     return [k.x, ey + (k.y - ey) * w, ez + (top - ez) * w];
+  }
+
+  // another housing whose front edge is less than TAG_CROWD behind this one's back edge, overlapping it across
+  function crowded(k) {
+    const back = k.y - k.d / 2;
+    for (const h of housings) {
+      if (Math.abs(h.x - k.x) < 1e-6 && Math.abs(h.y - k.y) < 1e-6) continue;
+      const front = h.y + h.d / 2;
+      if (front <= back + 1 && front > back - TAG_CROWD && Math.abs(h.x - k.x) < (h.w + k.w) / 2 - 8) return true;
+    }
+    return false;
   }
 
   // a housing's back edge just under a titled zone's top strip would put the chip on the zone title: use the zone's edge

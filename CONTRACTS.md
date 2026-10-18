@@ -509,7 +509,7 @@ A var's kind fixes how a template prints it:
 
 ```js
 export const lesson = {
-  goal, objectives: [{ id, text }],
+  goal, objectives: [{ id, text, stories?: [scenarioId] }],
   misconceptions: [{ id, wrong, fix }],
   picture: { name, rows: [{ id, picture, real, term? }], breaks },
   terms: { [name]: { lead, def } },                  // merged over meta.terms (lesson wins)
@@ -518,7 +518,8 @@ export const lesson = {
                        picture?: rowId, key?: true, when?: (vars) => bool, first?: { …same fields } } },
   asks: { [askId]: { question?, why?, options?: [{ text?, feedback?, misconception? }] } },
   choices: { [chooseId]: { prompt?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
-  checks: { [checkId]: { question?, why?, options?: [{ text?, feedback?, misconception? }] } },
+  checks: { [checkId]: { question?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
+  next: [{ title, href, why? }],                     // the lessons that follow; the end of the last story names them
 };
 ```
 
@@ -526,7 +527,8 @@ export const lesson = {
 - **Story overrides**: a key `x@story` replaces `x` when the scenario id is `story`. It works at every level: a whole chapter or step (`"array@find"`), or one field (`"why@find"`, `"enter@find"`).
 - **`first`**: its fields replace the entry's for the first step with that id in the run.
 - **`when`**: an entry (or its `first`) whose `when(vars)` is false is skipped. The step falls back to the base entry, then to the inline caption.
-- **Asks**: options pair with the figure's options by index. The figure's `answer` decides which option is right. The lesson only replaces the text and adds `feedback` (markup) and a `misconception` id.
+- **Asks**: options pair with the figure's options by index. The figure's `answer` decides which option is right. The lesson only replaces the text and adds `feedback` (markup) and a `misconception` id. A check (like a choice) may give `wrong` instead: one entry for every wrong option, for when the figure's options vary with a knob.
+- **Objectives** with `stories` are taught only in those stories: `tl.lesson.objectives` keeps the ones for the run's story, so the end card's "You can now…" lists only what that story taught. Without `stories`, an objective belongs to every story.
 - **Chapters** have no title here: the figure's phase name stays the title, because scenarios and forks find chapters by it.
 - An entry without `plain` (a planned id in a curriculum skeleton: `"map.read": {}`) leaves the step on its inline caption.
 - Problems (kind `"lesson"`, in `tl.problems`) cover an unknown var, a `look` id that does not exist at the end of its step, an unknown `picture` row, `deeper` field or misconception id, and an option count that differs from the figure's.
@@ -539,6 +541,7 @@ tl.lesson = null | {
   picture: null | { name, rows: [{ id, picture, real, term? }], breaks },
   terms: { [name]: { lead: string | null, def } },   // meta.terms merged with the lesson's; read definitions here, not meta.terms
   misconceptions: [{ id, wrong, fix }],
+  next: [{ title, href, why }],                      // why is markup ("" when absent)
 }
 tl.steps[i].id     = string | null
 tl.steps[i].layers = { plain, why?, look?: [entityId], deeper?: { cost?, how?, code?, edge?, real?, source? }, picture?: rowId, key?: true }

@@ -410,10 +410,12 @@ function lessonCoverage(lesson, seen) {
   if (seen.unnamed) W(`${seen.unnamed} step(s) have no id, so lesson.mjs cannot reach them: s.step(caption, { id, vars })`);
   if (seen.unnamedChapters) W(`${seen.unnamedChapters} chapter(s) have no id, so lesson.chapters cannot reach them: s.phase(name, { about, id })`);
   if (seen.keyNoWhy.size) W(`${seen.keyNoWhy.size} key step(s) have no why: ${list([...seen.keyNoWhy])} (a key step says why it matters)`);
-  // every misconception is named by some option, so a reader who holds it gets feedback written for them
-  const named = new Set(Object.values(lesson.asks ?? {}).flatMap((a) => (a?.options ?? []).map((o) => o?.misconception)).filter(Boolean));
+  // every misconception is named by some option (of a prediction, an in-world pick or an end-check question, `wrong`
+  // included), so a reader who holds it gets feedback written for them
+  const optionsOf = (q) => [...(q?.options ?? []), ...(q?.wrong ? [q.wrong] : [])];
+  const named = new Set([lesson.asks, lesson.choices, lesson.checks].flatMap((m) => Object.values(m ?? {}).flatMap((q) => optionsOf(q).map((o) => o?.misconception))).filter(Boolean));
   const orphan = (lesson.misconceptions ?? []).map((m) => m?.id).filter((id) => id && !named.has(id));
-  if (orphan.length) W(`${orphan.length} misconception(s) no ask option names: ${list(orphan)} (name it on the option that belief picks, with feedback)`);
+  if (orphan.length) W(`${orphan.length} misconception(s) no question's option names: ${list(orphan)} (name it on the option that belief picks, with feedback)`);
   return { warnings, notes, info: { steps: seen.steps.size, chapters: seen.chapters.size, asks: seen.asks.size, chooses: seen.chooses.size, checks: seen.checks.size } };
 }
 

@@ -84,10 +84,12 @@ export async function mount(root, figure, options = {}) {
     onPlay: () => play(),
     onPause: () => pause(),
     onToggle: () => (playing ? pause() : play()),
-    onStart: (mode) => {
+    onStart: (mode, where) => {
       intro = false;
       if (mode === "play") { play(); dwell = entryDwell(0); }
       else if (mode === "step") { stepMode = true; step(1); }
+      else if (mode === "resume" && where) resume(where);
+      else if (mode === "restart") { const first = (figure.scenarios ?? [])[0]; if (first && first !== scenario) setScenario(first.id, { restart: true }); else { seek(0); answered.clear(); play(); } }
       kick();
     },
     onIntro: (open) => { intro = !!open; if (open) pause(); kick(); },
@@ -277,6 +279,24 @@ export async function mount(root, figure, options = {}) {
       if (fork) startAtFork();
       play();
     }
+  }
+  // a returning reader picks up where they stopped (the start card's offer; engine/hud/journey.mjs): that story with its
+  // knobs, from the start of the step they were on, or the next story from where it parts from the first
+  function resume({ scenario: id, time: t, params, fork }) {
+    const sc = scenarioOf(figure, id);
+    const next = { ...defaultsOf(figure), ...(sc.params ?? {}), ...(params ?? {}) };
+    if (sc !== scenario || JSON.stringify(next) !== JSON.stringify(values)) {
+      scenario = sc; values = next;
+      hud.setScenario?.(sc.id); hud.setValues?.(values);
+      if (!recompile({ keepPhase: false })) return;
+    }
+    if (fork) startAtFork();
+    else if (Number.isFinite(t)) {
+      // a step that asks is picked up just before it, so the question opens again rather than its answer playing
+      const st = tl.steps[stepIndexAt(clamp(t, 0, tl.duration))];
+      time = st.ask || st.choose ? Math.max(0, st.t0 - 2e-3) : st.t0;
+    }
+    play();
   }
   function setParams(next) {
     values = { ...values, ...next };
@@ -515,7 +535,8 @@ export async function mount(root, figure, options = {}) {
   const q = query?.get("autoplay");
   const autoplay = options.autoplay ?? (q != null ? !/^(0|false|no)$/i.test(q) : false);
   if (autoplay) playing = true;
-  else if (options.intro !== false && !capture && !hud.introSeen) hud.intro?.(true);
+  // a returning reader sees it again when there is a place to pick up (never under a deep link or in capture)
+  else if (options.intro !== false && !capture && (!hud.introSeen || hud.resumable)) hud.intro?.(true);
 
   // the capture and audit contract
   function api() {

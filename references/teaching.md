@@ -196,7 +196,8 @@ keep every caption true and short. `examples/mapreduce/` is the model to copy (`
 | What happened, why, what to watch | `s.step(caption, { id, vars })`; `lesson.steps[id]: { plain, why, look, deeper, picture, key }` |
 | Misconception, aha | `lesson.misconceptions: [{ id, wrong, fix }]`; `s.ask(question, options, answer, { why, id })` right before the revealing step; `lesson.asks[id].options[j]: { feedback, misconception }` |
 | Your turn, in the world | `s.choose(id, { prompt, options: [{ pick, right }] })` at the decision; the wrong branch plays for real; `lesson.choices[id]: { prompt, why, wrong: { feedback, misconception } }` |
-| End check | `s.check(id, { question, options, answer, chapter, vars })` with answers from the run's rules at other knob values; `lesson.checks[id]: { question, why }`; `lesson.objectives` become "You can now…" |
+| End check | `s.check(id, { question, options, answer, chapter, vars, transfer })` per story, with answers from the run's rules at other knob values; `lesson.checks[id]: { question, why, options, wrong }`; `lesson.objectives` (with `stories` where only some stories teach one) become "You can now…" |
+| What comes next | `lesson.next: [{ title, href, why }]`, 1–3 lessons this one leads into, named at the end of the last story |
 | What breaks | a scenario with a learner-language `label`, `whatIf` and `description` |
 | The real scale | `s.scale({ … })` on the happy path's last step, numbers from the run or a cited source (`references/builder.md` section 11) |
 | Recap, takeaway | `meta.recap` (2–4 lines), `meta.takeaway` (a scenario may have its own of each) |
@@ -265,7 +266,8 @@ will see in the world).
 Asks: right before the step that disproves a misconception, and only where the naive answer is wrong. Every option
 gets its own feedback: a wrong option names the belief it holds (`misconception`), says what the run shows with the
 run's values, and the right one gets a line on why. Every misconception is named by some option (verify warns). At
-most one interaction per chapter, never two within 4 steps.
+most one interaction per chapter, never two within 4 steps. Keep the answer out of the setup: a story's `description`,
+a chapter's `about` and `enter` card, and the steps before an ask set up the event, never its resolution.
 
 ### 5.3 Words: term load and readability
 
@@ -326,6 +328,11 @@ Watching is not doing. Two interactions let the reader act on the run (`engine/h
   ideally at other knob values (a transfer, not a recall of captions). Each answer shows its why; a miss offers
   "Replay <chapter>". It ends on "You can now…", the lesson's `objectives`, never a score: write objectives as
   things the reader can now do ("Explain why every copy of a word must reach the same counter").
+  - **Each story gets its own check**: what that story taught, on a situation its run did not show (the question
+    marked `transfer` is the one Expert gets). The same questions after every story test nothing the second time.
+  - **Spaced retrieval**: each story after the first brings back one earlier idea at new numbers, so the rule
+    answers it, not the memory of the first question.
+  - **Scope "You can now…"**: an objective only some stories teach carries `stories: [scenarioId]`.
 
 **Caps** (verify warns past them; the HUD asks only the first): one question (`s.ask` or `s.choose`) per chapter, at
 most 3 per story. The HUD keeps 3 at New, 2 at Basics, 1 at Expert, picks before predictions. Expert gets no
@@ -455,7 +462,7 @@ every knob extreme) also checks the lesson. These are **errors** in that run (ki
 figure does not pass, a `look` id that does not exist at the end of its step, an unknown `picture` row, `deeper`
 field or misconception id, and an ask whose option count differs from the figure's. Then a **lesson** section looks
 across all the runs and warns about step ids with no `plain`, steps or chapters without an id, `key` steps without a
-`why`, and misconceptions no ask option names; it notes (without counting) lesson ids no run reaches, which is fine
+`why`, and misconceptions no option (of an ask, a pick or an end-check question) names; it notes (without counting) lesson ids no run reaches, which is fine
 for a line only an untried knob value reaches (a very short input), and otherwise a typo.
 
 `node scripts/verify.mjs figure.mjs` ends with a **teaching** section (skip it with `--no-teach`). It reads the same

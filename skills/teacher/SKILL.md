@@ -42,7 +42,13 @@ Somewhere in the lesson there must be at least one `deeper.cost`, and at least o
   - *You'll know it worked when*: what the reader will see in the world.
 - The parts chapter's card (`enter.picture: true`) carries the full picture map once, with the line where the picture stops matching. There is no picture table under the steps; a step that uses the picture names its row (`picture`).
 - `about`: 1-2 sentences, ≤ 40 words, true in every story (`about@story` where one differs).
-- Exit checks and end checks are not in the format yet: don't write them.
+- `objectives` that only some stories teach carry `stories: [scenarioId]`, so each story's "You can now…" lists only what it taught.
+
+## End checks
+
+- Each story ends with its own `s.check` questions (the figure owns them): what that story taught, on a situation the run did not show (one marked `transfer`, which is what Expert gets), and in the stories after the first, one earlier idea brought back at new numbers (spaced). Never the same questions after every story.
+- `lesson.checks[id]` rewords them and adds a `why` and, for each wrong option, feedback that names its misconception, as for asks. Options the figure computes take one `wrong: { feedback, misconception }`.
+- `next`: 1–3 lessons that follow, `{ title, href, why }`, each `why` one line tying this run to the next idea. The end of the last story names them.
 
 ## Asks
 
@@ -55,6 +61,7 @@ Somewhere in the lesson there must be at least one `deeper.cost`, and at least o
 - Every misconception id appears in some option's feedback, and has a step that confronts it.
 - The figure owns the question, its options and which one is right; the lesson may reword them (same count, same order) and adds the feedback.
 - Spacing: at most 1 interaction per chapter, never two within 4 steps.
+- **Keep the answer out of the setup.** A story's `description`, a chapter's `about` and `enter` card, and the steps before an ask never state what the ask asks for: set up the event, not its resolution ("…and the slips it wrote are lost with it", not "…and the master has that piece read again").
 
 ## Words
 
