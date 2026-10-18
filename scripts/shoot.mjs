@@ -215,7 +215,7 @@ async function teachShots(browser, url, size, o) {
             await waitFor(`(() => { const p = document.querySelector(".ix-predict.ix-open"); if (!p) return true;
               const b = p.querySelector(".ix-opt:not([aria-disabled])"); if (b) { b.click(); return false; }
               const n = p.querySelector(".ix-check-actions .ix-pill"); if (n) { n.click(); return false; }
-              return !!p.querySelector(".ix-can"); })()`, 10000);
+              return !!p.querySelector(".ix-can"); })()`, 30000);
             await settle();
             await snap(join(o.outDir, `${endBase}-end-cannow.png`));
             o.shots.push(entry(`${endBase}-end-cannow.png`, "end-cannow"));
