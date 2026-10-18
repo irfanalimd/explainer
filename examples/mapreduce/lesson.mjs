@@ -16,20 +16,29 @@ const PAPER = "J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on
 
 export const lesson = {
   goal: "Count every word of a text exactly, with machines that each read only part of it.",
+  // `stories`: the stories that teach an objective; the end card's "You can now…" lists only those (all when absent)
   objectives: [
-    { id: "o-split", text: "Say why the text is cut into pieces and read in parallel, and what that buys." },
+    { id: "o-split", text: "Say why the text is cut into pieces and read in parallel, and what that buys.", stories: ["happy", "skew"] },
     { id: "o-hash", text: "Explain why every copy of a word must reach the same counter, and how a hash does it without asking anyone." },
-    { id: "o-fail", text: "Say why a crashed or slow reading task can simply run again, and which finished work must re-run." },
-    { id: "o-cost", text: "Name what the shuffle costs, and how adding up repeats early cuts it." },
+    { id: "o-reduce", text: "Say what a counting machine writes: one total for each different word it holds.", stories: ["happy"] },
+    { id: "o-crash", text: "Say why a crashed reading task can simply run again, even one that had finished.", stories: ["crash"] },
+    { id: "o-slow", text: "Say why a backup copy of a slow piece is safe, and why only one copy's slips may count.", stories: ["straggler"] },
+    { id: "o-skew", text: "Explain why one very common word overloads one counter, and why adding up repeats early helps where more machines don't.", stories: ["skew"] },
   ],
 
   misconceptions: [
     { id: "m-central", wrong: "Each machine counts its piece, and one machine adds it all up at the end.", fix: "Then one machine would add up every slip. Instead each word's slips meet on one counter, so the adding is shared too." },
     { id: "m-even", wrong: "Spreading the slips evenly over the counters is best.", fix: "Copies of one word would land on different counters, and none could give its full count." },
+    { id: "m-one", wrong: "A counting machine adds all its slips into one number.", fix: "It adds each word's slips apart from the rest: one total for each different word it holds." },
     { id: "m-lost", wrong: "A crashed machine's words are lost, so the count comes out short.", fix: "Its piece is still in the input. Reading it again gives the same slips." },
     { id: "m-restart", wrong: "One failure restarts the whole job.", fix: "Only the failed machine's tasks run again." },
+    { id: "m-done", wrong: "A reading task that had finished is safe when its machine dies later.", fix: "Its slips were on that machine's own disk, so they die with it, and the piece is read again." },
     { id: "m-wait", wrong: "The job has to wait for its slowest machine.", fix: "A backup copy of the slow piece on a free machine gives the same slips. The first copy to finish wins." },
     { id: "m-skip", wrong: "Skipping a slow piece is a fair price for finishing on time.", fix: "Its words would never be counted. MapReduce never trades a correct count for speed." },
+    { id: "m-both", wrong: "Keeping both copies' slips is harmless: the extra copy is only a spare.", fix: "Both copies wrote slips for the same words, so keeping both counts those words twice." },
+    { id: "m-more", wrong: "More counting machines would spread out one very common word.", fix: "The hash sends every copy of a word to one counter, however many there are. More machines only move other words." },
+    { id: "m-readers", wrong: "More reading machines would share out a common word's slips.", fix: "The counter is picked from the word alone, so every copy still goes to the same counter however many machines read." },
+    { id: "m-combine", wrong: "Adding up repeats early changes the counts.", fix: "Each early slip carries its count, and the counter adds those counts, so the total is the same." },
   ],
 
   picture: {
@@ -168,7 +177,7 @@ export const lesson = {
         key: true,
         why: "Fewer slips cross the network, and the counts don't change: adding gives the same total wherever it happens.",
         deeper: {
-          how: "The paper calls this a combiner: usually the same code as reduce, run on each mapper's own slips. The paper allows it only when reduce is commutative and associative (order and grouping don't change the result), as a sum is; an average, say, cannot be combined this simply (§4.3).",
+          how: "The paper calls this a combiner: usually the same code as reduce, run on each mapper's own slips. It is meant for a reduce that is commutative and associative (order and grouping don't change the result), as a sum is; an average, say, cannot be combined this simply (§4.3).",
           code: "`emit(word, sum(counts))` (lines 5–6)",
           source: PAPER,
         },
@@ -245,8 +254,9 @@ export const lesson = {
       look: ["{helperId}", "{splitId}"],
       deeper: {
         how: "The master starts backups only when the job is close to done, for the tasks still running. That costs only a few percent more machine time (§3.6).",
-        cost: "In the paper's sort benchmark, turning backups off made the job take 44% longer (§3.6).",
-        source: PAPER,
+        cost: "In the paper's sort benchmark, turning backups off made the job take 44% longer (§3.6, §5.3).",
+        real: "Hadoop calls this speculative execution and turns it on by default for both map and reduce tasks (mapreduce.map.speculative, mapreduce.reduce.speculative); Spark has it off by default (spark.speculation).",
+        source: `${PAPER}; Apache Hadoop, mapred-default.xml, https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/mapred-default.xml; Apache Spark, Configuration, https://spark.apache.org/docs/latest/configuration.html`,
       },
     },
     "slow.race": {
@@ -279,6 +289,7 @@ export const lesson = {
         how: "Each mapper has already divided its slips into {R} files, one per counter, and each counter fetches its file from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
         cost: "In this model {shuffleBytes} bytes cross the network: each slip's word plus a 4-byte count (real formats add length headers, and a reader on the counter's own machine sends nothing). In a cluster, network bandwidth is the scarce resource (§3.4).",
         edge: "Python's own hash() of a string changes from process to process (hash randomization) unless PYTHONHASHSEED is fixed, and can differ between Python versions, so two machines could disagree. Real jobs use a specified hash; this run uses FNV-1a.",
+        real: "`hash(key) mod R` is only the paper's default partitioning function. A job can supply its own: `hash(Hostname(urlkey)) mod R` puts every page of one website in the same output file (§4.1). Within one counter, keys are handed to reduce in increasing order, which is why each output file comes out sorted (§4.2).",
         code: "`hash(word) % R` (lines 8–9)",
         source: PAPER,
       },
@@ -401,9 +412,9 @@ export const lesson = {
       why: "The lost piece was read again from the input, and the dead copy's slips never reached a counter.",
       look: ["output"],
       first: {
-        when: (v) => v.n === 11 && v.M === 3,
+        when: (v) => v.own > 0,
         deeper: {
-          cost: "Redoing the lost piece cost time: map 0 read 8 words back to back (its own 4, then split 1's 4), twice the biggest piece. In all 13 words were read, not 11: the dead machine's 2 were wasted.",
+          cost: "Redoing the lost piece cost time: {twiceMap} read {count:twice|word} back to back (its own {own}, then the lost piece), where the biggest piece alone is {biggest}. In all {reads} words were read, not {n}: the dead machine's {wasted} were wasted.",
           source: PAPER,
         },
       },
@@ -418,9 +429,9 @@ export const lesson = {
       why: "The backup's slips counted and the slow copy's were thrown away, so no word was counted twice.",
       look: ["output"],
       first: {
-        when: (v) => v.n === 11 && v.M === 3,
+        when: (v) => v.own > 0,
         deeper: {
-          cost: "The backup cost map 0 a second piece: 8 words back to back (its own 4, then split 1's 4), but that beat waiting for the failing disk. In all 13 words were read, not 11: map 1's 2 were thrown away.",
+          cost: "The backup cost {twiceMap} a second piece: {count:twice|word} back to back (its own {own}, then the slow piece), but that beat waiting for the failing disk. In all {reads} words were read, not {n}: the slow copy's {wasted} were thrown away.",
           source: PAPER,
         },
       },
@@ -459,14 +470,27 @@ export const lesson = {
         source: PAPER,
       },
     },
+    "skew.more": {
+      key: true,
+      plain: "With {R2} counters, every {top} would still go to one: {load2} of {slips} slips.",
+      why: "More counters spread out different codes, never the copies of one code: those must meet to be counted.",
+      look: ["{hotId}"],
+      deeper: {
+        cost: "This line runs the run's own hash with one more counter: {eq2}. A counter's share of a key is all of it or none of it, so the busiest counter gets at least {topN} of the {slips} slips whatever the count of counters.",
+        edge: "A reduce call is handed every value of its key at once (§4.1, §4.2), so the paper has no way to split one key over machines. The fix has to shrink the key's data before the shuffle, or rename the key.",
+        source: PAPER,
+      },
+    },
     "skew.combine": {
       key: true,
-      plain: "If each reader sent one slip per different code, {count:sent|slip} would travel, {hotC} to {hot}.",
+      plain: "If each reader ran a {term:combiner} first, {count:sent|slip} would travel, {hotC} to {hot}.",
       why: "Each slip would carry its code's count instead of a 1, so the busy counter's load falls and counts stay exact.",
       look: ["{hotId}"],
       deeper: {
-        how: "Turn on “Add up repeats first” to watch each reader do it. The paper calls this a combiner. It is safe only because adding is commutative and associative: order and grouping don't change a sum. An average can't be combined naively (§4.3).",
-        source: PAPER,
+        how: "Turn on “Add up repeats first” to watch each reader do it. The paper suggests a combiner where reduce is commutative and associative, as a sum is: order and grouping don't change the result. An average can't be combined naively: an average of averages is wrong unless each slip carries its count too (§4.3).",
+        edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. Then the remedy is “salting”: add a random suffix to the hot key so its slips spread over several counters, and add up the parts in a second job.",
+        real: "Spark's reduceByKey adds up on each reader first, like a combiner; groupByKey ships every value, and Spark's guide warns to prefer reduceByKey or aggregateByKey for sums and averages.",
+        source: `${PAPER}; T. White, Hadoop: The Definitive Guide, 4th ed., O'Reilly 2015, ch. 2, “Combiner Functions”; Apache Spark, RDD Programming Guide, https://spark.apache.org/docs/latest/rdd-programming-guide.html`,
       },
     },
   },
@@ -477,13 +501,64 @@ export const lesson = {
       prompt: "The first {w} went to {firstRed}. Click the counting machine that should get this one, from {from}.",
       why: "{w} always hashes to the same number, so every copy of it meets on {firstRed}.",
       wrong: { misconception: "m-even",
-        feedback: "Now {w}'s slips sit on two counters. Each adds up only what it holds, so neither can give the full count." },
+        feedback: "Now the slips for {w} sit on two counters. Each adds up only what it holds, so neither can give the full count." },
     },
   },
 
   // the end check, by check id: answers come from the figure's own rules at other knob values; the lesson says why
   checks: {
-    "check.hash": { question: "Suppose a new job with {R2} counting machines instead of {R}. Which one gets every {w} slip?", why: "hash({w}) is the same on every machine. Divided by {R2}, it leaves remainder {rem2}: {red2}." },
+    "check.hash": {
+      question: "Suppose a new job with {R2} counting machines instead of {R}. Where do the {count:topN|slip} for {w} go?",
+      why: "hash({w}) is the same on every machine, so every copy goes to one counter. Divided by {R2}, it leaves remainder {rem2}: {red2}.",
+      options: [
+        { misconception: "m-even", feedback: "Spread out, the slips for {w} would sit on several counters, and none could give its full count." },
+        {},
+        { misconception: "m-even", feedback: "Counters never compare notes, so copies sent wherever there is room could never be added together." },
+      ],
+    },
+    "check.crash-done": {
+      question: "Suppose {other} had finished all its slips, then crashed before any counting machine fetched them. What happens to its piece?",
+      why: "Its slips sat on its own disk, which died with it. The piece is still in the input, so the master has it read again.",
+      options: [
+        { misconception: "m-done", feedback: "Finished isn't safe yet: until a counter fetches them, the slips live only on that machine's disk." },
+        {},
+        { misconception: "m-restart", feedback: "The other machines still hold their slips. Only the dead machine's pieces run again." },
+      ],
+    },
+    "check.both": {
+      question: "Suppose the master kept the slips of both copies of {split}. What would the output say for {w}?",
+      why: "The backup wrote a slip for every word of {split}. The slow copy had already written {count:wrote|slip}, one of them for {w}. Kept together, {w} counts {kept}, but the text has {real}.",
+      // the figure's options are always [the true count, the answer, one more], in that order
+      options: [
+        { misconception: "m-both", feedback: "Both copies read {w}, so keeping both copies' slips counts it twice: {kept}, not {real}." },
+        {},
+        { feedback: "Only the words both copies read count twice, and the slow copy stopped after {count:wrote|slip}." },
+      ],
+    },
+    "check.one": {
+      question: "Same failing disk, but the job has only 1 reading machine. What does the master do?",
+      why: "A backup needs a second machine to run on. With one, the job waits for the slow disk.",
+      options: [
+        { feedback: "There is no other machine to run it on: a backup needs a free second machine." },
+        {},
+        { misconception: "m-skip", feedback: "Its words would never be counted. The master never trades a correct count for speed." },
+      ],
+    },
+    "check.combine": {
+      question: "Suppose “Add up repeats first” were on. What would the output say for {w}?",
+      why: "Each of the {count:readers|reader} that saw {w} sends one slip carrying its own count ({parts}). The counter adds the counts: {topN}, as before.",
+      // the figure's options are always [one per reader, the answer, the two added], in that order
+      options: [
+        { misconception: "m-combine", feedback: "That counts the slips, one per reader. The counter adds the numbers on the slips, so the total stays {topN}." },
+        {},
+        { misconception: "m-combine", feedback: "Nothing is counted twice: each early slip replaces the 1s it adds up. The total stays {topN}." },
+      ],
+    },
+    "check.readers": {
+      question: "Suppose {M2} reading machines instead of {M}, nothing else changed. How many of the {moved} slips would {hot} get?",
+      why: "The counter is picked from the code alone, so every slip goes where it went before: {hot} still gets {load}.",
+      wrong: { misconception: "m-readers", feedback: "Who reads a line doesn't change where its slip goes: the hash looks only at the code, so {hot} still gets {load}." },
+    },
     "check.split": {
       question: "Suppose a new job with {M2} reading machines instead of {M}. How many words does the busiest one read?",
       "question@skew": "Suppose a new job with {M2} reading machines instead of {M}. How many lines does the busiest one read?",
@@ -495,6 +570,8 @@ export const lesson = {
       "question@skew": "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the log. How many totals would the output hold?",
       why: "The output holds one total per different word. One more {w} changes its count, not how many totals there are: {distinct}.",
       "why@skew": "The output holds one total per different code. One more {w} changes its count, not how many totals there are: {distinct}.",
+      wrong: { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new words." },
+      "wrong@skew": { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new codes." },
     },
   },
 
@@ -518,13 +595,31 @@ export const lesson = {
           feedback: "Then those words would never be counted, and the answer would be wrong. Speed never buys a wrong count here." },
       ],
     },
-    "shuffle.where": {
+    "skew.where": {
       options: [
         { misconception: "m-even",
-          feedback: "Even spreading would split {w}'s slips between {firstRed} and {otherRed}, and neither could give its full count." },
-        { feedback: "Right. {w} always hashes to the same number, so every copy of it lands on {firstRed}." },
+          feedback: "Spreading would split the slips for {w} between counters that never compare notes, so no counter could give its full count." },
+        { feedback: "Right. {w} always hashes to the same number, so every copy of it lands on {firstRed}, however busy it gets." },
         { misconception: "m-central",
           feedback: "Then one machine would add up every slip, the very work we shared out. Here each counter adds up only its own share." },
+      ],
+    },
+    "reduce.how-many": {
+      options: [
+        { misconception: "m-one",
+          feedback: "One number would mix the words together. The output needs a count for each word, so a counter adds each word's slips apart." },
+        { feedback: "Right. Sorted, equal words sit side by side, and each group becomes one total." },
+        { misconception: "m-one",
+          feedback: "That would leave the repeats unadded. Slips for the same word are added into one total, so fewer totals than slips come out." },
+      ],
+    },
+    "skew.fix": {
+      options: [
+        { misconception: "m-more",
+          feedback: "With {R2} counters, the hash still sends every {top} to one of them: {load2} of {slips} slips. A new machine takes only other codes." },
+        { misconception: "m-even",
+          feedback: "Then {top}'s slips would sit on two counters, and neither total would be right: the count splits in two." },
+        { feedback: "Right. Each reader sends one {top} slip carrying its count, so the busy counter has far fewer slips to add." },
       ],
     },
   },
