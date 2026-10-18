@@ -1071,6 +1071,11 @@
   0% { box-shadow: 0 0 0 0 rgb(var(--ix-ink-rgb) / 0.35); }
   70%, 100% { box-shadow: 0 0 0 12px rgb(var(--ix-ink-rgb) / 0); }
 }
+/* while the end check asks, the pill after it waits in a quiet form (one way on: the check's own Next question);
+   it turns solid, and calls, once the check says "You can now…" */
+.ix-play.ix-held-btn.ix-quiet-held { background: var(--ix-raised); color: var(--ix-ink-muted); box-shadow: inset 0 0 0 1px var(--ix-line); }
+.ix-play.ix-quiet-held::after { animation: none; }
+.ix-play.ix-quiet-held .ix-tp-kbd { color: var(--ix-ink-faint); background: rgb(var(--ix-ink-rgb) / 0.06); }
 .ix[data-size="phone"] .ix-play.ix-held-btn { width: auto; min-width: 0; padding: 0 20px; }
 .ix[data-size="phone"] .ix-play.ix-held-btn .ix-tp-label { display: inline; }
 .ix[data-size="phone"] .ix-play.ix-held-btn .ix-tp-more { display: none; }

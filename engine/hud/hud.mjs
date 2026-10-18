@@ -1453,7 +1453,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const storyAfter = () => (S.tl?.branch ? null : nextStory(S.scenarios, S.scenario));
   // an open question is the one way on: the transport says so rather than offer a Play that would only stop again
   // (syncAsk keeps this in step with the predict card and the pick)
-  let askingNow = false;
+  let askingNow = false, checkingNow = false;
   function renderPlay() {
     const hv = S.playing ? null : S.held;
     const after = hv?.kind === "end" ? storyAfter() : null, ask = !hv && !S.playing && askingNow;
@@ -1474,6 +1474,8 @@ export function createHud(root, opts = {}, cb = {}) {
     playBtn.classList.toggle("ix-continue", !!hv && (hv.kind !== "end" || !!after));
     playBtn.classList.toggle("ix-held-btn", !!hv);
     playBtn.classList.toggle("ix-asking-btn", ask);
+    // the end check is the way on while it asks: the pill after it waits, quiet, and turns solid once it is done
+    playBtn.classList.toggle("ix-quiet-held", hv?.kind === "end" && checkingNow);
     // at a chapter's pause, Replay is this chapter; at a story's end with a next story, it is this story again
     againBtn.hidden = !(hv && (hv.kind === "chapter" || after));
     againBtn.classList.toggle("ix-again-end", !!after);
@@ -2165,6 +2167,11 @@ export function createHud(root, opts = {}, cb = {}) {
   function syncAsk() {
     const on = !!Q.q && Q.answered == null && !Q.revealed && (!Q.q.kind || Q.q.kind === "choose");
     if (on !== askingNow) { askingNow = on; renderPlay(); }
+  }
+  // the end check open on a question (not yet "You can now…"): the transport steps back (renderPlay)
+  function syncChecking() {
+    const on = S.held?.kind === "end" && check.open && !check.done && predict.classList.contains("ix-open");
+    if (on !== checkingNow) { checkingNow = on; renderPlay(); }
   }
   // the transport pressed while a question waits: say where the way on is, and put the keyboard there
   function pointToAnswer() {
@@ -2995,6 +3002,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if ((++legendTick >= 6 || legendSig === "\u0000" || capturing()) && veilStep() !== step) { legendTick = 0; updateLegend(frame); }   // captures render one update per shot
     if (Q.q) { maybeReveal(); predictTick(); }
     syncAsk();
+    syncChecking();
     saveProgress();
     const sm = !!info.stepMode;
     if (sm !== S.stepMode) {
