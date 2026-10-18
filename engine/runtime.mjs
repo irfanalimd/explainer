@@ -291,7 +291,11 @@ export async function mount(root, figure, options = {}) {
       if (!recompile({ keepPhase: false })) return;
     }
     if (fork) startAtFork();
-    else if (Number.isFinite(t)) time = tl.steps[stepIndexAt(clamp(t, 0, tl.duration))].t0;
+    else if (Number.isFinite(t)) {
+      // a step that asks is picked up just before it, so the question opens again rather than its answer playing
+      const st = tl.steps[stepIndexAt(clamp(t, 0, tl.duration))];
+      time = st.ask || st.choose ? Math.max(0, st.t0 - 2e-3) : st.t0;
+    }
     play();
   }
   function setParams(next) {
