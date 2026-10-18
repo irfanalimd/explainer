@@ -110,7 +110,7 @@ function summarizeVerify(v, vr) {
   };
   return {
     fatal: v.fatal ?? null, timedOut: v.timedOut ?? null, runs: runs.length,
-    failing: runs.filter((x) => x.errors.length).length + (v.teaching?.errors.length ? 1 : 0),
+    failing: runs.filter((x) => x.errors.length).length + (v.teaching?.errors.length ? 1 : 0) + (v.static?.errors.length ? 1 : 0) + (v.timedOut ? 1 : 0),
     errors: vr.errors, warnings: vr.warnings, ms: v.ms,
     branches: runs.reduce((a, x) => a + (x.branches ?? 0), 0),
     exports: v.static ? { errors: list(v.static.errors), warnings: list(v.static.warnings) } : null,
