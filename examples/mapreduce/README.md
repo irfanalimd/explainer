@@ -38,10 +38,12 @@ never met MapReduce. The reader should leave knowing:
   - One word is very common: where all ten "200" slips go (a hash spreads different words, never the copies of one),
     and which fix takes the work off the busy counter (more counters, sending some 200s elsewhere, or adding up
     repeats first). The step after it runs the run's own hash with one more counter: every 200 still meets on one.
-- **End check, per story** (`s.check`, answered from the run's rules at a situation it did not show): another number
-  of counters (every story, so later stories bring the first one back); a machine that dies after finishing (crash);
-  keeping both copies' slips, and one reading machine (slow); the combiner turned on, and more reading machines
-  (common word). "You can now…" lists only the objectives that story taught (`objectives[].stories`).
+- **End check, per story** (`s.check`, answered from the run's rules at a situation it did not show). Everything
+  works: another number of counters, one more copy of a word, more reading machines. One machine crashes: a machine
+  that dies after finishing, then the counters question again. One machine is slow: keeping both copies' slips, one
+  reading machine, then the one-more-word question again. One word is very common: the combiner turned on, a backup
+  copy of the busy counter, more reading machines. So each later story checks its own idea first and brings back one
+  of story 1's. "You can now…" lists only the objectives that story taught (`objectives[].stories`).
 - **Words** (`meta.terms`): master, split, mapper, hash, shuffle, reducer, straggler.
 - **Recap and takeaway** at the end; each failure story has its own.
 
