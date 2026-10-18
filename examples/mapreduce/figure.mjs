@@ -251,7 +251,7 @@ export function build(s, p, scenario, env = {}) {
     s.spawn(`m${k}.split${k}`, { from: `split${k}`, in: `m${k}`, of: "page", text: `split ${k}`, sub: `${splits[k].length} ${unit}` });
     s.set(`m${k}`, { led: "busy", sub: "reading", state: { host: ip(10, k), task: `map ${k}` } });
   }
-  step(M > 1 ? "map.handout": "map.handout-one", M > 1 ? `The master hands each machine its piece; all ${M} pieces travel at once.` : "The master hands the machine its piece.");
+  step(M > 1 ? "map.handout" : "map.handout-one", M > 1 ? `The master hands each machine its piece; all ${M} pieces travel at once.` : "The master hands the machine its piece.");
 
   // emit words [from, to) of a split from a split copy into mapper k, one beat per word
   const emit = (k, split, list, src, from = 0, to = list.length, suffix = "") => {
