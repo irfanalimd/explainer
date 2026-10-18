@@ -55,6 +55,7 @@ const CHROME_HINT = "Run node " + join(skillRoot, "scripts", "doctor.mjs") + " t
 
 // every Chrome this process started, until its profile is gone: killed and cleaned on exit, Ctrl-C included
 const live = new Set();
+const POSIX = process.platform !== "win32";
 process.on("exit", () => { for (const b of [...live]) b.kill(); });
 for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(sig, () => { for (const b of [...live]) b.kill(); process.exit(128 + (sig === "SIGINT" ? 2 : sig === "SIGTERM" ? 15 : 1)); });
 
@@ -67,9 +68,19 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
     "--ignore-gpu-blocklist", "--enable-gpu", "--enable-unsafe-swiftshader", "--use-angle=metal",
     "--disable-background-timer-throttling", "--disable-renderer-backgrounding", "--disable-backgrounding-occluded-windows",
     ...(process.platform === "linux" ? ["--no-sandbox"] : []), ...args, "about:blank",
-  ], { stdio: ["ignore", "ignore", "pipe"] });
+  ], { stdio: ["ignore", "ignore", "pipe"], detached: POSIX });
   let stderr = "";
-  const removeProfile = () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 }); } catch {} };
+  const removeProfile = () => { try { rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); } catch {} };
+  // Chrome is a tree (browser, zygotes, renderers, GPU): on POSIX it runs in its own process group, so one signal
+  // reaches every process, and a watchdog outlives this one: when this process dies by any means (SIGKILL and a
+  // tool's timeout included) or Chrome exits, it kills the group and removes the profile once nothing writes to it.
+  const killTree = (sig) => { try { if (POSIX && chrome.pid) process.kill(-chrome.pid, sig); else chrome.kill(sig); } catch { try { chrome.kill(sig); } catch {} } };
+  if (POSIX && chrome.pid) {
+    try {
+      spawn("/bin/sh", ["-c", 'while kill -0 "$OWNER" 2>/dev/null && kill -0 "$CHROME_PID" 2>/dev/null; do sleep 1; done; kill -9 -"$CHROME_PID" 2>/dev/null; sleep 1; rm -rf "$PROFILE"'],
+        { detached: true, stdio: "ignore", env: { PATH: process.env.PATH ?? "/usr/bin:/bin", OWNER: String(process.pid), CHROME_PID: String(chrome.pid), PROFILE: profile } }).unref();
+    } catch { /* no /bin/sh: the exit handlers below still clean up */ }
+  }
   const started = new Promise((ok, fail) => {
     const timer = setTimeout(() => fail(new Error("Chrome did not start within " + timeout + " ms:\n" + stderr.slice(-2000))), timeout);
     chrome.on("error", (e) => { clearTimeout(timer); fail(new Error(`could not run ${CHROME}: ${e.message}`)); });
@@ -81,7 +92,7 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
     });
   });
   // a Chrome that never came up leaves nothing behind either
-  const wsUrl = await started.catch((e) => { try { chrome.kill("SIGKILL"); } catch {} removeProfile(); throw new Error(`${e.message}\n${CHROME_HINT}`); });
+  const wsUrl = await started.catch((e) => { killTree("SIGKILL"); removeProfile(); throw new Error(`${e.message}\n${CHROME_HINT}`); });
   const ws = new WebSocket(wsUrl);
   await new Promise((ok, fail) => { ws.addEventListener("open", ok, { once: true }); ws.addEventListener("error", () => fail(new Error("DevTools socket failed")), { once: true }); });
   let id = 0, closed = false, closing = false;
@@ -118,13 +129,13 @@ export async function launch({ args = [], timeout = 20000 } = {}) {
       try { ws.close(); } catch {}
       const gone = () => { removeProfile(); live.delete(browser); };
       if (chrome.exitCode !== null || chrome.signalCode !== null) gone();
-      else { chrome.once("exit", gone); chrome.kill(); }
+      else { chrome.once("exit", gone); killTree("SIGTERM"); }
     },
     kill: () => {
       closing = true;
       live.delete(browser);
       try { ws.close(); } catch {}
-      try { chrome.kill("SIGKILL"); } catch {}
+      killTree("SIGKILL");
       removeProfile();
     },
     get stderr() { return stderr; },
