@@ -309,7 +309,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
 
     // phases, events, counters
     const phaseName = st.phase !== undefined ? st.phase : prevPhase;
-    if (i === 0 || phaseName !== prevPhase) phases.push({ name: phaseName ?? "", id: st.phaseId ?? null, step: i, t0, t1, about: st.about ?? null, ...(st.enter ? { enter: st.enter } : {}) });
+    if (i === 0 || phaseName !== prevPhase) phases.push({ name: phaseName ?? "", id: st.phaseId ?? null, step: i, t0, t1, about: st.about ?? null, ...(st.enter ? { enter: st.enter } : {}), ...(st.teach ? { teach: st.teach } : {}) });
     else if (st.about && !phases[phases.length - 1].about) phases[phases.length - 1].about = st.about;
     phases[phases.length - 1].t1 = t1;
     prevPhase = phaseName;

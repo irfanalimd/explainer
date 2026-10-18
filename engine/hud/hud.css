@@ -1793,10 +1793,14 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 .ix-share-foot { display: flex; gap: 8px; align-items: flex-start; }
 .ix-share-foot .ix-share-icon { margin-top: 1px; }
 .ix-share-foot .ix-share-icon svg { width: 12px; height: 12px; }
-/* phones: the share tool keeps its icon (the toolbar has no room for the word), and the panel is a sheet */
-.ix[data-size="phone"] .ix-share-tool { padding: 0 8px; }
-.ix[data-size="phone"] .ix-share-tool .ix-tool-icon { display: inline-grid; }
-.ix[data-size="phone"] .ix-share-tool .ix-tool-label { display: none; }
+/* phones: the toolbar has no room for one more word, so Share opens from the about card (the title), and the panel
+   is a bottom sheet; the second help-style row sits flush under the first */
+.ix[data-size="phone"] .ix-share-tool { display: none; }
+.ix:not([data-size="phone"]) .ix-about-share { display: none; }
+.ix-about-share + .ix-about-help { margin-top: 0; }
+.ix-about-share .ix-about-help-mark svg { width: 12px; height: 12px; }
+/* desktop: the open panel stands alone in the right column (the explain panel and the parameters step aside) */
+.ix:has(.ix-share.ix-open):not([data-size="phone"]) .ix-params { visibility: hidden; }
 .ix[data-size="phone"] .ix-share { overflow-y: auto; }
 .ix[data-size="phone"] .ix-share .ix-panel-body { flex: none; overflow: visible; }
 .ix.ix-present .ix-share-tool { display: none; }

@@ -59,12 +59,16 @@ export const lesson = {
 
   chapters: {
     split: {
+      teach: { prompt: "Before it runs: if three people share the counting of one library, what could go wrong with the total?", listen: "A word counted twice, or missed, where two pieces meet. Here every word sits in exactly one piece, so neither can happen.", minutes: 3 },
       about: "Think of counting every word in a library with a team. One person would take ages, so a coordinator, the {term:master}, gives each helper one shelf: a {term:split}, one piece of the text.",
       "about@skew": "The same counting job on a web log. Each line is one website request, and its status code is a number saying how it went (200 OK, 404 not found). The {term:master} gives each machine one {term:split} of the log.",
       enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. The table names the parts; each comes back when its step plays.", done: "Every word sits in exactly one piece.", picture: true },
       "enter@skew": { sofar: "On one machine, a loop and a dictionary count things: each code maps to its count so far.", now: "Cut the log into pieces, one per machine.", done: "Every line sits in exactly one piece.", picture: true },
     },
     map: {
+      teach: { prompt: "Why can every reading machine start at once, without waiting for the others?", listen: "Map needs only its own piece, and nobody adds anything yet. Listen for “one machine adds it all up at the end”: the shuffle answers that idea next.", minutes: 3 },
+      "teach@crash": { prompt: "A machine just crashed. Before the question on screen, ask the room: is its part of the count gone for good?", listen: "Its text is still in the shared input, so the master hands the piece out again. Listen for “the count comes out short” and “the whole job starts over”.", minutes: 4 },
+      "teach@straggler": { prompt: "One machine is far behind. Should the job wait for it, skip it, or do something else?", listen: "A backup copy of the slow piece runs on a free machine, and the first copy to finish wins. Skipping it would leave its words uncounted.", minutes: 4 },
       about: "Each helper tallies their own shelf: each reading machine, a {term:mapper}, writes a slip like `(word, 1)`, meaning “this word, seen once”, for every word. Nobody waits for anybody.",
       "about@skew": "Each reading machine, a {term:mapper}, writes a slip like `(code, 1)` for every line of its piece. Nobody waits for anybody.",
       "about@crash": "Each reading machine, a {term:mapper}, writes slips like `(word, 1)` to its own disk until the counters fetch them. If it crashes first, they die with it, so its piece is read again, even if it had finished.",
@@ -75,18 +79,22 @@ export const lesson = {
       "enter@straggler": { sofar: "The text is in {count:M|piece}, one per machine.", now: "Each machine turns its piece into slips, but one has a failing disk.", done: "Every word has exactly one slip that counts, even the slow piece's." },
     },
     shuffle: {
+      teach: { prompt: "Why not deal the slips out evenly, like cards, so every counter gets the same amount?", listen: "Copies of one word would land on different counters, and no counter could give that word's full count. The hash sends every copy to one counter without any machine asking another.", minutes: 5 },
+      "teach@skew": { prompt: "Almost every line is the same code. Where will all those slips go, and what does that do to one machine?", listen: "Every copy goes to the one counter its hash picks: the count stays exact, but that counter does most of the work. Adding up repeats first shrinks it.", minutes: 5 },
       about: "In {term:shuffle|the shuffle}, every slip for one word must reach the same counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters: the remainder, from 0 up to one less, names the counter.",
       "about@skew": "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. {top} fills {topN} of the {n} lines, so one machine receives every one of those slips.",
       enter: { sofar: "Every word is a `(word, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one word sit on the same counting machine." },
       "enter@skew": { sofar: "Every line is a `(code, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "All the slips for any one code sit on the same counting machine." },
     },
     reduce: {
+      teach: { prompt: "Why sort the slips before adding them up, when a dictionary would do?", listen: "Sorted, equal words sit together, so one pass adds them up even when the slips don't fit in memory.", minutes: 2 },
       about: "Each counting machine, a {term:reducer}, sorts its slips so equal words sit together, then adds up each group into one total.",
       "about@skew": "Each counting machine, a {term:reducer}, sorts its slips so equal codes sit together, then adds up each group into one total.",
       enter: { sofar: "All the slips for any one word sit on the same counting machine.", now: "Each counter adds up its own words.", done: "Each counter holds one total per word it was sent." },
       "enter@skew": { sofar: "All the slips for any one code sit on the same counting machine.", now: "Each counter adds up its own codes.", done: "Each counter holds one total per code it was sent." },
     },
     output: {
+      teach: { prompt: "Point at any total in the output. How do we know no other counter holds part of it?", listen: "The hash sent every copy of that word to one counter, so its total is the full count. Every what-if tests exactly this.", minutes: 3 },
       about: "Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different word.",
       "about@skew": "Each counter posts its totals to the shared output, like a list on a noticeboard. Together they hold exactly one count for every different status code.",
       enter: { sofar: "Each counter holds one total per word it was sent.", now: "Post every total to the shared output.", done: "The output holds one count for each of the {distinct} different words." },

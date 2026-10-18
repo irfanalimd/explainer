@@ -280,7 +280,10 @@ export function createHud(root, opts = {}, cb = {}) {
   // phones have no help circle: help opens from here, under the subtitle (the card opens from the title)
   const aboutHelp = h("button", { class: "ix-about-help", type: "button", onclick: () => { toggleAbout(false); aboutBtn.focus({ preventScroll: true }); toggleHelp(true); } },
     h("span", { class: "ix-about-help-mark", "aria-hidden": "true", text: "?" }), "How to use this figure");
-  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite, aboutHelp);
+  // phones have no room for Share in the toolbar: it waits here too, beside help
+  const aboutShare = h("button", { class: "ix-about-help ix-about-share", type: "button", onclick: () => { toggleAbout(false); toggleShare(true); } },
+    h("span", { class: "ix-about-help-mark", "aria-hidden": "true", html: ICON.share }), "Share this moment");
+  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite, aboutShare, aboutHelp);
   on(headRow, "click", (e) => { if (S.size === "phone" && e.target !== aboutBtn && !aboutBtn.contains(e.target)) toggleAbout(); });
   function renderTitle() {
     const m = S.meta;
