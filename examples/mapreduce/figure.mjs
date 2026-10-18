@@ -237,7 +237,7 @@ export function build(s, p, scenario, env = {}) {
   s.tag("input", M > 1 ? `alone: ${words.length} reads · shared: ${biggest} each` : `${words.length} reads, one by one`);
   s.line(1);
   step(M > 1 ? "split.cut" : "split.one", M > 1
-    ? `The master cuts the ${skewed ? "log" : "text"} into ${M} pieces of about ${Math.round(words.length / M)} ${unit}, one per machine.`
+    ? `The master hands out the ${skewed ? "log" : "text"} in ${M} pieces of about ${Math.round(words.length / M)} ${unit}, one per machine.`
     : `With one machine there is one piece: all ${words.length} ${unit}.`, { pieces }, { keep: true });
 
   // ---- Map ----
@@ -595,7 +595,7 @@ export function build(s, p, scenario, env = {}) {
   s.focus("output");   // the payoff: the camera frames the answer large
   if (skewed && moved) {
     const hot = load.indexOf(Math.max(...load));
-    const hv = { hot: redRef(hot), hotId: `r${hot}`, load: load[hot], moved, share: Math.round((load[hot] / (moved / R)) * 10) / 10,
+    const hv = { hot: redRef(hot), hotId: `r${hot}`, load: load[hot], moved, share: Math.round((load[hot] / (moved / R)) * 10) / 10, even: Math.round((moved / R) * 10) / 10,
       codes: new Set(slips.filter((w) => hash(w) % R === hot)).size, distinct };
     step("skew.done", `Done. {ref:r${hot}|reduce ${hot}} got ${load[hot]} of ${moved} slips, ${(load[hot] / (moved / R)).toFixed(1)}× its fair share: one common code overloads it.`, hv, { keep: true });
     // the fix a learner reaches for first, run through the same hash: one more counting machine. Different codes can
@@ -616,7 +616,7 @@ export function build(s, p, scenario, env = {}) {
       // the reader with the most repeats of the common code, as the example of a combined slip
       const reps = splits.map((list) => list.filter((w) => w === top[0]).length), ex = reps.indexOf(Math.max(...reps));
       step("skew.combine", `If each reader added up its repeats first, ${plural(sent.length, "slip")} would travel, ${hotC} of them to {ref:r${hot}|reduce ${hot}}.`,
-        { ...hv, sent: sent.length, hotC, exMap: `map ${ex}`, exN: reps[ex] });
+        { ...hv, sent: sent.length, hotC, exMap: `map ${ex}`, exN: reps[ex], exSlip: CODE(`(${top[0]}, ${reps[ex]})`) });
     }
   } else step(biggest < words.length ? "output.done" : "output.done-alone", biggest < words.length
     ? `Done: all ${words.length} words counted, ${distinct} different ones, and no machine read the whole text.`

@@ -127,12 +127,12 @@ export const lesson = {
     },
     "split.cut": {
       key: true,
-      plain: "The master cuts the text into {M} pieces of about {per} words, one per machine.",
-      "plain@skew": "The master cuts the log into {M} pieces of about {per} lines, one per machine.",
+      plain: "The master hands out the text in {M} pieces of about {per} words, one per machine.",
+      "plain@skew": "The master hands out the log in {M} pieces of about {per} lines, one per machine.",
       why: "The pieces are {pieces}. Each can be read without the others, so all {M} machines start at once.",
       look: ["{splitIds}"], picture: "split",
       deeper: {
-        how: "Each record (here, a word or a line) is read by exactly one machine. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes: each reader skips the part line at its start (unless it starts at byte 0) and finishes the line that crosses its end, so every line is read once. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
+        how: "Each record (here, a word or a line) belongs to exactly one piece; a piece may be read twice (a re-run or a backup), but only one reading counts. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes: every reader but the first throws away everything up to its first line break, and each reads on past its end to finish the last line it started, so every line belongs to one reader. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
         source: PAPER,
       },
     },
@@ -155,7 +155,7 @@ export const lesson = {
       first: {
         key: true,
         why: "That is all map does: label each word with a 1. Adding must wait until a word's slips meet.",
-        "why@skew": "Map labels each line with a 1, even repeats: every {slip} travels alone unless its reader adds them up first.",
+        "why@skew": "Map labels each line with a 1, even repeats: every {slip} is a slip of its own.",
         picture: "slip",
         deeper: {
           how: "A real mapper buffers its slips, then writes them to its own local disk, divided into R regions, one per reduce task ({R} here, one per counting machine; Hadoop keeps them as parts of one indexed file). It tells the master where they are (§3.1).",
@@ -200,7 +200,7 @@ export const lesson = {
       why: "Its slips were on its own disk, so they died with it: the grey slips marked “lost” no longer count.",
       look: ["{mapId}"],
       deeper: {
-        how: "The master pings every worker. One that stops answering is marked failed (§3.3).",
+        how: "The master pings every worker. One that stops answering is marked failed (§3.3). In Hadoop a finished map can also be re-run while its machine is still up: when counters keep failing to fetch its slips, they report it and the master runs the map again.",
         edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3).",
         real: "The master itself has no such cover: in the paper, if the master dies the job is aborted, and the client can notice and retry it if it wants; the paper notes that checkpoints of the master would be easy to add (§3.3). Hadoop on YARN restarts a job's master (its ApplicationMaster, mapreduce.am.max-attempts) and can recover the tasks already done.",
         source: PAPER,
@@ -271,11 +271,11 @@ export const lesson = {
       look: ["{mapId}"],
     },
     "slow.win": {
-      plain: "The backup finishes first: the master keeps its slips and stops {map}, {short} of {total} words unread.",
+      plain: "The backup finishes first, so the master stops {map} with {short} of {total} words left unread.",
       why: "If both copies counted, every word of {split} would be counted twice, so the slow copy's slips are thrown away.",
       look: ["{mapId}"],
       deeper: {
-        edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one once the other map tasks are done. Hadoop starts backups for map and reduce tasks separately, for any attempt it estimates will finish late (mapred-default.xml, mapreduce.job.speculative.*).",
+        edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one once the other map tasks are done. Hadoop can start backups at any point in the job, for map and reduce tasks separately: for the attempts it estimates will finish latest, up to a cap (by default 10% of running tasks; mapred-default.xml, mapreduce.job.speculative.speculative-cap-running-tasks).",
         source: PAPER,
       },
     },
@@ -288,8 +288,8 @@ export const lesson = {
       "why@skew": "Dealt out in turn, a code's slips would land on several counters, and counters never compare notes.",
       look: ["{slipId}", "{redId}"], picture: "hash",
       deeper: {
-        how: "Each mapper has already divided its slips into {R} regions, one per reduce task, and each counter fetches its region from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
-        cost: "In this model {shuffleBytes} bytes cross the network: each slip's word plus a 4-byte count (real formats add length headers, and a reader on the counter's own machine sends nothing). In a cluster, network bandwidth is the scarce resource (§3.4).",
+        how: "Each mapper has already divided its slips into {R} regions, one per reduce task, and each counter fetches its region from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the final sort and the adding wait for the last map, which might still hold a slip they need (Hadoop sorts each map's slips on the map side and merges the sorted runs as they arrive).",
+        cost: "In this model {shuffleBytes} bytes cross the network: each slip's word plus a 4-byte count (real formats add length headers, and a reader on the counter's own machine sends nothing). In the paper's clusters, network bandwidth was the scarce resource (§3.4).",
         edge: "Python's own hash() of a string changes from process to process (hash randomization) unless PYTHONHASHSEED is fixed, and can differ between Python versions, so two machines could disagree. Real jobs use a specified hash; this run uses FNV-1a.",
         real: "`hash(key) mod R` is only the paper's default partitioning function. A job can supply its own: `hash(Hostname(urlkey)) mod R` puts every page of one website in the same output file (§4.1). Within one counter, keys are handed to reduce in increasing order, which is why each output file comes out sorted (§4.2).",
         code: "`hash(word) % R` (lines 8–9)",
@@ -339,7 +339,7 @@ export const lesson = {
         "why@skew": "Sorted, each code's slips sit together, so one pass adds them up, even when they don't fit in memory.",
         picture: "reducer",
         deeper: {
-          how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Spark adds up in a hash table that spills to disk instead. Here each beat swaps two slips.",
+          how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Hadoop does most of that sorting on the map side, and its reducer merges the sorted runs; Spark adds up in a hash table that spills to disk instead. Here each beat swaps two slips.",
           code: "`reduce(word, counts)` (lines 11–12)",
           source: PAPER,
         },
@@ -389,7 +389,7 @@ export const lesson = {
         why: "The output is a folder with one file per reduce task (here, per counter); this is {part}.",
         picture: "output",
         deeper: {
-          how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3). That needs a file system whose rename is atomic: Hadoop wraps it in an output committer, and on object stores without one, like S3, it needs special committers.",
+          how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3). That needs a file system whose rename is atomic: Hadoop lets only one attempt of each task commit, through an output committer, and on object stores without an atomic rename, like S3, it needs special committers.",
           edge: "The name part-r-00000 is Hadoop's convention; the paper doesn't name its output files.",
           source: `${PAPER}; Apache Hadoop, S3A committers, https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/committers.html`,
         },
@@ -463,7 +463,7 @@ export const lesson = {
     // ---- a very common word ----
     "skew.done": {
       key: true,
-      plain: "Done. {hot} got {load} of {moved} slips, {share}× an even share ({moved} ÷ {R}).",
+      plain: "Done. {hot} got {load} of {moved} slips, {share}× an even share ({moved} ÷ {R} ≈ {even}).",
       why: "{top} fills {topN} of the {n} lines, and every raw {top} slip must meet on one counter; other codes can hash there too.",
       look: ["{hotId}"],
       deeper: {
@@ -475,7 +475,7 @@ export const lesson = {
     },
     "skew.more": {
       key: true,
-      plain: "With {R2} counters, every {top} would still go to one: {load2} of {slips} slips.",
+      plain: "With {R2} counters, every {top} would still go to one: {load2} of {slips} slips, {topN} of them {top}.",
       why: "More counters spread out different codes, never the copies of one code: those must meet to be counted.",
       look: ["{hotId}"],
       deeper: {
@@ -487,12 +487,12 @@ export const lesson = {
     "skew.combine": {
       key: true,
       plain: "If each reader ran a {term:combiner} first, {count:sent|slip} would travel, {hotC} to {hot}.",
-      why: "{exMap}'s {count:exN|slip} for {top} would travel as one slip carrying {exN}: fewer slips to add, the same total.",
+      why: "{exMap}'s {count:exN|slip} for {top} would travel as one slip, {exSlip}: fewer slips to add, the same total.",
       look: ["{hotId}"],
       deeper: {
-        cost: "After combining, {hot} still gets one slip per reader for each code it owns: {hotC} here, not 1. The gain is how often a code repeats inside one piece; at the paper's M = 200,000 map tasks, one hot key can still bring up to 200,000 slips to one counter (§3.5).",
+        cost: "After combining, {hot} still gets one slip per reader for each code it owns: {hotC} here, not 1. The gain is how often a code repeats inside one piece; at the paper's M = 200,000 map tasks, one hot key can still bring about one slip per map task, some 200,000, to one counter (§3.5); in Hadoop more, when a map's spills are not all combined.",
         how: "Turn on “Add up repeats first” to watch each reader do it. The paper suggests a combiner where reduce is commutative and associative, as a sum is: order and grouping don't change the result (§4.3). Its output must be the same kind of (word, count) slip that reduce takes. An average, say, must travel as (sum, count) pairs: an average of averages is wrong.",
-        edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. Then the remedy is “salting”: add a suffix to the hot key so its slips spread over several counters, and add up the parts in a second job; the suffix must be deterministic, so a re-run task sends each line where the first run did.",
+        edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. “Salting” adds a suffix to the hot key so its slips spread over several counters, and a second job merges the parts. That works when the parts merge (sums, counts, sorted runs); a true median needs another second step, such as a histogram or range partitioning on the value. The suffix must be deterministic, so a re-run task sends each line where the first run did.",
         real: "Spark's reduceByKey adds up on each reader first, like a combiner; groupByKey ships every value, and Spark's guide warns to prefer reduceByKey or aggregateByKey for sums and averages.",
         source: `${PAPER}; T. White, Hadoop: The Definitive Guide, 4th ed., O'Reilly 2015, ch. 2, “Combiner Functions”; Apache Spark, RDD Programming Guide, https://spark.apache.org/docs/latest/rdd-programming-guide.html`,
       },
