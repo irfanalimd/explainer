@@ -153,7 +153,7 @@ export const lesson = {
     "map.read": {
       first: {
         key: true,
-        why: "That is all map does: label each word with a 1. The adding comes later, so nobody waits.",
+        why: "That is all map does: label each word with a 1. Adding must wait until a word's slips meet.",
         "why@skew": "Map labels each line with a 1, even repeats: every {slip} travels alone unless its reader adds them up first.",
         picture: "slip",
         deeper: {
@@ -282,8 +282,8 @@ export const lesson = {
     "shuffle.first": {
       key: true,
       plain: "{w} goes to {red}: its hash, {h}, divided by {R} leaves remainder {rem}.",
-      why: "Taking turns would scatter one word's slips over several counters, and counters never compare notes, so none would hold the full count.",
-      "why@skew": "Taking turns would scatter one code's slips over several counters, and counters never compare notes, so none would hold the full count.",
+      why: "Dealt out in turn, a word's slips would land on several counters, and counters never compare notes.",
+      "why@skew": "Dealt out in turn, a code's slips would land on several counters, and counters never compare notes.",
       look: ["{slipId}", "{redId}"], picture: "hash",
       deeper: {
         how: "Each mapper has already divided its slips into {R} regions, one per reduce task, and each counter fetches its region from every mapper. The fetching starts early: the master passes on each finished map's file locations as they come (§3.2). Only the sort and the adding wait for the last map, which might still hold a slip they need.",
@@ -478,7 +478,7 @@ export const lesson = {
       look: ["{hotId}"],
       deeper: {
         cost: "This line runs the run's own hash with one more counter: {eq2}. A counter's share of a key is all of it or none of it, so the busiest counter gets at least {topN} of the {slips} slips whatever the count of counters.",
-        edge: "A reduce call is handed every value of its key at once (§4.1, §4.2), so the paper has no way to split one key over machines. The fix has to shrink the key's data before the shuffle, or rename the key.",
+        edge: "The library hands reduce every value of a key in one call (§2), so the paper has no way to split one key over machines. The fix has to shrink the key's data before the shuffle, or rename the key.",
         source: PAPER,
       },
     },

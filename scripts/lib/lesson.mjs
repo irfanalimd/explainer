@@ -271,7 +271,7 @@ export function formatLesson(L, opts = {}) {
         out.push(`          why: ${c.why ? wrap(c.why, W - 15, " ".repeat(15)) : "(none)"}${c.chapter ? `   (a miss offers: replay ${c.chapter})` : ""}`);
       });
     }
-    if (story.objectives && H?.objectives?.length) field("YOU CAN NOW", story.objectives.join(", ") || "(none)", "   ");
+    if (story.objectives && H?.objectives?.length) field("CAN NOW", story.objectives.join(", ") || "(none)", "   ");
   }
   return out.join("\n");
 }
