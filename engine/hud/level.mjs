@@ -1,11 +1,13 @@
 // The reader's level (teaching.md §4): New to this, I know the basics, Expert. It changes what is shown, never the
 // facts. The default comes from meta.level (intro → New, core and deep → Basics); the viewer's choice is remembered
-// per figure. Every control that sets it (the explain panel's header, the start card) is a segmented radio group.
+// per figure, and the last choice on any figure is the default for the next one the viewer opens (a reader moving on
+// to the next lesson keeps their level). Every control that sets it (the explain panel's header, the start card) is a
+// segmented radio group. Each level has one plain line on what it changes (the start card shows it under the switch).
 
 export const LEVELS = [
-  { id: "new", label: "New to this" },
-  { id: "basics", label: "I know the basics" },
-  { id: "expert", label: "Expert" },
+  { id: "new", label: "New to this", note: "Every step in plain words, with a pause after each key one." },
+  { id: "basics", label: "I know the basics", note: "The key steps explained. The precise version is a click away." },
+  { id: "expert", label: "Expert", note: "The run with every detail open: cost, edge cases and sources." },
 ];
 
 /**
@@ -38,8 +40,8 @@ export const compiledPace = (meta) => (meta?.level === "intro" ? POLICY.new.pace
  * onChange(level) runs on every change, after every control has been updated.
  */
 export function createLevel({ store, key, meta, onChange }) {
-  const saved = store.get(`level:${key}`);
-  let value = valid(saved) ? saved : defaultLevel(meta);
+  const saved = store.get(`level:${key}`), last = store.get("level");
+  let value = valid(saved) ? saved : valid(last) ? last : defaultLevel(meta);
   const controls = new Set();
   return {
     get value() { return value; },
@@ -48,6 +50,7 @@ export function createLevel({ store, key, meta, onChange }) {
       if (!valid(v) || v === value) return;
       value = v;
       store.set(`level:${key}`, v);
+      store.set("level", v);
       for (const c of controls) c.set(v);
       onChange?.(v);
     },
