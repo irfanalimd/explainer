@@ -117,11 +117,12 @@ export const SIZE = {
   gridMajor: 128,
 
   tile:    { w: 26, d: 26, h: 5,   r: 5,   bevel: 1.3, gap: 5, label: 9.5, sub: 6 },
-  record:  { w: 64, d: 24, h: 5,   r: 5,   bevel: 1.3, gap: 5, label: 9,   sub: 6.5 }, // key/value records
+  // key/value records; fill: the key prints as large as the face allows, up to this, never under label
+  record:  { w: 64, d: 24, h: 5,   r: 5,   bevel: 1.3, gap: 5, label: 9,   sub: 6.5, fill: 11.5 },
   bit:     { w: 12, d: 18, h: 3.5, r: 2.5, bevel: 0.9, gap: 2, label: 8 },
   page:    { w: 50, d: 30, h: 4,   r: 4,   bevel: 1.1, gap: 5, label: 8.5 },
 
-  housing: { h: 11, r: 10, bevel: 1.8, pad: 10, header: 28, title: 12.5, sub: 7.5, led: 3, minW: 120, minD: 80 },
+  housing: { h: 11, r: 10, bevel: 1.8, pad: 10, header: 28, title: 12.5, sub: 8.6, led: 3, minW: 120, minD: 80 },
   // silhouette per housing variant; r: "round" means a disc/puck (w = d, r = w / 2)
   variant: {
     node:   { h: 11, r: 10, bevel: 1.8 },
@@ -151,8 +152,8 @@ export const SIZE = {
 //   case "sentence": the label's first letter is capitalised (zone and lane names); titles keep the author's case
 export const WORLD_TYPE = {
   title:   { font: "sans", weight: 560, size: 12, tracking: -0.012 },          // housing titles: map 1, reduce 0
-  sub:     { font: "mono", weight: 400, size: 7.2, tracking: 0 },              // addresses and sub-labels in headers
-  zone:    { font: "sans", weight: 500, size: 11, tracking: -0.008, case: "sentence" },   // Map, Reduce
+  sub:     { font: "mono", weight: 400, size: 8.4, tracking: 0 },              // live state or an address in headers (7 slips)
+  zone:    { font: "sans", weight: 560, size: 13, tracking: -0.012, case: "sentence" },   // Map, Reduce: the stages, named large
   lane:    { font: "sans", weight: 500, size: 8, tracking: -0.004, case: "sentence" },
   bracket: { font: "sans", weight: 500, size: 6.8, tracking: 0, case: "sentence" },
   key:     { font: "mono", weight: 500 },                                      // a key on a tile or record
