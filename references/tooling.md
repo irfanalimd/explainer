@@ -305,13 +305,25 @@ there is one instance per module); everything else is served byte for byte.
 
 ## audit.mjs
 
-`node scripts/audit.mjs <page | figure.mjs | url> [--sizes 1440x900,390x844] [--themes …] [--scenario all|id] [--at all|steps|phases|<list>] [--budget 16] [--json]`
+`node scripts/audit.mjs <page | figure.mjs | url> [--sizes 1440x900,390x844] [--themes …] [--scenario all|id] [--at all|steps|phases|<list>] [--budget 16] [--a11y] [--json]`
 
 Renders mid and end of every step of every scenario at each size (settled camera) and collects
 `__internals.audit()` (label overflow, tags off-screen, focus outside the frame, whatever the runtime checks) plus
 page errors and a frame-time warning from `__internals.stats().ms`. One line per distinct finding with the steps,
 the first step's caption and where it was seen. Problems with `level: "warn"` do not fail. Exit 1 on problems or
 page errors.
+
+`--a11y` also measures the interface against WCAG 2.2 AA in every frame (`scripts/lib/a11y.mjs`), one line per
+component with the worst value seen:
+- `a11y-contrast`: each line of HUD text against the pixels actually behind it (the frame is shot again with the
+  HUD's glyphs transparent, so plates, halos and the world stay), 4.5:1 or 3:1 for large text, with the two colours.
+  Text clipped out of view or in a scroll edge's fade is judged once it is scrolled in.
+- `a11y-target`: controls under 24 × 24 px that crowd another control (inline chips in a sentence are exempt).
+- `a11y-name`: buttons, links, inputs and widgets with no accessible name.
+- `a11y-focus`: controls that show nothing when focused from the keyboard.
+
+The probe is injected, so it measures any built page, an older build included. `--at phases --themes light,dark` is
+a quick pass (about 160 frames).
 
 ## record.mjs
 

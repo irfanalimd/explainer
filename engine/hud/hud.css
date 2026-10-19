@@ -276,6 +276,11 @@
 .ix-help-fab.ix-glass { border-radius: 50%; }
 .ix-help-fab:hover, .ix-help-fab[aria-pressed="true"] { color: var(--ix-ink); background: var(--ix-raised); }
 .ix[data-size="phone"] .ix-help-fab, .ix.ix-intro-open .ix-help-fab { display: none; }
+/* no docked panel (compact, landscape phones, 200 % zoom): the caption's chips own the bottom-left, so help is a
+   toolbar button there; phones keep it in the about card, embeds keep their own corner */
+.ix-help-tool { display: none; }
+.ix.ix-ex-sheet:not(.ix-embed):not([data-size="phone"]) .ix-help-tool { display: inline-grid; }
+.ix.ix-ex-sheet:not(.ix-embed):not([data-size="phone"]) .ix-help-fab { display: none; }
 /* phones: the words stay, the toolbar's own icons go, so the title keeps its room */
 .ix[data-size="phone"] .ix-tool { padding: 0 10px; }
 .ix[data-size="phone"] .ix-tool-icon { display: none; }
@@ -322,7 +327,7 @@
   --fill: var(--ix-ink);
   --rail: var(--ix-line-strong);
   -webkit-appearance: none; appearance: none;
-  display: block; width: 100%; height: 20px; margin: 0;
+  display: block; width: 100%; height: 24px; margin: 0;   /* 24 px: WCAG's smallest target, the track centred in it */
   background: transparent; cursor: pointer;
 }
 .ix-range::-webkit-slider-runnable-track {
@@ -370,13 +375,13 @@
 
 .ix-switch {
   position: relative; flex: none;
-  width: 36px; height: 20px; border-radius: 999px;
+  width: 40px; height: 24px; border-radius: 999px;   /* 24 px tall: WCAG's smallest target */
   background: var(--ix-line-strong);
   transition: background-color var(--ix-dur-base) var(--ix-ease);
 }
 .ix-switch::after {
   content: ""; position: absolute; top: 2px; left: 2px;
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 20px; height: 20px; border-radius: 50%;
   background: var(--ix-thumb);
   box-shadow: var(--ix-shadow-sm);
   transition: transform var(--ix-dur-slow) var(--ix-ease);
@@ -552,10 +557,10 @@
 .ix-ref:hover, .ix-ref:focus-visible { background: var(--ix-hover); box-shadow: inset 0 0 0 1px var(--ix-ink); }
 .ix-ref:hover::before, .ix-ref:focus-visible::before { background: var(--ix-ink); }
 .ix-tone { font-weight: 500; }
-.ix-tone-ok { color: var(--ix-ok); }
-.ix-tone-busy { color: var(--ix-busy); }
-.ix-tone-warn { color: var(--ix-warn); }
-.ix-tone-fail { color: var(--ix-fail); }
+.ix-tone-ok { color: var(--ix-ok-text); }
+.ix-tone-busy { color: var(--ix-busy-text); }
+.ix-tone-warn { color: var(--ix-warn-text); }
+.ix-tone-fail { color: var(--ix-fail-text); }
 .ix-tone-idle { color: var(--ix-ink-muted); }
 .ix-code-inline {
   font: 400 0.86em/1 var(--ix-font-mono);
@@ -617,8 +622,8 @@
 .ix-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ix-ink); box-shadow: 0 0 0 3px rgb(var(--ix-ink-rgb) / 0.12); animation: ix-pulse 1.8s var(--ix-ease-io) infinite; }
 .ix-predict.ix-revealed .ix-badge-dot { animation: none; }
 .ix-predict-status { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
-.ix-predict-status.ix-tone-ok { color: var(--ix-ok); }
-.ix-predict-status.ix-tone-fail { color: var(--ix-fail); }
+.ix-predict-status.ix-tone-ok { color: var(--ix-ok-text); }
+.ix-predict-status.ix-tone-fail { color: var(--ix-fail-text); }
 .ix-predict-q { margin: 0 0 16px; font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); font-weight: 500; letter-spacing: var(--ix-tr-md); color: var(--ix-ink); text-wrap: pretty; }
 .ix-predict-ponder { display: flex; gap: 8px; }
 .ix-opts { display: flex; flex-direction: column; gap: 8px; }
@@ -649,10 +654,10 @@
 .ix-opt.ix-chosen .ix-opt-key { background: var(--ix-primary); color: var(--ix-on-primary); box-shadow: none; }
 .ix-opt.ix-correct, .ix-predict.ix-locked .ix-opt.ix-correct:hover { background: rgb(var(--ix-ok-rgb) / 0.1); box-shadow: inset 0 0 0 1.5px rgb(var(--ix-ok-rgb) / 0.7); opacity: 1; }
 .ix-opt.ix-correct .ix-opt-key { background: var(--ix-ok); color: var(--ix-key-ink); box-shadow: none; }
-.ix-opt.ix-correct .ix-opt-mark { color: var(--ix-ok); }
+.ix-opt.ix-correct .ix-opt-mark { color: var(--ix-ok-text); }
 .ix-opt.ix-wrong, .ix-predict.ix-locked .ix-opt.ix-wrong:hover { background: rgb(var(--ix-fail-rgb) / 0.08); box-shadow: inset 0 0 0 1.5px rgb(var(--ix-fail-rgb) / 0.6); }
 .ix-opt.ix-wrong .ix-opt-key { background: var(--ix-fail); color: var(--ix-key-ink); box-shadow: none; }
-.ix-opt.ix-wrong .ix-opt-mark { color: var(--ix-fail); }
+.ix-opt.ix-wrong .ix-opt-mark { color: var(--ix-fail-text); }
 .ix-predict-foot { margin-top: 12px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
 .ix-predict-said { display: grid; gap: 12px; margin-top: 16px; }
 .ix-predict-why, .ix-predict-fb { display: grid; gap: 4px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink); text-wrap: pretty; }
@@ -1030,7 +1035,7 @@
 .ix-story-mark { display: none; }
 .ix-stories-tab.ix-story-done .ix-story-mark { display: inline-grid; vertical-align: -2px; margin: 0 6px 0 -2px; color: var(--ix-ok); }
 .ix-story-mark svg { width: 14px; height: 14px; stroke-width: 2; }
-.ix-story-fin { display: none; margin-left: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ok); }
+.ix-story-fin { display: none; margin-left: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ok-text); }
 .ix-story-item.ix-story-done .ix-story-fin { display: inline; }
 :is(.ix.ix-capture, .ix-capture .ix) :is(.ix-story-mark, .ix-story-fin) { display: none !important; }
 
@@ -1103,7 +1108,7 @@
 /* the caption's pause line ("✓ Map complete") and, at the end, the takeaway with the what-ifs */
 .ix-cap-note {
   display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;
-  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ok);
+  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ok-text);
   text-shadow: var(--ix-halo);
 }
 .ix-cap-check svg { width: 14px; height: 14px; stroke-width: 2; }
@@ -1240,10 +1245,13 @@
 .ix[data-size="phone"] .ix-cap-stage { min-height: 44px; }
 .ix[data-size="phone"] .ix-cap-text { font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); }
 .ix[data-size="phone"] .ix-bar { border-radius: var(--ix-r-lg); }
-.ix[data-size="phone"] .ix-stats { height: 44px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
+/* phones: the numbers are one line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock gives
+   the world back a row; tapping the strip still opens the full readout */
+.ix[data-size="phone"] .ix-stats { height: 36px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
 .ix[data-size="phone"] .ix-stats-list { column-gap: 16px; }
-.ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); }
-.ix[data-size="phone"] .ix-legend-btn { height: 44px; padding: 0 12px; gap: 0; }
+.ix[data-size="phone"] .ix-stat { flex-direction: row; align-items: baseline; gap: 6px; }
+.ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
+.ix[data-size="phone"] .ix-legend-btn { height: 36px; padding: 0 12px; gap: 0; }
 .ix[data-size="phone"] .ix-legend-count { display: none; }
 
 .ix[data-size="phone"] .ix-transport {
@@ -1519,10 +1527,10 @@
 }
 .ix-peek-more:hover { text-decoration-color: var(--ix-ink); }
 
-.ix-ex-recap > .ix-ex-n { color: var(--ix-ok); display: grid; justify-items: start; padding-top: 4px; }
+.ix-ex-recap > .ix-ex-n { color: var(--ix-ok-text); display: grid; justify-items: start; padding-top: 4px; }
 .ix-ex-recap > .ix-ex-n svg { width: 16px; height: 16px; stroke-width: 2; }
 .ix-ex-recapin { display: grid; gap: 8px; }
-.ix-ex-done { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-md); font-weight: 500; color: var(--ix-ok); }
+.ix-ex-done { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-md); font-weight: 500; color: var(--ix-ok-text); }
 .ix-payoff-panel { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--ix-line); display: grid; gap: 16px; }
 .ix-payoff-panel .ix-whatif-label { flex-basis: 100%; }
 
@@ -1586,7 +1594,8 @@
 
 /* the caption in layers (narrow screens): a line that places the step, the step, its chips; left-aligned, readable */
 .ix-cap-layered { text-align: left; display: grid; gap: 4px; justify-items: start; }
-.ix-cap-meta { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); text-shadow: var(--ix-halo); }
+/* the meta line sits on the world, not on a surface: one ink up from the faintest, so it keeps 4.5:1 over a tile */
+.ix-cap-meta { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-muted); text-shadow: var(--ix-halo); }
 .ix-cap-now { display: flex; gap: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink); text-shadow: var(--ix-halo); }
 .ix-cap-layered .ix-layers { gap: 4px; }
 .ix-cap-layered .ix-cap-text { margin: 0; max-width: 60ch; font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); text-wrap: pretty; }
@@ -1594,7 +1603,15 @@
 .ix-cap-layered .ix-l-chips { margin-top: 8px; }
 .ix-cap-layered .ix-l-chip { background: var(--ix-surface); -webkit-backdrop-filter: blur(var(--ix-blur)); backdrop-filter: blur(var(--ix-blur)); }
 .ix-cap-layered .ix-peek { margin-top: 4px; text-shadow: var(--ix-halo); }
-.ix.ix-ex-sheet .ix-caption::before { inset: -24px -32px -16px; }
+/* the layered caption is left-aligned and starts with its quietest line (the meta, top left), where a radial plate
+   has already faded out: here the plate is a feathered rectangle under every line of it, in both themes */
+.ix.ix-ex-sheet .ix-caption::before {
+  inset: -20px -24px -12px;
+  background: rgb(var(--ix-scrim-rgb) / calc(var(--ix-scrim-a) * 0.85));
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent), linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 12px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent), linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 12px), transparent);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
 
 .ix.ix-reduced .ix-explain, .ix.ix-reduced .ix-explain-tab, .ix.ix-reduced .ix-ex-fresh { animation: none; }
 /* ---------- parameters (docked): a card at the foot of the right column, under the explain panel ----------
@@ -1718,6 +1735,53 @@
 :is(.ix-scene-ring, .ix-scene-tag).ix-show { opacity: 1; visibility: visible; transition-delay: 0s; }
 :is(.ix.ix-capture, .ix-capture .ix) :is(.ix-scene-ring, .ix-scene-tag) { display: none; }
 
+/* The world in words: with no GPU at all (.ix-no-gfx, set by the runtime) the described scene steps out of hiding
+   into the free stage, so the reader still sees the run's state, not empty paper. The same live list the screen
+   reader walks: one column per titled group, left to right as the world lays them out; machines in Geist, the data
+   in their trays in Geist Mono with their identity swatch; what the step says to watch in ink, the rest muted. */
+.ix.ix-no-gfx .ix-scene-doc {
+  position: absolute; width: auto; height: auto; margin: 0; clip-path: none; white-space: normal; overflow: auto;
+  left: calc(var(--ix-free-l, 0px) + var(--ix-pad-l)); right: calc(var(--ix-free-r, 0px) + var(--ix-pad-r));
+  top: calc(var(--ix-pad-t) + var(--ix-top-h) + 88px); bottom: calc(var(--ix-pad-b) + var(--ix-bottom-h) + 24px);
+  padding: 0 8px 24px; pointer-events: auto; overscroll-behavior: contain; color: var(--ix-ink);
+  display: flex; flex-direction: column; gap: 16px;
+  /* more below: the last lines fade out until scrolled to (the padding lets the last one clear the fade) */
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent); mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent);
+}
+.ix.ix-no-gfx .ix-scene-doc > h2 { order: -2; margin: 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
+.ix.ix-no-gfx .ix-scene-doc > p { margin: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); max-width: 60ch; }
+.ix.ix-no-gfx .ix-scene-doc > p:first-of-type { order: -1; margin-top: -12px; font-variant-numeric: tabular-nums; }
+.ix.ix-no-gfx .ix-scene-doc > p:nth-of-type(2) { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+/* what the step changed stays for the ear (the list shows it), and touch has no arrows to walk with */
+.ix.ix-no-gfx .ix-scene-doc > div[aria-live], .ix.ix-no-gfx[data-size="phone"] .ix-scene-doc > p:nth-of-type(2) {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.ix.ix-no-gfx .ix-scene-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px 24px; align-items: start; }
+.ix.ix-no-gfx .ix-scene-sec h3 {
+  margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--ix-line);
+  font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 600;
+}
+/* a group with no title (the input and output beside the machines) starts level with the titled groups' first row */
+.ix.ix-no-gfx .ix-scene-sec:not(:has(> h3)) { padding-top: calc(var(--ix-lh-sm) + 17px); }
+.ix.ix-no-gfx .ix-scene-sec ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.ix.ix-no-gfx .ix-scene-sec li {
+  display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 2px 6px; margin-inline: -6px; border-radius: var(--ix-r-sm);
+  font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; color: var(--ix-ink-muted);
+}
+.ix.ix-no-gfx .ix-scene-sec li[data-depth="1"] {
+  padding-left: 20px; font: 400 var(--ix-fs-xs)/var(--ix-lh-xs) var(--ix-font-mono); min-height: 24px;
+}
+.ix.ix-no-gfx .ix-scene-sec li[data-key]::before {
+  content: ""; flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--k);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+.ix.ix-no-gfx .ix-scene-sec li.ix-scene-watch { color: var(--ix-ink); font-weight: 600; }
+.ix.ix-no-gfx .ix-scene-sec li[data-depth="1"].ix-scene-watch { font-weight: 500; }
+.ix.ix-no-gfx .ix-scene-sec li:hover { background: var(--ix-hover); }
+.ix.ix-no-gfx .ix-scene-sec li:focus-visible { outline: var(--ix-ring); outline-offset: 0; color: var(--ix-ink); }
+.ix.ix-no-gfx[data-size="phone"] .ix-scene-doc { top: calc(var(--ix-pad-t) + var(--ix-top-h) + 80px); }
+.ix.ix-no-gfx[data-size="phone"] .ix-scene-body { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 /* help on phones: the about card (opened from the title) carries the way in; help opens as a bottom sheet with the
    interface in plain words (the keys stay on screens with a keyboard) */
 .ix-about-help {
@@ -1765,7 +1829,7 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
 .ix-turn-pick.ix-turn-tried { opacity: 0.45; cursor: default; }
 .ix-turn-pick.ix-turn-tried .ix-turn-pick-text { text-decoration: line-through; text-decoration-color: rgb(var(--ix-ink-rgb) / 0.4); }
 .ix-turn-pick.ix-turn-right { background: rgb(var(--ix-ok-rgb) / 0.1); box-shadow: inset 0 0 0 1.5px rgb(var(--ix-ok-rgb) / 0.7); }
-.ix-turn-pick.ix-turn-right .ix-turn-pick-mark { color: var(--ix-ok); }
+.ix-turn-pick.ix-turn-right .ix-turn-pick-mark { color: var(--ix-ok-text); }
 .ix-turn-static { cursor: default; }
 .ix-turn-static:not(.ix-turn-right):not(.ix-turn-tried) { opacity: 0.45; }
 .ix-turn-foot { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 12px; }
@@ -1790,7 +1854,7 @@ button.ix-turn-pick:hover, button.ix-turn-pick:focus-visible { background: var(-
 .ix-check-replay::after { content: " →"; }
 .ix-can { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .ix-can li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink); text-wrap: pretty; }
-.ix-can-mark { display: inline-grid; width: 16px; height: 20px; place-items: center; color: var(--ix-ok); }
+.ix-can-mark { display: inline-grid; width: 16px; height: 20px; place-items: center; color: var(--ix-ok-text); }
 /* a level nudge: one quiet line, never a switch on its own */
 .ix-nudge {
   display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--ix-line);
@@ -2033,7 +2097,7 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
    transport, the timeline and the words: no speed, legend, code or help circle; the knobs lead the drawer (S) and L
    cycles the level. Everything else keeps its place, so a teacher who knows the figure knows this. */
 .ix.ix-present { --ix-pad: 32px; --ix-row: 48px; --ix-icon: 40px; }
-.ix.ix-present :is(.ix-help-fab, .ix-speed-wrap, .ix-legend-btn, .ix-code-tool, .ix-ex-level, .ix-stats-chev) { display: none; }
+.ix.ix-present :is(.ix-help-fab, .ix-help-tool, .ix-speed-wrap, .ix-legend-btn, .ix-code-tool, .ix-ex-level, .ix-stats-chev) { display: none; }
 .ix:not(.ix-present) :is(.ix-present-btn, .ix-present-end) { display: none; }
 .ix.ix-present :is(.ix-tool-icon, .ix-btn, .ix-tp-icon) svg { width: 18px; height: 18px; }
 .ix.ix-present .ix-tool { height: 40px; padding: 0 16px 0 12px; gap: 8px; }
@@ -2121,7 +2185,7 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 .ix-pv-ask { margin-top: 28px; padding: 20px; border-radius: var(--ix-r-lg); box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
 .ix-pv-ask-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ix-pv-ask-head .ix-pv-label { margin: 0; }
-.ix-pv-answer { padding: 2px 10px; border-radius: 999px; font-size: var(--ix-fs-xs); line-height: 20px; font-weight: 500; color: var(--ix-ok); background: rgb(var(--ix-ok-rgb) / 0.12); }
+.ix-pv-answer { padding: 2px 10px; border-radius: 999px; font-size: var(--ix-fs-xs); line-height: 20px; font-weight: 500; color: var(--ix-ok-text); background: rgb(var(--ix-ok-rgb) / 0.12); }
 .ix-pv-q { margin: 12px 0 0; font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); font-weight: 500; color: var(--ix-ink); }
 .ix-pv-opts { display: grid; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
 .ix-pv-opt {
@@ -2133,7 +2197,7 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 .ix-pv-opt-key { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: var(--ix-fs-xs); font-weight: 600; box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
 .ix-pv-opt.ix-pv-right { color: var(--ix-ink); box-shadow: inset 0 0 0 1.5px rgb(var(--ix-ok-rgb) / 0.7); }
 .ix-pv-opt.ix-pv-chosen { color: var(--ix-ink); background: var(--ix-hover); }
-.ix-pv-opt-mark { color: var(--ix-ok); }
+.ix-pv-opt-mark { color: var(--ix-ok-text); }
 .ix-pv-opt:disabled { cursor: default; }
 .ix-pv-opt-fb { display: block; margin-top: 4px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); text-wrap: pretty; }
 .ix-pv-opt-belief { color: var(--ix-ink-faint); }

@@ -12,7 +12,7 @@ import { parse, toDOM, toText } from "./markup.mjs";
 import { formatCounter } from "./format.mjs";
 import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
-import { createExplain, VEIL } from "./explain.mjs";
+import { createExplain, VEIL, firstSentence } from "./explain.mjs";
 import { createFold } from "./fold.mjs";
 import { createLevel, LEVELS, compiledPace, segmented } from "./level.mjs";
 import { createJourney, promiseOf, nextStory } from "./journey.mjs";
@@ -83,7 +83,7 @@ const isCharKey = (k) => k.length === 1 && k !== " ";
 const GUIDE = [
   ["play", "Play and pause", "Runs the simulation. It stops at the end of each chapter so you can catch up."],
   ["fwd", "Back and Next", "Move one step at a time. Every step is one real event from the run."],
-  ["timeline", "The timeline", "Each segment is a chapter. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
+  ["timeline", "The timeline", "Each segment is a chapter. The ticks under it are the run's events: grey, or green when something succeeds, amber for a warning, red for a failure. A dot is a question for you. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
   ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
@@ -541,8 +541,12 @@ export function createHud(root, opts = {}, cb = {}) {
   shareBtn.setAttribute("aria-haspopup", "dialog");
   const themeBtn = iconBtn("moon", "Dark mode", "T", () => toggleTheme());
   const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk ix-full-btn");
+  // Where the corner circle would crowd the caption's chips (no docked panel: compact, landscape-phone and zoomed
+  // screens, whose caption sits bottom-left), help joins the toolbar instead, beside the theme (CSS picks one)
+  const helpTool = iconBtn("help", "Help", "?", () => toggleHelp(), "ix-help-tool");
+  helpTool.dataset.tip = "How to use this figure";
   const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, shareBtn, tuneBtn,
-    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), themeBtn, fullBtn, endBtn);
+    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), helpTool, themeBtn, fullBtn, endBtn);
   const helpBtn = h("button", { class: "ix-help-fab ix-glass", type: "button", "aria-label": "Help", "data-tip": "How to use this figure", "data-kbd": "?",
     onclick: () => toggleHelp() }, h("span", { "aria-hidden": "true", text: "?" }));
   const toolbar = h("div", { class: "ix-toolbar" }, tools);
@@ -672,7 +676,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // invites them to open it ("Try it yourself"). Without a lesson it starts open, folded only on a short screen. Narrower screens:
   // the same knobs lead the drawer, which the toolbar's "Parameters" opens (a bottom sheet on phones). Docked, the
   // drawer keeps only the playback preferences and the toolbar calls it "Settings".
-  const PARAMS_TALL = 800;   // px of root height from which the card starts open
+  const PARAMS_TALL = 800;   // px of root height from which the card starts open (no lesson)
   let paramsPref = store.get("params"), paramsOpen = null, paramsDocked = null;
   const paramsToggle = h("button", { class: "ix-params-toggle", type: "button", "aria-controls": uid("params-body"),
     onclick: () => { paramsPref = paramsOpen ? "0" : "1"; store.set("params", paramsPref); syncParamsOpen(); } }, h("span", { class: "ix-params-title", text: "Parameters" }), h("span", { class: "ix-params-chev", html: ICON.chevron }));
@@ -936,6 +940,9 @@ export function createHud(root, opts = {}, cb = {}) {
   const capStage = h("div", { class: "ix-cap-stage" });
   const caption = h("div", { class: "ix-caption" }, capStage);
   const live = h("div", { class: "ix-sr", "aria-live": "polite", "aria-atomic": "true" });
+  // a prediction speaks in whole sentences of its own (asked, your guess, the result and why), never piecemeal from
+  // the card, and never overwritten by the step's caption that follows its reveal
+  const askLive = h("div", { class: "ix-sr", "aria-live": "polite", "aria-atomic": "true" });
   const center = h("div", { class: "ix-center" }, predict, caption);
   const meterList = h("div", { class: "ix-meters-body" });
   const meterClose = iconBtn("close", "Close readout", "Esc", () => toggleReadout(false), "ix-btn-sm ix-close");
@@ -1024,12 +1031,14 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("intro-sub"), tabindex: "-1", inert: true });
   const coach = h("div", { class: "ix-coach ix-glass", role: "status", "aria-live": "polite", inert: true });
 
-  hud.append(top, bottom, sheetScrim, codePanel, drawer, share.el, about, paramsCard, helpBtn);
+  // reading order: the header, then (explain.mjs puts the panel here) the parameters under it in the right column,
+  // then the dock; the world's described scene (engine/a11y/scene.mjs) goes in after the parameters
+  hud.append(top, paramsCard, bottom, sheetScrim, codePanel, drawer, share.el, about, helpBtn);
   const after = canvas && canvas.parentNode === root ? canvas.nextSibling : root.firstChild;
   const frag = doc.createDocumentFragment();
   // popovers live at root level: a backdrop-filter parent would stop their own blur from seeing the world
   frag.append(stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach,
-    helpScrim, help, introScrim, intro, toast, tip, live, handout.el);
+    helpScrim, help, introScrim, intro, toast, tip, live, askLive, handout.el);
   root.insertBefore(frag, after);
 
   // ---------- help: what each part of the interface is for, in plain words, then the keys ----------
@@ -1117,6 +1126,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(help, open);
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
+    helpTool.setAttribute("aria-pressed", String(open));
     if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
@@ -1378,6 +1388,7 @@ export function createHud(root, opts = {}, cb = {}) {
     openIntro(false);
     root.focus({ preventScroll: true });
     fire("onStart", mode, where);
+    announce();
   }
 
   // ---------- pauses: a chapter's end, or the run's end ----------
@@ -1663,8 +1674,10 @@ export function createHud(root, opts = {}, cb = {}) {
     S.captionDirty = true;
     S.phase = -1;
     revealedAsks.clear();
+    if (!tl?.branch) spokenPhase = -1;   // a new run says its chapter again; a detour stays in the pick's
     if (!tl?.branch) check.set(checksFor(tl?.checks, level.value));
     explain.setTimeline(tl);
+    syncParamsOpen();   // its default depends on whether a lesson teaches
     renderCount();
     scrub.setAttribute("aria-valuemax", String(+S.duration.toFixed(2)));
     precomputeHistory(tl);
@@ -1917,8 +1930,35 @@ export function createHud(root, opts = {}, cb = {}) {
     // start the enter transition next frame instead of forcing a reflow now
     if (!instant) raf(() => el.classList.remove("ix-enter"));
     obstaclesDirty = true;
-    S.capText = veiled ? "" : toText(nodes, markupOpts.refTitle);
+    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts.refTitle));
     if (!S.held) announce();
+  }
+  // What the ear gets for a step is what the eye gets at this level (level.mjs POLICY): on entering a chapter its
+  // number, name and about (as the panel heads it); then the plain line; then the why wherever the level shows it.
+  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts.refTitle);
+  let spokenPhase = -1, chapterLead = { step: -1, text: "" };
+  function spokenStep(step, plain) {
+    const st = S.steps[step];
+    if (!st || S.held || !S.lesson) return plain;
+    const P = level.policy, L = layersOf(st), k = phaseAt(step), parts = [];
+    if (k !== spokenPhase) {
+      spokenPhase = k;
+      const ph = S.phases[k], lead = [];
+      if (S.phases.length > 1) lead.push(`Chapter ${k + 1} of ${S.phases.length}${ph?.name ? `, ${ph.name}` : ""}.`);
+      if (ph?.about && !aboutWithheld(k)) lead.push(spoken(P.about === "first" ? firstSentence(ph.about) ?? ph.about : ph.about));
+      chapterLead = { step, text: lead.join(" ") };
+    }
+    // the same step said again (a level change, a reveal) keeps its chapter lead
+    if (chapterLead.step === step) parts.push(chapterLead.text);
+    parts.push(plain);
+    if (L.why && (P.why === "all" || (P.why === "key" && L.key))) parts.push(spoken(L.why));
+    return parts.filter(Boolean).join(" ");
+  }
+  let askTimer = 0;
+  function sayAsk(text) {
+    cancel(askTimer);
+    askLive.textContent = "";
+    askTimer = later(() => { askLive.textContent = text; }, 120);   // a fresh node, so a repeat is spoken again
   }
   // the step in layers, under a line that places it ("Shuffle · step 2 of 11"); the chapter's first step leads with its Now
   function layeredCaption(markup, step) {
@@ -1934,7 +1974,7 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   function announce() {
     cancel(liveTimer);
-    if (scrubbing) return;
+    if (scrubbing || introOpen) return;   // under the start card the card speaks; its close says the step (closeIntro)
     liveTimer = later(() => { if (live.textContent !== S.capText) live.textContent = S.capText ?? ""; }, S.playing ? 700 : 250);
   }
   // ref chips in the caption, the hover preview and tags light their entity in the world
@@ -2334,8 +2374,19 @@ export function createHud(root, opts = {}, cb = {}) {
     updateInsets();
   }
   let keyboardMode = false;
-  on(win, "keydown", () => { keyboardMode = true; }, true);
+  on(win, "keydown", (e) => {
+    keyboardMode = true;
+    // the first Tab says, once, where every shortcut is written down (nothing else on screen shows the keys)
+    if (e.key === "Tab" && !store.get("hint:keys")) later(keysHint, 600);
+  }, true);
   on(win, "pointerdown", () => { keyboardMode = false; }, true);
+  function keysHint() {
+    if (S.size === "phone" || !keyboardMode) return;
+    const fab = helpBtn.offsetWidth ? helpBtn.getBoundingClientRect() : null, rr = root.getBoundingClientRect();
+    hint("keys", charKeys ? "Press ? for every shortcut" : "Help lists every shortcut",
+      fab ? { x: fab.left - rr.left + fab.width / 2, y: fab.top - rr.top - 2 } : { x: (S.W || root.clientWidth) / 2, y: barTop() },
+      { sub: charKeys ? "Space plays, ← → step, E hides the explanation." : "Space plays, ← → step.", free: true });
+  }
 
   // ---------- your turn: an in-world pick (turn.mjs), the end check (check.mjs), level nudges (nudge.mjs) ----------
   // They use the predict card and its place (the explain panel, or above the caption), so the calm rules hold for them.
@@ -2346,6 +2397,7 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.q = q; Q.sig = `${q.kind}:${q.id}`; Q.step = o.step ?? -1; Q.opts = o.opts ?? [];
     Q.answered = o.revealed ? 0 : null; Q.revealed = !!o.revealed; Q.revealAt = now(); Q.hold = o.hold ?? 4200;
     predict.classList.toggle("ix-revealed", !!o.revealed);
+    predict.setAttribute("aria-live", "polite");   // a pick and the end check speak from the card itself
     hideCoach();
     setOpen(predict, true);
     obstaclesDirty = true;
@@ -2408,6 +2460,7 @@ export function createHud(root, opts = {}, cb = {}) {
       h("p", { class: "ix-predict-q" }, md(q.question ?? "")),
       choices, opts, Q.foot);
     predict.classList.remove("ix-revealed");
+    predict.removeAttribute("aria-live");   // askLive speaks for it
     hideCoach();
     setOpen(predict, true);
     obstaclesDirty = true;
@@ -2415,6 +2468,8 @@ export function createHud(root, opts = {}, cb = {}) {
     hostPredict();
     S.captionDirty = true;
     syncAsk();
+    const n = Q.opts.length;
+    sayAsk(`${ponder ? "Think first" : "Predict"}: ${spoken(q.question)} ${(q.options ?? []).map((o, i) => `${String.fromCharCode(65 + i)}: ${spoken(o)}.`).join(" ")} ${ponder ? "Choose Predict to answer, or Skip." : `Pick one, with 1 to ${n} or Tab.`}`);
     if (keyboardMode) raf(() => (ponder ? choices.firstChild : Q.opts[0])?.focus({ preventScroll: true }));
   }
   // Expert skips a question: the run plays on, and the step's words come back with it
@@ -2440,6 +2495,7 @@ export function createHud(root, opts = {}, cb = {}) {
     predict.classList.add("ix-locked");
     Q.status.textContent = "Your guess";
     Q.foot.textContent = "Watch the next step.";
+    sayAsk(`Your guess: ${String.fromCharCode(65 + i)}. Watch the next step.`);
     fire("onAnswer", i);
     syncAsk();
   }
@@ -2475,6 +2531,11 @@ export function createHud(root, opts = {}, cb = {}) {
       Q.hold += 300 * said.reduce((n, el) => n + (el.textContent ?? "").split(/\s+/).filter(Boolean).length, 0);
     }
     Q.close.hidden = false;
+    // one sentence for the ear: the result, the reader's own belief answered, then why
+    const rightText = spoken(Q.q.options?.[right] ?? "");
+    const fbText = !ok ? feedbackOf(Q.q, Q.answered) : null;
+    sayAsk([ok ? `Correct: ${String.fromCharCode(65 + right)}, ${rightText}.` : `Not quite. The run shows ${String.fromCharCode(65 + right)}, ${rightText}.`,
+      fbText ? spoken(fbText) : "", Q.q.why ? `Why: ${spoken(Q.q.why)}` : ""].filter(Boolean).join(" "));
     Q.revealAt = now();
     if (Q.step >= 0) revealedAsks.add(Q.step);
     S.captionDirty = true;
@@ -3050,6 +3111,9 @@ export function createHud(root, opts = {}, cb = {}) {
     root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
     insets.top = Math.max(0, Math.round(headBottom - rr.top));
     insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
+    // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)
+    root.style.setProperty("--ix-free-l", `${insets.left}px`);
+    root.style.setProperty("--ix-free-r", `${insets.right}px`);
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;
@@ -3190,7 +3254,14 @@ export function createHud(root, opts = {}, cb = {}) {
       syncReset();
     },
     setScenario(id) { if (id != null && id !== S.scenario) { S.scenario = id; renderScenario(); } },
-    setMeta(meta) { S.meta = meta ?? {}; renderTitle(); },
+    setMeta(meta) {
+      S.meta = meta ?? {};
+      // the language its words are in, for a screen reader's voice: the figure's own (meta.lang), else English where
+      // the host page says nothing (an embed on a page without lang)
+      const lang = S.meta.lang ?? (root.parentElement?.closest("[lang]") ? null : "en");
+      if (lang) root.setAttribute("lang", lang);
+      renderTitle();
+    },
     initialState: () => ({ scenario: link.scenario, time: link.time, params: { ...link.params } }),
     /** Show or hide the start card. Hiding it this way is silent: it is not remembered and fires no onStart. */
     intro(show = true, link = null) { if (show && link && (link.step != null || link.notes?.length)) arrival = link; openIntro(!!show); },
@@ -3248,7 +3319,7 @@ export function createHud(root, opts = {}, cb = {}) {
       timers.forEach((id) => win.clearTimeout(id));
       if (countRaf) win.cancelAnimationFrame(countRaf);
       if (fitRaf) win.cancelAnimationFrame(fitRaf);
-      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live, handout.el]) el.remove();
+      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live, askLive, handout.el]) el.remove();
       if (landmark) root.removeAttribute("role");
       root.classList.remove("ix-reduced", "ix-playing", "ix-has-code", "ix-has-meters", "ix-has-legend", "ix-has-scenarios", "ix-stepmode", "ix-intro-open", "ix-held-open");
     },
