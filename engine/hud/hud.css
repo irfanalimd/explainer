@@ -1683,8 +1683,10 @@
   position: absolute; width: auto; height: auto; margin: 0; clip-path: none; white-space: normal; overflow: auto;
   left: calc(var(--ix-free-l, 0px) + var(--ix-pad-l)); right: calc(var(--ix-free-r, 0px) + var(--ix-pad-r));
   top: calc(var(--ix-pad-t) + var(--ix-top-h) + 88px); bottom: calc(var(--ix-pad-b) + var(--ix-bottom-h) + 24px);
-  padding: 0 8px; pointer-events: auto; overscroll-behavior: contain; color: var(--ix-ink);
+  padding: 0 8px 24px; pointer-events: auto; overscroll-behavior: contain; color: var(--ix-ink);
   display: flex; flex-direction: column; gap: 16px;
+  /* more below: the last lines fade out until scrolled to (the padding lets the last one clear the fade) */
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent); mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent);
 }
 .ix.ix-no-gfx .ix-scene-doc > h2 { order: -2; margin: 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
 .ix.ix-no-gfx .ix-scene-doc > p { margin: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); max-width: 60ch; }
@@ -1699,6 +1701,8 @@
   margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--ix-line);
   font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 600;
 }
+/* a group with no title (the input and output beside the machines) starts level with the titled groups' first row */
+.ix.ix-no-gfx .ix-scene-sec:not(:has(> h3)) { padding-top: calc(var(--ix-lh-sm) + 17px); }
 .ix.ix-no-gfx .ix-scene-sec ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
 .ix.ix-no-gfx .ix-scene-sec li {
   display: flex; align-items: center; gap: 8px; min-height: 24px; padding: 2px 6px; margin-inline: -6px; border-radius: var(--ix-r-sm);

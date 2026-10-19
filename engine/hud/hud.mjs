@@ -73,7 +73,7 @@ const isCharKey = (k) => k.length === 1 && k !== " ";
 const GUIDE = [
   ["play", "Play and pause", "Runs the simulation. It stops at the end of each chapter so you can catch up."],
   ["fwd", "Back and Next", "Move one step at a time. Every step is one real event from the run."],
-  ["timeline", "The timeline", "Each segment is a chapter. The marks under it are the run's events (green when something succeeds, amber a warning, red a failure) and a dot is a question for you. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
+  ["timeline", "The timeline", "Each segment is a chapter. The ticks under it are the run's events: grey, or green when something succeeds, amber for a warning, red for a failure. A dot is a question for you. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
   ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
