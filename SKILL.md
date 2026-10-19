@@ -36,6 +36,10 @@ The captions, counters, colours and positions all come from that run. If a capti
 
 Every figure is two files: `figure.mjs` owns the truth (the run) and `lesson.mjs` beside it owns the words, keyed by step ids. `examples/mapreduce/` (`figure.mjs` + `lesson.mjs`) is the model to copy; `examples/linked-list/` is the same for an `intro` concept.
 
+**Before step 1, preflight:** run `node scripts/doctor.mjs` (about 20 s; `--quick` skips starting Chrome). It exits 1 when something required is missing (Node too old, no Chrome, Chrome that will not start, no WebGL 2) and prints the fix for this OS: tell the user and stop before writing any file. Its speed line says how long screenshots take on this machine; use it for the time estimate in step 1.
+
+**Long jobs.** Your Bash tool gives up after 2 minutes by default (10 at most). `check` and `shoot` print progress on stderr as they go; start anything that shoots (`check`, `check --full`, `shoot --teach`, `audit`, `record`, `review-packet`) in the background and read its output when it finishes, rather than waiting in the foreground. On a machine without a GPU, `shoot --teach` over all of MapReduce takes tens of minutes.
+
 When the plugin agents are loaded, run these steps inside the **Teacher pipeline** below: an agent plans the lesson (step 3), another writes `lesson.mjs` (step 7), and blind readers review it before you deliver. Without them, do the same steps yourself.
 
 1. **Size it** and tell the user before starting, with a time estimate:
@@ -75,11 +79,11 @@ When the plugin agents are loaded, run these steps inside the **Teacher pipeline
    - the words (its **teaching** section): undefined terms, jargon, long captions, a missing hook, analogy, recap or why, size for the level
 
    Then **read the lesson**: `node scripts/lesson.mjs figure.mjs` prints every story as a script (hook, picture map, chapters with their entry cards, every step's layers, questions with their feedback, recap, takeaway); `--params n=7` reads it at other knob values. Read it top to bottom as a beginner and fix the first line you would not understand.
-   Once it builds, `node scripts/shoot.mjs page.html --teach` also shoots every predict card (asked, then revealed with its why) and the end card; look at them too.
-9. **Build and look**:
+   Every message names the file and line (`lesson.mjs:144`, `figure.mjs:174`) with the source line, and suggests the name you probably meant (a lesson id, a template var, an entity id, an undefined variable); a `build()` that hangs is paused and its loop's line printed. Fix the first one and rerun.
+9. **Build and look** with `node scripts/check.mjs figure.mjs` (in the background, see Long jobs). It runs verify, builds the page (`<dir>/<name>.html`), shoots every chapter of every scenario at 1440×900 and 390×844 with the runtime's audit on each shot, and writes `<dir>/check/report.html`, `report.md` and `check/shots/contact.png`. It exits 1 when anything fails and prints the first thing to fix. **Read `check/report.md`, then the contact sheet and every PNG that matters.** The pieces on their own:
    - `node scripts/build.mjs figure.mjs` writes one self-contained HTML file, with `lesson.mjs` bundled. Use `--serve` for a live-reloading dev page.
-   - `node scripts/shoot.mjs page.html` takes every phase in both themes, desktop and phone, plus `contact.png`. **Read the contact sheet and every PNG that matters.**
-   - `node scripts/audit.mjs page.html` checks label overflow, tags off-screen and focus out of frame.
+   - `node scripts/shoot.mjs page.html` takes every phase in both themes, desktop and phone, plus `contact.png`. `--teach` adds every teaching card, played live: each predict card asked and revealed with its why, each pick's wrong detour and right answer, the end check and the end card.
+   - `node scripts/audit.mjs page.html` checks label overflow, tags off-screen and focus out of frame over every step.
 
    Iterate until it reads instantly. Common fixes:
    - a caption that says too little, or says too much
@@ -234,6 +238,7 @@ Never fix it with styling hacks. The design language (`DESIGN.md`):
 ## Verification checklist
 
 Before delivering, all of these must be true:
+- `node scripts/check.mjs figure.mjs --full` ends "Ready for review" (or "Ready to ship" once the blind review has passed): both themes, every teaching card and the audit over every step. Its `check/report.md` is the evidence; mention it in the delivery note.
 - verify ends `0 failing`, with no warnings you can't justify (lesson and teaching warnings included)
 - you read `node scripts/lesson.mjs figure.mjs` top to bottom **as a beginner** and passed the cold-read rubric (`references/teaching.md` section 8): every word defined before it is needed, the problem before the solution, one idea per chapter, a prediction with its why, a recap you could say back
 - audit ends clean at 1440×900 and 390×844
@@ -252,7 +257,7 @@ Before delivering, all of these must be true:
 - `references/teaching.md`: the teaching standard: the reader, the lesson plan, words and jargon, sizing by level, the lesson file and its writing rules, a worked linked-list plan, a before/after MapReduce rewrite, the cold-read rubric and what verify checks.
 - `references/builder.md`: the full builder API: groups, housings, containers, tiles, traces, buses, lanes, zones, step ops, pacing, held messages, narration markup, pitfalls.
 - `references/sim.md`: the runtimes: `rng`, `fmt`, `tracked`, `actors`, `lockstep`, `machine`.
-- `references/tooling.md`: every script and flag: verify, lesson, build, serve, shoot, audit, record, new, review-packet, review-check, and the `?gfx=` switch.
+- `references/tooling.md`: every script and flag: doctor, check, verify, lesson, build, serve, shoot, audit, record, new, review-packet, review-check, and the `?gfx=` switch.
 - `references/roadmap.md`: known gaps and their workarounds (ring by angle, keyed traces, desktop scale). Check it when the engine seems unable to do something.
 - `examples/`: complete flagship figures. Open the closest one before starting:
   - `raft/`: consensus with crash and partition, a responsive layout, predict questions, and a space-time lanes board that is off by default (opt in with the "Message timeline" setting: Show, or Show below the servers).
