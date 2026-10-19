@@ -7,6 +7,7 @@ import { fill, fillIds } from "./template.mjs";
 
 const DEEPER = ["cost", "how", "code", "edge", "real", "source"];
 const ENTER = ["sofar", "now", "done"];
+const TEACH = ["prompt", "listen"];
 
 /** `x@story` keys replace `x` for that story; other stories' overrides are dropped. Shallow. */
 export function forStory(obj, story) {
@@ -77,6 +78,7 @@ export function mergeLesson(script, lesson, { scenario = null, meta = {} } = {})
       const ch = entryOf(chapters, st.phaseId);
       if (ch?.about) st.about = text(ch.about, `chapter "${st.phaseId}" about`);
       if (ch?.enter) st.enter = enterOf(ch.enter, (tpl, k) => text(tpl, `chapter "${st.phaseId}" enter.${k}`));
+      if (ch?.teach) st.teach = teachOf(ch.teach, (tpl, k) => text(tpl, `chapter "${st.phaseId}" teach.${k}`));
     }
     if (st.ask?.id) {
       const a = entryOf(asks, st.ask.id);
@@ -132,6 +134,15 @@ function layersOf(st, entry, { vars, text, problem, end, rows, seen }) {
     else problem(`picture names "${e.picture}", which is not a row of lesson.picture`);
   }
   if (e.key) out.key = true;
+  return out;
+}
+
+// a chapter's notes for whoever teaches it (the presenter view, the teacher guide): a question to put to the room,
+// what a good answer says or which wrong idea to listen for, and the minutes to give the talk
+function teachOf(teach, text) {
+  const out = {};
+  for (const k of TEACH) if (teach[k]) out[k] = text(teach[k], k);
+  if (Number.isFinite(teach.minutes) && teach.minutes > 0) out.minutes = teach.minutes;
   return out;
 }
 

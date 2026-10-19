@@ -244,9 +244,14 @@ frame.contentWindow.postMessage({ type: "explainer", version: 1, command: "seek"
 - Origins: `?origin=https://lms.example,https://other.example` or `meta.embed.origins` (`"*"` allows any). With
   neither, only the parent window may drive it (a console warning says so once) and events go to the parent's origin.
 - The figure's IRI is `meta.embed.id`, else `urn:explainer:<meta.id or title slug>`.
-- Deep links, embedded or not: `#step-12`, `#scenario-crash`, `#level-expert`, joinable (`#scenario-crash&step-4`),
-  applied on load and on hashchange, then removed from the hash (the HUD's `#s=…&t=…` takes over). `step` lands on
-  the step's start, like Back. LTI 1.3 needs a server, so it is out of scope for the file; a SCORM zip is the later
+- Deep links, embedded or not: `#step-12`, `#scenario-crash`, `#level-expert`, `#p=reducers:4`, joinable
+  (`#scenario-crash&step-4&p=reducers:4`), and the HUD's own `#s=crash&t=12.4&p=…`. The runtime opens the moment
+  (`deeplink.mjs`: `parseMoment` → `resolveMoment` against the figure → `resolveStep` in the compiled run): the story,
+  knobs and level before the first compile, then the step, which lands on the step's start, like Back. Anything the
+  page cannot use (an unknown story, knob or level, a value out of range or of the wrong type, a step past the end) is
+  dropped or clamped and said in a note on the start card. The hash is then rewritten in the HUD's spelling so a
+  reload opens the same moment. Later hashes (hashchange, or a host setting the frame's hash) go through
+  `__internals.openMoment(hash)`. The share panel writes links with `formatMoment`. LTI 1.3 needs a server, so it is out of scope for the file; a SCORM zip is the later
   static route to gradebooks.
 
 ## serve.mjs
