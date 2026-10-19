@@ -1,17 +1,21 @@
-# Review: three ways to make the MapReduce page a better product
+# Review: six ways to make Explainer a better product
 
-Each branch improves `examples/mapreduce` from one angle. Each one is a **draft pull request**:
-nothing is merged into `main`.
+Each branch improves Explainer from one angle, using `examples/mapreduce` as the test page. Each one is a draft pull
+request, and they come in two rounds, each with one combined PR.
 
-> **To merge: use [#4](https://github.com/irfanalimd/explainer/pull/4).** It combines all three below, resolves
-> where they overlap, and updates the generator's instructions, so new `/explainer` pages come out the same way.
-> #1–#3 stay open for their write-ups and screenshots.
+| Round | Combined PR | What it holds | State |
+|---|---|---|---|
+| 1 | [#4](https://github.com/irfanalimd/explainer/pull/4) | learner journey, active learning, world storytelling (#1–#3) | **merged** |
+| 2 | [#8](https://github.com/irfanalimd/explainer/pull/8) | author pipeline, share & teach, interface & access (#5–#7) | **draft: merge this one** |
 
-| | Branch | What changes for the reader | Pull request | Size |
-|---|---|---|---|---|
-| **01** | Learner journey | The page remembers where you stopped. The four stories chain into a course. Every waiting state says what is going on. | [#1](https://github.com/irfanalimd/explainer/pull/1) | +494 / −70, 16 files |
-| **02** | Active learning | More predictions, placed where the obvious answer is wrong. Each story ends with its own check on a new situation. The expert notes are corrected. | [#2](https://github.com/irfanalimd/explainer/pull/2) | +482 / −116, 11 files |
-| **04** | World storytelling | Slips you can read, machines that show their live state, the 3D world lighting up what the lesson points at, and colour-blind-safe word colours. | [#3](https://github.com/irfanalimd/explainer/pull/3) | +108 / −42, 9 files |
+| | Branch | What changes | Pull request |
+|---|---|---|---|
+| 01 | Learner journey | The page remembers where you stopped. The four stories chain into a course. Every waiting state says what is going on. | [#1](https://github.com/irfanalimd/explainer/pull/1) (merged via #4) |
+| 02 | Active learning | More predictions, placed where the obvious answer is wrong. Each story ends with its own check on a new situation. | [#2](https://github.com/irfanalimd/explainer/pull/2) (merged via #4) |
+| 04 | World storytelling | Slips you can read, live machine states, the world lighting up what the lesson points at, colour-blind-safe colours. | [#3](https://github.com/irfanalimd/explainer/pull/3) (merged via #4) |
+| 05 | Share & teach | Links to an exact moment, a share panel (link, image, embed), a printable handout and teacher guide, presenter notes. | [#5](https://github.com/irfanalimd/explainer/pull/5) |
+| 06 | Author pipeline | `doctor`, a one-command `check` with a quality report, errors that point at the line, all unit tests passing. | [#6](https://github.com/irfanalimd/explainer/pull/6) |
+| 03 | Interface & access | Screen-reader narration, the world in words without a GPU, accessible contrast and target sizes. | [#7](https://github.com/irfanalimd/explainer/pull/7) |
 
 ## How to review one
 
@@ -37,15 +41,8 @@ and 02 each include a fix for that; 04 doesn't, so its run misses the same cards
 
 ## If you merge them
 
-Merge [#4](https://github.com/irfanalimd/explainer/pull/4), not the three separately. They overlap in a few files
-(`examples/mapreduce/lesson.mjs`, `figure.mjs`, `scripts/shoot.mjs`, `DESIGN.md`, `references/tooling.md`), and #4
-already resolves those overlaps.
-
-## Not here yet
-
-Three more branches are still in progress locally and are not pushed: interface & accessibility, sharing &
-teaching (links to a moment, a printable handout, presenter notes), and the author pipeline (`doctor`, a
-one-command `check`, a quality report).
+Merge [#8](https://github.com/irfanalimd/explainer/pull/8), not #5–#7 separately: it resolves where they overlap with
+each other and with what #4 already merged. GitHub then marks #5–#7 as merged too.
 
 ---
 
