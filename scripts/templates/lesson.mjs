@@ -36,7 +36,8 @@ export const lesson = {
   },
 
   // objectives only some stories teach take stories: ["missing"]; next: [{ title, href, why }] names the lessons that
-  // follow at the end of the last story (examples/mapreduce/lesson.mjs has both)
+  // follow at the end of the last story; each chapter may carry teach: { prompt, listen, minutes } for whoever
+  // teaches it (examples/mapreduce/lesson.mjs has all three)
 
   chapters: {
     idea: {

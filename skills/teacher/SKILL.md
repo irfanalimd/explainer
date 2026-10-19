@@ -42,6 +42,7 @@ Somewhere in the lesson there must be at least one `deeper.cost`, and at least o
   - *You'll know it worked when*: what the reader will see in the world.
 - The parts chapter's card (`enter.picture: true`) carries the full picture map once, with the line where the picture stops matching. There is no picture table under the steps; a step that uses the picture names its row (`picture`).
 - `about`: 1-2 sentences, ≤ 40 words, true in every story (`about@story` where one differs).
+- `teach`, notes for whoever teaches it (the presenter view and the teacher guide show them, never the reader): `{ prompt, listen, minutes }`, a question to put to the room before the chapter's key step, what a good answer says or the wrong idea to listen for (name the misconception), and the minutes to give the talk. One per chapter; `teach@story` where a story's chapter asks something else.
 - `objectives` that only some stories teach carry `stories: [scenarioId]`, so each story's "You can now…" lists only what it taught.
 
 ## End checks
