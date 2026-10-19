@@ -1,0 +1,47 @@
+# unit tests at b99be04
+$ node --test "engine/**/*.test.mjs" "sim/**/*.test.mjs" "scripts/**/*.test.mjs"
+# tests 310
+# suites 0
+# pass 310
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+(no failing tests)
+
+# base commit 9c8b16d, same command: 305 tests, 294 pass, 11 fail
+# current main (bdadd81): 309 tests, 298 pass, 11 fail; with this branch's test commit (ecbcdee) applied: 309 pass, 0 fail
+
+# end-to-end tooling check (snap, shoot, audit, record, serve, new) at b99be04
+$ node scripts/test/e2e.mjs
+ok    build fake figure (fake runtime)  (0.3 s)
+ok    snap from file://  (2.7 s)
+ok    shoot: phases x themes x sizes + contact sheet  (12.1 s)
+ok    audit: clean scenario passes  (4.6 s)
+ok    audit: planted problems are found  (4.2 s)
+ok    record: 3 s 1280x720 WebM plays back  (24.3 s)
+ok    record: .mp4 without ffmpeg refuses to download  (0.5 s)
+ok    verify: fake figure, all runs  (0.6 s)
+ok    new: template outside the skill verifies  (0.8 s)
+ok    new --from: imports into the skill are relocated  (0.2 s)
+ok    dev page: serve.mjs live reload  (2.5 s)
+all checks passed
+
+# the same e2e on the base commit 9c8b16d
+ok    build fake figure (fake runtime)  (0.4 s)
+FAIL  snap from file://: exit null, expected 0
+    (the page error: "Cannot read properties of undefined (reading 'minZ')" from the director, with the bundled module source; elided)
+FAIL  shoot: phases x themes x sizes + contact sheet: exit 1, expected 0
+    (the page error: "Cannot read properties of undefined (reading 'minZ')" from the director, with the bundled module source; elided)
+FAIL  audit: clean scenario passes: exit 1, expected 0
+    (the page error: "Cannot read properties of undefined (reading 'minZ')" from the director, with the bundled module source; elided)
+FAIL  audit: planted problems are found: output lacks tag-offscreen at step 9: tag "far away"
+    (the page error: "Cannot read properties of undefined (reading 'minZ')" from the director, with the bundled module source; elided)
+FAIL  record: 3 s 1280x720 WebM plays back: exit 1, expected 0
+    (the page error: "Cannot read properties of undefined (reading 'minZ')" from the director, with the bundled module source; elided)
+ok    record: .mp4 without ffmpeg refuses to download  (0.3 s)
+ok    verify: fake figure, all runs  (0.5 s)
+ok    new: template outside the skill verifies  (0.8 s)
+ok    new --from: imports into the skill are relocated  (0.4 s)
+ok    dev page: serve.mjs live reload  (2.2 s)
+5 check(s) failed

@@ -1,0 +1,40 @@
+ README.md                         |  17 ++-
+ SKILL.md                          |  15 +-
+ engine/director/director.test.mjs |   9 +-
+ engine/gfx/skin.test.mjs          |  14 +-
+ engine/hud/hud.test.mjs           |  14 +-
+ engine/scene/fixtures.test.mjs    |   4 +-
+ engine/scene/timeline.test.mjs    |   2 +-
+ hooks/hooks.json                  |   4 +-
+ references/tooling.md             | 114 +++++++++++++-
+ scripts/check.mjs                 | 227 ++++++++++++++++++++++++++++
+ scripts/doctor.mjs                | 194 ++++++++++++++++++++++++
+ scripts/lib/cdp.mjs               |  96 +++++++++---
+ scripts/lib/report.mjs            | 303 ++++++++++++++++++++++++++++++++++++++
+ scripts/lib/where.mjs             |  95 ++++++++++++
+ scripts/lib/where.test.mjs        |  78 ++++++++++
+ scripts/new.mjs                   |  10 ++
+ scripts/shoot.mjs                 | 245 ++++++++++++++++++++----------
+ scripts/test/fake-scene.mjs       |   1 +
+ scripts/verify.mjs                | 236 +++++++++++++++++++++++++----
+ scripts/verify.test.mjs           |   3 +-
+ sim/fixtures/quicksort.test.mjs   |   2 +-
+ 21 files changed, 1526 insertions(+), 157 deletions(-)
+
+b99be04 Document doctor, check, the new verify messages and measured times in SKILL.md, tooling.md and the README
+6d07576 Say how much slower than real time a slow page plays, and what shoot --teach paces by
+64953e8 Count a finding as alike when it differs only in its numbers and their plurals
+38fdbef Let check build the page somewhere else with --page
+e18d660 Calibrate doctor's speed estimate on a measured capture
+850f3ef Give the end-to-end check's fake scene a world, so snap, shoot, audit and record run again
+9dfd69e Say what doctor's speed line measures
+5de5063 Kill Chrome's whole process tree, and leave a watchdog that cleans up when the script is killed
+bad11ab Name each audit finding with its steps and size in check's verdict, and draw the story bars to one scale
+6259015 Block the fenced agents' tools when the reader fence cannot run, instead of letting them through
+0cb4af2 Rewrite a copied README's commands for the new folder, point new at check, and test the where helpers and Chrome discovery
+e052de4 Fold verify's repeated findings, point a bad ref or an undefined name at the likely fix, and count export errors as failing
+ed1e192 Add check: verify, build, shoot and audit in one command, with a self-contained report beside the figure
+370ba60 Settle teaching cards on the page going idle, and jump to a question's reveal on a slow machine
+31c7cf4 Make verify's errors point at the file, the line and the likely fix
+74be405 Pace shoot --teach by the page's frame time, shoot the end check and the real end card, and clean up Chrome's profile on every exit
+ecbcdee Bring eleven stale tests up to date with the engine they test

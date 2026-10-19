@@ -1,0 +1,3894 @@
+{
+  "figure": "~/figs/wc/figure.mjs",
+  "tier": "full",
+  "out": "~/figs/wc/check",
+  "when": "2026-10-19T00:07:24.042Z",
+  "steps": [
+    {
+      "name": "verify",
+      "ms": 3294
+    },
+    {
+      "name": "stories",
+      "ms": 434
+    },
+    {
+      "name": "build",
+      "ms": 292
+    },
+    {
+      "name": "shoot",
+      "ms": 3745516
+    },
+    {
+      "name": "audit",
+      "ms": 772774
+    }
+  ],
+  "verify": {
+    "fatal": null,
+    "timedOut": null,
+    "runs": 26,
+    "failing": 0,
+    "errors": 0,
+    "warnings": 0,
+    "ms": 3291.7804939999996,
+    "branches": 8,
+    "exports": {
+      "errors": [],
+      "warnings": []
+    },
+    "runErrors": [],
+    "runWarnings": [],
+    "lesson": {
+      "info": {
+        "steps": 36,
+        "chapters": 5,
+        "asks": 3,
+        "chooses": 1,
+        "checks": 3
+      },
+      "warnings": [],
+      "notes": [
+        {
+          "kind": "lesson",
+          "message": "lesson.steps names 2 step id(s) no run here reaches: \"map.empty\", \"reduce.sum-all\" (a typo, a step the figure no longer makes, or one only untried knob values reach)"
+        }
+      ]
+    },
+    "teaching": {
+      "info": {
+        "jargon": [],
+        "filler": [],
+        "words": 2128,
+        "grade": 6,
+        "level": "core",
+        "chapters": 5,
+        "asks": 3,
+        "terms": 8
+      },
+      "errors": [],
+      "warnings": []
+    },
+    "text": "verify figure.mjs  (compiler <skill>/engine/scene/index.mjs)\n  ok    exports  meta, params, scenarios, counters, invariants, build\n  ok    happy                        25 steps  139.7 s  5 phases  192 ms  + 1 branch\n  ok    happy · phone                25 steps  141.2 s  5 phases  109 ms  + 1 branch\n  ok    happy · mappers=1            23 steps  128.3 s  5 phases   47 ms  + 1 branch\n  ok    happy · mappers=6            28 steps  155.3 s  5 phases  160 ms  + 1 branch\n  ok    happy · reducers=1           22 steps  130.2 s  5 phases   60 ms\n  ok    happy · reducers=4           31 steps  159.7 s  5 phases   34 ms  + 3 branches\n  ok    happy · combiner=true        25 steps  139.7 s  5 phases   36 ms  + 1 branch\n  ok    crash                        27 steps  141.6 s  5 phases   26 ms\n  ok    crash · phone                27 steps  143.1 s  5 phases   15 ms\n  ok    crash · mappers=1            26 steps  137.1 s  5 phases   21 ms\n  ok    crash · mappers=6            30 steps  157.2 s  5 phases   75 ms\n  ok    crash · reducers=1           24 steps  132.1 s  5 phases   21 ms\n  ok    crash · reducers=4           33 steps  161.6 s  5 phases   19 ms\n  ok    crash · combiner=true        27 steps  141.1 s  5 phases   18 ms\n  ok    straggler                    27 steps  143.7 s  5 phases   20 ms\n  ok    straggler · phone            27 steps  145.2 s  5 phases   25 ms\n  ok    straggler · mappers=1        23 steps  120.0 s  5 phases   13 ms\n  ok    straggler · mappers=6        30 steps  158.1 s  5 phases   63 ms\n  ok    straggler · reducers=1       24 steps  134.2 s  5 phases   19 ms\n  ok    straggler · reducers=4       33 steps  163.7 s  5 phases   31 ms\n  ok    straggler · combiner=true    27 steps  143.2 s  5 phases   28 ms\n  ok    skew                         29 steps  165.5 s  5 phases   33 ms\n  ok    skew · phone                 29 steps  167.7 s  5 phases   17 ms\n  ok    skew · mappers=1             27 steps  160.4 s  5 phases   16 ms\n  ok    skew · mappers=6             32 steps  180.2 s  5 phases   63 ms\n  ok    skew · combiner=true         24 steps  125.4 s  5 phases   18 ms\n  ok    lesson    lesson.mjs over every run and branch: 36 step ids, 5 chapters, 3 asks, 1 picks, 3 checks\n        note   lesson.steps names 2 step id(s) no run here reaches: \"map.empty\", \"reduce.sum-all\" (a typo, a step the figure no longer makes, or one only untried knob values reach)\n  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)\n        info   level core, 5 chapters, 3 questions, 8 defined words, 2128 words, reading grade 6\nsummary  26 run(s), 0 failing, 0 error(s), 0 warning(s)  3.3 s"
+  },
+  "stories": [
+    {
+      "id": "happy",
+      "label": "Everything works",
+      "steps": 25,
+      "run": 139.68058552455233,
+      "watch": 120.91006965655143,
+      "chapters": [
+        {
+          "name": "Split",
+          "steps": 2,
+          "run": 11.899999999999999,
+          "watch": 11.899999999999999
+        },
+        {
+          "name": "Map",
+          "steps": 4,
+          "run": 20.799999999999997,
+          "watch": 18.00982804399669
+        },
+        {
+          "name": "Shuffle",
+          "steps": 11,
+          "run": 59.00000000000002,
+          "watch": 43.01965608800387
+        },
+        {
+          "name": "Reduce",
+          "steps": 4,
+          "run": 18.700000000000003,
+          "watch": 18.70000000001627
+        },
+        {
+          "name": "Output",
+          "steps": 4,
+          "run": 29.280585524552308,
+          "watch": 29.28058552457758
+        }
+      ],
+      "asks": 0,
+      "picks": 1,
+      "checks": 3,
+      "key": 9,
+      "fork": null
+    },
+    {
+      "id": "crash",
+      "label": "One machine crashes",
+      "steps": 27,
+      "run": 141.59458552455231,
+      "watch": 125.61424161254281,
+      "chapters": [
+        {
+          "name": "Split",
+          "steps": 2,
+          "run": 11.899999999999999,
+          "watch": 11.899999999999999
+        },
+        {
+          "name": "Map",
+          "steps": 7,
+          "run": 36.714,
+          "watch": 36.71399999999017
+        },
+        {
+          "name": "Shuffle",
+          "steps": 11,
+          "run": 59.00000000000002,
+          "watch": 43.0196560880148
+        },
+        {
+          "name": "Reduce",
+          "steps": 4,
+          "run": 18.700000000000003,
+          "watch": 18.70000000001627
+        },
+        {
+          "name": "Output",
+          "steps": 3,
+          "run": 15.280585524552293,
+          "watch": 15.280585524565643
+        }
+      ],
+      "asks": 1,
+      "picks": 0,
+      "checks": 3,
+      "key": 10,
+      "fork": {
+        "step": 2,
+        "watch": 113.71424161256517
+      }
+    },
+    {
+      "id": "straggler",
+      "label": "One machine is slow",
+      "steps": 27,
+      "run": 143.6805855245523,
+      "watch": 127.70024161252417,
+      "chapters": [
+        {
+          "name": "Split",
+          "steps": 2,
+          "run": 11.899999999999999,
+          "watch": 11.899999999999999
+        },
+        {
+          "name": "Map",
+          "steps": 7,
+          "run": 38.49999999999999,
+          "watch": 38.499999999990166
+        },
+        {
+          "name": "Shuffle",
+          "steps": 11,
+          "run": 59.000000000000014,
+          "watch": 43.019656088017776
+        },
+        {
+          "name": "Reduce",
+          "steps": 4,
+          "run": 18.69999999999999,
+          "watch": 18.700000000016257
+        },
+        {
+          "name": "Output",
+          "steps": 3,
+          "run": 15.580585524552305,
+          "watch": 15.58058552456591
+        }
+      ],
+      "asks": 1,
+      "picks": 0,
+      "checks": 3,
+      "key": 10,
+      "fork": {
+        "step": 2,
+        "watch": 115.8002416125466
+      }
+    },
+    {
+      "id": "skew",
+      "label": "One word is very common",
+      "steps": 29,
+      "run": 165.45711668144943,
+      "watch": 124.34343943607924,
+      "chapters": [
+        {
+          "name": "Split",
+          "steps": 2,
+          "run": 9.8,
+          "watch": 9.8
+        },
+        {
+          "name": "Map",
+          "steps": 4,
+          "run": 21.659999999999997,
+          "watch": 18.86982804400776
+        },
+        {
+          "name": "Shuffle",
+          "steps": 14,
+          "run": 90.2,
+          "watch": 51.876494710668645
+        },
+        {
+          "name": "Reduce",
+          "steps": 5,
+          "run": 23.989000000000004,
+          "watch": 23.98900000002078
+        },
+        {
+          "name": "Output",
+          "steps": 4,
+          "run": 19.808116681449434,
+          "watch": 19.808116681466643
+        }
+      ],
+      "asks": 1,
+      "picks": 0,
+      "checks": 3,
+      "key": 9,
+      "fork": null
+    }
+  ],
+  "build": {
+    "out": "~/figs/wc/mapreduce.html",
+    "theme": "light",
+    "bytes": 1705604,
+    "modules": 81,
+    "moduleBytes": 1497440,
+    "fontBytes": 69910,
+    "cssBytes": 133085,
+    "warnings": [],
+    "title": "MapReduce",
+    "subtitle": "Counting words with a team of machines"
+  },
+  "shoot": {
+    "dir": "~/figs/wc/check/shots",
+    "shots": [
+      {
+        "file": "happy-dark-1440x900-000-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "happy-dark-1440x900-001-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "happy-dark-1440x900-004-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 22.299999999999997,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "file": "happy-dark-1440x900-005-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 32.699,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "happy-dark-1440x900-011-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 11,
+        "tag": "mid",
+        "t": 62.2,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m1|map 1} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "happy-dark-1440x900-016-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 16,
+        "tag": "end",
+        "t": 91.69900000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "happy-dark-1440x900-019-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "mid",
+        "t": 101.05000000000001,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "happy-dark-1440x900-020-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 20,
+        "tag": "end",
+        "t": 110.39900000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "happy-dark-1440x900-023-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "mid",
+        "t": 125.04029276227618,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted, 8 different ones, and no machine read the whole text."
+      },
+      {
+        "file": "happy-dark-1440x900-024-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 139.67958552455232,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-1440x900-000-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "happy-light-1440x900-001-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "happy-light-1440x900-004-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 22.299999999999997,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "file": "happy-light-1440x900-005-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 32.699,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "happy-light-1440x900-011-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 11,
+        "tag": "mid",
+        "t": 62.2,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m1|map 1} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "happy-light-1440x900-016-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 16,
+        "tag": "end",
+        "t": 91.69900000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "happy-light-1440x900-019-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "mid",
+        "t": 101.05000000000001,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "happy-light-1440x900-020-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 20,
+        "tag": "end",
+        "t": 110.39900000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "happy-light-1440x900-023-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "mid",
+        "t": 125.04029276227618,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted, 8 different ones, and no machine read the whole text."
+      },
+      {
+        "file": "happy-light-1440x900-024-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 139.67958552455232,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-dark-1440x900-000-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "crash-dark-1440x900-001-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "crash-dark-1440x900-005-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 30.256999999999998,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} {tone:fail|crashes} after 2 of 4 words; its 2 slips are lost with it."
+      },
+      {
+        "file": "crash-dark-1440x900-008-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 48.613,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} reads split 1 again and writes the same 4 slips."
+      },
+      {
+        "file": "crash-dark-1440x900-014-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 78.114,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "crash-dark-1440x900-019-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 107.61300000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "crash-dark-1440x900-022-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 116.96400000000003,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "crash-dark-1440x900-023-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 126.31300000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "crash-dark-1440x900-025-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 133.95429276227617,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "crash-dark-1440x900-026-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 141.5935855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-light-1440x900-000-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "crash-light-1440x900-001-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "crash-light-1440x900-005-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 30.256999999999998,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} {tone:fail|crashes} after 2 of 4 words; its 2 slips are lost with it."
+      },
+      {
+        "file": "crash-light-1440x900-008-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 48.613,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} reads split 1 again and writes the same 4 slips."
+      },
+      {
+        "file": "crash-light-1440x900-014-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 78.114,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "crash-light-1440x900-019-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 107.61300000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "crash-light-1440x900-022-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 116.96400000000003,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "crash-light-1440x900-023-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 126.31300000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "crash-light-1440x900-025-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 133.95429276227617,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "crash-light-1440x900-026-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 141.5935855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-dark-1440x900-000-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "straggler-dark-1440x900-001-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "straggler-dark-1440x900-005-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 31.149999999999995,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "straggler-dark-1440x900-008-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 50.398999999999994,
+        "phase": "Map",
+        "caption": "The backup finishes first: the master keeps its slips and stops {ref:m1|map 1}, 2 of 4 words unread."
+      },
+      {
+        "file": "straggler-dark-1440x900-014-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 79.9,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "straggler-dark-1440x900-019-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 109.399,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "straggler-dark-1440x900-022-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 118.75,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "straggler-dark-1440x900-023-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 128.099,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "straggler-dark-1440x900-025-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 135.89029276227615,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "straggler-dark-1440x900-026-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 143.6795855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-light-1440x900-000-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "straggler-light-1440x900-001-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "straggler-light-1440x900-005-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 31.149999999999995,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "straggler-light-1440x900-008-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 50.398999999999994,
+        "phase": "Map",
+        "caption": "The backup finishes first: the master keeps its slips and stops {ref:m1|map 1}, 2 of 4 words unread."
+      },
+      {
+        "file": "straggler-light-1440x900-014-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 79.9,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "straggler-light-1440x900-019-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 109.399,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "straggler-light-1440x900-022-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 118.75,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "straggler-light-1440x900-023-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 128.099,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "straggler-light-1440x900-025-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 135.89029276227615,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "straggler-light-1440x900-026-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 143.6795855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-dark-1440x900-001-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "mid",
+        "t": 4.9,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-dark-1440x900-001-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 9.799000000000001,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-dark-1440x900-004-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 20.63,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      },
+      {
+        "file": "skew-dark-1440x900-005-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 31.458999999999996,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 4 lines, like `(200, 1)`."
+      },
+      {
+        "file": "skew-dark-1440x900-013-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 13,
+        "tag": "mid",
+        "t": 76.56,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 8 of the 8 sent."
+      },
+      {
+        "file": "skew-dark-1440x900-019-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 121.65899999999999,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 12 of the 14 sent."
+      },
+      {
+        "file": "skew-dark-1440x900-022-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 133.65449999999998,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} got no slips and finishes empty."
+      },
+      {
+        "file": "skew-dark-1440x900-024-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 145.648,
+        "phase": "Reduce",
+        "caption": "{ref:r2|reduce 2} has no repeated codes, so each slip's count is already its total."
+      },
+      {
+        "file": "skew-dark-1440x900-027-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 27,
+        "tag": "mid",
+        "t": 155.5530583407247,
+        "phase": "Output",
+        "caption": "Done. {ref:r0|reduce 0} got 12 of 14 slips, 2.6× a fair share (14 ÷ 3 counters)."
+      },
+      {
+        "file": "skew-dark-1440x900-028-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "end",
+        "t": 165.45611668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-1440x900-001-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "mid",
+        "t": 4.9,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-light-1440x900-001-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 9.799000000000001,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-light-1440x900-004-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 20.63,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      },
+      {
+        "file": "skew-light-1440x900-005-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 31.458999999999996,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 4 lines, like `(200, 1)`."
+      },
+      {
+        "file": "skew-light-1440x900-013-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 13,
+        "tag": "mid",
+        "t": 76.56,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 8 of the 8 sent."
+      },
+      {
+        "file": "skew-light-1440x900-019-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 121.65899999999999,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 12 of the 14 sent."
+      },
+      {
+        "file": "skew-light-1440x900-022-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 133.65449999999998,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} got no slips and finishes empty."
+      },
+      {
+        "file": "skew-light-1440x900-024-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 145.648,
+        "phase": "Reduce",
+        "caption": "{ref:r2|reduce 2} has no repeated codes, so each slip's count is already its total."
+      },
+      {
+        "file": "skew-light-1440x900-027-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 27,
+        "tag": "mid",
+        "t": 155.5530583407247,
+        "phase": "Output",
+        "caption": "Done. {ref:r0|reduce 0} got 12 of 14 slips, 2.6× a fair share (14 ÷ 3 counters)."
+      },
+      {
+        "file": "skew-light-1440x900-028-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "end",
+        "t": 165.45611668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "happy-dark-1440x900-012-wrong.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 12,
+        "tag": "wrong",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "file": "happy-dark-1440x900-012-right.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 12,
+        "tag": "right",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "The first {key:the} went to reduce 0. Click the counting machine that should get this one, from {ref:m1|map 1}."
+      },
+      {
+        "file": "happy-dark-1440x900-024-check.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "check",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-dark-1440x900-024-check-done.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "check-done",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-dark-1440x900-024-end-card.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end-card",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-dark-1440x900-007-ask.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "map 1 crashed after 2 of its 4 words. What happens to its piece?"
+      },
+      {
+        "file": "crash-dark-1440x900-007-why.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master hands it split 1: the text is still in the input."
+      },
+      {
+        "file": "crash-dark-1440x900-026-check-done.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 141.59458552455231,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-dark-1440x900-026-end-card.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 141.59458552455231,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-dark-1440x900-006-ask.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 6,
+        "tag": "ask",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "map 1 has written 1 of its 4 slips, and the other machines are done. What does the master do?"
+      },
+      {
+        "file": "straggler-dark-1440x900-006-why.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 6,
+        "tag": "why",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master starts a {tone:busy|backup} copy of split 1 on it."
+      },
+      {
+        "file": "straggler-dark-1440x900-026-check-done.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 143.6805855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-dark-1440x900-026-end-card.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 143.6805855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-dark-1440x900-007-ask.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "The first \"200\" went to reduce 0. Where does this \"200\", from map 0, go?"
+      },
+      {
+        "file": "skew-dark-1440x900-007-why.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "file": "skew-dark-1440x900-028-check.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "check",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-dark-1440x900-028-check-done.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "check-done",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-dark-1440x900-028-end-card.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "end-card",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "happy-light-1440x900-012-wrong.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 12,
+        "tag": "wrong",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "file": "happy-light-1440x900-012-right.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 12,
+        "tag": "right",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "The first {key:the} went to reduce 0. Click the counting machine that should get this one, from {ref:m1|map 1}."
+      },
+      {
+        "file": "happy-light-1440x900-024-check.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "check",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-1440x900-024-check-done.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "check-done",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-1440x900-024-end-card.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 24,
+        "tag": "end-card",
+        "t": 139.68058552455233,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-light-1440x900-007-ask.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "map 1 crashed after 2 of its 4 words. What happens to its piece?"
+      },
+      {
+        "file": "crash-light-1440x900-007-why.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master hands it split 1: the text is still in the input."
+      },
+      {
+        "file": "crash-light-1440x900-026-check-done.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 141.59458552455231,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-light-1440x900-026-end-card.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 141.59458552455231,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-light-1440x900-006-ask.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 6,
+        "tag": "ask",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "map 1 has written 1 of its 4 slips, and the other machines are done. What does the master do?"
+      },
+      {
+        "file": "straggler-light-1440x900-006-why.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 6,
+        "tag": "why",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master starts a {tone:busy|backup} copy of split 1 on it."
+      },
+      {
+        "file": "straggler-light-1440x900-026-check-done.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 143.6805855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-light-1440x900-026-end-card.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 143.6805855245523,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-light-1440x900-007-ask.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "The first \"200\" went to reduce 0. Where does this \"200\", from map 0, go?"
+      },
+      {
+        "file": "skew-light-1440x900-007-why.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "file": "skew-light-1440x900-028-check.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "check",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-1440x900-028-check-done.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "check-done",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-1440x900-028-end-card.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 1440,
+          "height": 900
+        },
+        "step": 28,
+        "tag": "end-card",
+        "t": 165.45711668144943,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "happy-dark-390x844-000-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "happy-dark-390x844-001-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "happy-dark-390x844-004-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 22.299999999999997,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "file": "happy-dark-390x844-005-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 32.699,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "happy-dark-390x844-011-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 11,
+        "tag": "mid",
+        "t": 62.2,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m1|map 1} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "happy-dark-390x844-016-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 16,
+        "tag": "end",
+        "t": 91.69900000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "happy-dark-390x844-019-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "mid",
+        "t": 101.05000000000001,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "happy-dark-390x844-020-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 20,
+        "tag": "end",
+        "t": 110.39900000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "happy-dark-390x844-023-mid.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "mid",
+        "t": 125.80536291727987,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted, 8 different ones, and no machine read the whole text."
+      },
+      {
+        "file": "happy-dark-390x844-024-end.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 141.2097258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-390x844-000-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "happy-light-390x844-001-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "happy-light-390x844-004-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 22.299999999999997,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "file": "happy-light-390x844-005-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 32.699,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "happy-light-390x844-011-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 11,
+        "tag": "mid",
+        "t": 62.2,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m1|map 1} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "happy-light-390x844-016-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 16,
+        "tag": "end",
+        "t": 91.69900000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "happy-light-390x844-019-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "mid",
+        "t": 101.05000000000001,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "happy-light-390x844-020-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 20,
+        "tag": "end",
+        "t": 110.39900000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "happy-light-390x844-023-mid.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "mid",
+        "t": 125.80536291727987,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted, 8 different ones, and no machine read the whole text."
+      },
+      {
+        "file": "happy-light-390x844-024-end.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 141.2097258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-dark-390x844-000-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "crash-dark-390x844-001-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "crash-dark-390x844-005-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 30.256999999999998,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} {tone:fail|crashes} after 2 of 4 words; its 2 slips are lost with it."
+      },
+      {
+        "file": "crash-dark-390x844-008-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 48.613,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} reads split 1 again and writes the same 4 slips."
+      },
+      {
+        "file": "crash-dark-390x844-014-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 78.114,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "crash-dark-390x844-019-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 107.61300000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "crash-dark-390x844-022-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 116.96400000000003,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "crash-dark-390x844-023-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 126.31300000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "crash-dark-390x844-025-mid.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 134.71936291727985,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "crash-dark-390x844-026-end.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 143.1237258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-light-390x844-000-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "crash-light-390x844-001-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "crash-light-390x844-005-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 30.256999999999998,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} {tone:fail|crashes} after 2 of 4 words; its 2 slips are lost with it."
+      },
+      {
+        "file": "crash-light-390x844-008-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 48.613,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} reads split 1 again and writes the same 4 slips."
+      },
+      {
+        "file": "crash-light-390x844-014-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 78.114,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "crash-light-390x844-019-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 107.61300000000001,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "crash-light-390x844-022-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 116.96400000000003,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "crash-light-390x844-023-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 126.31300000000002,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "crash-light-390x844-025-mid.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 134.71936291727985,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "crash-light-390x844-026-end.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 143.1237258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-dark-390x844-000-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "straggler-dark-390x844-001-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "straggler-dark-390x844-005-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 31.149999999999995,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "straggler-dark-390x844-008-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 50.398999999999994,
+        "phase": "Map",
+        "caption": "The backup finishes first: the master keeps its slips and stops {ref:m1|map 1}, 2 of 4 words unread."
+      },
+      {
+        "file": "straggler-dark-390x844-014-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 79.9,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "straggler-dark-390x844-019-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 109.399,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "straggler-dark-390x844-022-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 118.75,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "straggler-dark-390x844-023-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 128.099,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "straggler-dark-390x844-025-mid.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 136.65536291727983,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "straggler-dark-390x844-026-end.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 145.2097258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-light-390x844-000-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 0,
+        "tag": "mid",
+        "t": 5.949999999999999,
+        "phase": "Split",
+        "caption": "Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all."
+      },
+      {
+        "file": "straggler-light-390x844-001-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 11.899,
+        "phase": "Split",
+        "caption": "The master cuts the text into 3 pieces of about 4 words, one per machine."
+      },
+      {
+        "file": "straggler-light-390x844-005-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "mid",
+        "t": 31.149999999999995,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 3 words, like `(dog, 1)`."
+      },
+      {
+        "file": "straggler-light-390x844-008-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 8,
+        "tag": "end",
+        "t": 50.398999999999994,
+        "phase": "Map",
+        "caption": "The backup finishes first: the master keeps its slips and stops {ref:m1|map 1}, 2 of 4 words unread."
+      },
+      {
+        "file": "straggler-light-390x844-014-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 14,
+        "tag": "mid",
+        "t": 79.9,
+        "phase": "Shuffle",
+        "caption": "{key:over} from {ref:m0|map 0} goes to {ref:r1|reduce 1} because `hash(over) % 2 = 1`."
+      },
+      {
+        "file": "straggler-light-390x844-019-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 109.399,
+        "phase": "Shuffle",
+        "caption": "{key:fox} from {ref:m2|map 2} goes to {ref:r0|reduce 0} because `hash(fox) % 2 = 0`."
+      },
+      {
+        "file": "straggler-light-390x844-022-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 118.75,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "file": "straggler-light-390x844-023-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 23,
+        "tag": "end",
+        "t": 128.099,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} has no repeated words, so each slip's count is already its total."
+      },
+      {
+        "file": "straggler-light-390x844-025-mid.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 25,
+        "tag": "mid",
+        "t": 136.65536291727983,
+        "phase": "Output",
+        "caption": "{ref:r1|reduce 1} writes its 4 totals to the output."
+      },
+      {
+        "file": "straggler-light-390x844-026-end.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end",
+        "t": 145.2097258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-dark-390x844-001-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "mid",
+        "t": 4.9,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-dark-390x844-001-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 9.799000000000001,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-dark-390x844-004-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 20.63,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      },
+      {
+        "file": "skew-dark-390x844-005-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 31.458999999999996,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 4 lines, like `(200, 1)`."
+      },
+      {
+        "file": "skew-dark-390x844-013-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 13,
+        "tag": "mid",
+        "t": 76.56,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 8 of the 8 sent."
+      },
+      {
+        "file": "skew-dark-390x844-019-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 121.65899999999999,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 12 of the 14 sent."
+      },
+      {
+        "file": "skew-dark-390x844-022-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 133.65449999999998,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} got no slips and finishes empty."
+      },
+      {
+        "file": "skew-dark-390x844-024-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 145.648,
+        "phase": "Reduce",
+        "caption": "{ref:r2|reduce 2} has no repeated codes, so each slip's count is already its total."
+      },
+      {
+        "file": "skew-dark-390x844-027-mid.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 27,
+        "tag": "mid",
+        "t": 156.6573980011365,
+        "phase": "Output",
+        "caption": "Done. {ref:r0|reduce 0} got 12 of 14 slips, 2.6× a fair share (14 ÷ 3 counters)."
+      },
+      {
+        "file": "skew-dark-390x844-028-end.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end",
+        "t": 167.664796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-390x844-001-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "mid",
+        "t": 4.9,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-light-390x844-001-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 1,
+        "tag": "end",
+        "t": 9.799000000000001,
+        "phase": "Split",
+        "caption": "The master cuts the log into 3 pieces of about 5 lines, one per machine."
+      },
+      {
+        "file": "skew-light-390x844-004-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 4,
+        "tag": "mid",
+        "t": 20.63,
+        "phase": "Map",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      },
+      {
+        "file": "skew-light-390x844-005-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 5,
+        "tag": "end",
+        "t": 31.458999999999996,
+        "phase": "Map",
+        "caption": "{ref:m2|map 2} writes a slip for each of its 4 lines, like `(200, 1)`."
+      },
+      {
+        "file": "skew-light-390x844-013-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 13,
+        "tag": "mid",
+        "t": 76.56,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 8 of the 8 sent."
+      },
+      {
+        "file": "skew-light-390x844-019-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 19,
+        "tag": "end",
+        "t": 121.65899999999999,
+        "phase": "Shuffle",
+        "caption": "{key:200} goes to {ref:r0|reduce 0} (`hash(200) % 3 = 0`); {ref:r0|reduce 0} now holds 12 of the 14 sent."
+      },
+      {
+        "file": "skew-light-390x844-022-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 22,
+        "tag": "mid",
+        "t": 133.65449999999998,
+        "phase": "Reduce",
+        "caption": "{ref:r1|reduce 1} got no slips and finishes empty."
+      },
+      {
+        "file": "skew-light-390x844-024-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end",
+        "t": 145.648,
+        "phase": "Reduce",
+        "caption": "{ref:r2|reduce 2} has no repeated codes, so each slip's count is already its total."
+      },
+      {
+        "file": "skew-light-390x844-027-mid.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 27,
+        "tag": "mid",
+        "t": 156.6573980011365,
+        "phase": "Output",
+        "caption": "Done. {ref:r0|reduce 0} got 12 of 14 slips, 2.6× a fair share (14 ÷ 3 counters)."
+      },
+      {
+        "file": "skew-light-390x844-028-end.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end",
+        "t": 167.664796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "happy-dark-390x844-012-wrong.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 12,
+        "tag": "wrong",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "file": "happy-dark-390x844-012-right.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 12,
+        "tag": "right",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "The first {key:the} went to reduce 0. Click the counting machine that should get this one, from {ref:m1|map 1}."
+      },
+      {
+        "file": "happy-dark-390x844-024-check.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "check",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-dark-390x844-024-check-done.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "check-done",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-dark-390x844-024-end-caption.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end-caption",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-dark-390x844-024-end-card.png",
+        "scenario": "happy",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end-card",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-dark-390x844-007-ask.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "map 1 crashed after 2 of its 4 words. What happens to its piece?"
+      },
+      {
+        "file": "crash-dark-390x844-007-why.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master hands it split 1: the text is still in the input."
+      },
+      {
+        "file": "crash-dark-390x844-026-check-done.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-dark-390x844-026-end-caption.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-caption",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-dark-390x844-026-end-card.png",
+        "scenario": "crash",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-dark-390x844-006-ask.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 6,
+        "tag": "ask",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "map 1 has written 1 of its 4 slips, and the other machines are done. What does the master do?"
+      },
+      {
+        "file": "straggler-dark-390x844-006-why.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 6,
+        "tag": "why",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master starts a {tone:busy|backup} copy of split 1 on it."
+      },
+      {
+        "file": "straggler-dark-390x844-026-check-done.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-dark-390x844-026-end-caption.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-caption",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-dark-390x844-026-end-card.png",
+        "scenario": "straggler",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-dark-390x844-007-ask.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "The first \"200\" went to reduce 0. Where does this \"200\", from map 0, go?"
+      },
+      {
+        "file": "skew-dark-390x844-007-why.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "file": "skew-dark-390x844-028-check.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "check",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-dark-390x844-028-check-done.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "check-done",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-dark-390x844-028-end-caption.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end-caption",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-dark-390x844-028-end-card.png",
+        "scenario": "skew",
+        "theme": "dark",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end-card",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "happy-light-390x844-012-wrong.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 12,
+        "tag": "wrong",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "file": "happy-light-390x844-012-right.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 12,
+        "tag": "right",
+        "t": 64.80000000000001,
+        "phase": "Shuffle",
+        "caption": "The first {key:the} went to reduce 0. Click the counting machine that should get this one, from {ref:m1|map 1}."
+      },
+      {
+        "file": "happy-light-390x844-024-check.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "check",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-390x844-024-check-done.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "check-done",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-390x844-024-end-caption.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end-caption",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "happy-light-390x844-024-end-card.png",
+        "scenario": "happy",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 24,
+        "tag": "end-card",
+        "t": 141.2107258345597,
+        "phase": "Output",
+        "caption": "The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines. Shown simplified."
+      },
+      {
+        "file": "crash-light-390x844-007-ask.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "map 1 crashed after 2 of its 4 words. What happens to its piece?"
+      },
+      {
+        "file": "crash-light-390x844-007-why.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.6,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master hands it split 1: the text is still in the input."
+      },
+      {
+        "file": "crash-light-390x844-026-check-done.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-light-390x844-026-end-caption.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-caption",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "crash-light-390x844-026-end-card.png",
+        "scenario": "crash",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 143.1247258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the crash."
+      },
+      {
+        "file": "straggler-light-390x844-006-ask.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 6,
+        "tag": "ask",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "map 1 has written 1 of its 4 slips, and the other machines are done. What does the master do?"
+      },
+      {
+        "file": "straggler-light-390x844-006-why.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 6,
+        "tag": "why",
+        "t": 32.699999999999996,
+        "phase": "Map",
+        "caption": "{ref:m0|map 0} is free, so the master starts a {tone:busy|backup} copy of split 1 on it."
+      },
+      {
+        "file": "straggler-light-390x844-026-check-done.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "check-done",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-light-390x844-026-end-caption.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-caption",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "straggler-light-390x844-026-end-card.png",
+        "scenario": "straggler",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 26,
+        "tag": "end-card",
+        "t": 145.2107258345597,
+        "phase": "Output",
+        "caption": "Done: all 11 words counted exactly once, despite the slow disk."
+      },
+      {
+        "file": "skew-light-390x844-007-ask.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "ask",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "The first \"200\" went to reduce 0. Where does this \"200\", from map 0, go?"
+      },
+      {
+        "file": "skew-light-390x844-007-why.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 7,
+        "tag": "why",
+        "t": 37.559999999999995,
+        "phase": "Shuffle",
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "file": "skew-light-390x844-028-check.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "check",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-390x844-028-check-done.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "check-done",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-390x844-028-end-caption.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end-caption",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      },
+      {
+        "file": "skew-light-390x844-028-end-card.png",
+        "scenario": "skew",
+        "theme": "light",
+        "size": {
+          "width": 390,
+          "height": 844
+        },
+        "step": 28,
+        "tag": "end-card",
+        "t": 167.665796002273,
+        "phase": "Output",
+        "caption": "If each reader sent one slip per different code, 7 slips would travel, 5 to {ref:r0|reduce 0}."
+      }
+    ],
+    "sheets": [
+      "~/figs/wc/check/shots/contact.png",
+      "~/figs/wc/check/shots/contact-2.png"
+    ],
+    "problems": [
+      {
+        "kind": "focus-outside",
+        "step": 4,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "happy-dark-390x844-004-mid.png",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 19,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "happy-dark-390x844-019-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 4,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "happy-light-390x844-004-mid.png",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 19,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "happy-light-390x844-019-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 22,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "crash-dark-390x844-022-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 22,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "crash-light-390x844-022-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 22,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "straggler-dark-390x844-022-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 22,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "straggler-light-390x844-022-mid.png",
+        "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 4,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "skew-dark-390x844-004-mid.png",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 4,
+        "message": "part of the step's focus is outside the frame",
+        "shot": "skew-light-390x844-004-mid.png",
+        "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+      }
+    ],
+    "errors": [],
+    "themes": [
+      "dark",
+      "light"
+    ]
+  },
+  "audit": {
+    "problems": [
+      {
+        "kind": "focus-outside",
+        "step": 6,
+        "message": "part of the step's focus is outside the frame",
+        "where": "happy/1440x900",
+        "t": 38.799,
+        "caption": "{key:the} goes to {ref:r0|reduce 0}: its hash, 3 020 861 980, divided by 2 leaves remainder 0."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 12,
+        "message": "part of the step's focus is outside the frame",
+        "where": "happy/1440x900",
+        "t": 67.85000000000001,
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 12,
+        "message": "part of the step's focus is outside the frame",
+        "where": "happy/1440x900",
+        "t": 70.899,
+        "caption": "{key:the} from {ref:m1|map 1} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "frame-time",
+        "level": "warn",
+        "step": null,
+        "where": "happy/1440x900",
+        "message": "average frame 63.3 ms > 16 ms budget"
+      },
+      {
+        "kind": "focus-outside",
+        "step": 9,
+        "message": "part of the step's focus is outside the frame",
+        "where": "crash/1440x900",
+        "t": 54.713,
+        "caption": "{key:the} goes to {ref:r0|reduce 0}: its hash, 3 020 861 980, divided by 2 leaves remainder 0."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 15,
+        "message": "part of the step's focus is outside the frame",
+        "where": "crash/1440x900",
+        "t": 83.76400000000001,
+        "caption": "{key:the} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 15,
+        "message": "part of the step's focus is outside the frame",
+        "where": "crash/1440x900",
+        "t": 86.813,
+        "caption": "{key:the} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 9,
+        "message": "part of the step's focus is outside the frame",
+        "where": "straggler/1440x900",
+        "t": 56.498999999999995,
+        "caption": "{key:the} goes to {ref:r0|reduce 0}: its hash, 3 020 861 980, divided by 2 leaves remainder 0."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 15,
+        "message": "part of the step's focus is outside the frame",
+        "where": "straggler/1440x900",
+        "t": 85.55,
+        "caption": "{key:the} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 15,
+        "message": "part of the step's focus is outside the frame",
+        "where": "straggler/1440x900",
+        "t": 88.59899999999999,
+        "caption": "{key:the} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same word always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 6,
+        "message": "part of the step's focus is outside the frame",
+        "where": "skew/1440x900",
+        "t": 37.559,
+        "caption": "{key:200} goes to {ref:r0|reduce 0}: its hash, 3 286 718 301, divided by 3 leaves remainder 0."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 7,
+        "message": "part of the step's focus is outside the frame",
+        "where": "skew/1440x900",
+        "t": 40.60999999999999,
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "kind": "focus-outside",
+        "step": 7,
+        "message": "part of the step's focus is outside the frame",
+        "where": "skew/1440x900",
+        "t": 43.659,
+        "caption": "{key:200} from {ref:m0|map 0} goes to {ref:r0|reduce 0} too: the same code always gives the same hash."
+      },
+      {
+        "kind": "frame-time",
+        "level": "warn",
+        "step": null,
+        "where": "happy/390x844",
+        "message": "average frame 68.2 ms > 16 ms budget"
+      }
+    ],
+    "errors": [],
+    "runs": [
+      {
+        "where": "happy/1440x900",
+        "frames": 50,
+        "steps": 25,
+        "ms": 63.299999952316284
+      },
+      {
+        "where": "crash/1440x900",
+        "frames": 54,
+        "steps": 27,
+        "ms": 0.7999999523162842
+      },
+      {
+        "where": "straggler/1440x900",
+        "frames": 54,
+        "steps": 27,
+        "ms": 1.100000023841858
+      },
+      {
+        "where": "skew/1440x900",
+        "frames": 58,
+        "steps": 29,
+        "ms": 1
+      },
+      {
+        "where": "happy/390x844",
+        "frames": 50,
+        "steps": 25,
+        "ms": 68.20000004768372
+      },
+      {
+        "where": "crash/390x844",
+        "frames": 54,
+        "steps": 27,
+        "ms": 0.8999999761581421
+      },
+      {
+        "where": "straggler/390x844",
+        "frames": 54,
+        "steps": 27,
+        "ms": 0.7000000476837158
+      },
+      {
+        "where": "skew/390x844",
+        "frames": 58,
+        "steps": 29,
+        "ms": 0.7000000476837158
+      }
+    ],
+    "target": "mapreduce"
+  },
+  "review": null,
+  "verdict": {
+    "ok": false,
+    "label": "Needs work",
+    "problems": [
+      "audit: focus-outside: part of the step's focus is outside the frame (steps 4, 19, 22, at 390x844)",
+      "audit over every step: focus-outside: part of the step's focus is outside the frame (steps 6, 7, 9, 12, 15, at 1440x900)"
+    ],
+    "next": "Fix the first problem below, then run check again."
+  },
+  "ms": 4522344
+}
