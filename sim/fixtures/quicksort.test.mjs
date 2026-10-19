@@ -72,7 +72,7 @@ test("the figure is deterministic and its narration is precise", () => {
     "3 numbers to sort, like 3 people in a line to order from shortest to tallest.",
     "The simple way: 2 comparisons find the smallest, 1 the next: 3 in all.",
     "2, the last number, is the pivot: every other number is compared with it.",
-    "Marker j checks each number in turn; i marks where the next smaller one will go.",
+    "Slots before i are the left side, for smaller numbers; j checks each number in turn.",
     "3 is bigger than 2, so it stays where it is, on the right side.",
     "1 is smaller than 2: it swaps with 3 onto the left side; i steps on.",
     "2 swaps with 3 into slot 1, after the 1 smaller number. Placed for good.",

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { skin, SKIN_KINDS, toneColors, bezier, inkOn, chevron } from "./skin.mjs";
 import { DrawList } from "../contracts.mjs";
-import { PALETTE, SIZE, MOTION, ACCENT, GLOW, keyColor } from "../tokens.mjs";
+import { PALETTE, SIZE, MOTION, ACCENT, GLOW, WORLD_TYPE, keyColor, worldCase } from "../tokens.mjs";
 import { galleryScene } from "./gallery-scene.mjs";
 
 const run = (poses, o = {}) => skin(poses, new DrawList(), { theme: "dark", time: 0, ...o });
@@ -25,9 +25,9 @@ test("housing: body slab with a real well from the tray, sans title in bright in
   assert.deepEqual([body.well.x, body.well.y, body.well.w, body.well.d], [0, 8, 120, 60]);
   assert.equal(body.well.depth, SIZE.well.depth);
   assert.equal(body.well.r, SIZE.well.r);
-  assert.ok(!body.label.engrave && !body.label.upper && body.label.align === "left" && body.label.weight === 600 && body.label.font === "sans");
+  assert.ok(!body.label.engrave && !body.label.upper && body.label.align === "left" && body.label.weight === WORLD_TYPE.title.weight && body.label.font === "sans");
   assert.equal(body.label.color, P.ink);
-  assert.equal(body.label.size, SIZE.housing.title);
+  assert.equal(body.label.size, WORLD_TYPE.title.size);
   assert.equal(body.label2.text, "task 3/5"); assert.equal(body.label2.align, "right");
   assert.ok(body.meter && body.meter.value === 0.5);
   const led = dl.slabs.find((s) => s.id === "m0" && !s.well);
@@ -119,7 +119,7 @@ test("keyed trace: an idle trace with a key keeps a faint glow in that key's col
   assert.equal(n.glow, 0);
 });
 
-test("lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line", () => {
+test("lane: rail + ruler + printed name in sentence case + time labels; mark is a puck on the rail; playhead is a lit print line", () => {
   const dl = run([
     { id: "l", kind: "lane", points: [[0, 0], [200, 0]], title: "n1", scale: 1 },
     { id: "m", kind: "mark", x: 50, y: 0, tone: "ok" },
@@ -127,7 +127,7 @@ test("lane: rail + ruler + engraved name + time labels; mark is a puck on the ra
   ]);
   assert.equal(dl.grooves[0].style, "rail"); assert.equal(dl.grooves[0].width, SIZE.lane.w);
   assert.equal(dl.ticks[0].every, SIZE.lane.tickMinor);
-  assert.ok(dl.texts.some((t) => t.text === "n1" && t.engrave && t.upper));
+  assert.ok(dl.texts.some((t) => t.text === worldCase("n1", WORLD_TYPE.lane) && !t.engrave && !t.upper));
   assert.ok(dl.texts.some((t) => t.text === "0 ms") && dl.texts.some((t) => t.text === "50"));
   const mark = dl.slabs[0];
   assert.equal(mark.color, P.ok); assert.equal(mark.r, mark.w / 2); assert.ok(mark.z > 0);
@@ -146,7 +146,7 @@ test("zone, text, bracket, pointer, container", () => {
   assert.equal(dl.zones[0].borderStyle, "dashed"); assert.equal(dl.zones[0].title, "partition b"); assert.equal(dl.zones[0].r, SIZE.zone.r);
   assert.ok(dl.texts.some((t) => t.text === "0x7f3a" && t.size === 6));
   assert.ok(dl.grooves.some((g) => g.id === "br" && g.style === "print" && g.color === keyColor("dark", 3)));
-  assert.ok(dl.texts.some((t) => t.text === "vpn"));
+  assert.ok(dl.texts.some((t) => t.text === worldCase("vpn", WORLD_TYPE.bracket)));
   const ptr = dl.slabs.filter((s) => s.id === "pt");
   assert.equal(ptr.length, 3);
   const rod = ptr.find((s) => s.h === SIZE.pointer.h);
@@ -228,7 +228,7 @@ test("real format: lanes put the ruler and time labels where the scene says; mes
     { id: "pr", kind: "trace", variant: "print", points: [[0, -100], [80, -100]], key: 1 },
     { id: "pk", kind: "packet", variant: "lane", x: 0, y: 0, z: 2, key: 0 },
   ]);
-  assert.ok(dl.texts.some((t) => t.text === "leader" && t.x === -350 && t.align === "left"));
+  assert.ok(dl.texts.some((t) => t.text === worldCase("leader", WORLD_TYPE.lane) && t.x === -350 && t.align === "left"));
   assert.ok(dl.texts.some((t) => t.text === "5 ms" && t.x === -250));
   assert.equal(dl.texts.filter((t) => /ms$/.test(t.text)).length, 2, "only the scene's labels");
   const msg = dl.grooves.find((g) => g.id === "m");

@@ -25,6 +25,9 @@ export function cssVars(theme = "dark") {
   // the world's colours the HUD names: the stage behind it, identity keys and status tones (colour only for data)
   for (const k of ["stage", "stageLift", "tile", "ok", "busy", "warn", "fail", "idle", "keyInk", "lit"]) color(kebab(k), P[k]);
   P.keys.forEach((c, i) => { v[`--ix-key-${i}`] = c; });
+  // the tones as words and marks ("crashes", "Done", a right answer's tick): on light paper the world's tones are too
+  // pale for text, so a third of the way to the ink (4.5:1 on paper and surfaces); on dark they already are
+  for (const k of ["ok", "busy", "warn", "fail"]) v[`--ix-${k}-text`] = t === "light" ? `color-mix(in oklab, var(--ix-${k}) 66%, var(--ix-ink))` : `var(--ix-${k})`;
 
   // the monochrome chrome: four inks (ink-muted and ink-faint are the 2nd and 3rd), surfaces, hairlines
   color("ink", U.ink); color("ink-muted", U.ink2); color("ink-faint", U.ink3); color("ink-4", U.ink4);

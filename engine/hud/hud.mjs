@@ -12,16 +12,19 @@ import { parse, toDOM, toText } from "./markup.mjs";
 import { formatCounter } from "./format.mjs";
 import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
-import { createExplain, VEIL } from "./explain.mjs";
+import { createExplain, VEIL, firstSentence } from "./explain.mjs";
 import { createFold } from "./fold.mjs";
-import { createLevel, LEVELS, compiledPace } from "./level.mjs";
+import { createLevel, LEVELS, compiledPace, segmented } from "./level.mjs";
 import { createJourney, promiseOf, nextStory } from "./journey.mjs";
+import { createHandout } from "./handout.mjs";
 import { createLayers } from "./layers.mjs";
 import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
 import { createTurn, liveTurns, detourOf } from "./turn.mjs";
 import { createCheck, checksFor } from "./check.mjs";
 import { createNudge, beliefBlock } from "./nudge.mjs";
 import { createPresenter, presentQuery } from "./presenter.mjs";
+import { createShare } from "./share.mjs";
+import { composeStill, stillName } from "./still.mjs";
 
 export { applyTheme, parseHash, formatHash };
 
@@ -56,6 +59,12 @@ const ICON = {
   meter: SVG('<path d="M2.75 13.25h10.5"/><path d="M4.5 10.5V8M8 10.5V4.75M11.5 10.5V6.5"/>'),
   // presenter mode: a projector screen; the presenter view: a second window beside it
   present: SVG('<rect x="1.75" y="2.75" width="12.5" height="8" rx="1.5"/><path d="M8 10.75v2.5M5.5 13.25h5"/>'),
+  // sharing: the share panel (a box with an arrow out), copy, an image, print (the handout), the privacy line's lock
+  share: SVG('<path d="M8 1.9v7.6M5.25 4.4 8 1.65l2.75 2.75"/><path d="M5.5 6.75H4.25a1 1 0 0 0-1 1v5.5a1 1 0 0 0 1 1h7.5a1 1 0 0 0 1-1v-5.5a1 1 0 0 0-1-1H10.5"/>'),
+  copy: SVG('<rect x="5.25" y="5.25" width="8" height="8" rx="1.75"/><path d="M10.75 5.25V3.75a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1.5"/>'),
+  image: SVG('<rect x="2" y="2.75" width="12" height="10.5" rx="1.75"/><circle cx="5.75" cy="6.25" r="1.15"/><path d="m2.5 11.5 3.25-3 2.5 2.25 2-1.75 3.25 2.75"/>'),
+  print: SVG('<path d="M4.25 6V2.75h7.5V6"/><rect x="2" y="6" width="12" height="5.5" rx="1.5"/><path d="M4.25 9.75h7.5v3.5h-7.5z"/>'),
+  lock: SVG('<rect x="3.25" y="7" width="9.5" height="6.75" rx="1.5"/><path d="M5.25 7V5a2.75 2.75 0 0 1 5.5 0v2"/>'),
   windows: SVG('<rect x="1.75" y="4.25" width="8.5" height="7.5" rx="1.5"/><path d="M6 4.25V3.5a1.25 1.25 0 0 1 1.25-1.25h5.75a1.25 1.25 0 0 1 1.25 1.25v5.25A1.25 1.25 0 0 1 13 10h-2.75"/>'),
 };
 
@@ -74,7 +83,7 @@ const isCharKey = (k) => k.length === 1 && k !== " ";
 const GUIDE = [
   ["play", "Play and pause", "Runs the simulation. It stops at the end of each chapter so you can catch up."],
   ["fwd", "Back and Next", "Move one step at a time. Every step is one real event from the run."],
-  ["timeline", "The timeline", "Each segment is a chapter. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
+  ["timeline", "The timeline", "Each segment is a chapter. The ticks under it are the run's events: grey, or green when something succeeds, amber for a warning, red for a failure. A dot is a question for you. Drag anywhere on it to rewind or skip ahead; every step is replayable."],
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
   ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
@@ -275,7 +284,10 @@ export function createHud(root, opts = {}, cb = {}) {
   // phones have no help circle: help opens from here, under the subtitle (the card opens from the title)
   const aboutHelp = h("button", { class: "ix-about-help", type: "button", onclick: () => { toggleAbout(false); aboutBtn.focus({ preventScroll: true }); toggleHelp(true); } },
     h("span", { class: "ix-about-help-mark", "aria-hidden": "true", text: "?" }), "How to use this figure");
-  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite, aboutHelp);
+  // phones have no room for Share in the toolbar: it waits here too, beside help
+  const aboutShare = h("button", { class: "ix-about-help ix-about-share", type: "button", onclick: () => { toggleAbout(false); toggleShare(true); } },
+    h("span", { class: "ix-about-help-mark", "aria-hidden": "true", html: ICON.share }), "Share this moment");
+  const about = h("section", { class: "ix-about ix-glass", role: "dialog", "aria-label": "About this figure", inert: true }, aboutSub, aboutCite, aboutShare, aboutHelp);
   on(headRow, "click", (e) => { if (S.size === "phone" && e.target !== aboutBtn && !aboutBtn.contains(e.target)) toggleAbout(); });
   function renderTitle() {
     const m = S.meta;
@@ -522,10 +534,19 @@ export function createHud(root, opts = {}, cb = {}) {
   viewBtn.setAttribute("aria-label", "Presenter view");
   const endBtn = iconBtn("close", "End presenting", "P", () => presenter.set(false), "ix-present-end");
   const tuneBtn = toolBtn("tune", "Settings", "S", () => toggleDrawer());
+  // share: a link to this moment, an image, an embed, the handout (share.mjs); phones keep its icon, not its word
+  const shareBtn = toolBtn("share", "Share", null, () => toggleShare());
+  shareBtn.classList.add("ix-share-tool");
+  shareBtn.setAttribute("aria-label", "Share");
+  shareBtn.setAttribute("aria-haspopup", "dialog");
   const themeBtn = iconBtn("moon", "Dark mode", "T", () => toggleTheme());
   const fullBtn = iconBtn("full", "Full screen", null, () => toggleFullscreen(), "ix-only-desk ix-full-btn");
-  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, tuneBtn,
-    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), themeBtn, fullBtn, endBtn);
+  // Where the corner circle would crowd the caption's chips (no docked panel: compact, landscape-phone and zoomed
+  // screens, whose caption sits bottom-left), help joins the toolbar instead, beside the theme (CSS picks one)
+  const helpTool = iconBtn("help", "Help", "?", () => toggleHelp(), "ix-help-tool");
+  helpTool.dataset.tip = "How to use this figure";
+  const tools = h("div", { class: "ix-tools ix-glass", role: "toolbar", "aria-label": "Figure controls" }, viewBtn, codeBtn, shareBtn, tuneBtn,
+    h("span", { class: "ix-tools-sep", "aria-hidden": "true" }), helpTool, themeBtn, fullBtn, endBtn);
   const helpBtn = h("button", { class: "ix-help-fab ix-glass", type: "button", "aria-label": "Help", "data-tip": "How to use this figure", "data-kbd": "?",
     onclick: () => toggleHelp() }, h("span", { "aria-hidden": "true", text: "?" }));
   const toolbar = h("div", { class: "ix-toolbar" }, tools);
@@ -560,12 +581,14 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("present-help"), onclick: () => presenter.set(!presenter.on) });
   const presentView = h("button", { class: "ix-ghost-btn ix-present-open", type: "button", onclick: () => presenter.openView() },
     h("span", { html: ICON.windows }), "Open presenter view");
+  const presentHandout = h("button", { class: "ix-ghost-btn ix-present-open", type: "button", onclick: () => { toggleDrawer(false); handout.open("teacher"); } },
+    h("span", { html: ICON.print }), "Print a teacher guide");
   const presentPrefs = h("div", { class: "ix-prefs ix-prefs-present" },
     h("div", { class: "ix-prefs-title", text: "Presenting" }),
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: presentSw.id, text: "Presenter mode" }), presentSw)),
     h("p", { class: "ix-knob-help", id: uid("present-help"), text: "Big type and high contrast for a projector. A clicker steps through it: → or Page Down goes on, ← or Page Up goes back. P turns it on and off." }),
-    presentView);
+    h("div", { class: "ix-present-actions" }, presentView, presentHandout));
   function setCharKeys(on) {
     charKeys = !!on;
     keysSw.setAttribute("aria-checked", String(charKeys));
@@ -582,6 +605,70 @@ export function createHud(root, opts = {}, cb = {}) {
   const drawer = h("section", { class: "ix-panel ix-drawer ix-glass", role: "dialog", "aria-label": "Settings", tabindex: "-1", inert: true },
     drawerHead, knobBody, knobFoot, prefs, presentPrefs);
 
+  // ---------- share: this moment as a link, an image or an embed, and the handout (share.mjs) ----------
+  const shareParamText = (k, v) => {
+    const def = S.params[k] ?? {};
+    const val = def.type === "bool" ? (v ? "on" : "off") : def.type === "text" ? `“${String(v).length > 24 ? `${String(v).slice(0, 23)}…` : v}”` : String(v);
+    return `${def.label ?? k} ${val}`;
+  };
+  const share = createShare({
+    h, doc, win, native: touch,
+    icons: { close: ICON.close, copy: ICON.copy, image: ICON.image, print: ICON.print, present: ICON.present, share: ICON.share, check: ICON.check, lock: ICON.lock },
+    close: () => toggleShare(false),
+    state: () => {
+      const sc = scenarioDef(), st = S.steps.length ? Math.max(0, S.step) : null;
+      const params = paramOverrides(S.values, S.params, sc);
+      return {
+        title: S.meta.title ?? "Figure", scenario: S.scenario, scenarioLabel: sc?.label ?? S.scenario ?? "", step: S.detour ? null : st, steps: S.steps.length,
+        chapter: st != null ? S.phases[phaseAt(st)]?.name ?? "" : "", level: S.lesson ? level.value : null,
+        levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value, params, paramText: Object.entries(params).map(([k, v]) => shareParamText(k, v)),
+      };
+    },
+    saveImage: () => saveStill(),
+    handout: () => { toggleShare(false); handout.open(); },
+    present: () => { toggleShare(false); presenter.set(true); },
+  });
+  // the printable handout (handout.mjs): the runtime compiles every story and draws the pictures (onHandoutData)
+  const handout = createHandout({
+    h, doc, segmented, icons: { print: ICON.print, close: ICON.close, check: ICON.check },
+    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex }),
+    data: (o) => fire("onHandoutData", o),
+    pictures: (d, onEach) => fire("onHandoutPictures", d, onEach),
+    result: () => { const r = check.result; return r ? { ...r, levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value } : null; },
+    address: () => {
+      const loc = win.location;
+      if (/^https?:$/.test(loc.protocol)) return { url: `${loc.origin}${loc.pathname}`, file: null };
+      return { url: null, file: loc.protocol === "file:" ? decodeURIComponent(loc.pathname.split("/").pop() || "") || null : null };
+    },
+    onClose: () => { root.classList.remove("ix-handout-open"); hud.removeAttribute("inert"); fire("onCover", false); (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true }); },
+  });
+  // opening it: the run pauses, the HUD goes inert behind it, and the world stops drawing until it closes
+  const openHandout = handout.open;
+  handout.open = (v) => {
+    lastFocus = doc.activeElement; toggleShare(false); toggleDrawer(false);
+    if (S.playing) fire("onPause");
+    root.classList.add("ix-handout-open"); hud.setAttribute("inert", ""); fire("onCover", true); openHandout(v);
+  };
+  on(win, "beforeprint", () => handout.beforePrint());
+  on(win, "afterprint", () => handout.afterPrint());
+
+  // the frame on screen as a PNG (still.mjs): the runtime draws the world again and hands it over (onSnapshot)
+  async function saveStill() {
+    const shot = fire("onSnapshot");
+    if (!shot?.canvas) return null;
+    const st = S.steps[shot.step], sc = scenarioDef();
+    const veiled = shot.step === veilStep();
+    const where = [S.meta.title, sc?.label, S.phases[phaseAt(shot.step)]?.name, `step ${shot.step + 1} of ${S.steps.length}`].filter(Boolean).join("  ·  ");
+    const blob = await composeStill(shot, { root, where, caption: veiled ? null : st?.layers?.plain ?? st?.caption ?? null,
+      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle });
+    if (!blob) return null;
+    const name = stillName(S.meta.title, S.scenario, shot.step);
+    const a = h("a", { href: win.URL.createObjectURL(blob), download: name });
+    root.append(a); a.click(); a.remove();
+    later(() => win.URL.revokeObjectURL(a.href), 4000);
+    return name;
+  }
+
   // ---------- parameters: the figure's inputs, always in view where there is room ----------
   // Wide screens (where the explain panel docks): a card of its own at the foot of the right column, each knob a row
   // with its name, its control and its value; its header folds it (remembered). A figure with a lesson starts it folded
@@ -589,7 +676,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // invites them to open it ("Try it yourself"). Without a lesson it starts open, folded only on a short screen. Narrower screens:
   // the same knobs lead the drawer, which the toolbar's "Parameters" opens (a bottom sheet on phones). Docked, the
   // drawer keeps only the playback preferences and the toolbar calls it "Settings".
-  const PARAMS_TALL = 800;   // px of root height from which the card starts open
+  const PARAMS_TALL = 800;   // px of root height from which the card starts open (no lesson)
   let paramsPref = store.get("params"), paramsOpen = null, paramsDocked = null;
   const paramsToggle = h("button", { class: "ix-params-toggle", type: "button", "aria-controls": uid("params-body"),
     onclick: () => { paramsPref = paramsOpen ? "0" : "1"; store.set("params", paramsPref); syncParamsOpen(); } }, h("span", { class: "ix-params-title", text: "Parameters" }), h("span", { class: "ix-params-chev", html: ICON.chevron }));
@@ -853,6 +940,9 @@ export function createHud(root, opts = {}, cb = {}) {
   const capStage = h("div", { class: "ix-cap-stage" });
   const caption = h("div", { class: "ix-caption" }, capStage);
   const live = h("div", { class: "ix-sr", "aria-live": "polite", "aria-atomic": "true" });
+  // a prediction speaks in whole sentences of its own (asked, your guess, the result and why), never piecemeal from
+  // the card, and never overwritten by the step's caption that follows its reveal
+  const askLive = h("div", { class: "ix-sr", "aria-live": "polite", "aria-atomic": "true" });
   const center = h("div", { class: "ix-center" }, predict, caption);
   const meterList = h("div", { class: "ix-meters-body" });
   const meterClose = iconBtn("close", "Close readout", "Esc", () => toggleReadout(false), "ix-btn-sm ix-close");
@@ -941,12 +1031,14 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("intro-sub"), tabindex: "-1", inert: true });
   const coach = h("div", { class: "ix-coach ix-glass", role: "status", "aria-live": "polite", inert: true });
 
-  hud.append(top, bottom, sheetScrim, codePanel, drawer, about, paramsCard, helpBtn);
+  // reading order: the header, then (explain.mjs puts the panel here) the parameters under it in the right column,
+  // then the dock; the world's described scene (engine/a11y/scene.mjs) goes in after the parameters
+  hud.append(top, paramsCard, bottom, sheetScrim, codePanel, drawer, share.el, about, helpBtn);
   const after = canvas && canvas.parentNode === root ? canvas.nextSibling : root.firstChild;
   const frag = doc.createDocumentFragment();
   // popovers live at root level: a backdrop-filter parent would stop their own blur from seeing the world
   frag.append(stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach,
-    helpScrim, help, introScrim, intro, toast, tip, live);
+    helpScrim, help, introScrim, intro, toast, tip, live, askLive, handout.el);
   root.insertBefore(frag, after);
 
   // ---------- help: what each part of the interface is for, in plain words, then the keys ----------
@@ -974,6 +1066,7 @@ export function createHud(root, opts = {}, cb = {}) {
   })();
 
   // ---------- state for overlays ----------
+  let shareOpen = false;
   let drawerOpen = false, codeOpen = false, helpOpen = false, menuOpen = false, aboutOpen = false;
   let readoutOpen = false, legendOpen = false;   // false | "hover" | "pinned"
   let lastFocus = null;
@@ -983,13 +1076,14 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   function syncSheets() {
     obstaclesDirty = true;
-    const sheet = S.size === "phone" && (drawerOpen || codeOpen || pinCard.shown || !!readoutOpen);
+    const sheet = S.size === "phone" && (drawerOpen || shareOpen || codeOpen || pinCard.shown || !!readoutOpen);
     sheetScrim.classList.toggle("ix-open", sheet);
     root.classList.toggle("ix-sheet-open", sheet);
   }
   function toggleDrawer(open = !drawerOpen) {
     if (open === drawerOpen) return;
     drawerOpen = open;
+    if (open && shareOpen) toggleShare(false);
     if (open && S.size === "phone" && codeOpen) toggleCode(false);
     setOpen(drawer, open);
     tuneBtn.setAttribute("aria-pressed", String(open));
@@ -1001,6 +1095,17 @@ export function createHud(root, opts = {}, cb = {}) {
       raf(knobFades);
     }
     else if (drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
+    syncSheets();
+  }
+  function toggleShare(open = !shareOpen) {
+    if (open === shareOpen) return;
+    shareOpen = open;
+    if (open) { if (drawerOpen) toggleDrawer(false); if (S.size === "phone" && codeOpen) toggleCode(false); share.refresh(); share.resetNotes(); }
+    setOpen(share.el, open);
+    shareBtn.setAttribute("aria-pressed", String(open));
+    shareBtn.setAttribute("aria-expanded", String(open));
+    if (open) { lastFocus = doc.activeElement; share.el.focus({ preventScroll: true }); }
+    else if (share.el.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true });
     syncSheets();
   }
   function toggleCode(open = !codeOpen) {
@@ -1021,6 +1126,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(help, open);
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
+    helpTool.setAttribute("aria-pressed", String(open));
     if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
@@ -1107,6 +1213,7 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   /** Close the topmost overlay; returns true if something closed. */
   function closeTop() {
+    if (handout.isOpen) { handout.close(); return true; }
     if (introOpen) { closeIntro("dismiss"); return true; }
     if (helpOpen) { toggleHelp(false); return true; }
     if (coachName) { hideCoach(); return true; }
@@ -1116,6 +1223,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (readoutOpen) { toggleReadout(false); return true; }
     if (legendOpen) { toggleLegend(false); return true; }
     if (drawerOpen) { toggleDrawer(false); return true; }
+    if (shareOpen) { toggleShare(false); return true; }
     if (pinCard.shown) { hideCard(pinCard); fire("onUnpin"); return true; }
     if (Q.q && Q.revealed) { hidePredict(); return true; }
     if (explain.closeSheet()) return true;
@@ -1159,17 +1267,28 @@ export function createHud(root, opts = {}, cb = {}) {
   // the level, asked once up front (built when the figure turns out to have a lesson), and what the chosen one changes
   const introLevel = h("div", { class: "ix-intro-level", hidden: true });
   const introNote = h("p", { class: "ix-intro-level-note", "aria-live": "polite" });
+  // a link to a moment (engine/embed/deeplink.mjs): the story and step it opens at, that step's words, and a quiet
+  // list of what the link asked for that this page could not do
+  const introStory = h("p", { class: "ix-intro-story", hidden: true });
+  const introAt = h("p", { class: "ix-intro-at", hidden: true });
+  const introQuote = h("blockquote", { class: "ix-intro-quote", hidden: true });
+  const introNotes = h("ul", { class: "ix-intro-notes", role: "status", hidden: true });
+  const introBegin = h("button", { class: "ix-cta-2", type: "button", hidden: true, onclick: () => closeIntro("begin") }, "From the start");
+  let arrival = null;   // { step: index | null, notes: [text] } while the card is the link's
   const kbs = (...ks) => ks.map((k) => h("kbd", { class: "ix-kbd ix-kbd-sm", text: k }));
   intro.append(
-    h("div", { class: "ix-intro-head" }, introKicker, introTitle, introSub, introWhere, introPromise, introPath),
+    h("div", { class: "ix-intro-head" }, introKicker, introTitle, introStory, introSub, introWhere, introPromise, introAt, introQuote, introPath),
     introLevel,
-    h("div", { class: "ix-intro-actions" }, introPlay, introStep),
+    h("div", { class: "ix-intro-actions" }, introPlay, introStep, introBegin),
+    introNotes,
     h("p", { class: "ix-intro-keys" }, kbs("Space"), " play", h("span", { class: "ix-dotsep", text: "·" }), kbs("←", "→"), " step"));
   // the place a returning reader is offered back: null on a first visit, under a deep link (the link says where to
   // start), or when there is nothing worth picking up. A story finished last time offers the next one.
   let introBack = null;
   function resumeOffer() {
-    if (!S.steps.length || link.time != null || link.scenario != null || Object.keys(link.params).length
+    // a link to a moment always wins: the card is the link's (arrival), and a link the runtime could not use still
+    // came from a link (the hash test below), so the welcome stays away either way
+    if (!S.steps.length || arrival || link.time != null || link.scenario != null || Object.keys(link.params).length
       || link.rest.some((p) => /^(step|scenario|level)-/.test(p))) return null;
     const r = journey.saved(S.scenarios);
     if (!r) return null;
@@ -1181,30 +1300,48 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   const quote = (s) => `“${s}”`;
   // the start card asks the figure's question (meta.hook), falling back to the subtitle (the header shows only the title), and
-  // names the chapters ahead when they read as ideas (not code-like ranges such as a[0..8])
+  // names the chapters ahead when they read as ideas (not code-like ranges such as a[0..8]). Opened by a link to a
+  // moment, it says where the link opens instead, and offers to start the story from the top.
   function renderIntro() {
     const m = S.meta;
     introBack = resumeOffer();
     const back = introBack, many = S.scenarios.length > 1;
     const hook = m.hook ?? m.subtitle ?? "";
+    const at = arrival?.step != null ? S.steps[arrival.step] : null;
+    const story = scenarioDef();
     introTitle.textContent = m.title ?? "";
     introKicker.textContent = back ? "Welcome back" : "";
     introKicker.hidden = !back;
-    // welcome back: where they stopped takes the hook's place (they have read the question)
+    // a story other than the first, or a link's story; a returning reader's line below names it instead
+    introStory.textContent = story?.label ?? "";
+    introStory.hidden = !story || !!back || (!at && S.scenarios[0]?.id === story.id);
+    // welcome back: where they stopped takes the hook's place (they have read the question); so does a link's step
     introSub.textContent = hook;
-    introSub.hidden = !hook || !!back;
+    introSub.hidden = !hook || !!back || !!at;
     introSub.classList.toggle("ix-intro-hook", !!m.hook);
     const label = back?.story ? back.story.label ?? back.story.id : "";
-    const at = back && !back.end ? [back.chapter ? `You stopped in ${back.chapter}` : "You stopped", `step ${back.step + 1} of ${back.steps}`].join(", ") : "";
+    const stopped = back && !back.end ? [back.chapter ? `You stopped in ${back.chapter}` : "You stopped", `step ${back.step + 1} of ${back.steps}`].join(", ") : "";
     introWhere.textContent = !back ? "" : back.end ? `You finished ${many ? quote(label) : "it"}. Next: ${quote(back.next.label ?? back.next.id)}.`
-      : `${at}${many && label ? `, in ${quote(label)}` : ""}.`;
+      : `${stopped}${many && label ? `, in ${quote(label)}` : ""}.`;
     introWhere.hidden = !back;
-    // the promise, or for a returning reader how far through the stories they are
+    // one line of context: the promise on a first visit, how far through the stories for a returning reader, and
+    // under a link the step it opens at (below) instead
     const done = S.scenarios.filter((x) => journey.done.has(x.id)).length;
-    introPromise.textContent = back ? (many && done ? `${done} of ${S.scenarios.length} stories finished` : "") : promise();
+    introPromise.textContent = back ? (many && done ? `${done} of ${S.scenarios.length} stories finished` : "") : at ? "" : promise();
     introPromise.hidden = !introPromise.textContent;
-    introPlayWord.textContent = !back ? "Play" : back.end ? `Start ${back.next.label ?? back.next.id}` : "Pick up where you left off";
+    introAt.hidden = introQuote.hidden = !at;
+    if (at) {
+      const ph = S.phases[phaseAt(arrival.step)];
+      introAt.textContent = `Opens at step ${arrival.step + 1} of ${S.steps.length}${ph?.name ? ` · ${ph.name}` : ""}`;
+      put(introQuote, toDOM(parse(at.layers?.plain ?? at.caption ?? ""), doc, markupOpts));
+    }
+    introPlayWord.textContent = at ? `Play from step ${arrival.step + 1}` : !back ? "Play" : back.end ? `Start ${back.next.label ?? back.next.id}` : "Pick up where you left off";
     introStep.textContent = back ? "Start from the beginning" : "Step through it yourself";
+    introStep.hidden = !!at;
+    introBegin.hidden = !at;
+    put(introNotes, (arrival?.notes ?? []).map((t) => h("li", null, h("span", { class: "ix-intro-note-icon", "aria-hidden": "true", html: ICON.info }), h("span", { text: t }))));
+    introNotes.hidden = !arrival?.notes?.length;
+    intro.classList.toggle("ix-intro-arrival", !!at);
     // the client asked for no chapter preview on the start card: newcomers don't know the terms yet
     put(introPath, []);
     introPath.hidden = true;
@@ -1228,6 +1365,7 @@ export function createHud(root, opts = {}, cb = {}) {
       hideCoach(); hideTip(); hidePreview();
       renderIntro();
     }
+    else arrival = null;   // the link's card is said once; Replay intro shows the figure's own
     setOpen(intro, open);
     introScrim.classList.toggle("ix-open", open);
     root.classList.toggle("ix-intro-open", open);
@@ -1237,8 +1375,9 @@ export function createHud(root, opts = {}, cb = {}) {
     fire("onIntro", open);
   }
   /**
-   * Close the start card the way the viewer chose: "play", "step" (one step per Next) or "dismiss"; a returning reader
-   * "resume" (with where: { scenario, time, params } or { scenario, fork: true } for the next story) or "restart".
+   * Close the start card the way the viewer chose: "play", "step" (one step per Next), "begin" (a link's story from
+   * its top) or "dismiss"; a returning reader "resume" (with where: { scenario, time, params } or { scenario, fork:
+   * true } for the next story) or "restart" (the first story from its top).
    */
   function closeIntro(mode) {
     if (!introOpen) return;
@@ -1249,6 +1388,7 @@ export function createHud(root, opts = {}, cb = {}) {
     openIntro(false);
     root.focus({ preventScroll: true });
     fire("onStart", mode, where);
+    announce();
   }
 
   // ---------- pauses: a chapter's end, or the run's end ----------
@@ -1534,8 +1674,10 @@ export function createHud(root, opts = {}, cb = {}) {
     S.captionDirty = true;
     S.phase = -1;
     revealedAsks.clear();
+    if (!tl?.branch) spokenPhase = -1;   // a new run says its chapter again; a detour stays in the pick's
     if (!tl?.branch) check.set(checksFor(tl?.checks, level.value));
     explain.setTimeline(tl);
+    syncParamsOpen();   // its default depends on whether a lesson teaches
     renderCount();
     scrub.setAttribute("aria-valuemax", String(+S.duration.toFixed(2)));
     precomputeHistory(tl);
@@ -1788,8 +1930,35 @@ export function createHud(root, opts = {}, cb = {}) {
     // start the enter transition next frame instead of forcing a reflow now
     if (!instant) raf(() => el.classList.remove("ix-enter"));
     obstaclesDirty = true;
-    S.capText = veiled ? "" : toText(nodes, markupOpts.refTitle);
+    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts.refTitle));
     if (!S.held) announce();
+  }
+  // What the ear gets for a step is what the eye gets at this level (level.mjs POLICY): on entering a chapter its
+  // number, name and about (as the panel heads it); then the plain line; then the why wherever the level shows it.
+  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts.refTitle);
+  let spokenPhase = -1, chapterLead = { step: -1, text: "" };
+  function spokenStep(step, plain) {
+    const st = S.steps[step];
+    if (!st || S.held || !S.lesson) return plain;
+    const P = level.policy, L = layersOf(st), k = phaseAt(step), parts = [];
+    if (k !== spokenPhase) {
+      spokenPhase = k;
+      const ph = S.phases[k], lead = [];
+      if (S.phases.length > 1) lead.push(`Chapter ${k + 1} of ${S.phases.length}${ph?.name ? `, ${ph.name}` : ""}.`);
+      if (ph?.about && !aboutWithheld(k)) lead.push(spoken(P.about === "first" ? firstSentence(ph.about) ?? ph.about : ph.about));
+      chapterLead = { step, text: lead.join(" ") };
+    }
+    // the same step said again (a level change, a reveal) keeps its chapter lead
+    if (chapterLead.step === step) parts.push(chapterLead.text);
+    parts.push(plain);
+    if (L.why && (P.why === "all" || (P.why === "key" && L.key))) parts.push(spoken(L.why));
+    return parts.filter(Boolean).join(" ");
+  }
+  let askTimer = 0;
+  function sayAsk(text) {
+    cancel(askTimer);
+    askLive.textContent = "";
+    askTimer = later(() => { askLive.textContent = text; }, 120);   // a fresh node, so a repeat is spoken again
   }
   // the step in layers, under a line that places it ("Shuffle · step 2 of 11"); the chapter's first step leads with its Now
   function layeredCaption(markup, step) {
@@ -1805,7 +1974,7 @@ export function createHud(root, opts = {}, cb = {}) {
   }
   function announce() {
     cancel(liveTimer);
-    if (scrubbing) return;
+    if (scrubbing || introOpen) return;   // under the start card the card speaks; its close says the step (closeIntro)
     liveTimer = later(() => { if (live.textContent !== S.capText) live.textContent = S.capText ?? ""; }, S.playing ? 700 : 250);
   }
   // ref chips in the caption, the hover preview and tags light their entity in the world
@@ -2205,8 +2374,19 @@ export function createHud(root, opts = {}, cb = {}) {
     updateInsets();
   }
   let keyboardMode = false;
-  on(win, "keydown", () => { keyboardMode = true; }, true);
+  on(win, "keydown", (e) => {
+    keyboardMode = true;
+    // the first Tab says, once, where every shortcut is written down (nothing else on screen shows the keys)
+    if (e.key === "Tab" && !store.get("hint:keys")) later(keysHint, 600);
+  }, true);
   on(win, "pointerdown", () => { keyboardMode = false; }, true);
+  function keysHint() {
+    if (S.size === "phone" || !keyboardMode) return;
+    const fab = helpBtn.offsetWidth ? helpBtn.getBoundingClientRect() : null, rr = root.getBoundingClientRect();
+    hint("keys", charKeys ? "Press ? for every shortcut" : "Help lists every shortcut",
+      fab ? { x: fab.left - rr.left + fab.width / 2, y: fab.top - rr.top - 2 } : { x: (S.W || root.clientWidth) / 2, y: barTop() },
+      { sub: charKeys ? "Space plays, ← → step, E hides the explanation." : "Space plays, ← → step.", free: true });
+  }
 
   // ---------- your turn: an in-world pick (turn.mjs), the end check (check.mjs), level nudges (nudge.mjs) ----------
   // They use the predict card and its place (the explain panel, or above the caption), so the calm rules hold for them.
@@ -2217,6 +2397,7 @@ export function createHud(root, opts = {}, cb = {}) {
     Q.q = q; Q.sig = `${q.kind}:${q.id}`; Q.step = o.step ?? -1; Q.opts = o.opts ?? [];
     Q.answered = o.revealed ? 0 : null; Q.revealed = !!o.revealed; Q.revealAt = now(); Q.hold = o.hold ?? 4200;
     predict.classList.toggle("ix-revealed", !!o.revealed);
+    predict.setAttribute("aria-live", "polite");   // a pick and the end check speak from the card itself
     hideCoach();
     setOpen(predict, true);
     obstaclesDirty = true;
@@ -2279,6 +2460,7 @@ export function createHud(root, opts = {}, cb = {}) {
       h("p", { class: "ix-predict-q" }, md(q.question ?? "")),
       choices, opts, Q.foot);
     predict.classList.remove("ix-revealed");
+    predict.removeAttribute("aria-live");   // askLive speaks for it
     hideCoach();
     setOpen(predict, true);
     obstaclesDirty = true;
@@ -2286,6 +2468,8 @@ export function createHud(root, opts = {}, cb = {}) {
     hostPredict();
     S.captionDirty = true;
     syncAsk();
+    const n = Q.opts.length;
+    sayAsk(`${ponder ? "Think first" : "Predict"}: ${spoken(q.question)} ${(q.options ?? []).map((o, i) => `${String.fromCharCode(65 + i)}: ${spoken(o)}.`).join(" ")} ${ponder ? "Choose Predict to answer, or Skip." : `Pick one, with 1 to ${n} or Tab.`}`);
     if (keyboardMode) raf(() => (ponder ? choices.firstChild : Q.opts[0])?.focus({ preventScroll: true }));
   }
   // Expert skips a question: the run plays on, and the step's words come back with it
@@ -2311,6 +2495,7 @@ export function createHud(root, opts = {}, cb = {}) {
     predict.classList.add("ix-locked");
     Q.status.textContent = "Your guess";
     Q.foot.textContent = "Watch the next step.";
+    sayAsk(`Your guess: ${String.fromCharCode(65 + i)}. Watch the next step.`);
     fire("onAnswer", i);
     syncAsk();
   }
@@ -2346,6 +2531,11 @@ export function createHud(root, opts = {}, cb = {}) {
       Q.hold += 300 * said.reduce((n, el) => n + (el.textContent ?? "").split(/\s+/).filter(Boolean).length, 0);
     }
     Q.close.hidden = false;
+    // one sentence for the ear: the result, the reader's own belief answered, then why
+    const rightText = spoken(Q.q.options?.[right] ?? "");
+    const fbText = !ok ? feedbackOf(Q.q, Q.answered) : null;
+    sayAsk([ok ? `Correct: ${String.fromCharCode(65 + right)}, ${rightText}.` : `Not quite. The run shows ${String.fromCharCode(65 + right)}, ${rightText}.`,
+      fbText ? spoken(fbText) : "", Q.q.why ? `Why: ${spoken(Q.q.why)}` : ""].filter(Boolean).join(" "));
     Q.revealAt = now();
     if (Q.step >= 0) revealedAsks.add(Q.step);
     S.captionDirty = true;
@@ -2830,15 +3020,26 @@ export function createHud(root, opts = {}, cb = {}) {
       : S.playing ? "Pause" : "Play";
     const done = hv?.kind === "end" ? "Run complete" : hv?.kind === "chapter" ? `${S.phases[hv.phase]?.name || `Chapter ${hv.phase + 1}`} complete` : null;
     const q = Q.q && (!Q.q.kind || Q.q.kind === "choose") ? Q.q : null;
-    const ask = q ? { kind: q.kind ?? "predict", question: q.question ?? q.prompt ?? "", options: q.kind ? [] : q.options ?? [], answer: q.kind ? null : q.answer,
-      chosen: q.kind ? null : Q.answered, revealed: Q.revealed } : null;
+    const ask = q ? { ...questionOf(q, q.kind ?? "predict"), chosen: q.kind ? null : Q.answered, revealed: Q.revealed } : null;
+    // the step after this one opens with a question the reader will see (at this level): warn the presenter now
+    const up = nx && !ask && isLive(i + 1) && (nx.ask || nx.choose) ? questionOf(nx.ask ?? nx.choose, nx.ask ? "predict" : "choose") : null;
     return {
       steps: S.steps.length, step: i, chapters: S.phases.map((p) => p.name ?? ""), chapter: k, cur: S.steps[i], next: nx,
       nextChapter: nx && nk !== k ? S.phases[nk]?.name ?? `Chapter ${nk + 1}` : null, held: hv ? { kind: hv.kind, done } : null, primary,
-      playing: S.playing, progress: S.span ? S.time / S.span : 0, ask, about: S.phases[k]?.about ?? null,
+      playing: S.playing, progress: S.span ? S.time / S.span : 0, ask, upcoming: up, about: S.phases[k]?.about ?? null, teach: S.phases[k]?.teach ?? null,
       scenario: S.scenarios.length > 1 ? scenarioDef()?.label ?? S.scenario : null,
+      stories: S.scenarios.length > 1 ? S.scenarios.map((s) => ({ id: s.id, label: s.label ?? s.id })) : null, story: S.scenario,
       sig: [i, S.tl?.hash ?? "", S.steps.length, primary, ask ? `${ask.question}|${ask.chosen}|${ask.revealed}` : "", level.value, S.scenario].join("|"),
     };
+  }
+  // a prediction (s.ask) or an in-world pick (s.choose) as the presenter view reads it: its options in words, the
+  // answer, and what each wrong option means (its feedback, and the lesson's wrong idea it comes from)
+  function questionOf(q, kind) {
+    const wrong = (id) => (S.lesson?.misconceptions ?? []).find((m) => m.id === id)?.wrong ?? null;
+    const opts = kind === "choose" ? (q.options ?? []).map((o) => o.text ?? o.pick) : (q.options ?? []).map((o) => String(o?.text ?? o));
+    const fb = kind === "choose" ? (q.options ?? []).map((o) => (o.feedback || o.misconception ? { text: o.feedback ?? null, wrong: wrong(o.misconception) } : null))
+      : opts.map((_, j) => { const f = q.feedback?.[j]; return f?.text || f?.misconception ? { text: f.text ?? null, wrong: wrong(f.misconception) } : null; });
+    return { kind, question: q.question ?? q.prompt ?? "", options: opts, answer: q.answer ?? null, why: q.why ?? null, feedback: fb };
   }
   let splitWas = null;
   const presenter = createPresenter({
@@ -2864,7 +3065,9 @@ export function createHud(root, opts = {}, cb = {}) {
       makeH: (d) => maker(d).h, markup: (src, d) => toDOM(parse(src), d, markupOpts),
       icons: { back: ICON.back, fwd: ICON.fwd, play: ICON.play, pause: ICON.pause, next: ICON.next, replay: ICON.replay, check: ICON.check },
       key: (e) => presenter.key(e, { charKeys }),
-      actions: { back: () => fire("onStep", -1), advance, primary: () => (S.held && !S.playing ? heldAction() : togglePlay()), answer: (i) => answer(i) },
+      actions: { back: () => fire("onStep", -1), advance, primary: () => (S.held && !S.playing ? heldAction() : togglePlay()), answer: (i) => answer(i),
+        chapter: (k) => { const ph = S.phases[k]; if (ph) { fire("onPause"); fire("onSeek", ph.t0, { scrubbing: false }); } },
+        story: (id) => chooseScenario(id) },
     },
   });
 
@@ -2908,6 +3111,9 @@ export function createHud(root, opts = {}, cb = {}) {
     root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
     insets.top = Math.max(0, Math.round(headBottom - rr.top));
     insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
+    // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)
+    root.style.setProperty("--ix-free-l", `${insets.left}px`);
+    root.style.setProperty("--ix-free-r", `${insets.right}px`);
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;
@@ -3048,10 +3254,17 @@ export function createHud(root, opts = {}, cb = {}) {
       syncReset();
     },
     setScenario(id) { if (id != null && id !== S.scenario) { S.scenario = id; renderScenario(); } },
-    setMeta(meta) { S.meta = meta ?? {}; renderTitle(); },
+    setMeta(meta) {
+      S.meta = meta ?? {};
+      // the language its words are in, for a screen reader's voice: the figure's own (meta.lang), else English where
+      // the host page says nothing (an embed on a page without lang)
+      const lang = S.meta.lang ?? (root.parentElement?.closest("[lang]") ? null : "en");
+      if (lang) root.setAttribute("lang", lang);
+      renderTitle();
+    },
     initialState: () => ({ scenario: link.scenario, time: link.time, params: { ...link.params } }),
     /** Show or hide the start card. Hiding it this way is silent: it is not remembered and fires no onStart. */
-    intro(show = true) { openIntro(!!show); },
+    intro(show = true, link = null) { if (show && link && (link.step != null || link.notes?.length)) arrival = link; openIntro(!!show); },
     /** True once this viewer has dismissed this figure's start card (localStorage). */
     get introSeen() { return store.get(`intro:${figKey()}`) === "1"; },
     get introOpen() { return introOpen; },
@@ -3106,7 +3319,7 @@ export function createHud(root, opts = {}, cb = {}) {
       timers.forEach((id) => win.clearTimeout(id));
       if (countRaf) win.cancelAnimationFrame(countRaf);
       if (fitRaf) win.cancelAnimationFrame(fitRaf);
-      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live]) el.remove();
+      for (const el of [stage, scrimTop, scrimBottom, tagLayer, hud, meterBox, legend, preview, speedMenu, storyMenu, hoverCard.el, pinCard.el, coach, helpScrim, help, introScrim, intro, toast, tip, live, askLive, handout.el]) el.remove();
       if (landmark) root.removeAttribute("role");
       root.classList.remove("ix-reduced", "ix-playing", "ix-has-code", "ix-has-meters", "ix-has-legend", "ix-has-scenarios", "ix-stepmode", "ix-intro-open", "ix-held-open");
     },

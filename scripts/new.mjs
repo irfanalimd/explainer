@@ -38,6 +38,13 @@ export function relocate(src, file, fromDir, toDir) {
   });
 }
 
+/** A README's commands (`node ../../scripts/verify.mjs …`) rewritten so they run from `toDir`, as the imports are. */
+export function relocateCommands(md, fromDir, toDir) {
+  const scripts = inside(skillRoot, toDir) ? relative(toDir, here).split(sep).join("/") || "." : here;
+  return md.replace(/\bnode ((?:\.{1,2}\/|\/)[^\s`]*?)scripts\/([\w-]+\.mjs)/g, (all, pre, name) =>
+    resolve(fromDir, pre, "scripts") === here ? `node ${scripts}/${name}` : all);
+}
+
 export function scaffold(dir, { from, title, force } = {}) {
   dir = resolve(dir);
   if (existsSync(dir) && readdirSync(dir).length && !force) throw new Error(`${dir} is not empty (use --force to write into it)`);
@@ -58,6 +65,7 @@ export function scaffold(dir, { from, title, force } = {}) {
       const to = join(dir, rel);
       mkdirSync(dirname(to), { recursive: true });
       if (extname(f) === ".mjs" || extname(f) === ".js") writeFileSync(to, relocate(readFileSync(f, "utf8"), f, src, dirname(to)));
+      else if (extname(f) === ".md") writeFileSync(to, relocateCommands(readFileSync(f, "utf8"), dirname(f), dirname(to)));
       else copyFileSync(f, to);
       written.push(to);
     }
@@ -96,6 +104,7 @@ One or two sentences: what this figure shows and what the reader should leave kn
 ## Commands
 
 \`\`\`sh
+node ${scripts}/check.mjs figure.mjs                  # the golden path: verify, build, shots and audit, then check/report.html (--full before shipping)
 node ${scripts}/verify.mjs figure.mjs                 # headless checks: determinism, invariants, captions, param extremes, the lesson
 node ${scripts}/lesson.mjs figure.mjs                 # the lesson (lesson.mjs merged) as text: read it as a beginner would
 node ${scripts}/build.mjs figure.mjs                  # one self-contained page next to this file
@@ -118,6 +127,7 @@ if (isMain(import.meta)) {
     for (const f of r.written) console.log(`wrote ${showPath(f)}`);
     // absolute paths: the command works from any directory (the figure folder, the skill, the project root)
     console.log(`next: node ${join(here, "verify.mjs")} ${resolve(r.dir, "figure.mjs")}`);
+    console.log(`then: node ${join(here, "check.mjs")} ${resolve(r.dir, "figure.mjs")}   (verify, build, shots, audit and a report)`);
   } catch (e) {
     console.error(`error  ${e.message}`);
     process.exit(1);

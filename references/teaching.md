@@ -196,6 +196,7 @@ keep every caption true and short. `examples/mapreduce/` is the model to copy (`
 | What happened, why, what to watch | `s.step(caption, { id, vars })`; `lesson.steps[id]: { plain, why, look, deeper, picture, key }` |
 | Misconception, aha | `lesson.misconceptions: [{ id, wrong, fix }]`; `s.ask(question, options, answer, { why, id })` right before the revealing step; `lesson.asks[id].options[j]: { feedback, misconception }` |
 | Your turn, in the world | `s.choose(id, { prompt, options: [{ pick, right }] })` at the decision; the wrong branch plays for real; `lesson.choices[id]: { prompt, why, wrong: { feedback, misconception } }` |
+| Notes for whoever teaches it | `lesson.chapters[id].teach: { prompt, listen, minutes }`: a question to put to the room, what a good answer says or the wrong idea to listen for, and the minutes to give it. Shown in the presenter view and the teacher guide (Share → Handout), never to the reader. Optional |
 | End check | `s.check(id, { question, options, answer, chapter, vars, transfer })` per story, with answers from the run's rules at other knob values; `lesson.checks[id]: { question, why, options, wrong }`; `lesson.objectives` (with `stories` where only some stories teach one) become "You can now…" |
 | What comes next | `lesson.next: [{ title, href, why }]`, 1–3 lessons this one leads into, named at the end of the last story |
 | What breaks | a scenario with a learner-language `label`, `whatIf` and `description` |
@@ -214,7 +215,9 @@ export const lesson = {
   terms: { split: { lead: "one piece of the text", def: "One piece of the input, read by one machine." } },
   chapters: {
     split: { about: "…", enter: { sofar: "You can count words with a loop and a dictionary.", now: "Cut the text into pieces.",
-                                  done: "Every word sits in exactly one piece.", picture: true } },
+                                  done: "Every word sits in exactly one piece.", picture: true },
+             teach: { prompt: "If three people share the counting of one library, what could go wrong with the total?",
+                      listen: "A word counted twice, or missed, where two pieces meet.", minutes: 3 } },
     "split@skew": { about: "…" },                       // this scenario's own version
   },
   steps: {

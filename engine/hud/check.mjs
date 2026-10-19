@@ -117,6 +117,8 @@ export function createCheck(ctx) {
     },
     answer,
     get done() { return !!C?.done; },
+    /** This visit's result once every question is answered: { right (first tries), total }, else null. */
+    get result() { return C?.done ? { right: C.list.filter((c, i) => C.picked[i] === c.answer).length, total: C.list.length } : null; },
     get open() { return !!C?.open; },
   };
 }

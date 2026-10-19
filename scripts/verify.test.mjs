@@ -36,7 +36,8 @@ test("a broken figure gets precise, actionable findings", async () => {
     "two compiles differ",
     'counter "idle" is declared but never changes',
     "hang",
-    "infinite loop in build()",
+    "still running build() at bad-figure.mjs:21, an endless loop?",   // the hung line, found through the inspector
+    "bad-figure.mjs:30: Math.random()",
   ]) assert.ok(text.includes(needle), `missing: ${needle}\n${text}`);
   assert.ok(r.timedOut === "hang");
 });

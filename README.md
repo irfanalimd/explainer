@@ -224,6 +224,14 @@ Don't install it both ways. If you do, Claude Code loads the plugin copy and rep
 
 **Requirements:** Node.js 20.10+ for the checks and the build, and Chrome or Chromium for screenshots and video. There's nothing to `npm install`. Viewing a page needs a browser with WebGPU or WebGL 2.
 
+**Check your machine** before your first figure. From the skill folder (`~/.claude/skills/explainer`, or the plugin's folder):
+
+```sh
+node scripts/doctor.mjs
+```
+
+It checks Node, the skill's files, a writable temp folder, Chrome (found, started headless, and whether it draws with WebGPU, WebGL 2 or neither), the `node` the review fence runs and ffmpeg, then times a frame of MapReduce so you know how long screenshots will take. Each problem comes with the command that fixes it on your OS. `/explainer` runs it too, before it writes anything. If `node` itself is missing: `brew install node@22` (macOS), `winget install OpenJS.NodeJS.LTS` (Windows) or [nodejs.org](https://nodejs.org) (Linux: your package manager or nvm).
+
 <br>
 
 ## Quick start
@@ -261,9 +269,14 @@ node scripts/lesson.mjs my-figure/figure.mjs
 # a live-reloading page while you work
 node scripts/build.mjs my-figure/figure.mjs --serve
 
-# every chapter, question and pick, in both themes, desktop and phone
-node scripts/shoot.mjs my-figure/figure.mjs --teach
+# the golden path: verify, build, every chapter shot (with the audit) and a report, in one command
+node scripts/check.mjs my-figure/figure.mjs
+
+# before you ship: both themes, every question, pick and end card, and the audit over every step
+node scripts/check.mjs my-figure/figure.mjs --full
 ```
+
+`check` prints one line per stage as it goes and exits 1 when anything fails. It writes `my-figure/check/report.html` (and `report.md`): one page that says whether the figure is ready, with a scorecard (correct, teaches, looks right, pacing, size, review scores), each story's chapters and how long they take to watch, every finding grouped by where it comes from, and every shot. The quick check takes a few minutes (5 on a 4-core machine with no GPU); `--full` plays every teaching card live and took 75 minutes on that machine, so start it and keep working.
 
 Read the lesson before you look at a single frame. The process Claude follows is in [`SKILL.md`](SKILL.md), the teaching standard is in [`references/teaching.md`](references/teaching.md), the visual rules are in [`DESIGN.md`](DESIGN.md), and the builder API is in [`references/builder.md`](references/builder.md).
 
@@ -272,8 +285,10 @@ Read the lesson before you look at a single frame. The process Claude follows is
 ## For teachers
 
 - **Reader levels.** *New to this*, *I know the basics* and *Expert* change how much the panel explains and how many questions it asks, never the facts. The level can be set on the start card or in the panel (<kbd>L</kbd>), and the page remembers it.
-- **Presenter mode.** Use <kbd>P</kbd>, `?present=1` or Settings → Presenting. A clicker works with <kbd>→</kbd>, <kbd>Page Down</kbd> and <kbd>Space</kbd>. The presenter view runs from `file://` too.
-- **Deep links.** `#scenario-crash&step-4` or `#level-expert` opens a page exactly where you want the class to start.
+- **Presenter mode.** Use <kbd>P</kbd>, `?present=1` or Settings → Presenting. A clicker works with <kbd>→</kbd>, <kbd>Page Down</kbd> and <kbd>Space</kbd>. The presenter view, a second window on your laptop, runs from `file://` too. It warns you one step before each question so you can ask the room first, shows what each wrong answer means, gives each chapter's prompt for the room (the lesson's `chapters[id].teach`), and lets you jump to a chapter or switch story.
+- **Share.** The toolbar's **Share** (on phones it is in the title's card) gives a link to this moment (story, step, your level if you want it, and any knobs you changed), *Save image* (this frame and its step's words as a PNG), an iframe snippet that opens at this step, and the handout. Nothing leaves the page.
+- **Handout.** Share → Handout opens a printable **student worksheet** or **teacher guide**, made from the lesson and the real runs: a picture of each chapter, every question with room to answer, the end check, and the answers on a page of their own. The teacher guide adds the plan (each story's measured play time), the wrong ideas to listen for, the talk prompts and what each wrong option means. <kbd>Ctrl</kbd>+<kbd>P</kbd> on the page prints the worksheet.
+- **Deep links.** `#scenario-crash&step-4`, `#level-expert` or `#p=reducers:4` opens a page exactly where you want the class to start. The start card says where the link opens and offers *From the start*; a link that asks for something the page can't do (an unknown story, a knob out of range) opens anyway and says what it changed.
 - **Embedding.** `?embed=1` gives an iframe layout, designed for 800×500 and up. The page speaks a versioned `postMessage` API: you can drive it with `play`, `pause`, `seek`, `step`, `scenario`, `level` and `theme`, and it reports progress, answers and completion as xAPI statements, ready for an LMS.
 
 ```js

@@ -48,7 +48,7 @@ test("steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask,
   assert.deepEqual([a.simTime, b.simTime, c.simTime, d.simTime], [0, 5, 5, 5]);
   assert.deepEqual(tl.phases.map((p) => [p.name, p.step]), [["One", 0], ["Two", 2]]);
   assert.equal(tl.phases[0].t1, c.t0);
-  assert.deepEqual(b.ask, { question: "What is next?", options: ["3", "4"], answer: 0 });
+  assert.deepEqual(b.ask, { id: null, question: "What is next?", options: ["3", "4"], answer: 0 });   // id: the lesson's key (none given)
   assert.equal(tl.sample(b.t0 + 0.1).ask.question, "What is next?");
   assert.equal(tl.sample(a.t0 + 0.1).ask, null);
   assert.deepEqual(tl.sample(c.t0 + 0.1).line, [4, 6]);

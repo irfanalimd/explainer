@@ -7,6 +7,7 @@ import { relative } from "node:path";
 import { launch } from "./lib/cdp.mjs";
 import { resolveTarget, openFigure, shotTimes, groupFindings, findingLine } from "./lib/figure-page.mjs";
 import { parseArgs, parseSize, isMain } from "./lib/args.mjs";
+import { a11yCheck, foldA11y } from "./lib/a11y.mjs";
 
 const USAGE = `
 usage: node scripts/audit.mjs <page.html | figure.mjs | url> [options]
@@ -16,6 +17,8 @@ usage: node scripts/audit.mjs <page.html | figure.mjs | url> [options]
   --at <what>          all (default: mid + end of every step) | steps | phases | list like 0,7,12.5s
   --runtime <file>     runtime for a figure-module target
   --budget <ms>        warn when the runtime's average frame time exceeds this (default 16)
+  --a11y               also measure the interface (WCAG 2.2 AA): text contrast against the pixels behind it,
+                       target sizes, accessible names and visible focus (scripts/lib/a11y.mjs)
   --json               machine-readable output
 `;
 
@@ -23,7 +26,7 @@ export async function audit(target, o = {}) {
   const sizes = (o.sizes ?? ["1440x900", "390x844"]).map(parseSize);
   const t = await resolveTarget(target, { runtime: o.runtime });
   const browser = await launch();
-  const found = [], errors = [], runs = [];
+  const found = [], errors = [], runs = [], access = [];
   try {
     for (const size of sizes) {
       const fp = await openFigure(browser, t.url, { ...size, dpr: 1 });
@@ -44,6 +47,7 @@ export async function audit(target, o = {}) {
             await fp.renderAt(s.t, "settled");
             const probs = await fp.audit().catch((e) => [{ kind: "audit-error", message: e.message.split("\n")[0] }]);
             for (const p of probs) found.push({ ...p, step: p.step ?? s.step, where, t: s.t, caption: info.steps[p.step ?? s.step]?.caption ?? "" });
+            if (o.a11y) for (const f of await a11yCheck(fp.page).catch((e) => [{ kind: "a11y-error", cls: e.message.split("\n")[0], text: "" }])) access.push({ ...f, step: s.step, where });
             for (const e of fp.errors.slice(e0)) errors.push({ ...e, where, step: s.step, caption: info.steps[s.step]?.caption ?? "" });
             n++;
           }
@@ -54,6 +58,8 @@ export async function audit(target, o = {}) {
       }
       await fp.close();
     }
+    // one line per kind and component, with the worst value seen (a caption's contrast changes with every step)
+    for (const g of foldA11y(access)) for (const where of g.where) found.push({ kind: g.kind, step: g.steps.size ? Math.min(...g.steps) : null, where, message: g.message, caption: "" });
     return { problems: found, errors, runs, target: t.name };
   } finally {
     browser.close();
@@ -84,7 +90,7 @@ export function report(r) {
 }
 
 if (isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { sizes: "list", themes: "list", scenario: "string", at: "string", runtime: "string", budget: "number", json: "boolean" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { sizes: "list", themes: "list", scenario: "string", at: "string", runtime: "string", budget: "number", json: "boolean", a11y: "boolean" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
   try {
     const r = await audit(a._[0], a);
