@@ -128,7 +128,7 @@ async function teachShots(browser, url, size, o) {
   const travel = (x = 1) => ev(`__internals.setSpeed(${x * slow}), true`);
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
   const say = (msg) => o.progress?.(`teach ${size.width}x${size.height} ${msg}`);
-  if (slow > 1) say(`the page draws a frame in ${pace.ms.toFixed(0)} ms, so it plays ${slow.toFixed(1)}× slower than real time: pacing the waits by that`);
+  if (slow > 1) say(`the page draws a frame in ${pace.ms.toFixed(0)} ms, so it plays ${(pace.ms / 50).toFixed(1)}× slower than real time: travelling at ${slow.toFixed(1)}× and stretching every wait as much${pace.ms / 50 > slow ? " (the most it paces by)" : ""}`);
   // a pick: the wrong one's detour held on its consequence, then (rewound) the right one with its why
   const pickOpen = `(() => { const I = __internals; if (I.held && I.held.kind !== "end") I.play(); return !!document.querySelector(".ix-predict.ix-open .ix-turn-picks"); })()`;
   const click = (pick) => ev(`(() => { const b = document.querySelector('.ix-predict.ix-open .ix-turn-pick[data-pick="${pick}"]'); b && b.click(); return !!b; })()`);
