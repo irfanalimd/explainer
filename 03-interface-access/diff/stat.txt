@@ -1,0 +1,18 @@
+ engine/a11y/scene.mjs  |  20 ++++-
+ engine/hud/explain.mjs |   5 +-
+ engine/hud/hud.css     | 112 +++++++++++++++++++++------
+ engine/hud/hud.mjs     | 102 +++++++++++++++++++++----
+ engine/hud/theme.mjs   |   3 +
+ engine/runtime.mjs     |   6 +-
+ references/tooling.md  |  14 +++-
+ scripts/audit.mjs      |  10 ++-
+ scripts/lib/a11y.mjs   | 201 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 9 files changed, 426 insertions(+), 47 deletions(-)
+
+5fdacda Make the sliders and switches 24 px tall, WCAG's smallest target
+41daa15 Align the world in words to its titled groups, fade its overflow, and name the timeline's grey ticks in help
+bdce15b Keep status words and the phone caption's meta line at 4.5:1
+821f62c Measure the interface's accessibility with audit --a11y
+3b4298c Give the teacher the right column, keep help clear of the caption, and say where the keys are
+f39a124 Show the world in words when there is no GPU
+78b973e Narrate chapters, whys and predictions, and read the teacher first

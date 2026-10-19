@@ -1,0 +1,45 @@
+# verify after, branch product/03-interface-access at 5fdacda
+
+## examples/mapreduce/figure.mjs (full)
+verify examples/mapreduce/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    happy                        25 steps  139.7 s  5 phases  171 ms  + 1 branch
+  ok    happy · phone                25 steps  141.2 s  5 phases   79 ms  + 1 branch
+  ok    happy · mappers=1            23 steps  128.3 s  5 phases   36 ms  + 1 branch
+  ok    happy · mappers=6            28 steps  155.3 s  5 phases   99 ms  + 1 branch
+  ok    happy · reducers=1           22 steps  130.2 s  5 phases   34 ms
+  ok    happy · reducers=4           31 steps  159.7 s  5 phases   35 ms  + 3 branches
+  ok    happy · combiner=true        25 steps  139.7 s  5 phases   33 ms  + 1 branch
+  ok    crash                        27 steps  141.6 s  5 phases   17 ms
+  ok    crash · phone                27 steps  143.1 s  5 phases   20 ms
+  ok    crash · mappers=1            26 steps  137.1 s  5 phases   14 ms
+  ok    crash · mappers=6            30 steps  157.2 s  5 phases   75 ms
+  ok    crash · reducers=1           24 steps  132.1 s  5 phases   14 ms
+  ok    crash · reducers=4           33 steps  161.6 s  5 phases   17 ms
+  ok    crash · combiner=true        27 steps  141.1 s  5 phases   21 ms
+  ok    straggler                    27 steps  143.7 s  5 phases   22 ms
+  ok    straggler · phone            27 steps  145.2 s  5 phases   27 ms
+  ok    straggler · mappers=1        23 steps  120.0 s  5 phases   11 ms
+  ok    straggler · mappers=6        30 steps  158.1 s  5 phases   51 ms
+  ok    straggler · reducers=1       24 steps  134.2 s  5 phases   16 ms
+  ok    straggler · reducers=4       33 steps  163.7 s  5 phases   20 ms
+  ok    straggler · combiner=true    27 steps  143.2 s  5 phases   21 ms
+  ok    skew                         29 steps  165.5 s  5 phases   16 ms
+  ok    skew · phone                 29 steps  167.7 s  5 phases   14 ms
+  ok    skew · mappers=1             27 steps  160.4 s  5 phases   15 ms
+  ok    skew · mappers=6             32 steps  180.2 s  5 phases   58 ms
+  ok    skew · combiner=true         24 steps  125.4 s  5 phases   13 ms
+  ok    lesson    lesson.mjs over every run and branch: 36 step ids, 5 chapters, 3 asks, 1 picks, 3 checks
+        note   lesson.steps names 2 step id(s) no run here reaches: "map.empty", "reduce.sum-all" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 3 questions, 8 defined words, 2128 words, reading grade 6
+summary  26 run(s), 0 failing, 0 error(s), 0 warning(s)  2.6 s
+
+## every other example (summary line)
+examples/btree/figure.mjs: summary  17 run(s), 0 failing, 0 error(s), 0 warning(s)  1.5 s
+examples/consistent-hashing/figure.mjs: summary  17 run(s), 0 failing, 0 error(s), 0 warning(s)  1.8 s
+examples/event-loop/figure.mjs: summary  36 run(s), 0 failing, 0 error(s), 0 warning(s)  1.9 s
+examples/linked-list/figure.mjs: summary  15 run(s), 0 failing, 0 error(s), 0 warning(s)  0.8 s
+examples/quicksort/figure.mjs: summary  12 run(s), 0 failing, 0 error(s), 0 warning(s)  0.8 s
+examples/raft/figure.mjs: summary  24 run(s), 0 failing, 0 error(s), 0 warning(s)  2.5 s
+examples/virtual-memory/figure.mjs: summary  12 run(s), 0 failing, 0 error(s), 0 warning(s)  1.6 s
