@@ -153,6 +153,7 @@ export function compile(figure, { params = {}, scenario } = {}) {
     duration,
     steps: steps.map(({ index, t0, t1, dur, caption, phase, simTime, ask, kinds }) => ({ index, t0, t1, dur, caption, phase, simTime, ask, kinds })),
     phases, events, keys,
+    world,   // the bounds of everything the run shows (CONTRACTS.md: tl.world); the director frames its shots by it
     counters: Object.fromEntries(Object.keys(counters).map((k) => [k, { label: k, format: "int", ...(figure.counters?.[k] ?? {}) }])),
     snapshot: (i) => states[i],
     final: states[states.length - 1],

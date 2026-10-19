@@ -45,7 +45,9 @@ function continuity(tl) {
     const f = tl.sample(t);
     const cur = new Map();
     for (const p of f.poses) {
-      if (skip.has(p.kind)) continue;
+      // id-less poses are not entities (the s.scale field and its printed lines): the field raises each machine
+      // itself (scale.mjs), so there is no identity to follow from frame to frame
+      if (skip.has(p.kind) || p.id == null) continue;
       cur.set(p.id, p);
       const q = prev.get(p.id);
       if (q) {

@@ -24,6 +24,9 @@ import { rng as simRng } from "../sim/rng.mjs";   // the page (engine/runtime.mj
 import { extractLesson } from "./lib/lesson.mjs";
 import { loadFigure } from "./lib/lesson-load.mjs";
 import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teach.mjs";
+import { excerpt, keyLine, frameIn, importFailure, nearest } from "./lib/where.mjs";
+import { lessonBeside } from "./lib/modules.mjs";
+import { tokens } from "../engine/scene/narrate.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(here, "..");
@@ -52,6 +55,9 @@ function staticChecks(fig, file) {
   const errors = [], warnings = [];
   const E = (m) => errors.push({ kind: "exports", message: m }), W = (m) => warnings.push({ kind: "exports", message: m });
   const meta = fig.meta;
+  const fname = file.split(/[\\/]/).pop();
+  // where a key is written in the figure: " (figure.mjs:52)"
+  const at = (key, after) => { const l = keyLine(file, key, { after }); return l ? ` (${fname}:${l})` : ""; };
   if (!meta || typeof meta !== "object") E("export const meta = { title, subtitle, kicker, fig, cite, theme } is missing");
   else {
     if (!meta.title) E("meta.title is missing");
@@ -62,14 +68,15 @@ function staticChecks(fig, file) {
   if (typeof fig.build !== "function") E("export function build(s, params, scenario) is missing");
   const params = fig.params ?? {};
   for (const [k, d] of Object.entries(params)) {
-    const at = `params.${k}`;
-    if (!d || typeof d !== "object") { E(`${at} must be an object { label, type, value }`); continue; }
-    if (!PARAM_TYPES.includes(d.type)) { E(`${at}.type must be one of ${PARAM_TYPES.join(", ")}, got ${fmtVal(d.type)}`); continue; }
-    if (!d.label) W(`${at}.label is missing (the settings drawer shows it)`);
+    const pk = `params.${k}`;
+    const loc = at(k, "export const params");
+    if (!d || typeof d !== "object") { E(`${pk} must be an object { label, type, value }${loc}`); continue; }
+    if (!PARAM_TYPES.includes(d.type)) { E(`${pk}.type must be one of ${PARAM_TYPES.join(", ")}, got ${fmtVal(d.type)}${loc}`); continue; }
+    if (!d.label) W(`${pk}.label is missing (the settings drawer shows it)${loc}`);
     const err = paramError(d, d.value);
-    if (err) E(`${at}.value ${err}`);
-    if ((d.type === "int" || d.type === "float") && d.min != null && d.max != null && d.min > d.max) E(`${at}: min ${d.min} > max ${d.max}`);
-    if ((d.type === "int" || d.type === "float") && k !== "seed" && (d.min == null || d.max == null)) W(`${at} has no min/max, so verify cannot test its extremes`);
+    if (err) E(`${pk}.value ${err}${loc}`);
+    if ((d.type === "int" || d.type === "float") && d.min != null && d.max != null && d.min > d.max) E(`${pk}: min ${d.min} > max ${d.max}${loc}`);
+    if ((d.type === "int" || d.type === "float") && k !== "seed" && (d.min == null || d.max == null)) W(`${pk} has no min/max, so verify cannot test its extremes${loc}`);
   }
   const scen = fig.scenarios;
   if (scen !== undefined && !Array.isArray(scen)) E("scenarios must be an array of { id, label, params }");
@@ -116,8 +123,8 @@ function staticChecks(fig, file) {
     for (let i = 0; i + 2 < t.length; i++) {
       const a = t[i].value, b = t[i + 1].value, c = t[i + 2].value;
       if (b === "." && ((a === "Math" && c === "random") || (a === "Date" && c === "now") || (a === "performance" && c === "now")))
-        W(`line ${line(t[i].start)}: ${a}.${c}() makes the run nondeterministic; use s.rng (seeded from params.seed)`);
-      if (a === "new" && b === "Date" && c === "(") W(`line ${line(t[i].start)}: new Date() makes the run nondeterministic`);
+        W(`${fname}:${line(t[i].start)}: ${a}.${c}() makes the run nondeterministic; use s.rng (seeded from params.seed): s.rng.float(), s.rng.int(lo, hi), s.rng.pick(list)`);
+      if (a === "new" && b === "Date" && c === "(") W(`${fname}:${line(t[i].start)}: new Date() makes the run nondeterministic; use the simulated clock or a fixed date`);
     }
   } catch {}
   return { errors, warnings, declared: Object.keys(fig.counters ?? {}) };
@@ -181,6 +188,77 @@ function fingerprint(tl) {
     counterKeys(tl.final?.counters).map((k) => [k, counterGet(tl.final.counters, k)])]);
 }
 
+let FIGURE_FILE = null, LESSON_FILE = null, RECORD = null;
+
+
+// The lesson's per-step problems (engine/scene/lesson.mjs: "step 3 (map.read): plain uses {mapp}, …") say the same
+// thing once per step: fold them into one per step id, with the line in lesson.mjs and, for a template var the figure
+// does not pass, the var it probably meant (from the vars the figure does pass there).
+function lessonFolded(problems, fig, run, tl) {
+  const out = [], groups = new Map();
+  let varsAt = null;
+  const varsOf = (i) => {
+    if (varsAt === null) {
+      varsAt = [];
+      try { if (RECORD) varsAt = RECORD(fig, { params: run.params, scenario: run.scenario, rng: simRng, ...(run.env ? { env: run.env } : {}), ...(run.choices ? { choices: run.choices } : {}) }).script.steps.map((st) => Object.keys(st.vars ?? {})); } catch {}
+    }
+    return varsAt[i] ?? [];
+  };
+  for (const p of problems) {
+    const m = p?.kind === "lesson" && /^step (\d+) \(([^)]+)\): (.*)$/s.exec(p.message ?? "");
+    if (!m) {
+      // a chip naming an entity that is not there: one line per step id, with the one it probably meant
+      const u = p?.kind === "unknown-ref" && /^caption of step (\d+) refers to unknown entity "([^"]+)"/.exec(p.message ?? "");
+      const sid = u && tl.steps?.[Number(u[1])]?.id;
+      if (!sid) { out.push(p); continue; }
+      const key = `${sid}|ref`;
+      if (!groups.has(key)) { const g = { ...p, id: sid, rest: "", ref: true, steps: [], names: [] }; groups.set(key, g); out.push(g); }
+      const g = groups.get(key);
+      g.steps.push(Number(u[1]));
+      if (!g.names.includes(u[2])) g.names.push(u[2]);
+      continue;
+    }
+    const [, at, id, rest] = m;
+    const names = [...rest.matchAll(/"([^"]*)"/g)].map((x) => x[1]);
+    const key = `${id}|${rest.replace(/"[^"]*"/g, '""')}`;
+    if (!groups.has(key)) { const g = { ...p, id, rest, steps: [], names: [] }; groups.set(key, g); out.push(g); }
+    const g = groups.get(key);
+    g.steps.push(Number(at));
+    for (const n of names) if (!g.names.includes(n)) g.names.push(n);
+  }
+  for (const g of groups.values()) {
+    if (g.ref) {
+      let known = [];
+      try { known = [...(tl.final?.entities?.keys?.() ?? [])]; } catch {}
+      const near = g.names.map((n) => [n, nearest(n, known)]).filter(([, x]) => x);
+      const line = FIGURE_FILE ? textLine(FIGURE_FILE, `"${g.id}"`) : null;
+      const quote = (xs) => xs.slice(0, 4).map((n) => `"${n}"`).join(", ") + (xs.length > 4 ? ", …" : "");
+      g.message = `${g.id} at step${g.steps.length > 1 ? "s" : ""} ${listSteps(g.steps)}: its caption has a {ref:…} chip for ${quote(g.names)}, which ${g.names.length > 1 ? "do" : "does"} not exist`
+        + (near.length ? `; did you mean ${near.length > 1 ? quote(near.map(([, x]) => x)) : `"${near[0][1]}"`}?` : " (a ref names an entity id the figure adds with s.add)")
+        + (line ? ` (${FIGURE_FILE.split(/[\\/]/).pop()}:${line}, or a var it passes)` : "");
+      g.step = undefined;
+      continue;
+    }
+    const v = /uses \{([\w.]+)\}, which the figure does not pass/.exec(g.rest);
+    const near = v ? nearest(v[1], varsOf(g.steps[0])) : null;
+    let line = LESSON_FILE ? keyLine(LESSON_FILE, g.id) : null;
+    if (line && v) line = textLine(LESSON_FILE, `{${v[1]}`, line) ?? line;
+    else if (line && /^look names/.test(g.rest)) line = textLine(LESSON_FILE, "look:", line) ?? line;
+    // one id per step ("m0-tray", "m1-tray", …): name them all in one line
+    if (g.names.length > 1 && /^look names "[^"]*", which does not exist/.test(g.rest))
+      g.rest = g.rest.replace(/^look names "[^"]*", which does not exist/, `look names ${g.names.slice(0, 4).map((n) => `"${n}"`).join(", ")}${g.names.length > 4 ? ", …" : ""}, which do not exist`);
+    const where = line ? ` (lesson.mjs:${line})` : "";
+    g.message = `${g.id} at step${g.steps.length > 1 ? "s" : ""} ${listSteps(g.steps)}: ${g.rest}${near ? `; did you mean {${near}}?` : ""}${where}`;
+    g.step = undefined;
+  }
+  return out;
+}
+// the first line at or after `from` (1-based) that contains `needle`
+function textLine(file, needle, from = 1) {
+  try { const ls = readFileSync(file, "utf8").split("\n"); for (let i = from - 1; i < ls.length; i++) if (ls[i].includes(needle)) return i + 1; } catch {}
+  return null;
+}
+
 const POSE_NUMS = ["x", "y", "z", "w", "d", "h", "yaw", "pitch", "roll", "scale", "opacity", "lit", "flash", "dim", "roll", "meter", "grow"];
 
 function verifyRun(fig, compile, run, sample) {
@@ -208,6 +286,23 @@ function verifyRun(fig, compile, run, sample) {
     }
   }
   if (run.main) branchShape(tl, run, E);
+  // build() threw: say where, once, and leave out what follows from it (no steps, no captions, invariants that
+  // cannot read a world that was never built)
+  const thrown = (tl.problems ?? []).find((p) => p?.kind === "build-error");
+  if (thrown) {
+    const text = String(thrown.message ?? "");
+    const f = FIGURE_FILE && frameIn(text, FIGURE_FILE);
+    const head = text.split("\n")[0];
+    const name = FIGURE_FILE ? FIGURE_FILE.split(/[\\/]/).pop() : "figure.mjs";
+    const ex = f ? excerpt(FIGURE_FILE, f.line, f.col) : "";
+    const rest = (tl.problems ?? []).length - 1;
+    // a name that is not defined: the one the figure probably meant
+    const undef = /ReferenceError: ([\w$]+) is not defined/.exec(head);
+    let src = ""; try { src = FIGURE_FILE ? readFileSync(FIGURE_FILE, "utf8") : ""; } catch {}
+    const meant = undef && nearest(undef[1], (src.match(/[A-Za-z_$][\w$]*/g) ?? []).filter((w) => w !== undef[1]));
+    E("build", `build() threw ${head}${meant ? ` (did you mean ${meant}?)` : ""}${f ? ` at ${name}:${f.line}` : ""}${steps.length > 1 ? ` after step ${steps.length - 1} "${cap(steps.length - 1)}"` : " before its first step"}${ex ? `\n${ex.replace(/^/gm, "          ")}` : ""}${rest ? `\n          (${rest} finding(s) that follow from it are left out until build() runs to the end)` : ""}`, steps.length - 1);
+    return { errors, warnings, ms, steps: steps.length, duration: tl.duration, phases: (tl.phases ?? []).length, hash: tl.hash, counters: { used: [], changed: [] }, branches: 0 };
+  }
   // steps, captions, timing
   if (steps.length > MAX_STEPS) W("steps", `${steps.length} steps (> ${MAX_STEPS}): consider fewer, bigger beats or a smaller input`);
   if (steps.length < MIN_STEPS && !run.main) W("steps", `only ${steps.length} step(s) (< ${MIN_STEPS})`);
@@ -235,7 +330,7 @@ function verifyRun(fig, compile, run, sample) {
   if (scDef?.start != null && !(tl.phases ?? []).some((p) => p.name === scDef.start)) W("scenario", `scenario "${scDef.id}" starts at chapter "${scDef.start}", but it has no such chapter (${(tl.phases ?? []).map((p) => `"${p.name}"`).join(", ")}); it will start at the automatic fork`);
   // build-time problems from the compiler; more than 3 of one kind collapse into one line
   const byKind = new Map();
-  for (const p of tl.problems ?? []) {
+  for (const p of lessonFolded(tl.problems ?? [], fig, run, tl)) {
     const msg = typeof p === "string" ? p : p.message ?? JSON.stringify(p);
     const kind = (typeof p === "object" && p.kind) || "problem";
     if (kind === "no-caption" && noCaption.length) continue;
@@ -319,8 +414,10 @@ function verifyRun(fig, compile, run, sample) {
   const branches = run.main ? [] : branchesOf(tl);
   for (const b of branches) {
     const r = verifyRun(fig, compile, { ...run, choices: { [b.id]: b.option }, main: tl, step: b.step }, sample);
+    // what the main run already says, the branch need not say again
+    const fresh = (list, mine) => list.filter((x) => !mine.some((y) => y.kind === x.kind && y.message === x.message));
     const tag = (x) => ({ ...x, message: `in the branch where the reader picks ${b.label}: ${x.message}` });
-    errors.push(...r.errors.map(tag)); warnings.push(...r.warnings.map(tag));
+    errors.push(...fresh(r.errors, errors).map(tag)); warnings.push(...fresh(r.warnings, warnings).map(tag));
     for (const k of r.counters?.used ?? []) used.add(k);
     for (const k of r.counters?.changed ?? []) changed.add(k);
   }
@@ -387,14 +484,28 @@ function idsReached() {
   };
 }
 
-function lessonCoverage(lesson, seen) {
+function lessonCoverage(lesson, seen, lessonFile) {
   const warnings = [], notes = [];
   const W = (message) => warnings.push({ kind: "lesson", message });
   const N = (message) => notes.push({ kind: "lesson", message });   // advice that is often fine: not counted
   const ids = (m) => [...new Set(Object.keys(m ?? {}).map((k) => (k.lastIndexOf("@") > 0 ? k.slice(0, k.lastIndexOf("@")) : k)))];
   const list = (xs) => listSteps(xs.map((x) => `"${x}"`));
   const lost = (names, reached) => names.filter((x) => !reached.has(x));
-  const ls = lost(ids(lesson.steps), seen.steps), lc = lost(ids(lesson.chapters), seen.chapters), la = lost(ids(lesson.asks), seen.asks);
+  let ls = lost(ids(lesson.steps), seen.steps), lc = lost(ids(lesson.chapters), seen.chapters), la = lost(ids(lesson.asks), seen.asks);
+  // a lesson id one typo away from an id the run makes: say so, with the line, instead of two unrelated findings
+  const where = (key) => { const l = lessonFile && keyLine(lessonFile, key); return l ? `lesson.mjs:${l}: ` : ""; };
+  const typos = new Map();
+  const typo = (kind, list, reached, has) => list.filter((x) => {
+    const near = nearest(x, [...reached].filter((id) => !has(id)));
+    if (!near) return true;
+    typos.set(near, x);
+    W(`${where(x)}lesson.${kind}["${x}"] names no ${kind === "steps" ? "step" : kind.slice(0, -1)} the figure makes: did you mean "${near}"? (until it matches, that ${kind === "steps" ? "step shows the figure's caption" : "one has no words"})`);
+    return false;
+  });
+  const has = (m) => (id) => Object.keys(m ?? {}).some((k) => k === id || k.startsWith(`${id}@`));
+  ls = typo("steps", ls, seen.steps, has(lesson.steps));
+  lc = typo("chapters", lc, seen.chapters, has(lesson.chapters));
+  la = typo("asks", la, seen.asks, has(lesson.asks));
   // a typo or a step the figure no longer makes, or one only knob values verify does not try reach (a short input)
   const why = "a typo, a step the figure no longer makes, or one only untried knob values reach";
   if (ls.length) N(`lesson.steps names ${ls.length} step id(s) no run here reaches: ${list(ls)} (${why})`);
@@ -405,7 +516,7 @@ function lessonCoverage(lesson, seen) {
   if (lk.length) N(`lesson.checks names ${lk.length} s.check id(s) no run here reaches: ${list(lk)} (${why})`);
   // run ids the lesson has no words for: those steps show the figure's fallback caption
   const worded = (id) => Object.entries(lesson.steps ?? {}).some(([k, e]) => (k === id || k.startsWith(`${id}@`)) && (e?.plain || e?.first?.plain));
-  const bare = [...seen.steps].filter((id) => !worded(id));
+  const bare = [...seen.steps].filter((id) => !worded(id) && !typos.has(id));
   if (bare.length) W(`${bare.length} step id(s) have no plain in lesson.mjs, so they show the figure's caption: ${list(bare)}`);
   if (seen.unnamed) W(`${seen.unnamed} step(s) have no id, so lesson.mjs cannot reach them: s.step(caption, { id, vars })`);
   if (seen.unnamedChapters) W(`${seen.unnamedChapters} chapter(s) have no id, so lesson.chapters cannot reach them: s.phase(name, { about, id })`);
@@ -423,13 +534,20 @@ async function workerMain({ figure, compiler, quick, sample, teach = true }) {
   const post = (m) => parentPort.postMessage(m);
   let fig, compile;
   try { fig = await loadFigure(figure); }    // with the lesson.mjs beside it, so every run below checks the lesson too
-  catch (e) { post({ type: "fatal", message: `the figure failed to import: ${firstLines(e)}` }); return; }
-  try { ({ compile } = await import(pathToFileURL(compiler).href)); if (typeof compile !== "function") throw new Error("it does not export compile()"); }
+  catch (e) {
+    const lessonFailed = /^lesson\.mjs failed to import/.test(e?.message ?? "");
+    const file = lessonFailed ? lessonBeside(figure) ?? figure : figure;
+    post({ type: "fatal", message: `${lessonFailed ? "lesson.mjs" : "the figure"} failed to import: ${importFailure(e, file)}` });
+    return;
+  }
+  FIGURE_FILE = figure; LESSON_FILE = lessonBeside(figure);
+  try { let record; ({ compile, record } = await import(pathToFileURL(compiler).href)); RECORD = typeof record === "function" ? record : null; if (typeof compile !== "function") throw new Error("it does not export compile()"); }
   catch (e) { post({ type: "fatal", message: `the compiler ${showPath(compiler)} failed to load: ${firstLines(e)}` }); return; }
   post({ type: "static", result: staticChecks(fig, figure) });
   if (typeof fig.build !== "function") { post({ type: "done" }); return; }
   // the words each run at other settings shows, kept from its first compile for the teaching lint (no extra compile)
   const variants = [];
+  let threw = 0;   // runs whose build() threw: the lesson, counter and teaching checks wait until it runs
   const reached = fig.lesson ? idsReached() : null;   // the step, chapter and ask ids every run reaches, for the lesson
   for (const run of planRuns(fig, quick)) {
     post({ type: "start", label: run.label });
@@ -449,9 +567,11 @@ async function workerMain({ figure, compiler, quick, sample, teach = true }) {
       return tl;
     };
     const r = verifyRun(fig, watched, run, sample);
+    if (r.errors.some((x) => x.kind === "build")) threw++;
     post({ type: "run", run: { label: run.label, scenario: run.scenario, changed: run.changed }, result: r });
   }
-  if (reached) post({ type: "lesson", result: lessonCoverage(fig.lesson, reached) });
+  if (threw) { post({ type: "skipped", runs: threw }); post({ type: "done" }); return; }
+  if (reached) post({ type: "lesson", result: lessonCoverage(fig.lesson, reached, lessonBeside(figure)) });
   if (teach) {
     post({ type: "start", label: "teaching" });
     let result;
@@ -481,16 +601,23 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
     if (!existsSync(compiler)) { out.fatal = compiler === DEFAULT_COMPILER ? "engine/scene/index.mjs does not exist yet; pass --compiler <file>" : `compiler not found: ${compiler}`; return ok(out); }
     const t0 = performance.now();
     const w = new Worker(fileURLToPath(import.meta.url), { workerData: { verify: true, figure: file, compiler, quick, sample, teach } });
-    let current = "loading the figure", timer;
-    const arm = () => { clearTimeout(timer); timer = setTimeout(() => { out.timedOut = current; w.terminate(); }, timeout * 1000); };
+    let current = "loading the figure", timer, stopping = false;
+    // out of time: pause the worker through the inspector to see where it is stuck, then stop it
+    const arm = () => { clearTimeout(timer); timer = setTimeout(async () => {
+      stopping = true; out.timedOut = current;
+      out.stuck = await whereStuck(w, file).catch(() => null);
+      w.terminate();
+    }, timeout * 1000); };
     arm();
     w.on("message", (m) => {
+      if (stopping) return;
       arm();
       if (m.type === "static") out.static = m.result;
       else if (m.type === "start") current = m.label;
       else if (m.type === "run") out.runs.push({ ...m.run, ...m.result });
       else if (m.type === "lesson") out.lesson = m.result;
       else if (m.type === "teaching") out.teaching = m.result;
+      else if (m.type === "skipped") out.skipped = m.runs;
       else if (m.type === "fatal") out.fatal = m.message;
       onEvent?.(m);
       if (m.type === "done" || m.type === "fatal") w.terminate();
@@ -498,6 +625,48 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
     w.on("error", (e) => { out.fatal = `verify crashed: ${firstLines(e)}`; });
     w.on("exit", () => { clearTimeout(timer); out.ms = performance.now() - t0; ok(out); });
   });
+}
+
+/**
+ * Where a worker that stopped answering is running: pause it through the inspector (the NodeWorker domain, so it works
+ * without --inspect) and read its call stack. Returns { file, line, col, fn, frames } for the first frame in the
+ * figure's folder (else the first that is not Node's own), or null.
+ */
+async function whereStuck(worker, figure) {
+  const { Session } = await import("node:inspector");
+  const s = new Session();
+  s.connect();
+  const post = (method, params = {}) => new Promise((ok, fail) => s.post(method, params, (e, r) => (e ? fail(e) : ok(r))));
+  const within = (p, ms) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(null), ms))]);
+  try {
+    const attached = new Promise((ok) => s.on("NodeWorker.attachedToWorker", (m) => ok(m.params.sessionId)));
+    await post("NodeWorker.enable", { waitForDebuggerOnStart: false });
+    const sessionId = await within(attached, 5000);
+    if (!sessionId) return null;
+    const urls = new Map();   // scriptId -> url: Debugger.enable announces every script, and frames carry only the id
+    const paused = new Promise((ok) => s.on("NodeWorker.receivedMessageFromWorker", (m) => {
+      let msg; try { msg = JSON.parse(m.params.message); } catch { return; }
+      if (msg.method === "Debugger.scriptParsed") urls.set(msg.params.scriptId, msg.params.url);
+      else if (msg.method === "Debugger.paused") ok(msg.params.callFrames);
+    }));
+    let id = 0;
+    const send = (method, params = {}) => post("NodeWorker.sendMessageToWorker", { sessionId, message: JSON.stringify({ id: ++id, method, params }) });
+    await send("Debugger.enable");
+    await send("Debugger.pause");
+    const frames = await within(paused, 5000);
+    // let it go again, or terminate() waits on a paused thread
+    await send("Debugger.resume").catch(() => {});
+    await send("Debugger.disable").catch(() => {});
+    await post("NodeWorker.disable").catch(() => {});
+    if (!frames?.length) return null;
+    const dir = dirname(figure);
+    const list = frames.map((f) => {
+      let file = f.url || urls.get(f.location.scriptId) || ""; try { if (file.startsWith("file:")) file = fileURLToPath(file); } catch {}
+      return { file, line: f.location.lineNumber + 1, col: f.location.columnNumber + 1, fn: f.functionName || "(anonymous)" };
+    });
+    const mine = list.find((f) => f.file && f.file.startsWith(dir)) ?? list.find((f) => f.file && !f.file.startsWith("node:"));
+    return mine ? { ...mine, frames: list.slice(0, 6) } : null;
+  } finally { try { s.disconnect(); } catch {} }
 }
 
 export function report(r) {
@@ -513,18 +682,25 @@ export function report(r) {
   }
   const width = Math.min(34, Math.max(12, ...r.runs.map((x) => x.label.length)));
   const shown = new Set();     // an identical finding in a later run is counted, not repeated
+  // nor is one that differs only in its numbers (the same mistake at other knob values: "steps 3, 4" vs "step 3")
+  const shape = (x) => `${x.kind}|${x.message.replace(/\d+(\.\d+)?/g, "#").replace(/"[^"]*#[^"]*"/g, "#").replace(/#(, #)+(, …)?/g, "#")
+    .replace(/\b(steps|does)\b/g, (w) => (w === "steps" ? "step" : "do"))}`;
+  const alike = new Set();
   for (const run of r.runs) {
     errors += run.errors.length; warnings += run.warnings.length;
     const status = run.errors.length ? "FAIL" : run.warnings.length ? "WARN" : "ok  ";
     const facts = run.steps != null ? `${String(run.steps).padStart(4)} steps ${run.duration.toFixed(1).padStart(6)} s ${String(run.phases).padStart(2)} phases ${run.ms.toFixed(0).padStart(4)} ms${run.branches ? `  + ${run.branches} branch${run.branches > 1 ? "es" : ""}` : ""}` : "";
-    const fresh = [...run.errors.map((x) => ["error", x]), ...run.warnings.map((x) => ["warn ", x])].filter(([, x]) => !shown.has(x.kind + x.message));
-    const repeats = run.errors.length + run.warnings.length - fresh.length;
-    lines.push(`  ${status}  ${run.label.padEnd(width)}  ${facts}${repeats ? `  (+${repeats} as above)` : ""}`);
-    for (const [level, x] of fresh) { shown.add(x.kind + x.message); lines.push(`        ${level}  ${x.kind}: ${x.message}`); }
+    const all = [...run.errors.map((x) => ["error", x]), ...run.warnings.map((x) => ["warn ", x])];
+    const fresh = all.filter(([, x]) => !shown.has(x.kind + x.message) && !alike.has(shape(x)));
+    const same = all.filter(([, x]) => shown.has(x.kind + x.message)).length, near = all.length - fresh.length - same;
+    const tail = [same ? `${same} as above` : "", near ? `${near} alike` : ""].filter(Boolean).join(", ");
+    lines.push(`  ${status}  ${run.label.padEnd(width)}  ${facts}${tail ? `  (+${tail})` : ""}`);
+    for (const [level, x] of fresh) { shown.add(x.kind + x.message); alike.add(shape(x)); lines.push(`        ${level}  ${x.kind}: ${x.message}`); }
   }
   // counters declared but never moved in any run
   const changed = new Set(r.runs.flatMap((x) => x.counters?.changed ?? []));
-  if (r.runs.length) for (const k of r.static?.declared ?? []) if (!changed.has(k)) { warnings++; lines.push(`  WARN  counter "${k}" is declared but never changes in any run`); }
+  if (r.skipped) lines.push(`  skip  lesson, counters and teaching: build() threw in ${r.skipped} run(s); they are checked once it runs to the end`);
+  else if (r.runs.length) for (const k of r.static?.declared ?? []) if (!changed.has(k)) { warnings++; lines.push(`  WARN  counter "${k}" is declared but never changes in any run`); }
   // the lesson file over every run: what it names that no run reaches, what the run does that it has no words for
   const Ls = r.lesson;
   if (Ls) {
@@ -533,7 +709,14 @@ export function report(r) {
     for (const x of Ls.warnings) lines.push(`        warn   ${x.message}`);
     for (const x of Ls.notes) lines.push(`        note   ${x.message}`);
   }
-  if (r.timedOut) { errors++; lines.push(`  FAIL  ${r.timedOut.padEnd(width)}  no result within ${r.timeout} s: an infinite loop in build() (or in the compiler)? Later runs were not checked.`); }
+  if (r.timedOut) {
+    errors++;
+    const st = r.stuck, rel = st && (st.file.startsWith(dirname(r.figure)) ? relative(dirname(r.figure), st.file) : showPath(st.file));
+    lines.push(`  FAIL  ${r.timedOut.padEnd(width)}  no result within ${r.timeout} s${st ? `: still running ${st.fn}() at ${rel}:${st.line}, an endless loop?` : ": an infinite loop in build() (or in the compiler)?"} Later runs were not checked.`);
+    const ex = st ? excerpt(st.file, st.line, st.col) : "";
+    if (ex) lines.push(ex.replace(/^/gm, "        "));
+    if (st) lines.push(`        (look for a while or for loop whose condition never changes; --timeout ${r.timeout * 2} gives a slow build more time)`);
+  }
   // the teaching lint: the lesson as a beginner reads it (warnings are advice; errors are clear defects)
   const T = r.teaching;
   if (T) {
@@ -541,7 +724,8 @@ export function report(r) {
     lines.push(`  ${T.errors.length ? "FAIL" : T.warnings.length ? "WARN" : "ok  "}  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)`);
     lines.push(formatFindings(T, "        "));
   }
-  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0);
+  // what fails: each run with an error, and the exports, the teaching lint and a run that never finished, once each
+  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0) + (r.static?.errors.length ? 1 : 0) + (r.timedOut ? 1 : 0);
   lines.push(`summary  ${r.runs.length} run(s), ${failing} failing, ${errors} error(s), ${warnings} warning(s)  ${(r.ms / 1000).toFixed(1)} s`);
   return { text: lines.join("\n"), errors, warnings };
 }

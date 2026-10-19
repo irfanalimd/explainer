@@ -6,10 +6,13 @@ to the skill root; every script also takes absolute paths and works from any wor
 ## The authoring loop
 
 ```sh
+node scripts/doctor.mjs                                # can this machine make figures? one fix line per problem
 node scripts/new.mjs ~/figs/raft                       # figure.mjs + lesson.mjs (commented templates) + README.md
 node scripts/verify.mjs ~/figs/raft/figure.mjs         # headless checks, the lesson file included; fix until it exits 0
 node scripts/lesson.mjs ~/figs/raft/figure.mjs         # the lesson as text: read it as a beginner would
 node scripts/build.mjs ~/figs/raft/figure.mjs --serve  # live-reloading dev page, URL printed
+node scripts/check.mjs ~/figs/raft/figure.mjs          # verify + build + shots + audit, then ~/figs/raft/check/report.html
+node scripts/check.mjs ~/figs/raft/figure.mjs --full   # before shipping: both themes, every teaching card, audit on every step
 node scripts/build.mjs ~/figs/raft/figure.mjs          # the shippable single file: ~/figs/raft/raft.html
 node scripts/shoot.mjs ~/figs/raft/raft.html           # PNGs of every phase, both themes, desktop + phone, contact sheet
 node scripts/audit.mjs ~/figs/raft/raft.html           # every step, both sizes: overflow, tags, focus, frame time
@@ -26,9 +29,74 @@ build it first. So the lesson is in every run, everywhere.
 On Node 20 and 21, where the built-in WebSocket is behind a flag, the browser scripts (snap, shoot, audit, record)
 re-run themselves with `--experimental-websocket` (`scripts/lib/websocket.mjs`); Node 22.4+ needs nothing.
 
+`check` is the loop: it runs verify, build, shoot and (with `--full`) audit in one process and writes one report.
+The scripts below are its parts, for when you want one of them alone.
+
 All page scripts (shoot, audit, record) also accept a figure module directly (they build it to a temp page first)
 or a URL. They exit 1 on page errors; audit and verify also exit 1 on any problem. Look at every PNG shoot makes,
 starting with `contact.png`.
+
+## doctor.mjs
+
+`node scripts/doctor.mjs [figure dir] [--quick] [--json]`
+
+Preflight, before any figure is written. One line per check, `ok`, `info`, `WARN` or `FAIL`, and under each problem
+a `fix:` line for this OS (macOS, Linux, Windows):
+
+- **node**: 20.10 or newer (module hooks and the built-in WebSocket; 22.4+ needs no flag). Written so an older Node
+  can run it and say so.
+- **skill**: the engine, the scripts and the Geist fonts the build inlines are where they should be; a second copy
+  in `~/.claude/skills/explainer` beside the plugin is flagged.
+- **temp**: the temp folder is writable and has room (a Chrome profile is about 150 MB while it runs). With a figure
+  dir, that folder is writable too.
+- **fence**: `node` is on the PATH the plugin's hooks see. Without it the reader fence cannot run, and it then blocks
+  the fenced agents' tools (hooks/hooks.json) rather than letting them read unfenced.
+- **ffmpeg**: optional; `.webm` needs nothing, `.mp4` and `.gif` need it.
+- **machine**: cores, memory, load (a busy machine makes every estimate below longer).
+- **chrome**: found (`CHROME_PATH`, the usual install places on all three OSes, the names on `PATH`, then the
+  Playwright and Puppeteer browser caches), its version, and how it was found. Then, unless `--quick`, it starts
+  headless the way the scripts do and reports **webgpu** and **webgl2** (software rendering such as SwiftShader is
+  flagged: fine for checks, slow for screenshots) and **speed**: one settled 1440×900 render of MapReduce, the cost of
+  a screenshot, with what that means for `shoot` and `shoot --teach`.
+
+Exit 1 when something required fails; warnings and info do not fail. About 20 s with Chrome, under 1 s with
+`--quick`. `--json` prints `{ ok, os, results: [{ status, name, detail, fix }] }`.
+
+## check.mjs
+
+`node scripts/check.mjs <figure.mjs> [--full] [--out dir] [--page file] [--no-shots] [--json]`
+
+The golden path in one command: is this figure ready? Progress goes to stderr, one line per stage with the elapsed
+time (`[0:11] verify   26 runs, 0 failing, …`), so a long run shows it is alive. Two tiers:
+
+- **quick** (default, the authoring loop): verify (every scenario, knob extreme, branch, the lesson and the teaching
+  lint), the stories' pacing straight from the compiled runs, `build` (the page lands where `build.mjs` puts it), then
+  `shoot` of every chapter of every scenario in the page's own theme at 1440×900 and 390×844, with the runtime's audit
+  on each shot and a contact sheet.
+- **`--full`** (before shipping): the same in both themes, plus every teaching card (`shoot --teach`: predictions,
+  picks, the end check and the end card) and `audit.mjs` over every step at both sizes.
+
+It writes `<figure dir>/check/` (or `--out`): `report.html`, `report.md`, `check.json` and `shots/` with
+`contact.png`. The page goes where `build.mjs` puts it, or to `--page` (to check a figure in a folder you cannot
+write, such as a shipped example). The report is one self-contained page (fonts and JPEG thumbnails inlined, light and dark, no
+network) in the HUD's own tokens:
+
+- a **verdict**: "Needs work" with every problem, "Passes the quick check", "Ready for review" (`--full` passed, no
+  blind review yet) or "Ready to ship" (`--full` passed and the latest review round passed its gate), and the next
+  thing to do;
+- a **scorecard**: Correct (verify), Teaches (the lint and the reading grade against the level's ceiling), Looks
+  right (audit findings and page errors over every shot), Pacing (the first story's time to watch at 1x, the longest
+  chapter), One file (size against the 2.5 MB budget) and Reviewed (the lowest novice chapter score and open findings
+  from `review/round-N/scores.json`, when the teacher pipeline has run);
+- **stories**: steps, time to watch (and from where a story splits off the first), a bar of each chapter's share,
+  questions and picks;
+- **findings**, grouped by source (verify, the lesson file, teaching, audit, page errors), each once, with where it
+  was seen; and every **shot**, grouped as the contact sheet groups them, each linked to its full-size PNG.
+
+`--no-shots` skips Chrome (verify, pacing and build only). Exit 1 when anything fails. Measured on a 4-core machine
+with no GPU (SwiftShader) and other jobs running, on MapReduce: quick 5 min 17 s (80 shots), `--full` 75 min 22 s
+(240 shots and teaching cards in 62 min, then the audit over every step in 13 min). `doctor`'s speed line estimates
+the shots for the machine at hand.
 
 ## verify.mjs
 
@@ -67,7 +135,23 @@ hung) instead of hanging the caller. Checks, in order:
   word counted once"). Findings fold into the run's line, prefixed `in the branch where the reader picks "reduce 1"
   at shuffle.which:`, and the line counts them (`+ 1 branch`). A branch's steps count for the lesson's coverage, and
   its words get the teaching checks once per run ("at other settings", labelled `· branch id=option`).
-- Identical findings in later runs are counted (`(+3 as above)`), not repeated.
+- Identical findings in later runs are counted (`(+3 as above)`), not repeated, and so are findings that differ only in
+  their numbers, the same mistake at other knob values (`(+1 alike)`).
+- **Messages point at the line.** A param problem names its line (`params.mappers.value 9 is above max 6
+  (figure.mjs:52)`); a determinism smell names the file (`figure.mjs:176: Math.random() …`); a syntax error in
+  `figure.mjs` or `lesson.mjs` prints the line with a caret; a lesson problem repeated at every step folds into one
+  line per step id with its `lesson.mjs` line and, for a template var the figure does not pass, the var it probably
+  meant (`map.read at steps 3, 4, 5: plain uses {mapp}, which the figure does not pass; did you mean {map}?
+  (lesson.mjs:156)`); a lesson id one typo from an id the run makes says so instead of two unrelated findings
+  (`lesson.mjs:144: lesson.steps["map.raed"] names no step the figure makes: did you mean "map.read"?`); a caption chip
+  naming an entity that does not exist folds per step id and suggests the id it probably meant. When `build()` throws,
+  the error is reported once per run with its `figure.mjs` line, the source line and, for an undefined name, the one
+  probably meant, and what follows from it (no steps, no captions, invariants on a world never built, the lesson and
+  teaching sections) is left out until it runs to the end. A run that does not finish within `--timeout` is paused
+  through the inspector and the line it is stuck on printed (`still running build() at figure.mjs:175, an endless
+  loop?`).
+- The summary's `failing` counts each run with an error, plus the exports, the teaching lint and a run that never
+  finished, once each, so a param error or a hang never ends `0 failing`.
 - **lesson** (its own section, when there is a `lesson.mjs`): across every run, warnings for step ids with no `plain`
   (they show the figure's caption), steps or chapters with no id, `key` steps without a `why`, and misconceptions no
   ask option names; and a `note`, not counted, for lesson ids no run reaches (a typo, a step the figure no longer
@@ -190,6 +274,8 @@ there is one instance per module); everything else is served byte for byte.
   and audit problems grouped by finding, with the steps and shots where each occurs.
 - Size presets: `desktop` (1440x900), `phone` (390x844), `1080p`, `720p`, `vertical`, `square`. Use `--dpr 2` to
   judge text crispness.
+- Progress on stderr, one line per group with its time (`[3:12] shot 1440x900 crash dark: 10 frames (41 s)`);
+  `--quiet` turns it off. stdout keeps the report.
 - `--teach` adds the teaching cards, which frozen capture never shows (it drops pauses and predictions). After the
   phase shots it plays the page live, on its own tab, in every theme, size and scenario:
   - each predict question, asked (`<scenario>-<theme>-<w>x<h>-<step>-ask.png`), then answered with the first wrong
@@ -200,16 +286,17 @@ there is one instance per module); everything else is served byte for byte.
     it back to the pick, the right option is picked and shot with its why (`…-<step>-right.png`). A pick that never
     opens, never holds, or never comes back is reported and the page is scrubbed back out of the branch (a branch
     never reaches the end card), so the run never stalls.
-  - the end check, its first question answered (`…-<last step>-end-check.png`), then the rest answered and its
-    "You can now…" (`…-end-cannow.png`);
+  - the end check, its first question answered with a wrong option on purpose and shot with its feedback
+    (`…-<last step>-end-check.png`), then every question answered through to "You can now…" (`…-end-cannow.png`);
   - the end card, scrolled to the recap, takeaway and what-ifs (`…-<last step>-end-card.png`). On a narrow screen,
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
   Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
   is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
   on a loaded machine) 1× play would crawl and time out.
-  The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error. Live play
-  takes a few seconds a card (MapReduce, 4 stories × 2 themes × 2 sizes: about 3 minutes). `--at none --teach`
-  shoots the cards alone.
+  The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error, and
+  a page that stops answering ends that story's live play with an error instead of hanging the run. Progress goes to
+  stderr, one line per group (`--quiet` turns it off). Live play takes a few seconds a card on a machine with a GPU;
+  times on a machine without one are in the Known gaps. `--at none --teach` shoots the cards alone.
 
 ## audit.mjs
 
@@ -256,7 +343,8 @@ captions, and an id and vars on every step, chapter and question), `lesson.mjs` 
 (the words for those ids: goal, objectives, misconceptions, picture map, terms, chapter cards, layered steps and
 ask feedback) and a README with the exact commands. `--from` copies `examples/<name>/` (or any folder with a
 `figure.mjs`), skipping built pages, shots and videos, and relocates imports into the skill: relative if the new
-folder is inside the skill, absolute otherwise.
+folder is inside the skill, absolute otherwise. The copied README's commands (`node ../../scripts/verify.mjs …`) are
+rewritten the same way, so they run from the new folder. It prints the next two commands: verify, then check.
 
 ## review-packet.mjs
 
@@ -375,7 +463,10 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
 
 ## Libraries (`scripts/lib/`)
 
-`cdp.mjs` (launch Chrome, pages in their own windows, error collection including failed loads, screenshots),
+`cdp.mjs` (find Chrome with `findChrome()`, launch it, pages in their own windows, error collection including failed
+loads, screenshots; every Chrome it starts is killed and its profile removed on exit, Ctrl-C included),
+`where.mjs` (point a message at its line: `keyLine`, `excerpt` with a caret, `frameIn` a stack, `importFailure`, and
+`nearest` for "did you mean"), `report.mjs` (check's report as HTML and Markdown),
 `modules.mjs` (lexer, import scan, specifier resolution and mapping, rewrite, graph), `webm.mjs` (EBML writer,
 muxer, reader), `figure-page.mjs` (open a page through `__internals`, shot times, capture CSS, finding groups),
 `args.mjs`, `node-hooks.mjs`, `lesson-load.mjs` (`loadFigure()`: a figure with the `lesson.mjs` beside it),
@@ -404,6 +495,9 @@ back).
 
 ## Known gaps
 
+- Live play is bound by frame time. On a 4-core machine with no GPU and other jobs running, `shoot --scenario all
+  --teach` over MapReduce took 57 min (160 phase shots in about 12 min, 80 teaching cards in about 44 min); on a page
+  that draws at 20 fps or better the pass keeps its old speeds and waits.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the
