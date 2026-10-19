@@ -1,0 +1,22 @@
+ README.md                      |   6 +-
+ engine/embed/deeplink.mjs      | 143 ++++++++++++++++++
+ engine/embed/deeplink.test.mjs | 116 +++++++++++++++
+ engine/embed/embed.mjs         |   3 +
+ engine/hud/check.mjs           |   2 +
+ engine/hud/handout.mjs         | 330 +++++++++++++++++++++++++++++++++++++++++
+ engine/hud/hud.css             | 267 ++++++++++++++++++++++++++++++++-
+ engine/hud/hud.mjs             | 175 +++++++++++++++++++---
+ engine/hud/presenter-view.mjs  |  69 +++++++--
+ engine/hud/share.mjs           | 146 ++++++++++++++++++
+ engine/hud/still.mjs           | 137 +++++++++++++++++
+ engine/runtime.mjs             | 254 +++++++++++++++++++++++++++++--
+ engine/scene/lesson.mjs        |  11 ++
+ engine/scene/timeline.mjs      |   2 +-
+ examples/mapreduce/lesson.mjs  |   8 +
+ references/teaching.md         |   5 +-
+ references/tooling.md          |  11 +-
+ 17 files changed, 1627 insertions(+), 58 deletions(-)
+
+4efe9f2 Add a printable handout and teacher guide, and give the presenter view notes for the room
+d8f3498 Give lesson chapters teacher notes, and write them for MapReduce
+e57ce7e Open shared moments exactly, and add a share panel with links, images and embeds

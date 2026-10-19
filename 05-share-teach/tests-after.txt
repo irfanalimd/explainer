@@ -1,0 +1,33 @@
+# node --test "engine/**/*.test.mjs" "sim/**/*.test.mjs" "scripts/**/*.test.mjs"  (4efe9f2)
+# tests 312
+# suites 0
+# pass 301
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 56148.126193
+
+# failing (the same 11 that fail at the base commit 9c8b16d; checked by name)
+not ok 22 - with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+not ok 24 - the last step frames its focus close and large: the payoff
+not ok 49 - housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+not ok 57 - lane: rail + ruler + engraved name + time labels; mark is a puck on the rail; playhead is a lit print line
+not ok 58 - zone, text, bracket, pointer, container
+not ok 65 - real format: lanes put the ruler and time labels where the scene says; messages and prints
+not ok 82 - theme variables come from tokens
+not ok 141 - mapreduce happy {}: motion is continuous (no jumps, no pops)
+not ok 145 - mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)
+not ok 181 - steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask, line
+not ok 261 - the figure is deterministic and its narration is precise
+
+# new on this branch: engine/embed/deeplink.test.mjs
+ok 1 - parseMoment reads the readable spelling and the HUD's
+ok 2 - linkParam keeps only what the figure can use, and says why
+ok 3 - resolveMoment checks a moment against the figure
+ok 4 - resolveStep places a moment in a compiled run
+ok 5 - formatMoment round-trips through parseMoment
+ok 6 - share links drop this visit's switches and say nothing they don't need
+ok 7 - handout helpers
+# pass 7
+# fail 0

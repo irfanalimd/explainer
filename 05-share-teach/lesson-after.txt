@@ -1,0 +1,809 @@
+MapReduce: Counting words with a team of machines
+level core · 4 stories · 4 knobs (Reading machines, Counting machines, Add up repeats first, Text to count)
+
+HOOK      Each machine reads only part of the text. How do they still count every word exactly, none
+          missed or counted twice?
+GOAL      Count every word of a text exactly, with machines that each read only part of it.
+OBJECTIVES
+  o-split: Say why the text is cut into pieces and read in parallel, and what that buys.
+  o-hash: Explain why every copy of a word must reach the same counter, and how a hash does it
+          without asking anyone.
+  o-fail: Say why a crashed or slow reading task can simply run again, and which finished work must
+          re-run.
+  o-cost: Name what the shuffle costs, and how adding up repeats early cuts it.
+PICTURE   a library counted by a team
+  master  the coordinator handing out shelves  =  the master  (master)
+  split   one shelf of books  =  one piece of the text (a split)  (split)
+  mapper  a helper tallying their shelf  =  a reading machine (a mapper)  (mapper)
+  slip    a tally slip “fox: 1”  =  a record `(fox, 1)`: the word, and the number 1
+  hash    “all slips for one word go to one person”  =  a fixed rule on the word's letters (a hash) that picks one counting machine  (hash)
+  reducer the person adding them up  =  a counting machine (a reducer)  (reducer)
+  output  the noticeboard  =  the output: a folder with one file per counting machine
+  breaks  Helpers would talk to agree who counts which word. Machines never talk about it: each one
+          runs the same rule on the word and gets the same answer.
+BELIEFS
+  m-central: “Each machine counts its piece, and one machine adds it all up at the end.” Then one
+             machine would add up every slip. Instead each word's slips meet on one counter, so the
+             adding is shared too.
+  m-even: “Spreading the slips evenly over the counters is best.” Copies of one word would land on
+          different counters, and none could give its full count.
+  m-lost: “A crashed machine's words are lost, so the count comes out short.” Its piece is still in
+          the input. Reading it again gives the same slips.
+  m-restart: “One failure restarts the whole job.” Only the failed machine's tasks run again.
+  m-wait: “The job has to wait for its slowest machine.” A backup copy of the slow piece on a free
+          machine gives the same slips. The first copy to finish wins.
+  m-skip: “Skipping a slow piece is a fair price for finishing on time.” Its words would never be
+          counted. MapReduce never trades a correct count for speed.
+WORDS
+  master: (the coordinator) The machine that hands out pieces of work, keeps track of them, and
+          notices when a machine fails.
+  split: (one piece of the text) One piece of the input, read by one machine, like one shelf of a
+         library.
+  mapper: (a reading machine) A machine running map: it reads one piece and writes a slip like (fox,
+          1) for every word.
+  hash: (a word's fixed number) A function that turns a word into a big number. The same word always
+        gives the same number.
+  shuffle: (sending each slip to its counter) The step where every slip travels to the machine that
+           adds up its word.
+  reducer: (a counting machine) A machine running reduce: it adds up all the slips for its share of
+           the words.
+  straggler: (a slow machine) A machine much slower than the rest, so everyone ends up waiting for
+             it.
+  combiner: (adding up early) Code that adds up repeats on the reading machine itself, before any
+            slip is sent.
+NUMBERS   words read * · sent between machines * · busiest counter's load * · tasks finished   (* in the dock)
+
+━━ Story 1 of 4 · Everything works  (happy)  25 steps, 140 s at 1x
+   what if   What if… nothing goes wrong
+   story     Every machine stays healthy: the whole job, from cutting up the text to the final
+             counts.
+
+   ▸ Chapter 1 of 5 · Split
+     about     Think of counting every word in a library with a team. One person would take ages, so
+               a coordinator, the master, gives each helper one shelf: a split, one piece of the
+               text. [master: The machine that hands out pieces of work, keeps track of them, and
+               notices when a machine fails.] [split: One piece of the input, read by one machine,
+               like one shelf of a library.]
+     so far    On one machine, a loop and a dictionary count words: each word maps to its count so
+               far.
+     now       Cut the text into pieces, one per machine. The table names the parts; each comes back
+               when its step plays.
+     done when Every word sits in exactly one piece.
+     card      shows the picture map (a library counted by a team)
+   0  ★ Count the words in “the quick brown fox jumps over the lazy dog the fox”: 11 in all.   ‹split.problem›
+        why       One machine alone would read all 11, one after another. Shared by 3 machines, none
+                  reads more than 4.
+        look      input
+        · cost    Alone: 11 reads, one after another. Shared 3 ways, the reading takes as long as
+                  the biggest piece: 4 reads.
+        · real    The paper cuts real input into pieces of 16 to 64 MB, and a typical job runs M =
+                  200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1,
+                  §3.5).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   1  ★ The master cuts the text into 3 pieces of about 4 words, one per machine.   ‹split.cut›
+        why       The pieces are split 0 “the quick brown fox”, split 1 “jumps over the lazy” and
+                  split 2 “dog the fox”. Each can be read without the others, so all 3 machines
+                  start at once.
+        look      split0, split1, split2
+        picture   one shelf of books = one piece of the text (a split)
+        · how     Each record (here, a word or a line) is read by exactly one machine. The paper's
+                  text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes and has each
+                  reader finish the line that crosses its edge. The master prefers to run each piece
+                  on a machine that already stores a copy of it, so most input is read from local
+                  disk, not over the network (§3.4).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   ▸ Chapter 2 of 5 · Map
+     about     Each helper tallies their own shelf: each reading machine, a mapper, writes a slip
+               like `(word, 1)`, meaning “this word, seen once”, for every word. Nobody waits for
+               anybody. [mapper: A machine running map: it reads one piece and writes a slip like
+               (fox, 1) for every word.]
+     so far    The text is in 3 pieces, one per machine.
+     now       Each machine turns its piece into slips, one per word.
+     done when Every word of the text is a `(word, 1)` slip on some machine.
+   2  Each machine gets its piece from the shared input; all 3 start at once.   ‹map.handout›
+        look      m0, m1, m2
+   3  ★ map 0 writes a slip for each of its 4 words, like `(the, 1)`.   ‹map.read›
+        why       That is all map does: label each word with a 1. The adding comes later, so nobody
+                  waits.
+        look      m0
+        picture   a tally slip “fox: 1” = a record `(fox, 1)`: the word, and the number 1
+        · how     A real mapper buffers its slips, then writes them to its own local disk, divided
+                  into one file per counting machine (2 here). It tells the master where they are
+                  (§3.1).
+        · code    `emit(word, 1)` (lines 1–3)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   4  map 1 writes a slip for each of its 4 words, like `(jumps, 1)`.   ‹map.read›
+        look      m1
+       … 1 more like this (steps 5–5)
+
+   ▸ Chapter 3 of 5 · Shuffle
+     about     In the shuffle, every slip for one word must reach the same counting machine. A hash
+               turns the word into a number. Divide it by the number of counters: the remainder,
+               from 0 up to one less, names the counter. [shuffle: The step where every slip travels
+               to the machine that adds up its word.] [hash: A function that turns a word into a big
+               number. The same word always gives the same number.]
+     so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+     now       Send each slip to one of the 2 counting machines.
+     done when All the slips for any one word sit on the same counting machine.
+   6  ★ the goes to reduce 0: its hash, 3 020 861 980, divided by 2 leaves remainder 0.   ‹shuffle.first›
+        why       Taking turns would scatter one word's slips over several counters, and counters
+                  never compare notes, so none would hold the full count.
+        look      m0.s0.w0, r0
+        picture   “all slips for one word go to one person” = a fixed rule on the word's letters (a
+                  hash) that picks one counting machine
+        · how     Each mapper has already divided its slips into 2 files, one per counter, and each
+                  counter fetches its file from every mapper. The fetching starts early: the master
+                  passes on each finished map's file locations as they come (§3.2). Only the sort
+                  and the adding wait for the last map, which might still hold a slip they need.
+        · cost    In this model 85 bytes cross the network: each slip's word plus a 4-byte count
+                  (real formats add length headers, and a reader on the counter's own machine sends
+                  nothing). In a cluster, network bandwidth is the scarce resource (§3.4).
+        · edge    Python's own hash() of a string changes from process to process (hash
+                  randomization) unless PYTHONHASHSEED is fixed, and can differ between Python
+                  versions, so two machines could disagree. Real jobs use a specified hash; this run
+                  uses FNV-1a.
+        · code    `hash(word) % R` (lines 8–9)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   7  quick from map 0 goes to reduce 0 because `hash(quick) % 2 = 0`.   ‹shuffle.send›
+        why       One counter takes many different words; it keeps each word's count apart.
+        look      m0.s0.w1, r0
+   8  brown from map 0 goes to reduce 1 because `hash(brown) % 2 = 1`.   ‹shuffle.send›
+        look      m0.s0.w2, r1
+       … 3 more like this (steps 9–11)
+  12  ★ the from map 1 goes to reduce 0 too: the same word always gives the same hash.   ‹shuffle.again›
+        why       The hash looks only at the word's letters, so every copy meets on one counter,
+                  whichever reader sent it.
+        look      m1.s1.w2, r0
+  13  lazy from map 1 goes to reduce 1 because `hash(lazy) % 2 = 1`.   ‹shuffle.send›
+        look      m1.s1.w3, r1
+  14  dog from map 2 goes to reduce 1 because `hash(dog) % 2 = 1`.   ‹shuffle.send›
+        look      m2.s2.w0, r1
+       … 2 more like this (steps 15–16)
+
+   ▸ Chapter 4 of 5 · Reduce
+     about     Each counting machine, a reducer, sorts its slips so equal words sit together, then
+               adds up each group into one total. [reducer: A machine running reduce: it adds up all
+               the slips for its share of the words.]
+     so far    All the slips for any one word sit on the same counting machine.
+     now       Each counter adds up its own words.
+     done when Each counter holds one total per word it was sent.
+  17  ★ reduce 0 sorts its 7 slips so equal words sit together.   ‹reduce.sort›
+        why       Sorted, each word's slips sit together, so one pass adds them up, even when they
+                  don't fit in memory.
+        look      r0
+        picture   the person adding them up = a counting machine (a reducer)
+        · how     A dictionary works only while every slip fits in memory. A real reducer sorts by
+                  key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here
+                  each beat swaps two slips.
+        · code    `reduce(word, counts)` (lines 11–12)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  18  ★ reduce 0 adds up each group: fox = 2 and the = 3.   ‹reduce.sum›
+        why       The hash sent every copy of these words here and nowhere else, so each total is
+                  the full count. The rest stay at 1: jumps and quick.
+        look      m0.s0.w3, m1.s1.w2
+  19  reduce 1 sorts its 4 slips so equal words sit together.   ‹reduce.sort›
+        look      r1
+  20  reduce 1 has no repeated words, so each slip's count is already its total.   ‹reduce.single›
+        look      r1
+
+   ▸ Chapter 5 of 5 · Output
+     about     Each counter posts its totals to the shared output, like a list on a noticeboard.
+               Together they hold exactly one count for every different word.
+     so far    Each counter holds one total per word it was sent.
+     now       Post every total to the shared output.
+     done when The output holds one count for each of the 8 different words.
+  21  reduce 0 writes its 4 totals to the output.   ‹output.write›
+        why       The output is a folder with one file per counter; this one is part-r-00000, so
+                  counters never share a file.
+        look      output
+        picture   the noticeboard = the output: a folder with one file per counting machine
+        · how     Reduce output goes to the shared file system, so a finished reduce never runs
+                  again, even if its machine dies later. If one reduce task does run twice (a backup
+                  or a re-run), each copy writes a private temporary file, then atomically renames
+                  it to the final name: exactly one copy's file survives (§3.3).
+        · edge    The name part-r-00000 is Hadoop's convention; the paper doesn't name its output
+                  files.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  22  reduce 1 writes its 4 totals to the output.   ‹output.write›
+        look      output
+  23  ★ Done: all 11 words counted, 8 different ones, and no machine read the whole text.   ‹output.done›
+        why       Every count is exact because every copy of a word met on one counter; the what-ifs
+                  test that with a crash, a slow disk and a common word.
+        look      output
+        · cost    The reading took as long as the biggest piece (4 words), not all 11. The price:
+                  every slip crossed the network once, 85 bytes here.
+        · real    Google ran this on thousands of machines: M = 200,000 map tasks and R = 5,000
+                  reduce tasks on 2,000 machines is a typical job in the paper (§3.5).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  24  ★ The same job at the paper's scale: 200,000 map tasks, 5,000 reduce tasks, 2,000 machines.
+      Shown simplified.   ‹scale.cluster›
+        why       These are the numbers from Google's 2004 MapReduce paper: each machine runs many
+                  tasks in turn, and every copy of a word still meets on one counter.
+        look      output
+        · real    The paper often ran jobs with M = 200,000 and R = 5,000 on 2,000 worker machines
+                  (§3.5). With far more tasks than machines, each machine runs many small tasks:
+                  that balances the load, and when a machine dies its finished map tasks spread over
+                  all the others (§3.5).
+        · how     This view is a simplified picture, not a simulation: the field has the paper's
+                  machine count, built from silhouettes of this run's 5 machines, and each light
+                  only shows a machine as busy or between tasks. The counts above come from the run
+                  on this page.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   RECAP
+     1. The text was cut into pieces, and each machine read one.
+     2. Each reader wrote a slip for every word, like (fox, 1).
+     3. A hash sent every copy of a word to the same counting machine.
+     4. Each counter added up its words; together they hold every count.
+   TAKEAWAY  Every count is exact because every copy of a word met on one counter. The what-ifs test
+             it with a crash, a slow disk and one very common word.
+
+━━ Story 2 of 4 · One machine crashes  (crash)  27 steps, 142 s at 1x
+   what if   What if… a machine crashes halfway through
+   story     One reading machine crashes halfway through its piece, and the master has that piece
+             read again.
+   (steps 0–1 repeat story 1 and are skipped here; --full shows them)
+
+   ▸ Chapter 2 of 5 · Map
+     about     Each reading machine, a mapper, writes slips like `(word, 1)` to its own disk until
+               the counters fetch them. If it crashes first, they die with it, so its piece is read
+               again, even if it had finished.
+     so far    The text is in 3 pieces, one per machine.
+     now       Each machine turns its piece into slips, and one of them crashes.
+     done when Every word still ends up as exactly one slip that counts.
+   2  Each machine gets its piece from the shared input; all 3 start at once.   ‹map.handout›
+        look      m0, m1, m2
+   3  ★ map 0 writes a slip for each of its 4 words, like `(the, 1)`.   ‹map.read›
+        why       That is all map does: label each word with a 1. The adding comes later, so nobody
+                  waits.
+        look      m0
+        picture   a tally slip “fox: 1” = a record `(fox, 1)`: the word, and the number 1
+        · how     A real mapper buffers its slips, then writes them to its own local disk, divided
+                  into one file per counting machine (2 here). It tells the master where they are
+                  (§3.1).
+        · code    `emit(word, 1)` (lines 1–3)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   4  map 1 starts on its piece, writing a slip for each word.   ‹crash.start›
+        look      m1
+   5  ★ map 1 crashes after 2 of 4 words; its 2 slips are lost with it.   ‹crash.down›
+        why       Its slips were on its own disk, so they died with it: the grey slips marked “lost”
+                  no longer count.
+        look      m1
+        · how     The master pings every worker. One that stops answering is marked failed, and its
+                  tasks are handed out again. Counters that haven't yet fetched its files are told
+                  to fetch from the re-run instead (§3.3).
+        · edge    Even finished map tasks on a dead machine run again, because their slips were on
+                  its local disk. Finished reduce tasks don't: their output is already in the shared
+                  file system (§3.3).
+        · real    The master itself has no such cover: in the paper, if the master dies the whole
+                  job is aborted and the client retries it (§3.3).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   6  map 2 writes a slip for each of its 3 words, like `(dog, 1)`.   ‹map.read›
+        look      m2
+     PREDICT  map 1 crashed after 2 of its 4 words. What happens to its piece?
+              A) The count comes out 2 words short
+                 → Only if nobody read the piece again. Its text is still in the shared input, so
+                   the master hands it out once more. [m-lost]
+              B) The master has the piece read again   ✓
+                 → Right. Reading the same piece again gives the same slips, so redoing just that
+                   one piece is safe.
+              C) The whole job starts over
+                 → Nothing else was lost: the other machines still hold their slips. Only the dead
+                   machine's piece runs again. [m-restart]
+              why: The text is still in the shared input, and reading it again gives the same slips,
+                   so redoing just that piece is safe.
+   7  ★ map 0 is free, so the master hands it split 1: the text is still in the input.   ‹crash.rerun›
+        why       The input is stored apart from the machines that read it, so a crash loses work,
+                  never text.
+        look      split1, m0
+        · real    Real input lives in GFS, which keeps several copies of every 64 MB block (usually
+                  3) on different machines, so a surviving copy is almost always there to read
+                  (§3.4).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   8  map 0 reads split 1 again and writes the same 4 slips.   ‹crash.reread›
+        why       Map uses nothing but the text, so the same piece gives the same slips: the counts
+                  stay exact.
+        look      m0
+        · edge    This needs a deterministic map. If map used randomness or the clock, a re-run
+                  could write different slips, and the paper then promises only weaker guarantees
+                  (§3.3).
+        · how     A map task's slips count only once its machine reports “done” to the master with
+                  the names of its files. The crashed copy never reports, so its half-written slips
+                  are never handed to a counter. If two copies both report, the master ignores the
+                  second (§3.3).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   ▸ Chapter 3 of 5 · Shuffle
+     about     In the shuffle, every slip for one word must reach the same counting machine. A hash
+               turns the word into a number. Divide it by the number of counters: the remainder,
+               from 0 up to one less, names the counter.
+     so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+     now       Send each slip to one of the 2 counting machines.
+     done when All the slips for any one word sit on the same counting machine.
+   9  ★ the goes to reduce 0: its hash, 3 020 861 980, divided by 2 leaves remainder 0.   ‹shuffle.first›
+        why       Taking turns would scatter one word's slips over several counters, and counters
+                  never compare notes, so none would hold the full count.
+        look      m0.s0.w0, r0
+        picture   “all slips for one word go to one person” = a fixed rule on the word's letters (a
+                  hash) that picks one counting machine
+        · how     Each mapper has already divided its slips into 2 files, one per counter, and each
+                  counter fetches its file from every mapper. The fetching starts early: the master
+                  passes on each finished map's file locations as they come (§3.2). Only the sort
+                  and the adding wait for the last map, which might still hold a slip they need.
+        · cost    In this model 85 bytes cross the network: each slip's word plus a 4-byte count
+                  (real formats add length headers, and a reader on the counter's own machine sends
+                  nothing). In a cluster, network bandwidth is the scarce resource (§3.4).
+        · edge    Python's own hash() of a string changes from process to process (hash
+                  randomization) unless PYTHONHASHSEED is fixed, and can differ between Python
+                  versions, so two machines could disagree. Real jobs use a specified hash; this run
+                  uses FNV-1a.
+        · code    `hash(word) % R` (lines 8–9)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  10  quick from map 0 goes to reduce 0 because `hash(quick) % 2 = 0`.   ‹shuffle.send›
+        why       One counter takes many different words; it keeps each word's count apart.
+        look      m0.s0.w1, r0
+  11  brown from map 0 goes to reduce 1 because `hash(brown) % 2 = 1`.   ‹shuffle.send›
+        look      m0.s0.w2, r1
+       … 3 more like this (steps 12–14)
+  15  ★ the from map 0 goes to reduce 0 too: the same word always gives the same hash.   ‹shuffle.again›
+        why       The hash looks only at the word's letters, so every copy meets on one counter,
+                  whichever reader sent it.
+        look      m0.s1.w2, r0
+  16  lazy from map 0 goes to reduce 1 because `hash(lazy) % 2 = 1`.   ‹shuffle.send›
+        look      m0.s1.w3, r1
+  17  dog from map 2 goes to reduce 1 because `hash(dog) % 2 = 1`.   ‹shuffle.send›
+        look      m2.s2.w0, r1
+       … 2 more like this (steps 18–19)
+
+   ▸ Chapter 4 of 5 · Reduce
+     about     Each counting machine, a reducer, sorts its slips so equal words sit together, then
+               adds up each group into one total.
+     so far    All the slips for any one word sit on the same counting machine.
+     now       Each counter adds up its own words.
+     done when Each counter holds one total per word it was sent.
+  20  ★ reduce 0 sorts its 7 slips so equal words sit together.   ‹reduce.sort›
+        why       Sorted, each word's slips sit together, so one pass adds them up, even when they
+                  don't fit in memory.
+        look      r0
+        picture   the person adding them up = a counting machine (a reducer)
+        · how     A dictionary works only while every slip fits in memory. A real reducer sorts by
+                  key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here
+                  each beat swaps two slips.
+        · code    `reduce(word, counts)` (lines 11–12)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  21  ★ reduce 0 adds up each group: fox = 2 and the = 3.   ‹reduce.sum›
+        why       The hash sent every copy of these words here and nowhere else, so each total is
+                  the full count. The rest stay at 1: jumps and quick.
+        look      m0.s0.w3, m0.s1.w2
+  22  reduce 1 sorts its 4 slips so equal words sit together.   ‹reduce.sort›
+        look      r1
+  23  reduce 1 has no repeated words, so each slip's count is already its total.   ‹reduce.single›
+        look      r1
+
+   ▸ Chapter 5 of 5 · Output
+     about     Each counter posts its totals to the shared output, like a list on a noticeboard.
+               Together they hold exactly one count for every different word.
+     so far    Each counter holds one total per word it was sent.
+     now       Post every total to the shared output.
+     done when The output holds one count for each of the 8 different words.
+  24  reduce 0 writes its 4 totals to the output.   ‹output.write›
+        why       The output is a folder with one file per counter; this one is part-r-00000, so
+                  counters never share a file.
+        look      output
+        picture   the noticeboard = the output: a folder with one file per counting machine
+        · how     Reduce output goes to the shared file system, so a finished reduce never runs
+                  again, even if its machine dies later. If one reduce task does run twice (a backup
+                  or a re-run), each copy writes a private temporary file, then atomically renames
+                  it to the final name: exactly one copy's file survives (§3.3).
+        · edge    The name part-r-00000 is Hadoop's convention; the paper doesn't name its output
+                  files.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  25  reduce 1 writes its 4 totals to the output.   ‹output.write›
+        look      output
+  26  ★ Done: all 11 words counted exactly once, despite the crash.   ‹output.done›
+        why       The lost piece was read again from the input, and the dead copy's slips never
+                  reached a counter.
+        look      output
+        · cost    Redoing the lost piece cost time: map 0 read 8 words back to back (its own 4, then
+                  split 1's 4), twice the biggest piece. In all 13 words were read, not 11: the dead
+                  machine's 2 were wasted.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   RECAP
+     1. A reading machine crashed halfway, and its slips were lost with it.
+     2. The text was still in the shared input, so the master had that piece read again.
+     3. Reading the same piece again gives the same slips: the counts are still exact.
+   TAKEAWAY  A machine died mid-task and the answer did not change: its piece was still in the
+             shared input, so the master had it read again.
+
+━━ Story 3 of 4 · One machine is slow  (straggler)  27 steps, 144 s at 1x
+   what if   What if… one machine is much slower than the rest
+   story     One reading machine has a failing disk, so the master races a backup copy of its piece
+             on a free machine.
+   (steps 0–1 repeat story 1 and are skipped here; --full shows them)
+
+   ▸ Chapter 2 of 5 · Map
+     about     Each reading machine, a mapper, writes a slip for every word. One has a failing disk,
+               a straggler, and the job waits for it unless the master runs a backup copy of its
+               piece. [straggler: A machine much slower than the rest, so everyone ends up waiting
+               for it.]
+     so far    The text is in 3 pieces, one per machine.
+     now       Each machine turns its piece into slips, but one has a failing disk.
+     done when Every word has exactly one slip that counts, even the slow piece's.
+   2  Each machine gets its piece from the shared input; all 3 start at once.   ‹map.handout›
+        look      m0, m1, m2
+   3  ★ map 0 writes a slip for each of its 4 words, like `(the, 1)`.   ‹map.read›
+        why       That is all map does: label each word with a 1. The adding comes later, so nobody
+                  waits.
+        look      m0
+        picture   a tally slip “fox: 1” = a record `(fox, 1)`: the word, and the number 1
+        · how     A real mapper buffers its slips, then writes them to its own local disk, divided
+                  into one file per counting machine (2 here). It tells the master where they are
+                  (§3.1).
+        · code    `emit(word, 1)` (lines 1–3)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   4  ★ map 1's failing disk keeps retrying reads: it has written 1 of 4 slips.   ‹slow.disk›
+        why       Counting can't finish until every piece has been read, so one slow machine holds
+                  up the whole job.
+        look      m1
+        · real    The paper's example: a bad disk with frequent correctable errors slows reads from
+                  30 MB/s to 1 MB/s (§3.6).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   5  map 2 writes a slip for each of its 3 words, like `(dog, 1)`.   ‹map.read›
+        look      m2
+     PREDICT  map 1 has written 1 of its 4 slips, and the other machines are done. What does the
+              master do?
+              A) Wait: the job cannot finish without its piece
+                 → Waiting works, but then the whole job takes as long as the slowest disk. A free
+                   machine could read the same piece. [m-wait]
+              B) Start a copy of its piece on a free machine   ✓
+                 → Right. Reading a piece twice gives the same slips, so a backup is safe, and the
+                   first copy to finish wins.
+              C) Skip its words to finish on time
+                 → Then those words would never be counted, and the answer would be wrong. Speed
+                   never buys a wrong count here. [m-skip]
+              why: Reading a piece twice gives the same slips, so a backup copy is safe, and the
+                   master keeps whichever finishes first.
+   6  ★ map 0 is free, so the master starts a backup copy of split 1 on it.   ‹slow.backup›
+        why       Two copies of one piece write the same slips, so whichever finishes first can be
+                  kept.
+        look      m0, split1
+        · how     The master starts backups only when the job is close to done, for the tasks still
+                  running. That costs only a few percent more machine time (§3.6).
+        · cost    In the paper's sort benchmark, turning backups off made the job take 44% longer
+                  (§3.6).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   7  Both copies run: the backup writes its 4 slips while map 1 manages 1 more.   ‹slow.race›
+        look      m0, m1
+   8  The backup finishes first: the master keeps its slips and stops map 1, 2 of 4 words unread.   ‹slow.win›
+        why       If both copies counted, every word of split 1 would be counted twice, so the slow
+                  copy's slips are thrown away.
+        look      m1
+        · edge    The paper only says the task is marked done when either copy finishes; stopping
+                  the slower copy, as here, is what Hadoop does. The paper also starts backups when
+                  the whole job is nearly done, where this run starts one at the end of the map
+                  phase, like Hadoop's per-phase speculative execution (§3.6).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   ▸ Chapter 3 of 5 · Shuffle
+     about     In the shuffle, every slip for one word must reach the same counting machine. A hash
+               turns the word into a number. Divide it by the number of counters: the remainder,
+               from 0 up to one less, names the counter.
+     so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+     now       Send each slip to one of the 2 counting machines.
+     done when All the slips for any one word sit on the same counting machine.
+   9  ★ the goes to reduce 0: its hash, 3 020 861 980, divided by 2 leaves remainder 0.   ‹shuffle.first›
+        why       Taking turns would scatter one word's slips over several counters, and counters
+                  never compare notes, so none would hold the full count.
+        look      m0.s0.w0, r0
+        picture   “all slips for one word go to one person” = a fixed rule on the word's letters (a
+                  hash) that picks one counting machine
+        · how     Each mapper has already divided its slips into 2 files, one per counter, and each
+                  counter fetches its file from every mapper. The fetching starts early: the master
+                  passes on each finished map's file locations as they come (§3.2). Only the sort
+                  and the adding wait for the last map, which might still hold a slip they need.
+        · cost    In this model 85 bytes cross the network: each slip's word plus a 4-byte count
+                  (real formats add length headers, and a reader on the counter's own machine sends
+                  nothing). In a cluster, network bandwidth is the scarce resource (§3.4).
+        · edge    Python's own hash() of a string changes from process to process (hash
+                  randomization) unless PYTHONHASHSEED is fixed, and can differ between Python
+                  versions, so two machines could disagree. Real jobs use a specified hash; this run
+                  uses FNV-1a.
+        · code    `hash(word) % R` (lines 8–9)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  10  quick from map 0 goes to reduce 0 because `hash(quick) % 2 = 0`.   ‹shuffle.send›
+        why       One counter takes many different words; it keeps each word's count apart.
+        look      m0.s0.w1, r0
+  11  brown from map 0 goes to reduce 1 because `hash(brown) % 2 = 1`.   ‹shuffle.send›
+        look      m0.s0.w2, r1
+       … 3 more like this (steps 12–14)
+  15  ★ the from map 0 goes to reduce 0 too: the same word always gives the same hash.   ‹shuffle.again›
+        why       The hash looks only at the word's letters, so every copy meets on one counter,
+                  whichever reader sent it.
+        look      m0.s1.w2b, r0
+  16  lazy from map 0 goes to reduce 1 because `hash(lazy) % 2 = 1`.   ‹shuffle.send›
+        look      m0.s1.w3b, r1
+  17  dog from map 2 goes to reduce 1 because `hash(dog) % 2 = 1`.   ‹shuffle.send›
+        look      m2.s2.w0, r1
+       … 2 more like this (steps 18–19)
+
+   ▸ Chapter 4 of 5 · Reduce
+     about     Each counting machine, a reducer, sorts its slips so equal words sit together, then
+               adds up each group into one total.
+     so far    All the slips for any one word sit on the same counting machine.
+     now       Each counter adds up its own words.
+     done when Each counter holds one total per word it was sent.
+  20  ★ reduce 0 sorts its 7 slips so equal words sit together.   ‹reduce.sort›
+        why       Sorted, each word's slips sit together, so one pass adds them up, even when they
+                  don't fit in memory.
+        look      r0
+        picture   the person adding them up = a counting machine (a reducer)
+        · how     A dictionary works only while every slip fits in memory. A real reducer sorts by
+                  key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here
+                  each beat swaps two slips.
+        · code    `reduce(word, counts)` (lines 11–12)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  21  ★ reduce 0 adds up each group: fox = 2 and the = 3.   ‹reduce.sum›
+        why       The hash sent every copy of these words here and nowhere else, so each total is
+                  the full count. The rest stay at 1: jumps and quick.
+        look      m0.s0.w3, m0.s1.w2b
+  22  reduce 1 sorts its 4 slips so equal words sit together.   ‹reduce.sort›
+        look      r1
+  23  reduce 1 has no repeated words, so each slip's count is already its total.   ‹reduce.single›
+        look      r1
+
+   ▸ Chapter 5 of 5 · Output
+     about     Each counter posts its totals to the shared output, like a list on a noticeboard.
+               Together they hold exactly one count for every different word.
+     so far    Each counter holds one total per word it was sent.
+     now       Post every total to the shared output.
+     done when The output holds one count for each of the 8 different words.
+  24  reduce 0 writes its 4 totals to the output.   ‹output.write›
+        why       The output is a folder with one file per counter; this one is part-r-00000, so
+                  counters never share a file.
+        look      output
+        picture   the noticeboard = the output: a folder with one file per counting machine
+        · how     Reduce output goes to the shared file system, so a finished reduce never runs
+                  again, even if its machine dies later. If one reduce task does run twice (a backup
+                  or a re-run), each copy writes a private temporary file, then atomically renames
+                  it to the final name: exactly one copy's file survives (§3.3).
+        · edge    The name part-r-00000 is Hadoop's convention; the paper doesn't name its output
+                  files.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  25  reduce 1 writes its 4 totals to the output.   ‹output.write›
+        look      output
+  26  ★ Done: all 11 words counted exactly once, despite the slow disk.   ‹output.done›
+        why       The backup's slips counted and the slow copy's were thrown away, so no word was
+                  counted twice.
+        look      output
+        · cost    The backup cost map 0 a second piece: 8 words back to back (its own 4, then split
+                  1's 4), but that beat waiting for the failing disk. In all 13 words were read, not
+                  11: map 1's 2 were thrown away.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   RECAP
+     1. One reading machine had a failing disk and fell far behind.
+     2. With a machine free, the master started a backup copy of its piece.
+     3. The first copy to finish wins and the other is stopped: same answer, less waiting.
+   TAKEAWAY  One slow disk could have held up the whole job. A backup copy of its piece finished
+             first, and the answer is the same.
+
+━━ Story 4 of 4 · One word is very common  (skew)  29 steps, 165 s at 1x
+   what if   What if… one word is far more common than the rest
+   story     A web log where almost every line is the status code 200, so one counting machine gets
+             most of the work.
+
+   ▸ Chapter 1 of 5 · Split
+     about     The same counting job on a web log. Each line is one website request, and its status
+               code is a number saying how it went (200 OK, 404 not found). The master gives each
+               machine one split of the log.
+     so far    On one machine, a loop and a dictionary count things: each code maps to its count so
+               far.
+     now       Cut the log into pieces, one per machine.
+     done when Every line sits in exactly one piece.
+     card      shows the picture map (a library counted by a team)
+   0  ★ Count each status code in a web log of 14 requests.   ‹split.problem›
+        why       It is the same job as counting words, with codes for words: shared by 3 machines,
+                  none reads more than 5.
+        look      input
+        · cost    Alone: 14 reads, one after another. Shared 3 ways, the reading takes as long as
+                  the biggest piece: 5 reads.
+        · real    The paper cuts real input into pieces of 16 to 64 MB, and a typical job runs M =
+                  200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1,
+                  §3.5).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   1  ★ The master cuts the log into 3 pieces of about 5 lines, one per machine.   ‹split.cut›
+        why       The pieces are split 0 “200 200 404 200 200”, split 1 “301 200 200 500 200” and
+                  split 2 “200 200 304 200”. Each can be read without the others, so all 3 machines
+                  start at once.
+        look      split0, split1, split2
+        picture   one shelf of books = one piece of the text (a split)
+        · how     Each record (here, a word or a line) is read by exactly one machine. The paper's
+                  text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes and has each
+                  reader finish the line that crosses its edge. The master prefers to run each piece
+                  on a machine that already stores a copy of it, so most input is read from local
+                  disk, not over the network (§3.4).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   ▸ Chapter 2 of 5 · Map
+     about     Each reading machine, a mapper, writes a slip like `(code, 1)` for every line of its
+               piece. Nobody waits for anybody.
+     so far    The log is in 3 pieces, one per machine.
+     now       Each machine turns its piece into slips, one per line.
+     done when Every line of the log is a `(code, 1)` slip on some machine.
+   2  Each machine gets its piece from the shared input; all 3 start at once.   ‹map.handout›
+        look      m0, m1, m2
+   3  ★ map 0 writes a slip for each of its 5 lines, like `(200, 1)`.   ‹map.read›
+        why       Map labels each line with a 1, even repeats: every `(200, 1)` travels alone unless
+                  its reader adds them up first.
+        look      m0
+        picture   a tally slip “fox: 1” = a record `(fox, 1)`: the word, and the number 1
+        · how     A real mapper buffers its slips, then writes them to its own local disk, divided
+                  into one file per counting machine (3 here). It tells the master where they are
+                  (§3.1).
+        · code    `emit(word, 1)` (lines 1–3)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+   4  map 1 writes a slip for each of its 5 lines, like `(301, 1)`.   ‹map.read›
+        look      m1
+       … 1 more like this (steps 5–5)
+
+   ▸ Chapter 3 of 5 · Shuffle
+     about     In the shuffle, each slip goes to the counting machine its hash picks. 200 fills 10
+               of the 14 lines, so one machine receives every one of those slips.
+     so far    Every line is a `(code, 1)` slip, spread over the reading machines.
+     now       Send each slip to one of the 3 counting machines.
+     done when All the slips for any one code sit on the same counting machine.
+   6  ★ 200 goes to reduce 0: its hash, 3 286 718 301, divided by 3 leaves remainder 0.   ‹shuffle.first›
+        why       Taking turns would scatter one code's slips over several counters, and counters
+                  never compare notes, so none would hold the full count.
+        look      m0.s0.w0, r0
+        picture   “all slips for one word go to one person” = a fixed rule on the word's letters (a
+                  hash) that picks one counting machine
+        · how     Each mapper has already divided its slips into 3 files, one per counter, and each
+                  counter fetches its file from every mapper. The fetching starts early: the master
+                  passes on each finished map's file locations as they come (§3.2). Only the sort
+                  and the adding wait for the last map, which might still hold a slip they need.
+        · cost    In this model 98 bytes cross the network: each slip's word plus a 4-byte count
+                  (real formats add length headers, and a reader on the counter's own machine sends
+                  nothing). In a cluster, network bandwidth is the scarce resource (§3.4).
+        · edge    Python's own hash() of a string changes from process to process (hash
+                  randomization) unless PYTHONHASHSEED is fixed, and can differ between Python
+                  versions, so two machines could disagree. Real jobs use a specified hash; this run
+                  uses FNV-1a.
+        · code    `hash(word) % R` (lines 8–9)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+     PREDICT  The first "200" went to reduce 0. Where does this "200", from map 0, go?
+              A) Reduce 1: spread the slips evenly
+                 → Even spreading would split 200's slips between reduce 0 and reduce 1, and neither
+                   could give its full count. [m-even]
+              B) Reduce 0, to join the first "200"   ✓
+                 → Right. 200 always hashes to the same number, so every copy of it lands on reduce
+                   0.
+              C) Nowhere yet: one machine counts everything at the end
+                 → Then one machine would add up every slip, the very work we shared out. Here each
+                   counter adds up only its own share. [m-central]
+              why: hash(200) is the same number every time, so its remainder is 0 every time: every
+                   "200" meets on reduce 0.
+   7  ★ 200 from map 0 goes to reduce 0 too: the same code always gives the same hash.   ‹shuffle.again›
+        why       The hash looks only at the code's characters, so every copy meets on one counter,
+                  whichever reader sent it.
+        look      m0.s0.w1, r0
+   8  404 goes to reduce 0 (`hash(404) % 3 = 0`); reduce 0 now holds 3 of the 3 sent.   ‹shuffle.send›
+        why       One counter takes many different codes; it keeps each code's count apart.
+        look      m0.s0.w2, r0
+   9  200 goes to reduce 0 (`hash(200) % 3 = 0`); reduce 0 now holds 4 of the 4 sent.   ‹shuffle.send›
+        look      m0.s0.w3, r0
+       … 10 more like this (steps 10–19)
+
+   ▸ Chapter 4 of 5 · Reduce
+     about     Each counting machine, a reducer, sorts its slips so equal codes sit together, then
+               adds up each group into one total.
+     so far    All the slips for any one code sit on the same counting machine.
+     now       Each counter adds up its own codes.
+     done when Each counter holds one total per code it was sent.
+  20  ★ reduce 0 sorts its 12 slips so equal codes sit together.   ‹reduce.sort›
+        why       Sorted, each code's slips sit together, so one pass adds them up, even when they
+                  don't fit in memory.
+        look      r0
+        picture   the person adding them up = a counting machine (a reducer)
+        · how     A dictionary works only while every slip fits in memory. A real reducer sorts by
+                  key instead, on disk when the slips don't fit, then adds in one pass (§3.1). Here
+                  each beat swaps two slips.
+        · code    `reduce(word, counts)` (lines 11–12)
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  21  ★ reduce 0 adds up each group: 200 = 10.   ‹reduce.sum›
+        why       The hash sent every copy of these codes here and nowhere else, so each total is
+                  the full count. The rest stay at 1: 301 and 404.
+        look      m0.s0.w0
+  22  reduce 1 got no slips and finishes empty.   ‹reduce.empty›
+        why       No code in this log hashes to it.
+        look      r1
+  23  reduce 2 sorts its 2 slips so equal codes sit together.   ‹reduce.sort›
+        look      r2
+  24  reduce 2 has no repeated codes, so each slip's count is already its total.   ‹reduce.single›
+        look      r2
+
+   ▸ Chapter 5 of 5 · Output
+     about     Each counter posts its totals to the shared output, like a list on a noticeboard.
+               Together they hold exactly one count for every different status code.
+     so far    Each counter holds one total per code it was sent.
+     now       Post every total to the shared output.
+     done when The output holds one count for each of the 5 different codes.
+  25  reduce 0 writes its 3 totals to the output.   ‹output.write›
+        why       The output is a folder with one file per counter; this one is part-r-00000, so
+                  counters never share a file.
+        look      output
+        picture   the noticeboard = the output: a folder with one file per counting machine
+        · how     Reduce output goes to the shared file system, so a finished reduce never runs
+                  again, even if its machine dies later. If one reduce task does run twice (a backup
+                  or a re-run), each copy writes a private temporary file, then atomically renames
+                  it to the final name: exactly one copy's file survives (§3.3).
+        · edge    The name part-r-00000 is Hadoop's convention; the paper doesn't name its output
+                  files.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  26  reduce 2 writes its 2 totals to the output.   ‹output.write›
+        look      output
+  27  ★ Done. reduce 0 got 12 of 14 slips, 2.6× a fair share (14 ÷ 3 counters).   ‹skew.done›
+        why       200 fills 10 of the 14 lines, and every raw 200 slip must meet on one counter;
+                  other codes can hash there too.
+        look      r0
+        · real    Real data is like this: word frequencies follow Zipf's law, so a few keys, like
+                  “the”, carry much of the data (§4.3).
+        · edge    With few different keys, the hash alone can lump several on one counter and leave
+                  another idle, so part of the overload is chance, not frequency. A hot key's work
+                  can still move: adding up repeats on each reader first (a combiner) does most of
+                  its adding there, and “salting” splits it over several counters by adding a random
+                  suffix, then sums the parts in a second pass.
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+  28  ★ If each reader sent one slip per different code, 7 slips would travel, 5 to reduce 0.   ‹skew.combine›
+        why       Each slip would carry its code's count instead of a 1, so the busy counter's load
+                  falls and counts stay exact.
+        look      r0
+        · how     Turn on “Add up repeats first” to watch each reader do it. The paper calls this a
+                  combiner. It is safe only because adding is commutative and associative: order and
+                  grouping don't change a sum. An average can't be combined naively (§4.3).
+        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
+                  OSDI 2004, https://research.google/pubs/pub62/
+
+   RECAP
+     1. Almost every line of the log was the code 200.
+     2. The hash sent every 200 to the same counting machine.
+     3. So one machine did most of the adding while the others sat idle.
+   TAKEAWAY  Every copy of a word goes to one counter: counts stay exact, but a very common word
+             loads that machine. Adding up repeats on each reader first shrinks the load.
+
+teaching checks  examples/mapreduce/figure.mjs
+  warn   terms: meta.terms["combiner"] is never used: mark its first use with {term:combiner}
+  info   level core, 5 chapters, 3 questions, 8 defined words, 2128 words, reading grade 6
