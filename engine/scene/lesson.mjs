@@ -67,6 +67,7 @@ export function mergeLesson(script, lesson, { scenario = null, meta = {} } = {})
     const text = (tpl, where) => {
       const r = fill(tpl, vars);
       for (const name of r.missing) problem(`${where} uses {${name}}, which the figure does not pass`);
+      for (const name of r.marked) problem(`${where} uses {${name}}, a string of caption markup that prints as its letters: pass { key }, { ref } or { markup }`);
       return r.text;
     };
     const end = st.beats[st.beats.length - 1].state;
@@ -97,6 +98,7 @@ export function mergeLesson(script, lesson, { scenario = null, meta = {} } = {})
     const text = (tpl, where) => {
       const r = fill(tpl, c.vars ?? {});
       for (const name of r.missing) problem(`${where} uses {${name}}, which the figure does not pass`);
+      for (const name of r.marked) problem(`${where} uses {${name}}, a string of caption markup that prints as its letters: pass { key }, { ref } or { markup }`);
       return r.text;
     };
     return askOf(c, e, { text, problem, beliefs });
