@@ -429,7 +429,7 @@ check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, g
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
 Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
-drafts (CONTRACTS.md 3.1): half the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
+drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
 comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
 never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
 
@@ -529,8 +529,9 @@ back).
 - Live play is bound by frame time. On a 4-core machine with no GPU and other jobs running, `shoot --scenario all
   --teach` over MapReduce took 57 min (160 phase shots in about 12 min, 80 teaching cards in about 44 min); on a page
   that draws at 20 fps or better the pass keeps its old speeds and waits. Drafts (Rendering backends) raised live
-  MapReduce on that machine (SwiftShader, WebGL2) from 0.9 to 4.5 frames a second at 1440x900 and from 2.2 to 12.3 at
-  390x844; a full frame still takes about 1.5 s at 1440x900, and the closing scale shot (6008 slabs) about 10 s.
+  MapReduce on that machine (SwiftShader, WebGL2) from 0.9 to 2.2 frames a second at 1440x900 and from 2.2 to 7.0 at
+  390x844 (half the pixel ratio gave 4.2 and 11.3, but the world's names could not be read while it played); a full
+  frame still takes about 1.5 s at 1440x900, and the closing scale shot (6008 slabs) about 10 s.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the
