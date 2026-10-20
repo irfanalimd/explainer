@@ -1,11 +1,13 @@
 // Getting a WebGPU device we can trust: an adapter and device within a time limit, then a startup self-test
 // that draws a known colour off screen and reads it back. Any failure rejects, and select.mjs falls back to
 // WebGL2. Browser-only.
+import { SOFTWARE } from "../../look.mjs";
+
 const TIMEOUT_MS = 3000;
 
 const within = (p, what) => Promise.race([p, new Promise((_, fail) => setTimeout(() => fail(new Error(`${what} timed out`)), TIMEOUT_MS))]);
 
-/** Resolves to { device, timestamps } or rejects with the reason WebGPU should not be used here. */
+/** Resolves to { device, timestamps, software } or rejects with the reason WebGPU should not be used here. */
 export async function openDevice() {
   if (!globalThis.navigator?.gpu) throw new Error("navigator.gpu is missing");
   const adapter = await within(navigator.gpu.requestAdapter({ powerPreference: "high-performance" }), "requestAdapter");
@@ -19,7 +21,10 @@ export async function openDevice() {
     device.destroy();
     throw err;
   }
-  return { device, timestamps };
+  // a software adapter (SwiftShader and the like): live frames in motion draw as drafts (look.mjs DRAFT)
+  const info = adapter.info ?? {};
+  const software = !!(info.isFallbackAdapter || adapter.isFallbackAdapter) || SOFTWARE.test(`${info.vendor} ${info.architecture} ${info.device} ${info.description}`);
+  return { device, timestamps, software };
 }
 
 const PROBE = [0.25, 0.5, 0.75, 1];

@@ -428,6 +428,11 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
+Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
+drafts (CONTRACTS.md 3.1): half the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
+comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
+never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
+
 ## Director (`engine/director/director.mjs`, `engine/director/shots.mjs`)
 
 ```js
