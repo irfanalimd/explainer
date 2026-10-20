@@ -15,7 +15,7 @@ const STATUS = new Set(["ok", "busy", "warn", "fail", "idle", "ghost", "neutral"
 
 export function createSampler(tl) {
   const X = tl._;
-  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, steps, beatStates, laneGeo } = X;
+  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, steps, beatStates, laneGeo, markLevel } = X;
   const n = incs.length;
   const stamp = new Float64Array(n).fill(NaN);
   const kin = incs.map(() => ({ x: 0, y: 0, z: 0, w: 0, d: 0, h: 0, opacity: 1, scale: 1, pitch: 0, bank: 0, yaw: 0, s: -1, zl: 0, ok: false, seg: null }));
@@ -193,7 +193,7 @@ export function createSampler(tl) {
         }
         case "pointer": pose.text = rec.text; pose.h = SIZE.pointer.h; pose.w = SIZE.pointer.flag; pose.d = SIZE.pointer.flag; break;
         case "text": pose.text = rec.text; pose.size = rec.size; pose.align = rec.align; pose.h = 0; pose.variant = "floor"; break;
-        case "mark": pose.text = rec.text; pose.t = rec.t; pose.w = 7; pose.d = 7; pose.h = 3; break;
+        case "mark": pose.text = rec.text; pose.t = rec.t; pose.level = markLevel?.get(rec.id) ?? 0; pose.w = 7; pose.d = 7; pose.h = 3; break;
         case "lanes": {
           emitLanes(inc, rec, k, t, lanePoses);
           continue;

@@ -140,7 +140,9 @@ export const SIZE = {
 
   trace:   { w: 2.2, bus: 3.6, corner: 16, portGap: 6 },
   packet:  { w: 13, d: 7.5, h: 4.5, lift: 9, light: 34 },
-  lane:    { w: 4, tickMinor: 10, tickMajor: 50, label: 7, gap: 56 },
+  lane:    { w: 4, tickMinor: 10, tickMajor: 50, label: 7, gap: 56,
+    // an event puck's name above it; names that would run into each other on a rail stack up, at most `levels` high
+    mark: { label: 5.8, rise: 9, stack: 7, gap: 3, levels: 3 } },
   zone:    { r: 20, pad: 28, title: 10 },
   pointer: { h: 26, rod: 1.4, flag: 11, label: 8 },
   bracket: { label: 6.5, dy: 7, tracking: 0.06 },  // a bitfield bracket's name, printed under it on the floor

@@ -25,12 +25,13 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Timeline and narration
 
-- **Lane-mark labels collide** when events fall within about 25 ms of each other; the lanes board should thin or offset them.
 - **No chip is both identity-coloured and linked.** Wanted: `{ref:id}` takes the entity's key colour when it has one.
 - **verify varies one knob at a time.** Combined extremes and the phone env at extremes are not exercised.
 
 ## Done (recent)
 
+- Lane-mark names that would run into each other on a rail stack up a level (`SIZE.lane.mark`: at most 3 high; a
+  name with no free level is left off, its puck stays). Raft's split story: 4 of 14 names overlapped, now none.
 - A counter definition takes `scenarios: [ids]`; other stories leave it out of the dock and the readout (from
   `examples/event-loop`: screen repaints only in the stories that repaint).
 - A counter the run has not set yet reads `—` when it is a reading (`ms`, `pct`, `x`) and 0 when it is a tally

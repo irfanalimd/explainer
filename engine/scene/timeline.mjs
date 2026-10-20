@@ -7,7 +7,7 @@ import { computeLayout, scanCapacities, tileSize, gridPositions } from "./layout
 import { routeAll, busRoute } from "./routing.mjs";
 import { Path } from "./path.mjs";
 import { T, hopHeight, travelTime, flightPath, evalSeg } from "./transitions.mjs";
-import { growBounds, canonical, hashString, lastLEn } from "./util.mjs";
+import { growBounds, canonical, hashString, lastLEn, monoWidth } from "./util.mjs";
 import { mentions, plain } from "./narrate.mjs";
 import { createSampler } from "./sampler.mjs";
 import { SCALE, planScale } from "./scale.mjs";
@@ -84,6 +84,30 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
       const n = Math.max(1, Math.ceil(end / T - 1e-9));
       laneScale.set(r.id, r.length / (n * T));
       laneTicks.set(r.id, { major: r.length / n, minor: r.length / n / 5 });
+    }
+  }
+
+  // Lane marks' names: on each rail, in time order, a name that would run into an earlier one stacks a level up;
+  // past SIZE.lane.mark.levels it is left off (the puck stays). Earlier names never move when later marks arrive.
+  const markLevel = new Map();
+  {
+    const M = SIZE.lane.mark, rails = new Map();
+    for (const s of allStates) for (const r of s.values()) {
+      if (r.kind !== "mark" || !r.text) continue;
+      const key = r.board + "\u0000" + r.lane;
+      if (!rails.has(key)) rails.set(key, new Map());
+      rails.get(key).set(r.id, r);
+    }
+    for (const marks of rails.values()) {
+      const ends = [];   // per level, the right edge of its last name (u along the rail)
+      const list = [...marks.values()].sort((a, b) => a.t - b.t);
+      for (const r of list) {
+        const x = Math.max(0, r.t) * (laneScale.get(r.board) ?? 1), w = monoWidth(r.text, M.label);
+        let level = ends.findIndex((e) => e + M.gap <= x - w / 2);
+        if (level < 0 && ends.length < M.levels) level = ends.length;
+        if (level >= 0) ends[level] = x + w / 2;
+        markLevel.set(r.id, level);
+      }
     }
   }
 
@@ -527,7 +551,7 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     timeOf(step, u = 0) { const s = stepOut[Math.max(0, Math.min(nSteps - 1, step))]; return s ? s.t0 + u * s.dur : 0; },
     sim,
     // internals for the sampler and tests
-    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo },
+    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo, markLevel },
   };
   const stepT0 = Float64Array.from(stepOut.map((s) => s.t0));
   tl.sample = createSampler(tl);

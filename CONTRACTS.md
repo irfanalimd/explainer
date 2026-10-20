@@ -292,7 +292,7 @@ Implement every transition in `DESIGN.md` section 8: move along traces (lift, po
   text, sub, textOut, roll /* 0..1 */,
   title, led, meter, tray /* {x, y, w, d} local to the housing centre */,
   points /* [[x,y]…] for trace/bus/lane/bracket */, pulses /* [{s0, s1, key, intensity}] */, grow, style, dashed, arrow /* trace: "end" | "both" | null */,
-  t /* lane mark time */, label }
+  t /* lane mark time */, level /* lane mark: its name's stack level, -1 none */, label }
 ```
 
 Sizes come from `SIZE` (by kind); the scene decides *where* and *what state*, the skin decides *how it looks*.
