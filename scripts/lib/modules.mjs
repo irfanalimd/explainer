@@ -177,6 +177,55 @@ export function rewriteImports(src, imports, map) {
   return out + src.slice(at);
 }
 
+/**
+ * Comments and indentation out, for the single-file page. The tokens stay byte for byte (strings, regexes and
+ * template literals, a figure's `code` export among them); the gap between two tokens becomes a newline if it held
+ * one (so automatic semicolons fall where they did), nothing next to a bracket, comma, semicolon or quote, else one space.
+ */
+export function minify(src) {
+  let out = "", prev = null;
+  for (const t of tokenize(src)) {
+    if (prev && t.start > prev.end) {
+      const gap = src.slice(prev.end, t.start);
+      out += /[\n\r\p{Zl}\p{Zp}]/u.test(gap) ? "\n" : TIGHT.has(src[prev.end - 1]) || TIGHT.has(src[t.start]) ? "" : " ";
+    }
+    out += src.slice(t.start, t.end);
+    prev = t;
+  }
+  return out;
+}
+const TIGHT = new Set("{}()[];,'\"`");
+
+/** A stylesheet's comments out and its whitespace down to single spaces (none next to braces, semicolons and commas); strings and url()s kept. */
+export function minifyCss(css) {
+  let out = "", i = 0, space = false;
+  const n = css.length;
+  const put = (s) => {
+    if (space && out && !/[{};,]$/.test(out) && !/^[{};,]/.test(s)) out += " ";
+    space = false;
+    out += s;
+  };
+  while (i < n) {
+    const c = css[i];
+    if (c === "/" && css[i + 1] === "*") { const e = css.indexOf("*/", i + 2); i = e === -1 ? n : e + 2; space = true; continue; }
+    if (/\s/.test(c)) { i++; space = true; continue; }
+    if (c === '"' || c === "'") {
+      let j = i + 1;
+      while (j < n && css[j] !== c) j += css[j] === "\\" ? 2 : 1;
+      put(css.slice(i, j + 1)); i = j + 1; continue;
+    }
+    if (/^url\(\s*[^'"\s)]/i.test(css.slice(i, i + 6))) { const e = css.indexOf(")", i); put(css.slice(i, e + 1)); i = e + 1; continue; }
+    put(c); i++;
+  }
+  return out;
+}
+
+/**
+ * A module as a data: URL in plain text, a quarter smaller than base64. The URL parser drops tabs and newlines
+ * and ends the URL at "#", and the body is percent-decoded, so those, "%" and the other control characters are escaped.
+ */
+export const moduleUrl = (code) => "data:text/javascript," + code.replace(/[\0-\x1f%#\x7f]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"));
+
 const toPosix = (p) => p.split(sep).join("/");
 const inside = (root, file) => { const r = relative(root, file); return !!r && !r.startsWith("..") && !isAbsolute(r); };
 

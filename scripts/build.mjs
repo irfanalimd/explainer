@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // Build one self-contained HTML page from a figure module (works from file://, no network).
 //   node scripts/build.mjs <figure.mjs> [--out page.html] [--theme dark|light] [--runtime path] [--dev] [--serve] [--port 5173]
-// Every module reachable from the figure and the runtime is inlined as a base64 data: URL in an import map;
+// Every module reachable from the figure and the runtime is inlined as a plain-text data: URL in an import map;
 // relative imports are rewritten to bare "@internals/<path>" specifiers (the figure is "@internals/figure").
-// Fonts (Geist, Geist Mono) and engine/hud/hud.css are inlined. --dev references the source files over
-// http instead (served by scripts/serve.mjs with live reload); --serve also starts that server.
+// Fonts (Geist, Geist Mono) and engine/hud/hud.css are inlined; modules and CSS lose their comments and indentation.
+// --dev references the source files over http instead (served by scripts/serve.mjs with live reload); --serve also
+// starts that server.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, watch } from "node:fs";
 import { dirname, resolve, join, basename, extname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { collectGraph, rewriteImports, tokenize, display, inside, toPosix, lessonBeside } from "./lib/modules.mjs";
+import { collectGraph, rewriteImports, tokenize, display, inside, toPosix, lessonBeside, minify, minifyCss, moduleUrl } from "./lib/modules.mjs";
 import { parseArgs, fmtBytes, isMain } from "./lib/args.mjs";
 import { PALETTE, THEMES } from "../engine/tokens.mjs";
 import "./lib/node-hooks.mjs";               // "@internals/<path>" imports resolve when the figure is imported for its meta
@@ -114,8 +115,8 @@ export async function buildPage(figurePath, { out, theme, runtime, dev = false, 
   let moduleBytes = 0, fontBytes = 0, cssBytes = 0;
   for (const m of [...graph.modules.values()].sort((a, b) => (a.spec < b.spec ? -1 : 1))) {
     if (dev) { imports[m.spec] = devUrl(m.file); continue; }
-    const code = rewriteImports(m.source, m.imports, (imp) => graph.modules.get(imp.file).spec);
-    imports[m.spec] = "data:text/javascript;base64," + b64(code);
+    const code = minify(rewriteImports(m.source, m.imports, (imp) => graph.modules.get(imp.file).spec));
+    imports[m.spec] = moduleUrl(code);
     moduleBytes += imports[m.spec].length;
   }
 
@@ -124,7 +125,7 @@ export async function buildPage(figurePath, { out, theme, runtime, dev = false, 
   else fonts = fontFaces((f) => { const u = "data:font/woff2;base64," + b64(readFileSync(f.file)); fontBytes += u.length; return u; });
   const hasHud = existsSync(HUD_CSS);
   if (!hasHud) warnings.push("engine/hud/hud.css not found; the page ships without HUD styles");
-  else if (!dev) { hudCss = inlineCssUrls(readFileSync(HUD_CSS, "utf8"), HUD_CSS, warnings); cssBytes = hudCss.length; }
+  else if (!dev) { hudCss = inlineCssUrls(minifyCss(readFileSync(HUD_CSS, "utf8")), HUD_CSS, warnings); cssBytes = hudCss.length; }
 
   const P = PALETTE;
   const base = `:root{background:${P.dark.stage};color-scheme:dark}

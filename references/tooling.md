@@ -209,11 +209,15 @@ objectives its "You can now…" lists.
   does the scanning, so imports inside strings, template literals (a figure's `code` export), comments and regexes
   are never touched. Unresolvable imports fail with `file:line` and a hint (a missing `.mjs` extension, a bare
   package name).
-- Specifiers become bare names in an import map of base64 `data:` URLs (the `@internals/` prefix is an internal
+- Specifiers become bare names in an import map of plain-text `data:text/javascript,` URLs (only `%`, `#` and control
+  characters percent-escaped, a quarter smaller than base64; the `@internals/` prefix is an internal
   name kept from before the skill was called Explainer): skill files are `@internals/<path in the
   skill>`, the figure is `@internals/figure`, files outside the skill (a figure's own helpers) are
   `@internals/local/<path from the figure>` (no absolute paths leak into the page). One file has one specifier, so
   one module instance, however it was imported (relative, absolute path, `file://` or `@internals/<path>`).
+- Every module goes in without its comments and indentation (`minify` in `scripts/lib/modules.mjs`: the same lexer
+  keeps every token byte for byte, a figure's `code` template included, and every line break that ends a statement),
+  and `hud.css` without its comments and runs of whitespace (`minifyCss`). The dev page serves the sources as they are.
 - Figures can live anywhere. They may import the skill by relative path, absolute path, or `@internals/<path>`
   (Node resolves that too in verify and build, through `scripts/lib/node-hooks.mjs`).
 - Inlines Geist and Geist Mono as base64 `@font-face` (variable, weights 100–900) and `engine/hud/hud.css` (its
@@ -427,6 +431,16 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
+Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
+drafts (CONTRACTS.md 3.1): half the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
+comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
+never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
+
+On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
+`--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader
+--disable-vulkan-surface` does start the WebGPU tier on SwiftShader (`?gfx=webgpu`, the self-test passes), but its canvas
+comes out blank in screenshots, so the WebGPU look still needs a machine with a GPU to check.
+
 ## Director (`engine/director/director.mjs`, `engine/director/shots.mjs`)
 
 ```js
@@ -521,7 +535,9 @@ back).
 
 - Live play is bound by frame time. On a 4-core machine with no GPU and other jobs running, `shoot --scenario all
   --teach` over MapReduce took 57 min (160 phase shots in about 12 min, 80 teaching cards in about 44 min); on a page
-  that draws at 20 fps or better the pass keeps its old speeds and waits.
+  that draws at 20 fps or better the pass keeps its old speeds and waits. Drafts (Rendering backends) raised live
+  MapReduce on that machine (SwiftShader, WebGL2) from 0.9 to 4.5 frames a second at 1440x900 and from 2.2 to 12.3 at
+  390x844; a full frame still takes about 1.5 s at 1440x900, and the closing scale shot (6008 slabs) about 10 s.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the

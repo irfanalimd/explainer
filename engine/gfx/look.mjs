@@ -10,6 +10,13 @@ export const QUALITY = {
   low:    { shadow: 1024, contact: 512,  bloom: 4, samples: 2, dpr: 1.5, bounce: 128, dof: false },
 };
 
+// The draft tier: a frame in motion (playing, the camera easing) on a software rasterizer, where a full frame takes a
+// second or more without a GPU. It draws over the quality preset at `scale` of its pixel ratio; the frame the picture
+// comes to rest on, and every captured frame, is drawn in full (CONTRACTS.md 3.1, `draft`).
+export const DRAFT = { shadow: 1024, contact: 512, bloom: 4, samples: 0, bounce: 128, dof: false, scale: 0.5 };
+// renderer strings of software rasterizers (WebGL's UNMASKED_RENDERER, WebGPU's adapter info)
+export const SOFTWARE = /swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
+
 // studio environment geometry (directions toward each softbox), derived from the key light token
 const KEY = norm3(LIGHT.key.dir), KEY_X = norm3(cross3([0, 0, 1], KEY));
 const STRIP = norm3([0, 0.8, 0.6]);           // a long strip softbox behind the camera, above the horizon
