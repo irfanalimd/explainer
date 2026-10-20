@@ -274,7 +274,8 @@ there is one instance per module); everything else is served byte for byte.
 - Deterministic: `freeze(true)`, CSS transitions and animations jump to their end, then `renderAt(t, { camera:
   "settled" })` for each shot. Files: `<scenario>-<theme>-<w>x<h>-<step>-<mid|end|tN.NNs>.png` in `--out`
   (default `shots/` beside the page), plus `contact.png` (grouped by scenario, theme and size, each thumbnail
-  captioned with step, time, phase and caption; split into `contact-2.png`… past 14000 px).
+  captioned with step, time, phase and caption; split into `contact-2.png`… past 14000 px). PNGs use Chrome's fast
+  encoding: the same pixels as its default one, about a third larger, and 0.4 s less a 1440×900 shot.
 - Runs `__internals.audit()` after each shot and reports page errors (console errors, exceptions, failed loads)
   and audit problems grouped by finding, with the steps and shots where each occurs.
 - Size presets: `desktop` (1440x900), `phone` (390x844), `1080p`, `720p`, `vertical`, `square`. Use `--dpr 2` to
