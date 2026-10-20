@@ -95,7 +95,8 @@ network) in the HUD's own tokens:
 
 `--no-shots` skips Chrome (verify, pacing and build only). Exit 1 when anything fails. Measured on a 4-core machine
 with no GPU (SwiftShader) and other jobs running, on MapReduce: quick 5 min 17 s (80 shots), `--full` 75 min 22 s
-(240 shots and teaching cards in 62 min, then the audit over every step in 13 min). `doctor`'s speed line estimates
+(240 shots and teaching cards in 62 min, then the audit over every step in 13 min); with no other Chrome running,
+quick takes about 3 min (shots 2 min 48 s). `doctor`'s speed line estimates
 the shots for the machine at hand.
 
 ## verify.mjs
@@ -514,8 +515,17 @@ back).
 ## Known gaps
 
 - Live play is bound by frame time. On a 4-core machine with no GPU and other jobs running, `shoot --scenario all
-  --teach` over MapReduce took 57 min (160 phase shots in about 12 min, 80 teaching cards in about 44 min); on a page
-  that draws at 20 fps or better the pass keeps its old speeds and waits.
+  --teach` over MapReduce took 57 to 63 min (160 phase shots in about 10 min, the 104 teaching cards in the rest).
+  Most of the cards' time is the first story ("Everything works", 35 of those 63 min): its cards follow steps that
+  light tiles, and a lit tile's ping (0.7 s) and a trace's afterglow (1.1 s) fade on the runtime's clock, which steps
+  at most 1/20 s a frame, so the page keeps drawing for 14 to 22 frames after the run stops: 20 s and more at a second
+  a frame, and the card is shot mid-fade (live cards differ a little from run to run for this reason and for the
+  shimmer, which follows the wall clock). More tabs in one Chrome do not help: software rendering runs in Chrome's
+  one GPU process, and 2 to 4 tabs drew 1.2x the frozen frames of one on an idle machine and no more on a loaded one.
+  On a page that draws at 20 fps or better the pass keeps its old speeds and waits. Changing the speed only when the
+  run starts or stops would save two frames a card, but the camera moves only when a frame is drawn, so a card shot
+  right after another (the end check, You can now, the caption, the end card; a pick's wrong branch) was framed
+  differently: the pass keeps them.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the
