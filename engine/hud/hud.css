@@ -1275,6 +1275,9 @@
 .ix[data-size="phone"] .ix-predict-q { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); margin-bottom: 12px; }
 .ix[data-size="phone"] .ix-opt { min-height: 44px; padding: 6px 12px 6px 8px; }
 .ix[data-size="phone"] .ix-predict-foot { margin-top: 8px; }
+/* the answer's feedback and why sit as close under the options as on a short screen, so a long question still fits
+   between the header and the transport */
+.ix[data-size="phone"] .ix-predict-said { margin-top: 8px; gap: 8px; }
 
 /* drawers and the full readout become bottom sheets */
 .ix[data-size="phone"] .ix-drawer, .ix[data-size="phone"] .ix-code, .ix[data-size="phone"] .ix-inspector.ix-pinned, .ix[data-size="phone"] .ix-meters {
