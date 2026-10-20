@@ -16,15 +16,16 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Camera and frame
 
-- **Desktop scale.** The HUD's top and bottom overlays take about 40 % of a 1440×900 viewport, so wide worlds (a cluster plus a lanes board) render at about 0.8 px/u. Ideas:
-  - let the world extend under the empty parts of the bottom dock
-  - collapse the meters panel into the dock
-  - add an optional "cinema" mode that hides the chrome while playing
-- **The phone meters panel** takes about 25 % of the screen height. A one-line strip that expands on tap would be better.
+- **Desktop scale.** At 1440×900 the HUD covers 39 % of the viewport: the docked explain panel 384 px of the width
+  (27 % on its own), the header 64 px and the dock 90 px. A world that is wide rather than tall is held by the
+  panel's width (MapReduce: 0.88 px/u; 1.17 without the panel), so trimming the top and bottom no longer helps it.
+  Ideas:
+  - a narrower docked panel, or one that folds to its pill while playing, when the world is width-bound
+  - an optional "cinema" mode that hides the chrome while playing
+- **Phone dock.** At 390×844 the dock is 142 px (the numbers' line 36 px of it, the timeline and the transport the
+  rest) and the layered caption above it 108–264 px, so a tall world gets 0.45 px/u. The numbers could share the
+  transport's row only by hiding a number behind "+1" (the speed pill and the three buttons leave about 100 px).
 - **Focus shots can crop a ring.** A figure whose whole picture matters (rings, clusters) should `s.focus` the group every step, as `examples/raft` does.
-
-## Timeline and narration
-
 
 ## Done (recent)
 
@@ -42,6 +43,10 @@ What the engine does not do yet, collected while building the flagship examples 
   `examples/event-loop`: screen repaints only in the stories that repaint).
 - A counter the run has not set yet reads `—` when it is a reading (`ms`, `pct`, `x`) and 0 when it is a tally
   (`int`, `bytes`); `decimals` sets the digits of an `x` counter.
+- The world comes down to the dock bar when nothing floats over it (the docked panel tells the step): at 1440×900
+  `insets.bottom` 106 → 90 px, Raft 1.198 → 1.224 px/u. The phone's numbers are one 32 px line in the dock that
+  opens the full readout on tap (a button with `aria-expanded`): the dock 150 → 142 px, MapReduce 0.440 → 0.448 px/u.
+
 - `s.trace(..., { key })`: a trace in an identity colour; `s.tile(..., { w })`: a wider tile; a pointer on a housing's
   tile stands on the floor in front of the housing (from `examples/linked-list`).
 

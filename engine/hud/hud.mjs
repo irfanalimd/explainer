@@ -3109,11 +3109,14 @@ export function createHud(root, opts = {}, cb = {}) {
     insets.left = codeOpen && S.size !== "phone" ? Math.round(codePanel.offsetLeft + codePanel.offsetWidth) : 0;
     insets.right = Math.max(explain.inset(), paramsInset());
     placeStories(rr);   // centred on the free stage the side insets leave
-    const tr = top.getBoundingClientRect(), br = bottom.getBoundingClientRect();
+    // with nothing over the dock (the docked panel tells the step), the bar is the bottom overlay: the empty dock row
+    // and the gap above the bar cover nothing, so the world may come down to the bar
+    const lead = dock.offsetHeight > 0 ? bottom : bar;
+    const tr = top.getBoundingClientRect(), br = lead.getBoundingClientRect();
     const sb = storyBar.hidden ? null : storyBar.getBoundingClientRect();
     const headBottom = Math.max(tr.bottom, sb && sb.height > 0 ? sb.bottom : -Infinity);
     root.style.setProperty("--ix-top-h", `${Math.round(headBottom - tr.top)}px`);
-    root.style.setProperty("--ix-bottom-h", `${bottom.offsetHeight}px`);
+    root.style.setProperty("--ix-bottom-h", `${lead.offsetHeight}px`);
     insets.top = Math.max(0, Math.round(headBottom - rr.top));
     insets.bottom = Math.max(0, Math.round(rr.bottom - br.top));
     // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)

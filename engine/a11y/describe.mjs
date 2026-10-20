@@ -7,6 +7,8 @@
 //   stepChanges(tl, i)         -> the same for step i of a Timeline (lost messages said as lost)
 //   lookLine(ids, entities)    -> "Look at: reduce 0 and the, 1."
 
+import { WORLD_TYPE, worldCase } from "../tokens.mjs";
+
 // things a reader can go to; groups and zones are headings, wires and floor prints are not things
 export const THING = new Set(["housing", "container", "tile", "pointer", "packet", "lanes"]);
 const NOUN = { record: ["record", "records"], page: ["page", "pages"], bit: ["bit", "bits"], tile: ["item", "items"] };
@@ -90,7 +92,7 @@ export function outline(ents) {
       sec.items.push({ id, text: describe(id, ents), depth: Math.min(depth, 1) });
       for (const c of kidsOf(ents, id)) addThing(c, sec, depth + 1);
     } else if (e.kind === "group" && e.title) {
-      const s = { id, title: speak(e.title), items: [] };
+      const s = { id, title: worldCase(speak(e.title), WORLD_TYPE.zone), items: [] };   // as the world prints it: "Map"
       sections.push(s);
       for (const c of kidsOf(ents, id)) addThing(c, s, 0);
     } else for (const c of kidsOf(ents, id)) addThing(c, sec, depth);
