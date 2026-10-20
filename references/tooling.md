@@ -206,7 +206,8 @@ objectives its "You can now…" lists.
   does the scanning, so imports inside strings, template literals (a figure's `code` export), comments and regexes
   are never touched. Unresolvable imports fail with `file:line` and a hint (a missing `.mjs` extension, a bare
   package name).
-- Specifiers become bare names in an import map of base64 `data:` URLs (the `@internals/` prefix is an internal
+- Specifiers become bare names in an import map of plain-text `data:text/javascript,` URLs (only `%`, `#` and control
+  characters percent-escaped, a quarter smaller than base64; the `@internals/` prefix is an internal
   name kept from before the skill was called Explainer): skill files are `@internals/<path in the
   skill>`, the figure is `@internals/figure`, files outside the skill (a figure's own helpers) are
   `@internals/local/<path from the figure>` (no absolute paths leak into the page). One file has one specifier, so

@@ -220,6 +220,12 @@ export function minifyCss(css) {
   return out;
 }
 
+/**
+ * A module as a data: URL in plain text, a quarter smaller than base64. The URL parser drops tabs and newlines
+ * and ends the URL at "#", and the body is percent-decoded, so those, "%" and the other control characters are escaped.
+ */
+export const moduleUrl = (code) => "data:text/javascript," + code.replace(/[\0-\x1f%#\x7f]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0"));
+
 const toPosix = (p) => p.split(sep).join("/");
 const inside = (root, file) => { const r = relative(root, file); return !!r && !r.startsWith("..") && !isAbsolute(r); };
 

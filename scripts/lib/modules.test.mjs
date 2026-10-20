@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
-import { scanImports, rewriteImports, specifierFor, collectGraph, resolveSpecifier, minify, minifyCss, tokenize } from "./modules.mjs";
+import { scanImports, rewriteImports, specifierFor, collectGraph, resolveSpecifier, minify, minifyCss, moduleUrl, tokenize } from "./modules.mjs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -162,4 +162,12 @@ test("every module in the skill still parses after minify", () => {
 test("minifyCss keeps strings, url()s and descendant spaces", () => {
   const css = `/* the stage */\n.ix  .ix-tag:hover ,\n.b > .c {\n  color : red ;\n  background: url("data:image/svg+xml,%3Csvg /* x */%3E") , url(a.png);\n  content: "  /* kept */  ";\n}\n@media (max-width: 600px) {\n  .a { margin: calc(1px + 2px) }\n}\n`;
   assert.equal(minifyCss(css), `.ix .ix-tag:hover,.b > .c{color : red;background: url("data:image/svg+xml,%3Csvg /* x */%3E"),url(a.png);content: "  /* kept */  ";}@media (max-width: 600px){.a{margin: calc(1px + 2px)}}`);
+});
+
+test("moduleUrl escapes what a URL parser would drop or cut, and decodes back to the source", () => {
+  const code = "const a = '100%';\n\tlet b = \"#x\" + `é ${a}`;\r\n";
+  const url = moduleUrl(code);
+  assert.match(url, /^data:text\/javascript,/);
+  assert.doesNotMatch(url, /[\n\r\t#]/);
+  assert.equal(decodeURIComponent(new URL(url).href.slice("data:text/javascript,".length)), code);
 });

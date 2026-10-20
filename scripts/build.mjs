@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build one self-contained HTML page from a figure module (works from file://, no network).
 //   node scripts/build.mjs <figure.mjs> [--out page.html] [--theme dark|light] [--runtime path] [--dev] [--serve] [--port 5173]
-// Every module reachable from the figure and the runtime is inlined as a base64 data: URL in an import map;
+// Every module reachable from the figure and the runtime is inlined as a plain-text data: URL in an import map;
 // relative imports are rewritten to bare "@internals/<path>" specifiers (the figure is "@internals/figure").
 // Fonts (Geist, Geist Mono) and engine/hud/hud.css are inlined; modules and CSS lose their comments and indentation.
 // --dev references the source files over http instead (served by scripts/serve.mjs with live reload); --serve also
@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, watch } from "node:fs";
 import { dirname, resolve, join, basename, extname, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { collectGraph, rewriteImports, tokenize, display, inside, toPosix, lessonBeside, minify, minifyCss } from "./lib/modules.mjs";
+import { collectGraph, rewriteImports, tokenize, display, inside, toPosix, lessonBeside, minify, minifyCss, moduleUrl } from "./lib/modules.mjs";
 import { parseArgs, fmtBytes, isMain } from "./lib/args.mjs";
 import { PALETTE, THEMES } from "../engine/tokens.mjs";
 import "./lib/node-hooks.mjs";               // "@internals/<path>" imports resolve when the figure is imported for its meta
@@ -116,7 +116,7 @@ export async function buildPage(figurePath, { out, theme, runtime, dev = false, 
   for (const m of [...graph.modules.values()].sort((a, b) => (a.spec < b.spec ? -1 : 1))) {
     if (dev) { imports[m.spec] = devUrl(m.file); continue; }
     const code = minify(rewriteImports(m.source, m.imports, (imp) => graph.modules.get(imp.file).spec));
-    imports[m.spec] = "data:text/javascript;base64," + b64(code);
+    imports[m.spec] = moduleUrl(code);
     moduleBytes += imports[m.spec].length;
   }
 
