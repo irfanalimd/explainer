@@ -249,7 +249,8 @@ const isPhone = (vp) => vp.width < DIRECTOR.phoneWidth;
  * world in the free area, small if they must; on phones a pull-back stays on its stage so the tiles stay readable.
  * A box too big for the minimum size gives way to its `focus` at that size; phones hold a closer minimum so tile
  * labels stay readable. No shot leaves its focus, or where it can help it any of the world, under a side panel.
- * On a phone every shot also holds the step's `hold` (its focus and tags, holdShot) in the free area.
+ * Every shot also holds the step's `hold` (its focus and tags, holdShot) in the free area: a detail shot pushes in
+ * as close as that allows, so a figure that focuses a whole ring or cluster keeps all of it in view.
  */
 export function framer(viewport, world) {
   const phone = isPhone(viewport);
@@ -262,10 +263,10 @@ export function framer(viewport, world) {
     wide,
     pull: (box, angle, focus, hold) => (phone || !world ? fr.fit(box, angle, { focus, hold }) : wide(world, angle)),
     fit(box, angle, { hold = null, ...o } = {}) {
-      return phone && !o.raw ? holdShot(fit(box, angle, o), hold, viewport) : fit(box, angle, o);
+      return o.raw ? fit(box, angle, o) : holdShot(fit(box, angle, o), hold, viewport);
     },
-    /** True when this shot needs no move to hold `hold` (always, off phones). */
-    holds: (shot, hold) => !phone || holdShot(shot, hold, viewport) === shot,
+    /** True when this shot needs no move to hold `hold`. */
+    holds: (shot, hold) => holdShot(shot, hold, viewport) === shot,
   };
   function fit(box, angle, { zoom = DIRECTOR.maxZoom, focus = null, raw = false } = {}) {
     if (raw) return frameBounds(box, viewport, { ...angle, maxZoom: zoom });

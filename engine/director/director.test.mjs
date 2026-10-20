@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { CAMERA, MOTION } from "../tokens.mjs";
 import {
   createDirector, frameBounds, frameRegion, projectPoint, unprojectPoint, boxCorners, drift, DIRECTOR, pxPerUnitAt,
-  projectBounds, worldFrame, slideShot,
+  projectBounds, worldFrame, slideShot, framer,
 } from "./director.mjs";
 
 const RAD = Math.PI / 180;
@@ -377,3 +377,14 @@ test("the last step frames its focus close and large: the payoff", () => {
   dir.update({ time: 29, phase: "Map", step: 1, focus: out, world: WORLD }, PANEL, 0, { settled: true });
   assert.notEqual(dir.state.shot, "payoff");
 });
+
+test("a key step's detail shot pushes in only as far as keeps the step's focus (a whole cluster) in frame", () => {
+  // raft-like: the step focuses the whole ring; the lesson's look ids are two servers on one side of it
+  const ring = { minX: -200, maxX: 200, minY: -160, maxY: 160, minZ: 0, maxZ: 20 };
+  const look = { minX: 120, maxX: 200, minY: -40, maxY: 40, minZ: 0, maxZ: 20 };
+  const fr = framer(PANEL, WORLD);
+  const shot = fr.fit(look, { pitch: 50, yaw: 0 }, { zoom: fr.detailZoom, focus: look, hold: { box: ring, points: [] } });
+  assert.ok(inside(shot, ring, PANEL, 1e-3), "the whole ring stays in the free area");
+  assert.ok(fr.holds(shot, { box: ring }));
+});
+

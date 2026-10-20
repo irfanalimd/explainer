@@ -28,6 +28,7 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Done (recent)
 
+- A detail shot holds the step's focus on every screen, not only phones, so a focused ring or cluster stays whole.
 - verify also runs every scenario with its knobs at their extremes combined (all low, all high) on the phone (from
   `examples/event-loop`, whose repaint count was wrong only with two knobs at once).
 - A `{ref:id}` chip on an entity with an identity key shows that key's colour in its dot (a legend swatch) and
