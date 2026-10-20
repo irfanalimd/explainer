@@ -67,7 +67,8 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
   - `format` sets how the value reads (default `"int"`). An `int` counter may also take `decimals` (fixed digits
     after the point, so a fractional value such as TCP's cwnd shows as `9.25` instead of being floored) and `unit`
     (a quiet suffix, such as `"MSS"`): `cwnd: { label: "congestion window", format: "int", decimals: 2, unit: "MSS" }`.
-    `decimals` also applies to `x`.
+    `decimals` also applies to `x`. Until the run first sets a counter, `int` and `bytes` read 0 (nothing counted
+    yet) and `ms`, `pct` and `x` read `—` (no reading yet), so a ratio is never shown as `0.0×` before it exists.
   - Declare only counters the run moves (verify warns on one that never changes, errors on one used but not declared).
 - **Scenarios start at the fork.** When a viewer switches to a scenario other than the first, playback starts where
   it stops repeating the first scenario (the first step whose chapter or caption shape differs, backed off one step,

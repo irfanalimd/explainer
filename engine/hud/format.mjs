@@ -2,11 +2,16 @@
 //   int "1,234"   bytes "1.4 KB" (1024-based, like page and block sizes)   ms "4.1 ms" / "1.24 s"   pct "42%"   x "2.4×"
 // Options (from the counter's declaration): `decimals` fixes the digits after the point for int and x ("9.25"),
 // `unit` is a suffix for int counters ("10 MSS"); both are optional.
+// A counter the run has not set yet (null or undefined) is a tally of nothing, 0, when it counts (int, bytes); a
+// reading (ms, pct, x) has no value yet and shows "—", so an unset ratio never claims 0.0×.
 
 const trim0 = (s) => s.replace(/\.0$/, "");
 const grouped = (n) => Math.round(n).toLocaleString("en-US");
 
+export const countsFromZero = (format) => format == null || format === "int" || format === "bytes";
+
 export function formatCounter(value, format = "int", o = {}) {
+  if (value == null && !countsFromZero(format)) return ["—", ""];
   const v = Number.isFinite(value) ? value : 0;
   const dec = Number.isInteger(o?.decimals) && o.decimals >= 0 ? Math.min(6, o.decimals) : null;
   const unit = typeof o?.unit === "string" ? o.unit : "";

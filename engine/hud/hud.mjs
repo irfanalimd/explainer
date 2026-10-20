@@ -2031,7 +2031,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const meterCell = (name, def) => ({
     name, def, num: h("span", { class: "ix-meter-num" }), unit: h("span", { class: "ix-meter-unit" }),
     sNum: h("span", { class: "ix-stat-num" }), sUnit: h("span", { class: "ix-stat-unit" }),
-    target: null, shown: 0, from: 0, t0: 0, n: null, u: null, hist: [], max: 0, min: 0, sparkKey: "", row: null,
+    target: null, shown: null, from: 0, t0: 0, n: null, u: null, hist: [], max: 0, min: 0, sparkKey: "", row: null,
   });
   // the dock's compact strip: one stat per counter (or per compare row), label over value, like the chapter bar
   const statLabel = (def, name) => h("span", { class: "ix-stat-label" }, h("span", { class: "ix-ml-full", text: def.label ?? name }),
@@ -2067,7 +2067,7 @@ export function createHud(root, opts = {}, cb = {}) {
       st._defs = [def];
       statsList.append(st); statEls.push(st);
       meters.push(m);
-      renderMeterValue(m, 0);
+      renderMeterValue(m, null);
     }
     const grouped = entries.filter(([, d]) => d.group != null);
     if (grouped.length) {
@@ -2091,7 +2091,7 @@ export function createHud(root, opts = {}, cb = {}) {
           c.fill = h("i");
           c.el = h("span", { class: "ix-cmp-cell", role: "cell" }, h("span", { class: "ix-meter-val" }, c.num, c.unit), h("i", { class: "ix-cmp-bar", "aria-hidden": "true" }, c.fill));
           meters.push(c);
-          renderMeterValue(c, 0);
+          renderMeterValue(c, null);
           return c.el;
         });
         table.append(h("div", { class: "ix-cmp-row", role: "row" }, h("span", { class: "ix-cmp-label", role: "rowheader" }, meterLabel(row.def, row.label)), cellsEl));
@@ -2207,15 +2207,16 @@ export function createHud(root, opts = {}, cb = {}) {
   function setMeters(values, step) {
     for (const m of meters) {
       const raw = values[m.name];
-      const v = typeof raw === "number" ? raw : Array.isArray(raw) ? raw[0] : 0;
-      if (step >= 0) {
+      // a counter this run has not set yet stays null: a tally reads 0, a reading reads "—" (format.mjs)
+      const v = typeof raw === "number" ? raw : Array.isArray(raw) && typeof raw[0] === "number" ? raw[0] : null;
+      if (step >= 0 && v !== null) {
         if (m.hist[step] !== v) { m.hist[step] = v; if (v > m.max) m.max = v; if (v < m.min) m.min = v; sparksDirty = true; }
       }
       if (v === m.target) continue;
       const first = m.target === null;
       m.target = v;
       if (m.row) { m.row.leadDirty = true; rowsDirty = true; }
-      if (first || scrubbing || still() || Math.abs(v - m.shown) < 1e-9) { m.t0 = 0; m.shown = v; renderMeterValue(m, v); continue; }
+      if (first || v === null || m.shown === null || scrubbing || still() || Math.abs(v - m.shown) < 1e-9) { m.t0 = 0; m.shown = v; renderMeterValue(m, v); continue; }
       m.from = m.shown; m.t0 = now();
       if (!countRaf) countRaf = raf(countLoop);
     }
