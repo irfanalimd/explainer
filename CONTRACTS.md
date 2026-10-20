@@ -417,7 +417,8 @@ its first step, from the chapter's own yaw, held while the entry card reads), **
 union of its steps' focus and `look` boxes), **detail** (a `key` step's `layers.look`, close), **pull** (its last
 step, back to the world); then **payoff** (the run's last step before any scale shot) and **scale** (a tracking shot
 along `tl.scales`' reveal box). Every shot holds its step's focus and tags in the free area (a detail shot pushes in
-only as far as that allows).
+only as far as that allows). Where a step's focus is not in the shot on screen when the step starts, a **bridge**
+(holding both steps' focus) starts the move up to `SHOTS.bridge` s before it, so the focus is never out of frame.
 Moves are eased, never shorter than `SHOTS.move[0]`; a shot within `SHOTS.rest` of the current one is not taken.
 Reduced motion cuts. Authors never call it: chapters, focus and `look` ids drive it.
 Without a timeline the director follows `frame.focus` with a dead zone and springs, and establishes at phase changes.

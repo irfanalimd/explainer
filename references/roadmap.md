@@ -28,6 +28,9 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Done (recent)
 
+- A step boundary the shot on screen does not cover gets a bridge move that starts up to 0.7 s early, so the new
+  step's focus is in frame from its first frame. With the detail-shot fix below, steps over the 8 examples with
+  the focus partly off screen: 119 → 0 at 1440×900, 89 → 0 at 390×844.
 - A detail shot holds the step's focus on every screen, not only phones, so a focused ring or cluster stays whole.
 - verify also runs every scenario with its knobs at their extremes combined (all low, all high) on the phone (from
   `examples/event-loop`, whose repaint count was wrong only with two knobs at once).

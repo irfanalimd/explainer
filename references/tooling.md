@@ -456,7 +456,10 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   ids, close, from where they start to where they land, so a move's source and target share the frame), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
   last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
   box, craning up as it widens). Every shot also holds the step's focus and tags in the free area (`holdShot`, on
-  every screen size), so a detail shot pushes in only as far as keeps a focused ring or cluster whole. Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
+  every screen size), so a detail shot pushes in only as far as keeps a focused ring or cluster whole. When the shot on
+  screen as a step starts does not hold that step's focus, a **bridge** keyframe sets the camera off up to
+  `SHOTS.bridge` (0.7 s) early, through a shot of both steps' focus (no closer than either end), so it is in frame
+  from the step's first frame. Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
   `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).
 - **Keep** (`dir.keep(bounds)`): while the reader must click something (an `s.choose` pick, which the runtime passes
   through `onPickArea`), the planned shot stands when it already holds the box inside the free area at half the

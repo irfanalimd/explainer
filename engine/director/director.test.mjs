@@ -7,6 +7,7 @@ import {
   createDirector, frameBounds, frameRegion, projectPoint, unprojectPoint, boxCorners, drift, DIRECTOR, pxPerUnitAt,
   projectBounds, worldFrame, slideShot, framer,
 } from "./director.mjs";
+import { planShots, cameraAt, SHOTS } from "./shots.mjs";
 
 const RAD = Math.PI / 180;
 const sub = (a, b) => a.map((x, i) => x - b[i]);
@@ -388,3 +389,20 @@ test("a key step's detail shot pushes in only as far as keeps the step's focus (
   assert.ok(fr.holds(shot, { box: ring }));
 });
 
+test("at a step boundary the camera sets off early, through a shot that holds both steps' focus", () => {
+  // a phone, two far-apart things: one shot cannot hold both at a readable size, so each step's shot is its own
+  const PHONE = { width: 390, height: 844, insets: { top: 92, right: 0, bottom: 282, left: 0 } };
+  const a = { minX: -520, maxX: -400, minY: -60, maxY: 60, minZ: 0, maxZ: 20 }, b = { minX: 400, maxX: 520, minY: -60, maxY: 60, minZ: 0, maxZ: 20 };
+  const world = { minX: -560, maxX: 560, minY: -100, maxY: 100, minZ: 0, maxZ: 20 };
+  const tl = { phases: [{ name: "One", t0: 0, step: 0 }], world,
+    steps: [0, 1, 2, 3].map((i) => ({ index: i, t0: 5 * i, t1: 5 * i + 5, dur: 5 })), _: { focusByStep: [a, a, b, b] } };
+  const plan = planShots(tl, PHONE, framer(PHONE, world));
+  const bridge = plan.keys.find((k) => k.kind === "bridge");
+  assert.ok(bridge && bridge.at < 10 && bridge.at >= 10 - SHOTS.bridge - 1e-9 && Math.abs(bridge.at + bridge.move - 10) < 1e-9, JSON.stringify(plan.keys.map((k) => [k.at, k.kind])));
+  // every 0.05 s across the boundary, the focus of the step on screen is inside the frame
+  const inFrame = (cam, f) => { const e = projectBounds(cam, f, PHONE); return !e.behind && e.xMin >= -1 && e.xMax <= 1 && e.yMin >= -1 && e.yMax <= 1; };
+  for (let t = 8; t < 13; t += 0.05) assert.ok(inFrame(cameraAt(plan, t), t < 10 ? a : b), `t = ${t.toFixed(2)}`);
+  // reduced motion has no moves to bridge: it holds the old shot up to the step, then cuts to the new one
+  for (let t = 8; t < 13; t += 0.05) assert.ok(inFrame(cameraAt(plan, t, true), t < 10 ? a : b), `reduced, t = ${t.toFixed(2)}`);
+  assert.deepEqual(cameraAt(plan, 9.9, true).target, cameraAt(plan, 9, true).target);
+});

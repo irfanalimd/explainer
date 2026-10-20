@@ -267,6 +267,9 @@ export function framer(viewport, world) {
     },
     /** True when this shot needs no move to hold `hold`. */
     holds: (shot, hold) => holdShot(shot, hold, viewport) === shot,
+    /** A shot of `box` no closer than `zoom` px/u, at any size it needs: the camera passing from one step to the next. */
+    bridge: (box, angle, zoom) => frameBounds(box, viewport, { ...angle, pad: DIRECTOR.focusPad, maxZoom: zoom }),
+    zoomOf: (shot) => pxPerUnitAt(shot.distance, viewport.height, shot.fov),
   };
   function fit(box, angle, { zoom = DIRECTOR.maxZoom, focus = null, raw = false } = {}) {
     if (raw) return frameBounds(box, viewport, { ...angle, maxZoom: zoom });
