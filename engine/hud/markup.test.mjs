@@ -102,6 +102,18 @@ test("toDOM builds chips with identity colour variables and data attributes", ()
   assert.equal(tone.className, "ix-tone ix-tone-warn");
 });
 
+test("an entity chip takes its entity's key colour when it has one, and stays a link", () => {
+  const frag = toDOM("{ref:s1} beside {ref:r1}", fakeDoc(), { refKey: (id) => (id === "s1" ? 10 : null) });
+  const [keyed, , plain] = frag.children;
+  assert.equal(keyed.className, "ix-chip ix-ref");
+  assert.equal(keyed.dataset.ref, "s1");
+  assert.equal(keyed.dataset.key, "2"); // 10 % 8
+  assert.equal(keyed.style.props["--k"], "var(--ix-key-2)");
+  assert.equal(keyed.tabIndex, 0);
+  assert.equal(plain.dataset.key, undefined);
+  assert.equal(plain.style.props["--k"], undefined);
+});
+
 test("toDOM marks keys it cannot resolve as unknown", () => {
   const frag = toDOM("{key:owl}", fakeDoc(), { keyIndex: () => null });
   assert.equal(frag.children[0].className, "ix-chip ix-key ix-key-unknown");

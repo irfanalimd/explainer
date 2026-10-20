@@ -270,7 +270,7 @@ tl.problems                       // build-time problems: unknown ids, overflowi
 
 Captions are plain text with inline marks, rendered by the HUD:
 - `{key:fox}` → a chip in fox's identity colour reading `fox`; `{key:fox|the word fox}` custom text.
-- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`.
+- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`. When m2 has an identity `key`, the chip's dot is in that key's colour.
 - `{tone:fail|crashed}` → a word in a status tone (`ok`, `busy`, `warn`, `fail`, `idle`).
 - `{term:pointer}` → a glossary word, underlined; its plain definition from `meta.terms` shows on hover, focus or tap (`{term:pointer|pointers}` custom text).
 - `` `hash(k) % R` `` → inline code. `**bold**`.

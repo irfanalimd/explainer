@@ -25,11 +25,12 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Timeline and narration
 
-- **No chip is both identity-coloured and linked.** Wanted: `{ref:id}` takes the entity's key colour when it has one.
 - **verify varies one knob at a time.** Combined extremes and the phone env at extremes are not exercised.
 
 ## Done (recent)
 
+- A `{ref:id}` chip on an entity with an identity key shows that key's colour in its dot (a legend swatch) and
+  stays a link (from `examples/quicksort`: the duplicate values in "Many repeats").
 - Lane-mark names that would run into each other on a rail stack up a level (`SIZE.lane.mark`: at most 3 high; a
   name with no free level is left off, its puck stays). Raft's split story: 4 of 14 names overlapped, now none.
 - A counter definition takes `scenarios: [ids]`; other stories leave it out of the dock and the readout (from

@@ -631,7 +631,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // the printable handout (handout.mjs): the runtime compiles every story and draws the pictures (onHandoutData)
   const handout = createHandout({
     h, doc, segmented, icons: { print: ICON.print, close: ICON.close, check: ICON.check },
-    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex }),
+    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex, refKey: null }),   // another run's keys
     data: (o) => fire("onHandoutData", o),
     pictures: (d, onEach) => fire("onHandoutPictures", d, onEach),
     result: () => { const r = check.result; return r ? { ...r, levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value } : null; },
@@ -1888,6 +1888,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const markupOpts = {
     keyIndex: (name) => S.keyIndex.get(String(name)) ?? null,
     refTitle: (id) => S.entities?.get?.(id)?.title ?? null,
+    refKey: (id) => S.entities?.get?.(id)?.keyIndex ?? null,
     // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
     term: (name) => termOf(S.lesson, S.meta, name)?.def ?? null,
   };
