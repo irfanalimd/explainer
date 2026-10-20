@@ -1,10 +1,12 @@
-// Tests for the import scanner, specifier mapping, rewrite and graph collection.
+// Tests for the import scanner, specifier mapping, rewrite, graph collection and the page's minifiers.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
-import { scanImports, rewriteImports, specifierFor, collectGraph, resolveSpecifier } from "./modules.mjs";
+import { scanImports, rewriteImports, specifierFor, collectGraph, resolveSpecifier, minify, minifyCss, tokenize } from "./modules.mjs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const specs = (src) => scanImports(src).imports.map((i) => `${i.kind}:${i.spec}`);
 
@@ -106,4 +108,58 @@ test("graph: figure outside the skill importing it by relative, absolute and @in
     assert.throws(() => collectGraph([join(proj, "broken.mjs")], { skillRoot: skill }), /broken\.mjs:1: cannot find "\.\/missing" \(did you mean "\.\/missing\.mjs"/);
     assert.throws(() => resolveSpecifier("lodash", figure, { skillRoot: skill }), /bare specifier "lodash"/);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("minify drops comments and indentation and keeps every token, line break and template byte for byte", () => {
+  const src = [
+    "// a comment",
+    "import { a } from \"./a.mjs\";   /* block */",
+    "export const code = `function f() {",
+    "    // kept: it is the figure's code",
+    "    return  1;",
+    "}`;",
+    "const x = a",
+    "  /* breaks the line */ (1)",
+    "const re = /\\/\\/ not a comment/g, s = '/* nor this */';",
+    "if (x) {",
+    "    return x + +y - -z;",
+    "}",
+  ].join("\n");
+  const out = minify(src);
+  assert.equal(out, [
+    "import{a}from\"./a.mjs\";",
+    "export const code =`function f() {\n    // kept: it is the figure's code\n    return  1;\n}`;",
+    "const x = a",
+    "(1)",
+    "const re = /\\/\\/ not a comment/g,s ='/* nor this */';",
+    "if(x){",
+    "return x + +y - -z;",
+    "}",
+  ].join("\n"));
+  const toks = (s) => tokenize(s).map((t) => s.slice(t.start, t.end));
+  assert.deepEqual(toks(out), toks(src));
+});
+
+test("every module in the skill still parses after minify", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const files = [];
+  const walk = (d) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) { if (!/^(\.|node_modules$|out$)/.test(f)) walk(p); } else if (f.endsWith(".mjs")) files.push(p); } };
+  for (const d of ["engine", "sim", "examples", "scripts"]) walk(join(root, d));
+  const dir = mkdtempSync(join(tmpdir(), "explainer-minify-"));
+  try {
+    const list = files.map((f, i) => { const out = join(dir, `${i}.mjs`); writeFileSync(out, minify(readFileSync(f, "utf8"))); return [f, out]; });
+    // vm.SourceTextModule parses a module without running it (one child process for the lot)
+    const bad = execFileSync(process.execPath, ["--experimental-vm-modules", "--no-warnings", "--input-type=module", "-e", `
+      import vm from "node:vm"; import { readFileSync } from "node:fs";
+      const bad = [];
+      for (const [src, out] of ${JSON.stringify(list)}) try { new vm.SourceTextModule(readFileSync(out, "utf8")); } catch (e) { bad.push(src + ": " + e.message); }
+      process.stdout.write(JSON.stringify(bad));`], { encoding: "utf8" });
+    assert.deepEqual(JSON.parse(bad), []);
+    assert.ok(list.length > 150);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("minifyCss keeps strings, url()s and descendant spaces", () => {
+  const css = `/* the stage */\n.ix  .ix-tag:hover ,\n.b > .c {\n  color : red ;\n  background: url("data:image/svg+xml,%3Csvg /* x */%3E") , url(a.png);\n  content: "  /* kept */  ";\n}\n@media (max-width: 600px) {\n  .a { margin: calc(1px + 2px) }\n}\n`;
+  assert.equal(minifyCss(css), `.ix .ix-tag:hover,.b > .c{color : red;background: url("data:image/svg+xml,%3Csvg /* x */%3E"),url(a.png);content: "  /* kept */  ";}@media (max-width: 600px){.a{margin: calc(1px + 2px)}}`);
 });

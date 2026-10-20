@@ -211,6 +211,9 @@ objectives its "You can now…" lists.
   skill>`, the figure is `@internals/figure`, files outside the skill (a figure's own helpers) are
   `@internals/local/<path from the figure>` (no absolute paths leak into the page). One file has one specifier, so
   one module instance, however it was imported (relative, absolute path, `file://` or `@internals/<path>`).
+- Every module goes in without its comments and indentation (`minify` in `scripts/lib/modules.mjs`: the same lexer
+  keeps every token byte for byte, a figure's `code` template included, and every line break that ends a statement),
+  and `hud.css` without its comments and runs of whitespace (`minifyCss`). The dev page serves the sources as they are.
 - Figures can live anywhere. They may import the skill by relative path, absolute path, or `@internals/<path>`
   (Node resolves that too in verify and build, through `scripts/lib/node-hooks.mjs`).
 - Inlines Geist and Geist Mono as base64 `@font-face` (variable, weights 100–900) and `engine/hud/hud.css` (its
