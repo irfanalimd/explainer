@@ -433,6 +433,11 @@ drafts (CONTRACTS.md 3.1): half the pixel ratio, the low preset's maps, no MSAA 
 comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
 never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
 
+On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
+`--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader
+--disable-vulkan-surface` does start the WebGPU tier on SwiftShader (`?gfx=webgpu`, the self-test passes), but its canvas
+comes out blank in screenshots, so the WebGPU look still needs a machine with a GPU to check.
+
 ## Director (`engine/director/director.mjs`, `engine/director/shots.mjs`)
 
 ```js
