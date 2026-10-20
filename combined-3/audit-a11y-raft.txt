@@ -1,0 +1,7 @@
+QUEUED 20:06:10 3.78 3.46 4.24
+START 20:06:10 load 3.78 3.46 4.24
+audit new-raft: happy/light/1440x900 6 frames, happy/dark/1440x900 6 frames, crash/light/1440x900 12 frames, crash/dark/1440x900 12 frames, partition/light/1440x900 12 frames, partition/dark/1440x900 12 frames, happy/light/390x844 6 frames, happy/dark/390x844 6 frames, crash/light/390x844 12 frames, crash/dark/390x844 12 frames, partition/light/390x844 12 frames, partition/dark/390x844 12 frames
+warnings (1 distinct, 1 occurrences):
+  frame-time: average frame 16.9 ms > 16 ms budget  [crash/light/390x844]
+ok: no problems, 1 warning(s)
+END 20:13:58 load 11.42 9.16 6.70 rc=0 WALL 468.070346851 s

@@ -1,0 +1,333 @@
+# Subtest: frameBounds fits the eight corners exactly inside the margin (independent projection)
+# Subtest: projectPoint agrees with the independent projection
+# Subtest: margin is a fraction of the shorter side; HUD insets shrink and shift the region
+# Subtest: HUD inset changes reframe smoothly; small ones are ignored; a resize cuts
+# Subtest: focus gesture frames the given bounds and holds them
+# Subtest: settled without a timeline is stateless across phase changes
+# Subtest: maxZoom stops the push-in on small things and keeps them centred
+# Subtest: starts on the establishing shot of the world, then pushes in on the focus
+# Subtest: phase change returns to the establishing shot (history and timeline modes)
+# Subtest: dead zone: small focus moves keep the shot, leaving the central region reframes
+# Subtest: zoom hysteresis: < 22 % size change keeps the shot, more reframes
+# Subtest: springs are critically damped (no overshoot) and frame-rate independent
+# Subtest: idle drift: bounded, slow, deterministic; none with reduced motion
+# Subtest: reduced motion cuts to the new shot instead of flying
+# Subtest: settled mode is stateless: same frame, same camera, whatever came before
+# Subtest: orbit gestures take over within limits; auto resumes 4 s after the last gesture
+# Subtest: zoom gesture keeps the floor point under the pointer; pan follows the pointer
+# Subtest: fit frames the given bounds (instant) and holds them like a gesture
+# Subtest: resizing reframes for the new aspect without a flight
+# Subtest: a world too wide for the free area is framed at the minimum size, holding the focus, cut at the bare edge
+# Subtest: a focus the panel side can't reach keeps the focus, even if the world must run under the panel
+# Subtest: with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+# Subtest: a small board fills a fair share of the free area instead of sitting tiny
+# Subtest: the last step frames its focus close and large: the payoff
+# Subtest: parseMoment reads the readable spelling and the HUD's
+# Subtest: linkParam keeps only what the figure can use, and says why
+# Subtest: resolveMoment checks a moment against the figure
+# Subtest: resolveStep places a moment in a compiled run
+# Subtest: formatMoment round-trips through parseMoment
+# Subtest: share links drop this visit's switches and say nothing they don't need
+# Subtest: handout helpers
+# Subtest: camera: yaw 0 looks from +y toward -y with +x to the right and +y lower on screen
+# Subtest: camera: unproject inverts project on any horizontal plane; pxPerUnit matches finite differences
+# Subtest: shadow light box contains the scene and is texel-snapped
+# Subtest: fitDistance frames a box inside the margin
+# Subtest: EDT is exact against brute force
+# Subtest: SDF of an anti-aliased disc: 128 on the edge, monotone across it
+# Subtest: slab template: closed ring stack, every triangle indexes a real vertex, outward winding on the side wall
+# Subtest: pack: slabs split by LOD and transparency, transparent sorted back to front
+# Subtest: pack: a tile in a tray lands its contact shadow on the well floor; a hopping one fades with height
+# Subtest: pack: lights capped at LIGHT.maxPointLights; grooves grow by arc length; rails become solids
+# Subtest: pack: labels align left / centre / right on the face and shrink to fit
+# Subtest: pack: zones go below grooves, texts and ticks above; outlines of raised things become ring slabs
+# Subtest: atlas shelves: free gaps are reused, full atlas refuses
+# Subtest: pack: status accent and crash darkening land in the slab texels
+# Subtest: pack: afterglow keeps a used groove faintly lit for GLOW.afterglow s, resets on a jump back
+# Subtest: pack: a flashing tile in a tray pings on the tray floor; data tiles cast colour bounce, housings do not
+# Subtest: every pose kind in CONTRACTS 4.6 has a look
+# Subtest: housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+# Subtest: fail LED blinks at 1.6 Hz from time
+# Subtest: variants change the silhouette: store is a puck with a round well, chip has printed pins
+# Subtest: tiles: keyed body with key ink, neutral, ghost; lit rises and rims; flash emits; dim desaturates
+# Subtest: record: key left in key ink, value right lighter; a value roll yields two clipped labels
+# Subtest: packet: an emissive key-coloured pill that is a point light
+# Subtest: trace and bus: grooves with pulses coloured by key; bus accepts several polylines
+# Subtest: keyed trace: an idle trace with a key keeps a faint glow in that key's colour; none without
+# Subtest: lane: rail + ruler + printed name in sentence case + time labels; mark is a puck on the rail; playhead is a lit print line
+# Subtest: zone, text, bracket, pointer, container
+# Subtest: light theme picks light tokens
+# Subtest: pure: deterministic, DOM-free, never mutates poses
+# Subtest: the gallery scene skins without unknown kinds and stays inside its bounds
+# Subtest: ease matches the token curve endpoints and is monotonic
+# Subtest: real format: traces ignore w:0, bus draws branches and tee fillets, pulses keep a0/a1 and direction
+# Subtest: real format: hop tilt is bank (roll is the value-roll progress), LED crossfade, store tray.round
+# Subtest: real format: lanes put the ruler and time labels where the scene says; messages and prints
+# Subtest: real format: text variants label / index / floor, raised text keeps its z
+# Subtest: real compiled frames: every trace, branch and label becomes visible geometry
+# Subtest: status accent: a strip under the header from led, idle barely there, crossfades with ledPrev
+# Subtest: a crashed housing darkens and desaturates, its accent glows red and breathes; a lit one pools light
+# Subtest: bus: only the parts that carry data glow; tiles that flash or light carry a ping
+# Subtest: ink on identity colours: whichever of near-black and white contrasts more (WCAG), so every key takes dark ink
+# Subtest: tile sub-labels print at a readable size and strength; a ghost that says something uses muted ink
+# Subtest: trace arrows: an inlaid chevron at the receiving port, in the trace's own groove and light
+# Subtest: counter formats
+# Subtest: counter decimals and unit (int and x)
+# Subtest: deep links parse and coerce by definition
+# Subtest: deep links ignore bad parts and keep foreign hash keys
+# Subtest: deep links round-trip
+# Subtest: only params that differ from the scenario's resolved values go in the link
+# Subtest: highlighter classifies tokens per language
+# Subtest: highlighter reproduces the source exactly
+# Subtest: theme variables come from tokens
+# Subtest: the promise counts the run: chapters, minutes at the reading pace, questions, what-ifs
+# Subtest: the next story is the one after this, and none after the last
+# Subtest: finished stories and the place to pick up are remembered, and only worth-it places are offered
+# Subtest: garbage in storage is ignored, never thrown
+# Subtest: plain text stays one text node
+# Subtest: key chips, with and without custom text
+# Subtest: ref chips keep a null text so the HUD can use the entity title
+# Subtest: tone words; unknown tones keep their text but no tone
+# Subtest: inline code is literal, braces and stars inside it included
+# Subtest: bold can contain marks, and ** inside code does not close it
+# Subtest: malformed marks stay literal text
+# Subtest: escapes produce literal characters
+# Subtest: newlines collapse to spaces
+# Subtest: toText resolves refs through refTitle
+# Subtest: toDOM builds chips with identity colour variables and data attributes
+# Subtest: toDOM marks keys it cannot resolve as unknown
+# Subtest: punctuation after a chip is glued to it so a line never starts with it
+# Subtest: glossary terms parse with and without custom text, and flatten to their text
+# Subtest: toDOM makes a defined term a focusable word that carries its definition; an undefined one stays plain text
+# Subtest: captionTemplate: chips, code, numbers and comparisons become placeholders
+# Subtest: captionHead: the leading clause, never cut inside a chip or code
+# Subtest: foldPlan: a run folds after its pattern has played twice
+# Subtest: foldPlan: two in a row is not a pattern yet; chapters, asks and keep break runs
+# Subtest: foldPlan: a short cycle (heartbeat, ack) folds after two full cycles
+# Subtest: rateAt: 1 outside, eases up to the fold rate and back to 1 at the region's end
+# Subtest: forkOf: start at the first different step, backed off for context
+# Subtest: forkOf on the real figures: Raft crash starts at the crash, MapReduce crash at Map
+# Subtest: a mark without t lands at the sim time of the step it is committed in
+# Subtest: the lanes rail ends just after the last event, on a round major tick
+# Subtest: s.send { delay } and { at } stagger departures inside one step
+# Subtest: paced steps: dur = max(paced, reading time); s.pace({ read: false }) keeps sim-time proportions
+# Subtest: a trace takes tone, dim, state and dashed; other props on it are problems
+# Subtest: a counter changes once its motion lands, not late in the reading hold after it
+# Subtest: mapreduce happy {}: no problems, invariants hold
+# Subtest: mapreduce happy {"mappers":1,"reducers":1}: no problems, invariants hold
+# Subtest: mapreduce happy {"mappers":6,"reducers":4}: no problems, invariants hold
+# Subtest: mapreduce happy {"combiner":true}: no problems, invariants hold
+# Subtest: mapreduce happy {"combiner":true,"mappers":1}: no problems, invariants hold
+# Subtest: mapreduce happy {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+# Subtest: mapreduce happy {"input":""}: no problems, invariants hold
+# Subtest: mapreduce crash {}: no problems, invariants hold
+# Subtest: mapreduce crash {"mappers":1,"reducers":1}: no problems, invariants hold
+# Subtest: mapreduce crash {"mappers":6,"reducers":4}: no problems, invariants hold
+# Subtest: mapreduce crash {"combiner":true}: no problems, invariants hold
+# Subtest: mapreduce crash {"combiner":true,"mappers":1}: no problems, invariants hold
+# Subtest: mapreduce crash {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+# Subtest: mapreduce crash {"input":""}: no problems, invariants hold
+# Subtest: mapreduce straggler {}: no problems, invariants hold
+# Subtest: mapreduce straggler {"mappers":1,"reducers":1}: no problems, invariants hold
+# Subtest: mapreduce straggler {"mappers":6,"reducers":4}: no problems, invariants hold
+# Subtest: mapreduce straggler {"combiner":true}: no problems, invariants hold
+# Subtest: mapreduce straggler {"combiner":true,"mappers":1}: no problems, invariants hold
+# Subtest: mapreduce straggler {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+# Subtest: mapreduce straggler {"input":""}: no problems, invariants hold
+# Subtest: mapreduce skew {}: no problems, invariants hold
+# Subtest: mapreduce skew {"mappers":1,"reducers":1}: no problems, invariants hold
+# Subtest: mapreduce skew {"mappers":6,"reducers":4}: no problems, invariants hold
+# Subtest: mapreduce skew {"combiner":true}: no problems, invariants hold
+# Subtest: mapreduce skew {"combiner":true,"mappers":1}: no problems, invariants hold
+# Subtest: mapreduce skew {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+# Subtest: mapreduce skew {"input":""}: no problems, invariants hold
+# Subtest: mapreduce has every phase, the combiner shrinks the shuffle, the crash re-runs a split
+# Subtest: mapreduce happy {}: motion is continuous (no jumps, no pops)
+# Subtest: mapreduce crash {}: motion is continuous (no jumps, no pops)
+# Subtest: mapreduce straggler {}: motion is continuous (no jumps, no pops)
+# Subtest: mapreduce skew {}: motion is continuous (no jumps, no pops)
+# Subtest: mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)
+# Subtest: heartbeat steady {}: motion is continuous (no jumps, no pops)
+# Subtest: heartbeat crash {}: motion is continuous (no jumps, no pops)
+# Subtest: heartbeat: held sends, lanes and marks compile cleanly and keep their invariant
+# Subtest: row places members left to right with the gap, centred on the cross axis
+# Subtest: column stacks top to bottom; align start/end
+# Subtest: grid, ring and free layouts never overlap their members
+# Subtest: housing measures to its tray plus header and inset, at least minW/minD
+# Subtest: tile heights: in a housing on the well floor, on a plate, loose on the floor
+# Subtest: trays keep one size for the whole run (capacity = most tiles ever held) and fill row-major
+# Subtest: overflow compresses spacing inside the fixed extent and is reported
+# Subtest: titled groups become zones padded by SIZE.zone.pad and follow their members
+# Subtest: arrays and bits: cells, indices and bitfield brackets
+# Subtest: a tile's own width (s.tile(id, { w })) sizes its slot, the tray and its pose; a keyed trace carries its key
+# Subtest: a trace leaves and enters on the facing edges, orthogonally
+# Subtest: corner arcs use SIZE.trace.corner and keep the arc-length table exact
+# Subtest: ports spread along a shared edge, ordered by their far ends; gutter runs get their own tracks
+# Subtest: a trace detours around a housing that stands in its way
+# Subtest: a bus is one trunk in its spacer with branches joining it
+# Subtest: routes are recomputed when the layout changes, and the trace morphs instead of jumping
+# Subtest: top-to-bottom flow: bottom->top traces fan out through a horizontal gutter; a bus trunk runs across its spacer
+# Subtest: a self-loop leaves its housing's right edge, wraps the corner outside it and comes back in through the front
+# Subtest: facing ports alone on their edges line up into one straight run; a narrow gap never curls
+# Subtest: arrow is a trace option and a settable prop
+# Subtest: Frame shape matches engine/contracts.mjs
+# Subtest: sample is stable and pure: same time, same frame; order of calls does not matter
+# Subtest: sample(t, view, out) refills a frame in place
+# Subtest: compile is deterministic across runs and scenarios differ
+# Subtest: performance: <= 2 ms per sample with ~300 entities
+# Subtest: actors: broadcasts, held sends delivered several steps later, crashes, drops, re-used ids
+# Subtest: tracked arrays: one op per step with swap, set, tag, count, point and lit
+# Subtest: tracked stacks and queues: containers along z and y, push by spawn, pop by remove
+# Subtest: messages and tiles can travel a bus in both directions
+# Subtest: s.zone: a printed region around entities that follows them, glides on membership change, fades in and out
+# Subtest: lost in flight: deliver({ remove, lost }) stops the packet where it is, flashes it fail and fades it; the diagonal stops there, dashed
+# Subtest: declarations before the first step form S0; later ones are recorded and animate
+# Subtest: steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask, line
+# Subtest: phases carry an optional about: s.phase(name, { about }), a string, or none
+# Subtest: counters accumulate; snapshots hold the values at the start of each step
+# Subtest: snapshots are immutable records shared between steps (copy on write)
+# Subtest: builder queries: s.get, s.has, s.key (first-seen order), s.rng is seeded and deterministic
+# Subtest: problems: unknown ids, non-containers, overflow, overlaps, missing captions, >8 keys, ops after the last step
+# Subtest: hash is stable for the same script and changes with it
+# Subtest: params resolve: defaults, then scenario overrides, then explicit values
+# Subtest: events mark notable ops for scrubber ticks; build errors become problems
+# Subtest: narration helpers build markup that round-trips, and captions may only refer to real entities
+# Subtest: meta.level intro reads a little slower; ask keeps its why
+# Subtest: move along a trace: lift out of the slot, glide on the groove with a pulse, settle into the new slot
+# Subtest: arc hop elsewhere: parabolic, height clamp(k * distance), tilts into travel and lands level
+# Subtest: swap: two arcs, one higher, ending in each other's slots
+# Subtest: spawn emerges from its source, then travels to its slot
+# Subtest: create after the first step rises out of the floor with a flash
+# Subtest: remove: sink and fade; or fly into a consumer, which flashes
+# Subtest: set: value roll (textOut + roll over MOTION.roll), flash, LED crossfade, dim, meter
+# Subtest: beats run in order; siblings in a beat stagger by MOTION.stagger
+# Subtest: send along a trace: packet from port to port, pulse behind it, absorbed on arrival
+# Subtest: air send arcs over the floor and leaves a fading print trace
+# Subtest: held sends: positioned by simulated time across steps, delivered several steps later, many in flight
+# Subtest: marks sit on their lane at their time; the playhead runs on interpolated simulated time
+# Subtest: pointers stand in front of their slot and glide between slots
+# Subtest: LOD fades by view.pxPerUnit; hover and selected flags
+# Subtest: tags live for their step, fade in and out, anchored above their entity
+# Subtest: focus covers both ends of this step's motion; s.focus overrides; world is stable
+# Subtest: reduced motion: transitions become 150 ms crossfades without arcs
+# Subtest: tags on a housing, or on a tile resting in one, anchor above the housing's back edge (not over its header)
+# Subtest: the world contains every pointer flag, arc peak and step focus
+# Subtest: a tag over the first housing of a titled zone sits above the zone's edge, not on its title
+# Subtest: shot times: phases, all, explicit steps, times and end
+# Subtest: findings repeating over steps and shots collapse into one line
+# Subtest: caption markup becomes plain text
+# Subtest: argument parsing: values, =, lists, booleans, sizes
+# Subtest: finds static, side-effect, re-export and literal dynamic imports
+# Subtest: ignores imports inside strings, templates, comments and regexes
+# Subtest: template substitutions keep lexing code (an import inside one is found)
+# Subtest: reports computed dynamic imports and import.meta
+# Subtest: rewrite replaces only the specifier tokens
+# Subtest: specifiers: skill files by path, the figure as @internals/figure, outside files under local/
+# Subtest: graph: figure outside the skill importing it by relative, absolute and @internals paths
+# Subtest: minify drops comments and indentation and keeps every token, line break and template byte for byte
+# Subtest: every module in the skill still parses after minify
+# Subtest: minifyCss keeps strings, url()s and descendant spaces
+# Subtest: moduleUrl escapes what a URL parser would drop or cut, and decodes back to the source
+# Subtest: the template is a clean model lesson: no errors, no warnings
+# Subtest: the lesson reads like a script: hook, words, chapters, captions, predict with why, recap, takeaway
+# Subtest: a clean small figure passes; flat() flattens every mark
+# Subtest: clear defects are errors: an undefined term, an answer that is not an option, a bad level, a bad recap
+# Subtest: advisories: no hook question, no analogy, no recap, no level, a question without why
+# Subtest: a defined word used before it is marked, and a defined word never marked
+# Subtest: jargon: flagged when undefined, quiet when glossed inline or defined as a term; always flagged in labels
+# Subtest: sizing by level: an intro lesson with many chapters and knobs is told to slim down
+# Subtest: captions over the budget and long sentences are reported once, with the worst example
+# Subtest: text helpers: sentences, syllables, grade
+# Subtest: tone: words that tell a beginner it should be easy
+# Subtest: knobs marked hidden: true (kept out of the settings drawer) do not count toward the knob limit
+# Subtest: chapter names are checked for jargon like story labels: the scrubber shows them before anything is explained
+# Subtest: other knob values: captions, words and chapter names a run shows only there are linted too, each once
+# Subtest: vint uses the shortest length and never the all-ones value
+# Subtest: muxes a seekable file: header, info duration, track, clusters at keyframes, cues
+# Subtest: a typo is one edit, a swap of two letters included
+# Subtest: keyLine, excerpt and frameIn name the line
+# Subtest: a syntax error in an imported file is reported with its line and a caret
+# Subtest: findChrome honours CHROME_PATH, says when it is wrong, and searches PATH
+# Subtest: a copied README's commands are rewritten to run from the new folder
+# Subtest: a clean figure passes every run (scenarios x param extremes)
+# Subtest: a broken figure gets precise, actionable findings
+# Subtest: events run in (time, seq) order and each makes one step at its sim time
+# Subtest: same seed, same recording; different seeds, different timings
+# Subtest: latency stays within mean ± jitter (with a floor) and FIFO links keep order
+# Subtest: an analytic check: a token ring takes exactly the sum of its link latencies
+# Subtest: random drops: about the configured rate, visible deaths, latency stream unchanged
+# Subtest: crash and recover: deaths at a down node, timers stop, LEDs and hooks
+# Subtest: partitions cut links between sides, at send time and in flight; unlisted nodes reach everyone
+# Subtest: describe: the split and heal captions, the zone title and lost-message captions, per network or per call
+# Subtest: pacing: builder pacing by default, explicit durations on request, both from the gap to the next step
+# Subtest: batching merges a burst into one step with chorus narration
+# Subtest: quiet losses join the next step; drain finishes messages in flight
+# Subtest: lanes: sends between laned nodes draw diagonals; timers, crashes mark lanes
+# Subtest: node state is published as a copy, only when it changes
+# Subtest: validation: unknown nodes, self-sends, scheduling in the past, drop rates
+# Subtest: fixtures compile on the real engine: no problems, invariants hold, hashes are stable
+# Subtest: sim/rng.mjs can be the builder's s.rng
+# Subtest: every runtime drives the real builder without problems
+# Subtest: every scenario, many seeds and sizes: clean recording, invariants hold, honest counters
+# Subtest: already sorted input is the worst case; duplicates share identity colours
+# Subtest: typed input overrides n and the generated values
+# Subtest: the figure is deterministic and its narration is precise
+# Subtest: the invariants catch a broken array
+# Subtest: 200 seeds × every scenario: clean recordings, Raft's safety invariants on every step, and liveness
+# Subtest: other cluster sizes and lossy networks stay safe
+# Subtest: chaos: random crashes, partitions and drop storms never break safety (200 seeds)
+# Subtest: the invariants have teeth: each deliberate protocol bug is caught
+# Subtest: Figure 8: correct Raft survives the adversary; counting old-term replicas does not
+# Subtest: deterministic, with honest counters and sim time on every step
+# Subtest: the invariants reject forged histories
+# Subtest: bytes: decimal by default, binary on request, unit never wraps
+# Subtest: ms: ns, µs, ms and s
+# Subtest: pct, ratio, num and int
+# Subtest: hex and bin: width, grouping, BigInt, sign
+# Subtest: plural, pluralize and and()
+# Subtest: caption markup helpers
+# Subtest: variants advance in lockstep, one shared step per round
+# Subtest: the scoped builder prefixes counters and ids and forbids stepping
+# Subtest: bubble sort vs insertion sort on the same input, with honest per-variant counters
+# Subtest: bit fields split and join, with masks and shifts, beyond 32 bits
+# Subtest: the cache agrees with independent LRU and FIFO oracles on random traces
+# Subtest: cache details: evicted line addresses, dirty write-backs, order and reset
+# Subtest: TLB: LRU slots stay put; FIFO evicts the oldest
+# Subtest: x86-64 page walk: indices, entry addresses, faults, canonical addresses
+# Subtest: MMU: a TLB hit skips the walk
+# Subtest: render helpers drive the builder cleanly
+# Subtest: xoshiro128** matches an independent reference
+# Subtest: same seed, same stream; different seeds differ; numbers and strings agree
+# Subtest: fork is pure in (seed path, label) and independent of the parent's position
+# Subtest: clone continues from the same position
+# Subtest: int is inclusive, unbiased enough and validated
+# Subtest: float, chance, bool, exp and normal have the right shape
+# Subtest: shuffle, sample, pick and weighted
+# Subtest: no simulation module uses Math.random or Date.now
+# Subtest: records every call with a snapshot of its arguments
+# Subtest: flags unknown ids, use before declaration, removed entities
+# Subtest: flags steps without captions, trailing ops, held messages and bad deliveries
+# Subtest: say() satisfies a step's caption; step merges caption and says
+# Subtest: validates tones, LEDs, set fields, counters, lanes, time and overflow
+# Subtest: models membership: move, swap, spawn, remove, deliver into
+# Subtest: bits, pointers, lanes and marks
+# Subtest: same build, same recording; strict mode throws
+# Subtest: runFigure resolves params like the runtime and checks invariants on every snapshot
+# Subtest: a comparison and its swap are one step with precise narration
+# Subtest: bubble sort through tracked.array matches a naive bubble sort, step for step
+# Subtest: insertion sort with writes: set joins its comparison
+# Subtest: pointers stay on their slots through swaps, hide off the ends and narrate as consequences
+# Subtest: marks and dims belong to slots, not tiles
+# Subtest: auto: none leaves stepping to the author and hands back the narration
+# Subtest: array state is published for invariants and survives as a copy
+# Subtest: stack and queue agree with native arrays over random operations
+# Subtest: hash tables (chaining and linear probing) agree with a Map over random operations
+# Subtest: hash table narration and tags show hash(k) % m and the probe sequence
+# tests 325
+# suites 0
+# pass 325
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 86650.326041

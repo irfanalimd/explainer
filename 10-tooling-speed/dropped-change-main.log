@@ -1,0 +1,10 @@
+QUEUED 19:36:24 5.58 6.75 4.82
+START 19:36:54 load 5.09 6.52 4.80
+[9:05] teach 390x844 happy dark: 8 cards (523 s)
+[10:43] teach 390x844 crash dark: 6 cards (98 s)
+[11:44] teach 390x844 straggler dark: 6 cards (61 s)
+[12:38] teach 390x844 skew dark: 8 cards (54 s)
+shot 28 PNGs -> runs/base-C2/
+sheet runs/base-C2/contact.png
+no page errors, no audit problems
+END 19:49:34 load 4.99 7.07 6.40 rc=0 WALL 759.826766840 s

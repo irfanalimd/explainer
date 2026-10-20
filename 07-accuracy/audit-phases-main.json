@@ -1,0 +1,4964 @@
+{
+ "mapreduce": {
+  "problems": [
+   {
+    "kind": "frame-time",
+    "level": "warn",
+    "step": null,
+    "where": "happy/1440x900",
+    "message": "average frame 149.9 ms > 16 ms budget"
+   },
+   {
+    "kind": "focus-outside",
+    "step": 4,
+    "message": "part of the step's focus is outside the frame",
+    "where": "happy/390x844",
+    "t": 22.6,
+    "caption": "{ref:m1|map 1} writes a slip for each of its 4 words, like `(jumps, 1)`."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 19,
+    "message": "part of the step's focus is outside the frame",
+    "where": "happy/390x844",
+    "t": 101.35000000000002,
+    "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+   },
+   {
+    "kind": "frame-time",
+    "level": "warn",
+    "step": null,
+    "where": "happy/390x844",
+    "message": "average frame 19.3 ms > 16 ms budget"
+   },
+   {
+    "kind": "focus-outside",
+    "step": 22,
+    "message": "part of the step's focus is outside the frame",
+    "where": "crash/390x844",
+    "t": 117.26400000000001,
+    "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 22,
+    "message": "part of the step's focus is outside the frame",
+    "where": "straggler/390x844",
+    "t": 118.75000000000003,
+    "caption": "{ref:r1|reduce 1} sorts its 4 slips so equal words sit together."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 4,
+    "message": "part of the step's focus is outside the frame",
+    "where": "skew/390x844",
+    "t": 20.93,
+    "caption": "{ref:m1|map 1} writes a slip for each of its 5 lines, like `(301, 1)`."
+   }
+  ],
+  "errors": [],
+  "runs": [
+   {
+    "where": "happy/1440x900",
+    "frames": 10,
+    "steps": 25,
+    "ms": 149.89999997615814
+   },
+   {
+    "where": "crash/1440x900",
+    "frames": 10,
+    "steps": 27,
+    "ms": 0.9000000953674316
+   },
+   {
+    "where": "straggler/1440x900",
+    "frames": 10,
+    "steps": 27,
+    "ms": 0.7999999523162842
+   },
+   {
+    "where": "skew/1440x900",
+    "frames": 10,
+    "steps": 30,
+    "ms": 1.100000023841858
+   },
+   {
+    "where": "happy/390x844",
+    "frames": 10,
+    "steps": 25,
+    "ms": 19.299999952316284
+   },
+   {
+    "where": "crash/390x844",
+    "frames": 10,
+    "steps": 27,
+    "ms": 3.200000047683716
+   },
+   {
+    "where": "straggler/390x844",
+    "frames": 10,
+    "steps": 27,
+    "ms": 1.0999999046325684
+   },
+   {
+    "where": "skew/390x844",
+    "frames": 10,
+    "steps": 30,
+    "ms": 0.8000000715255737
+   }
+  ],
+  "target": "base-mapreduce"
+ },
+ "raft": {
+  "problems": [
+   {
+    "kind": "focus-outside",
+    "step": 1,
+    "message": "part of the step's focus is outside the frame",
+    "where": "happy/1440x900",
+    "t": 7.8,
+    "caption": "{ref:s1}'s timer runs out first: it runs for leader in {term:term} 1, voting for itself."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 2,
+    "message": "part of the step's focus is outside the frame",
+    "where": "happy/1440x900",
+    "t": 15.599,
+    "caption": "4 servers send {ref:s1} a vote. It needs a {term:majority}: 3 of 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/1440x900",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 1,
+    "message": "part of the step's focus is outside the frame",
+    "where": "crash/1440x900",
+    "t": 7.8,
+    "caption": "{ref:s1}'s timer runs out first: it runs for leader in {term:term} 1, voting for itself."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 2,
+    "message": "part of the step's focus is outside the frame",
+    "where": "crash/1440x900",
+    "t": 15.599,
+    "caption": "4 servers send {ref:s1} a vote. It needs a {term:majority}: 3 of 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 29,
+    "message": "part of the step's focus is outside the frame",
+    "where": "crash/1440x900",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/1440x900",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 1,
+    "message": "part of the step's focus is outside the frame",
+    "where": "partition/1440x900",
+    "t": 7.8,
+    "caption": "{ref:s1}'s timer runs out first: it runs for leader in {term:term} 1, voting for itself."
+   },
+   {
+    "kind": "focus-outside",
+    "step": 2,
+    "message": "part of the step's focus is outside the frame",
+    "where": "partition/1440x900",
+    "t": 15.599,
+    "caption": "4 servers send {ref:s1} a vote. It needs a {term:majority}: 3 of 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 8,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 37.55,
+    "caption": "`nop` is copied to {ref:s2} and {ref:s5} as {term:entry} 1."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/1440x900",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 62.79999999999998,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 109.99899999999997,
+    "caption": "4 servers are now in step with {ref:s1}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 112.89999999999998,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s1.e15",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s3.e16",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s4.e17",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s5.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 30,
+    "id": "s2.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "happy/390x844",
+    "t": 115.79899999999996,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 10,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 40.599999999999994,
+    "caption": "`x←3` is copied to {ref:s2}, {ref:s3} and {ref:s5} as {term:entry} 2."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 16,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 65.59899999999999,
+    "caption": "{ref:s1} adds `y←7` to its log as {term:entry} 3 and sends copies."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 19,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 76.19999999999999,
+    "caption": "Messages sent to a crashed server are {tone:fail|lost}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 21,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 86.79899999999999,
+    "caption": "No answer for `y←7`, and no leader to ask: the client waits."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 29,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 118.65,
+    "caption": "{ref:s5} hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 36,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 150.49900000000002,
+    "caption": "{ref:s5} tells {ref:s4} and {ref:s2}: everything up to entry 5 is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 38,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 155.55,
+    "caption": "`nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 39,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 160.59900000000002,
+    "caption": "4 servers are now in step with {ref:s5}'s log."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 163.50000000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e12",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e13",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e14",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s5.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s4.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s2.e21",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s3.e22",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 40,
+    "id": "s1.e24",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "crash/390x844",
+    "t": 166.39900000000003,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 8,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 37.55,
+    "caption": "`nop` is copied to {ref:s2} and {ref:s5} as {term:entry} 1."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 15,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 59.498999999999995,
+    "caption": "The client hears `x←3` is committed."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 27,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 88.39999999999996,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 41,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 117.29899999999992,
+    "caption": "Messages from {ref:s1} can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 56,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 152.8499999999999,
+    "caption": "{ref:s3} adds `y←7` as entry 4, but its copies can't cross the split."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 70,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 188.39899999999986,
+    "caption": "`x←5` is copied to {ref:s4} and {ref:s5} as {term:entry} 5."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s1.e10",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s2.e11",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 76,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 206.44999999999987,
+    "caption": "{ref:s3} is on term 2, so {ref:s1}'s term-1 update is refused."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 85,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 224.49899999999985,
+    "caption": "{ref:s1} ignores out-of-date replies from {ref:s4}."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 227.39999999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e3",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e6",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e7",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e8",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e9",
+    "message": "\"x←3\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e15",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e16",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e17",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s3.e18",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s4.e19",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s5.e20",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e22",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s2.e23",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e25",
+    "message": "\"y←7\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   },
+   {
+    "kind": "label-overflow",
+    "step": 86,
+    "id": "s1.e26",
+    "message": "\"x←5\" is 20.9 u wide on a 20.0 u face",
+    "where": "partition/390x844",
+    "t": 230.29899999999986,
+    "caption": "All 5 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order."
+   }
+  ],
+  "errors": [],
+  "runs": [
+   {
+    "where": "happy/1440x900",
+    "frames": 6,
+    "steps": 31,
+    "ms": 1
+   },
+   {
+    "where": "crash/1440x900",
+    "frames": 12,
+    "steps": 41,
+    "ms": 1.3000000715255737
+   },
+   {
+    "where": "partition/1440x900",
+    "frames": 12,
+    "steps": 87,
+    "ms": 0.8000000715255737
+   },
+   {
+    "where": "happy/390x844",
+    "frames": 6,
+    "steps": 31,
+    "ms": 1.100000023841858
+   },
+   {
+    "where": "crash/390x844",
+    "frames": 12,
+    "steps": 41,
+    "ms": 0.8999999761581421
+   },
+   {
+    "where": "partition/390x844",
+    "frames": 12,
+    "steps": 87,
+    "ms": 0.7000000476837158
+   }
+  ],
+  "target": "base-raft"
+ }
+}

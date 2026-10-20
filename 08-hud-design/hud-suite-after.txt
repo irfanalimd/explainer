@@ -1,0 +1,5 @@
+node scripts/snap.mjs engine/hud/test.html --eval "window.__results.then(r=>JSON.stringify({pass:r.pass,fail:r.fail.length}))"
+
+polish/hud-design (6a6b8c3): {"pass":271,"fail":0}
+main (8ccff12): throws before reporting: TypeError: Cannot read properties of null (reading 'dataset')
+perf/faster-leaner-polish (508deae, with the accuracy branch's checks): {"pass":275,"fail":0}

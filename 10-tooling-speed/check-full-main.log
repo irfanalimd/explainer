@@ -1,0 +1,48 @@
+QUEUED 21:25:58 6.34 7.50 7.93
+START 21:25:58 load 6.34 7.50 7.93
+[0:00] verify   every scenario, knob extreme and branch, the lesson and its words
+[0:03] verify   26 runs, 0 failing, 0 error(s), 0 warning(s)
+[0:03] build    one self-contained page
+[0:03] build    runs/check-base.html  1.83 MB
+[0:03] shoot    every chapter and teaching card, both themes, 1440x900 and 390x844 (long: minutes)
+[1:03] shoot    shot 1440x900 happy dark: 10 frames (50 s)
+[1:53] shoot    shot 1440x900 happy light: 10 frames (49 s)
+[2:22] shoot    shot 1440x900 crash dark: 10 frames (29 s)
+[2:50] shoot    shot 1440x900 crash light: 10 frames (28 s)
+[3:18] shoot    shot 1440x900 straggler dark: 10 frames (28 s)
+[3:47] shoot    shot 1440x900 straggler light: 10 frames (28 s)
+[4:17] shoot    shot 1440x900 skew dark: 10 frames (30 s)
+[4:48] shoot    shot 1440x900 skew light: 10 frames (31 s)
+[16:01] shoot    teach 1440x900 happy dark: 7 cards (662 s)
+[18:21] shoot    teach 1440x900 crash dark: 5 cards (140 s)
+[20:02] shoot    teach 1440x900 straggler dark: 5 cards (101 s)
+[22:07] shoot    teach 1440x900 skew dark: 7 cards (125 s)
+[33:09] shoot    teach 1440x900 happy light: 7 cards (660 s)
+[35:12] shoot    teach 1440x900 crash light: 5 cards (123 s)
+[36:42] shoot    teach 1440x900 straggler light: 5 cards (90 s)
+[38:49] shoot    teach 1440x900 skew light: 7 cards (127 s)
+[40:03] shoot    shot 390x844 happy dark: 10 frames (64 s)
+[41:07] shoot    shot 390x844 happy light: 10 frames (64 s)
+[41:26] shoot    shot 390x844 crash dark: 10 frames (18 s)
+[41:45] shoot    shot 390x844 crash light: 10 frames (19 s)
+[42:03] shoot    shot 390x844 straggler dark: 10 frames (18 s)
+[42:21] shoot    shot 390x844 straggler light: 10 frames (18 s)
+[42:38] shoot    shot 390x844 skew dark: 10 frames (17 s)
+[42:55] shoot    shot 390x844 skew light: 10 frames (17 s)
+[53:01] shoot    teach 390x844 happy dark: 8 cards (598 s)
+[54:32] shoot    teach 390x844 crash dark: 6 cards (91 s)
+[55:39] shoot    teach 390x844 straggler dark: 6 cards (67 s)
+[57:03] shoot    teach 390x844 skew dark: 8 cards (84 s)
+[62:06] shoot    teach 390x844 happy light: 8 cards (302 s)
+[63:02] shoot    teach 390x844 crash light: 6 cards (56 s)
+[63:46] shoot    teach 390x844 straggler light: 6 cards (44 s)
+[64:37] shoot    teach 390x844 skew light: 8 cards (51 s)
+[64:49] shoot    264 shots, 1 audit finding(s) (in 10 shots), 0 page error(s)
+[64:49] audit    every step, mid and end, at 1440x900 and 390x844
+[74:03] audit    2 finding(s), 0 page error(s)
+[74:25] report   runs/check-base/report.html
+check   Needs work  (full, 74:03)
+  FAIL  audit: focus-outside: part of the step's focus is outside the frame (steps 4, 19, 22, at 390x844)
+  next  Fix the first problem below, then run check again.
+report  runs/check-base/report.html  (and report.md)
+END 22:40:23 load 3.84 4.04 5.32 rc=1 WALL 4465.577802529 s

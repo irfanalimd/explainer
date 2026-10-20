@@ -1,0 +1,5 @@
+QUEUED 20:05:56 3.09 3.30 4.20
+START 20:05:56 load 3.09 3.30 4.20
+[eval] "{\"pass\":275,\"fail\":0,\"failed\":[]}"
+/home/ubuntu/tmp/explainer-perf/lead/fin/runs/hud.png
+END 20:06:10 load 3.78 3.46 4.24 rc=0 WALL 13.755640460 s

@@ -1,0 +1,12 @@
+ CONTRACTS.md                            | 12 +++++-
+ engine/gfx/backends/webgl2/renderer.mjs | 72 +++++++++++++++++++++------------
+ engine/gfx/backends/webgpu/device.mjs   |  9 ++++-
+ engine/gfx/backends/webgpu/renderer.mjs | 21 ++++++----
+ engine/gfx/look.mjs                     |  8 ++++
+ engine/gfx/select.mjs                   |  1 +
+ engine/runtime.mjs                      | 27 +++++++++----
+ references/tooling.md                   | 21 +++++++++-
+ scripts/build.mjs                       | 15 +++----
+ scripts/lib/modules.mjs                 | 49 ++++++++++++++++++++++
+ scripts/lib/modules.test.mjs            | 72 +++++++++++++++++++++++++++++++--
+ 11 files changed, 251 insertions(+), 56 deletions(-)

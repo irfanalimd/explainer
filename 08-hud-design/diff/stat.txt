@@ -1,0 +1,10 @@
+ DESIGN.md                     |   4 +-
+ engine/a11y/describe.mjs      |   4 +-
+ engine/hud/hud.css            |  17 +++---
+ engine/hud/hud.mjs            |   7 ++-
+ engine/hud/layers.mjs         |   3 +-
+ engine/hud/presenter-view.mjs |   2 +-
+ engine/hud/share.mjs          |   7 ++-
+ engine/hud/test.html          | 129 ++++++++++++++++++++++++++++--------------
+ references/roadmap.md         |  18 ++++--
+ 9 files changed, 126 insertions(+), 65 deletions(-)

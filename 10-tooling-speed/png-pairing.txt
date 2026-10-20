@@ -1,0 +1,145 @@
+PNG pairing, shoot --scenario all --teach on the same built page (main 8ccff12's MapReduce build, md5 7fde4183...).
+A = main's tools (lead/fin/runs/shoot-base), B = this branch's tools (lead/fin/runs/shoot-new), A0 = an earlier run of main's tools on the same page (tooling/runs/base-shoot-A).
+Compared after decoding (RGBA). 'threshold': pngcmp's big-difference cut. Only files that differ in either pair are listed.
+
+## phase: 160 files; B vs A: 158 same pixels; A0 vs A: 159 same pixels
+happy-dark-1440x900-000-mid.png                      B vs A: same pixels | A0 vs A: 43 px differ (0.003 %), 0.00 % by more than the threshold, max 60/255
+skew-light-1440x900-001-end.png                      B vs A: 2 px differ (0.000 %), 0.00 % by more than the threshold, max 1/255 | A0 vs A: same pixels
+skew-light-1440x900-001-mid.png                      B vs A: 2 px differ (0.000 %), 0.00 % by more than the threshold, max 1/255 | A0 vs A: same pixels
+
+## teach: 104 files; B vs A: 1 same pixels; A0 vs A: 0 same pixels
+crash-dark-1440x900-007-ask.png                      B vs A: 716709 px differ (55.302 %), 0.01 % by more than the threshold, max 77/255 | A0 vs A: 718616 px differ (55.449 %), 0.01 % by more than the threshold, max 78/255
+crash-dark-1440x900-007-why.png                      B vs A: 673269 px differ (51.950 %), 0.00 % by more than the threshold, max 22/255 | A0 vs A: 672118 px differ (51.861 %), 0.00 % by more than the threshold, max 7/255
+crash-dark-1440x900-026-end-cannow.png               B vs A: 705005 px differ (54.399 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704619 px differ (54.369 %), 0.00 % by more than the threshold, max 7/255
+crash-dark-1440x900-026-end-card.png                 B vs A: 705047 px differ (54.402 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704725 px differ (54.377 %), 0.00 % by more than the threshold, max 7/255
+crash-dark-1440x900-026-end-check.png                B vs A: 705057 px differ (54.403 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704753 px differ (54.379 %), 0.00 % by more than the threshold, max 7/255
+crash-dark-390x844-007-ask.png                       B vs A: 114615 px differ (34.820 %), 0.00 % by more than the threshold, max 16/255 | A0 vs A: 114823 px differ (34.884 %), 0.00 % by more than the threshold, max 6/255
+crash-dark-390x844-007-why.png                       B vs A: 41675 px differ (12.661 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 70268 px differ (21.348 %), 0.00 % by more than the threshold, max 5/255
+crash-dark-390x844-026-end-cannow.png                B vs A: 145208 px differ (44.115 %), 1.25 % by more than the threshold, max 196/255 | A0 vs A: 166552 px differ (50.599 %), 1.22 % by more than the threshold, max 206/255
+crash-dark-390x844-026-end-caption.png               B vs A: 165301 px differ (50.219 %), 2.58 % by more than the threshold, max 224/255 | A0 vs A: 190756 px differ (57.952 %), 4.13 % by more than the threshold, max 219/255
+crash-dark-390x844-026-end-card.png                  B vs A: 109041 px differ (33.127 %), 0.52 % by more than the threshold, max 115/255 | A0 vs A: 82001 px differ (24.912 %), 0.29 % by more than the threshold, max 96/255
+crash-dark-390x844-026-end-check.png                 B vs A: 77948 px differ (23.681 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 113025 px differ (34.337 %), 0.00 % by more than the threshold, max 4/255
+crash-light-1440x900-007-ask.png                     B vs A: 616732 px differ (47.587 %), 0.00 % by more than the threshold, max 9/255 | A0 vs A: 616287 px differ (47.553 %), 0.00 % by more than the threshold, max 6/255
+crash-light-1440x900-007-why.png                     B vs A: 592083 px differ (45.685 %), 0.00 % by more than the threshold, max 51/255 | A0 vs A: 591012 px differ (45.603 %), 0.00 % by more than the threshold, max 12/255
+crash-light-1440x900-026-end-cannow.png              B vs A: 601811 px differ (46.436 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 602210 px differ (46.467 %), 0.00 % by more than the threshold, max 5/255
+crash-light-1440x900-026-end-card.png                B vs A: 601796 px differ (46.435 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 602159 px differ (46.463 %), 0.00 % by more than the threshold, max 5/255
+crash-light-1440x900-026-end-check.png               B vs A: 602305 px differ (46.474 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 603139 px differ (46.539 %), 0.00 % by more than the threshold, max 5/255
+crash-light-390x844-007-ask.png                      B vs A: 96587 px differ (29.343 %), 0.00 % by more than the threshold, max 29/255 | A0 vs A: 96404 px differ (29.288 %), 0.00 % by more than the threshold, max 13/255
+crash-light-390x844-007-why.png                      B vs A: 86611 px differ (26.313 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 62140 px differ (18.878 %), 0.00 % by more than the threshold, max 3/255
+crash-light-390x844-026-end-cannow.png               B vs A: 132221 px differ (40.169 %), 1.67 % by more than the threshold, max 220/255 | A0 vs A: 101196 px differ (30.744 %), 0.57 % by more than the threshold, max 221/255
+crash-light-390x844-026-end-caption.png              B vs A: 168076 px differ (51.062 %), 4.09 % by more than the threshold, max 235/255 | A0 vs A: 161922 px differ (49.192 %), 3.17 % by more than the threshold, max 236/255
+crash-light-390x844-026-end-card.png                 B vs A: 67970 px differ (20.650 %), 0.33 % by more than the threshold, max 113/255 | A0 vs A: 98211 px differ (29.837 %), 0.64 % by more than the threshold, max 127/255
+crash-light-390x844-026-end-check.png                B vs A: 92302 px differ (28.042 %), 0.00 % by more than the threshold, max 3/255 | A0 vs A: 63791 px differ (19.380 %), 0.00 % by more than the threshold, max 3/255
+happy-dark-1440x900-012-right.png                    B vs A: 678573 px differ (52.359 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 679785 px differ (52.453 %), 0.04 % by more than the threshold, max 86/255
+happy-dark-1440x900-012-wrong.png                    B vs A: 712739 px differ (54.995 %), 0.00 % by more than the threshold, max 34/255 | A0 vs A: 712809 px differ (55.001 %), 0.00 % by more than the threshold, max 7/255
+happy-dark-1440x900-018-ask.png                      B vs A: 723470 px differ (55.823 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 724707 px differ (55.919 %), 0.16 % by more than the threshold, max 125/255
+happy-dark-1440x900-018-why.png                      B vs A: 696294 px differ (53.726 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 695602 px differ (53.673 %), 0.00 % by more than the threshold, max 7/255
+happy-dark-1440x900-024-end-cannow.png               B vs A: 683921 px differ (52.772 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 684643 px differ (52.827 %), 0.00 % by more than the threshold, max 7/255
+happy-dark-1440x900-024-end-card.png                 B vs A: 683828 px differ (52.765 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 684563 px differ (52.821 %), 0.00 % by more than the threshold, max 7/255
+happy-dark-1440x900-024-end-check.png                B vs A: 684114 px differ (52.787 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 684735 px differ (52.834 %), 0.00 % by more than the threshold, max 7/255
+happy-dark-390x844-012-right.png                     B vs A: 113255 px differ (34.407 %), 0.22 % by more than the threshold, max 162/255 | A0 vs A: 145830 px differ (44.304 %), 3.67 % by more than the threshold, max 229/255
+happy-dark-390x844-012-wrong.png                     B vs A: 149372 px differ (45.380 %), 1.40 % by more than the threshold, max 233/255 | A0 vs A: 161935 px differ (49.196 %), 3.94 % by more than the threshold, max 238/255
+happy-dark-390x844-018-ask.png                       B vs A: 104248 px differ (31.671 %), 0.10 % by more than the threshold, max 171/255 | A0 vs A: 122706 px differ (37.279 %), 0.75 % by more than the threshold, max 217/255
+happy-dark-390x844-018-why.png                       B vs A: 78862 px differ (23.959 %), 0.22 % by more than the threshold, max 168/255 | A0 vs A: 95032 px differ (28.871 %), 0.35 % by more than the threshold, max 172/255
+happy-dark-390x844-024-end-cannow.png                B vs A: 102236 px differ (31.060 %), 0.10 % by more than the threshold, max 131/255 | A0 vs A: 194824 px differ (59.188 %), 6.64 % by more than the threshold, max 201/255
+happy-dark-390x844-024-end-caption.png               B vs A: 149117 px differ (45.302 %), 0.12 % by more than the threshold, max 116/255 | A0 vs A: 176855 px differ (53.729 %), 15.40 % by more than the threshold, max 222/255
+happy-dark-390x844-024-end-card.png                  B vs A: 43378 px differ (13.178 %), 0.03 % by more than the threshold, max 110/255 | A0 vs A: 76373 px differ (23.202 %), 2.66 % by more than the threshold, max 177/255
+happy-dark-390x844-024-end-check.png                 B vs A: 87499 px differ (26.583 %), 0.05 % by more than the threshold, max 75/255 | A0 vs A: 224350 px differ (68.158 %), 4.12 % by more than the threshold, max 149/255
+happy-light-1440x900-012-right.png                   B vs A: 590154 px differ (45.537 %), 0.03 % by more than the threshold, max 134/255 | A0 vs A: 590552 px differ (45.567 %), 0.03 % by more than the threshold, max 134/255
+happy-light-1440x900-012-wrong.png                   B vs A: 639548 px differ (49.348 %), 0.00 % by more than the threshold, max 22/255 | A0 vs A: 639472 px differ (49.342 %), 0.00 % by more than the threshold, max 30/255
+happy-light-1440x900-018-ask.png                     B vs A: 619667 px differ (47.814 %), 0.10 % by more than the threshold, max 180/255 | A0 vs A: 618922 px differ (47.756 %), 0.00 % by more than the threshold, max 18/255
+happy-light-1440x900-018-why.png                     B vs A: 588373 px differ (45.399 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 586983 px differ (45.292 %), 0.00 % by more than the threshold, max 4/255
+happy-light-1440x900-024-end-cannow.png              B vs A: 581166 px differ (44.843 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 581538 px differ (44.872 %), 0.00 % by more than the threshold, max 5/255
+happy-light-1440x900-024-end-card.png                B vs A: 581145 px differ (44.841 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 581570 px differ (44.874 %), 0.00 % by more than the threshold, max 5/255
+happy-light-1440x900-024-end-check.png               B vs A: 581209 px differ (44.846 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 581542 px differ (44.872 %), 0.00 % by more than the threshold, max 5/255
+happy-light-390x844-012-right.png                    B vs A: 97459 px differ (29.608 %), 0.35 % by more than the threshold, max 207/255 | A0 vs A: 161128 px differ (48.951 %), 3.50 % by more than the threshold, max 240/255
+happy-light-390x844-012-wrong.png                    B vs A: 115033 px differ (34.947 %), 0.56 % by more than the threshold, max 230/255 | A0 vs A: 161739 px differ (49.137 %), 3.61 % by more than the threshold, max 238/255
+happy-light-390x844-018-ask.png                      B vs A: 100872 px differ (30.645 %), 0.56 % by more than the threshold, max 222/255 | A0 vs A: 88856 px differ (26.995 %), 0.03 % by more than the threshold, max 102/255
+happy-light-390x844-018-why.png                      B vs A: 46182 px differ (14.030 %), 0.02 % by more than the threshold, max 86/255 | A0 vs A: 88851 px differ (26.993 %), 0.31 % by more than the threshold, max 183/255
+happy-light-390x844-024-end-cannow.png               B vs A: 81261 px differ (24.687 %), 0.17 % by more than the threshold, max 142/255 | A0 vs A: 222868 px differ (67.708 %), 8.89 % by more than the threshold, max 204/255
+happy-light-390x844-024-end-caption.png              B vs A: 123285 px differ (37.454 %), 0.04 % by more than the threshold, max 51/255 | A0 vs A: 181060 px differ (55.007 %), 14.84 % by more than the threshold, max 200/255
+happy-light-390x844-024-end-card.png                 B vs A: 41117 px differ (12.491 %), 0.09 % by more than the threshold, max 67/255 | A0 vs A: 87667 px differ (26.634 %), 2.21 % by more than the threshold, max 160/255
+happy-light-390x844-024-end-check.png                B vs A: 74360 px differ (22.591 %), 0.07 % by more than the threshold, max 53/255 | A0 vs A: 193361 px differ (58.744 %), 5.11 % by more than the threshold, max 150/255
+skew-dark-1440x900-007-ask.png                       B vs A: 703570 px differ (54.288 %), 0.00 % by more than the threshold, max 6/255 | A0 vs A: 703545 px differ (54.286 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-1440x900-007-why.png                       B vs A: 680664 px differ (52.520 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 680202 px differ (52.485 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-1440x900-028-ask.png                       B vs A: 716399 px differ (55.278 %), 0.00 % by more than the threshold, max 12/255 | A0 vs A: 716173 px differ (55.260 %), 0.00 % by more than the threshold, max 13/255
+skew-dark-1440x900-028-why.png                       B vs A: 697928 px differ (53.852 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 698110 px differ (53.867 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-1440x900-029-end-cannow.png                B vs A: 706088 px differ (54.482 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 705050 px differ (54.402 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-1440x900-029-end-card.png                  B vs A: 705926 px differ (54.470 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704995 px differ (54.398 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-1440x900-029-end-check.png                 B vs A: 705923 px differ (54.469 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704907 px differ (54.391 %), 0.00 % by more than the threshold, max 7/255
+skew-dark-390x844-007-ask.png                        B vs A: 130640 px differ (39.689 %), 0.99 % by more than the threshold, max 213/255 | A0 vs A: 91061 px differ (27.665 %), 0.00 % by more than the threshold, max 6/255
+skew-dark-390x844-007-why.png                        B vs A: 39225 px differ (11.917 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 65885 px differ (20.016 %), 0.05 % by more than the threshold, max 95/255
+skew-dark-390x844-028-ask.png                        B vs A: 96049 px differ (29.180 %), 0.00 % by more than the threshold, max 18/255 | A0 vs A: 121577 px differ (36.936 %), 0.65 % by more than the threshold, max 233/255
+skew-dark-390x844-028-why.png                        B vs A: same pixels | A0 vs A: 76228 px differ (23.158 %), 0.00 % by more than the threshold, max 34/255
+skew-dark-390x844-029-end-cannow.png                 B vs A: 83726 px differ (25.436 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 137232 px differ (41.692 %), 1.08 % by more than the threshold, max 232/255
+skew-dark-390x844-029-end-caption.png                B vs A: 144316 px differ (43.844 %), 0.00 % by more than the threshold, max 6/255 | A0 vs A: 204510 px differ (62.131 %), 1.20 % by more than the threshold, max 234/255
+skew-dark-390x844-029-end-card.png                   B vs A: 38214 px differ (11.610 %), 0.00 % by more than the threshold, max 6/255 | A0 vs A: 105157 px differ (31.947 %), 0.99 % by more than the threshold, max 223/255
+skew-dark-390x844-029-end-check.png                  B vs A: 55727 px differ (16.930 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 115207 px differ (35.000 %), 0.04 % by more than the threshold, max 63/255
+skew-light-1440x900-007-ask.png                      B vs A: 611497 px differ (47.183 %), 0.06 % by more than the threshold, max 177/255 | A0 vs A: 611951 px differ (47.218 %), 0.05 % by more than the threshold, max 179/255
+skew-light-1440x900-007-why.png                      B vs A: 588639 px differ (45.420 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 588610 px differ (45.417 %), 0.00 % by more than the threshold, max 5/255
+skew-light-1440x900-028-ask.png                      B vs A: 602113 px differ (46.459 %), 0.00 % by more than the threshold, max 23/255 | A0 vs A: 602134 px differ (46.461 %), 0.00 % by more than the threshold, max 22/255
+skew-light-1440x900-028-why.png                      B vs A: 586770 px differ (45.275 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 586960 px differ (45.290 %), 0.00 % by more than the threshold, max 5/255
+skew-light-1440x900-029-end-cannow.png               B vs A: 587307 px differ (45.317 %), 0.00 % by more than the threshold, max 5/255 | A0 vs A: 587216 px differ (45.310 %), 0.00 % by more than the threshold, max 4/255
+skew-light-1440x900-029-end-card.png                 B vs A: 587323 px differ (45.318 %), 0.00 % by more than the threshold, max 5/255 | A0 vs A: 587195 px differ (45.308 %), 0.00 % by more than the threshold, max 4/255
+skew-light-1440x900-029-end-check.png                B vs A: 588297 px differ (45.393 %), 0.00 % by more than the threshold, max 5/255 | A0 vs A: 589543 px differ (45.489 %), 0.00 % by more than the threshold, max 4/255
+skew-light-390x844-007-ask.png                       B vs A: 77552 px differ (23.561 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 136780 px differ (41.554 %), 0.92 % by more than the threshold, max 216/255
+skew-light-390x844-007-why.png                       B vs A: 37189 px differ (11.298 %), 0.01 % by more than the threshold, max 78/255 | A0 vs A: 40600 px differ (12.334 %), 0.05 % by more than the threshold, max 107/255
+skew-light-390x844-028-ask.png                       B vs A: 83366 px differ (25.327 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 118819 px differ (36.098 %), 0.47 % by more than the threshold, max 239/255
+skew-light-390x844-028-why.png                       B vs A: 29764 px differ (9.042 %), 0.00 % by more than the threshold, max 2/255 | A0 vs A: 59202 px differ (17.986 %), 0.00 % by more than the threshold, max 20/255
+skew-light-390x844-029-end-cannow.png                B vs A: 90963 px differ (27.635 %), 0.70 % by more than the threshold, max 223/255 | A0 vs A: 116989 px differ (35.542 %), 1.11 % by more than the threshold, max 221/255
+skew-light-390x844-029-end-caption.png               B vs A: 158715 px differ (48.218 %), 0.82 % by more than the threshold, max 236/255 | A0 vs A: 186297 px differ (56.598 %), 1.39 % by more than the threshold, max 233/255
+skew-light-390x844-029-end-card.png                  B vs A: 99661 px differ (30.277 %), 1.02 % by more than the threshold, max 211/255 | A0 vs A: 77851 px differ (23.651 %), 0.85 % by more than the threshold, max 212/255
+skew-light-390x844-029-end-check.png                 B vs A: 70384 px differ (21.383 %), 0.02 % by more than the threshold, max 29/255 | A0 vs A: 140550 px differ (42.700 %), 0.01 % by more than the threshold, max 28/255
+straggler-dark-1440x900-006-ask.png                  B vs A: 707471 px differ (54.589 %), 0.00 % by more than the threshold, max 10/255 | A0 vs A: 706699 px differ (54.529 %), 0.00 % by more than the threshold, max 9/255
+straggler-dark-1440x900-006-why.png                  B vs A: 672890 px differ (51.921 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 672838 px differ (51.917 %), 0.00 % by more than the threshold, max 7/255
+straggler-dark-1440x900-026-end-cannow.png           B vs A: 704298 px differ (54.344 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704175 px differ (54.334 %), 0.00 % by more than the threshold, max 7/255
+straggler-dark-1440x900-026-end-card.png             B vs A: 704326 px differ (54.346 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704147 px differ (54.332 %), 0.00 % by more than the threshold, max 7/255
+straggler-dark-1440x900-026-end-check.png            B vs A: 704336 px differ (54.347 %), 0.00 % by more than the threshold, max 7/255 | A0 vs A: 704215 px differ (54.338 %), 0.00 % by more than the threshold, max 7/255
+straggler-dark-390x844-006-ask.png                   B vs A: 109163 px differ (33.164 %), 0.00 % by more than the threshold, max 8/255 | A0 vs A: 111547 px differ (33.888 %), 0.29 % by more than the threshold, max 197/255
+straggler-dark-390x844-006-why.png                   B vs A: 39474 px differ (11.992 %), 0.00 % by more than the threshold, max 5/255 | A0 vs A: 65924 px differ (20.028 %), 0.00 % by more than the threshold, max 5/255
+straggler-dark-390x844-026-end-cannow.png            B vs A: 137924 px differ (41.902 %), 1.40 % by more than the threshold, max 197/255 | A0 vs A: 188106 px differ (57.147 %), 1.67 % by more than the threshold, max 204/255
+straggler-dark-390x844-026-end-caption.png           B vs A: 151987 px differ (46.174 %), 0.00 % by more than the threshold, max 6/255 | A0 vs A: 211808 px differ (64.348 %), 4.52 % by more than the threshold, max 228/255
+straggler-dark-390x844-026-end-card.png              B vs A: 39236 px differ (11.920 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 108500 px differ (32.963 %), 0.51 % by more than the threshold, max 107/255
+straggler-dark-390x844-026-end-check.png             B vs A: 55294 px differ (16.799 %), 0.00 % by more than the threshold, max 3/255 | A0 vs A: 132775 px differ (40.338 %), 0.08 % by more than the threshold, max 77/255
+straggler-light-1440x900-006-ask.png                 B vs A: 617227 px differ (47.626 %), 0.36 % by more than the threshold, max 255/255 | A0 vs A: 617096 px differ (47.615 %), 0.36 % by more than the threshold, max 255/255
+straggler-light-1440x900-006-why.png                 B vs A: 593092 px differ (45.763 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 594675 px differ (45.885 %), 0.00 % by more than the threshold, max 5/255
+straggler-light-1440x900-026-end-cannow.png          B vs A: 601330 px differ (46.399 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 602142 px differ (46.462 %), 0.00 % by more than the threshold, max 4/255
+straggler-light-1440x900-026-end-card.png            B vs A: 601313 px differ (46.398 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 602167 px differ (46.464 %), 0.00 % by more than the threshold, max 4/255
+straggler-light-1440x900-026-end-check.png           B vs A: 602165 px differ (46.463 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 603573 px differ (46.572 %), 0.00 % by more than the threshold, max 4/255
+straggler-light-390x844-006-ask.png                  B vs A: 96298 px differ (29.256 %), 0.30 % by more than the threshold, max 230/255 | A0 vs A: 87341 px differ (26.535 %), 0.41 % by more than the threshold, max 236/255
+straggler-light-390x844-006-why.png                  B vs A: 37371 px differ (11.353 %), 0.00 % by more than the threshold, max 4/255 | A0 vs A: 41535 px differ (12.618 %), 0.00 % by more than the threshold, max 4/255
+straggler-light-390x844-026-end-cannow.png           B vs A: 117241 px differ (35.618 %), 2.00 % by more than the threshold, max 211/255 | A0 vs A: 97236 px differ (29.541 %), 1.71 % by more than the threshold, max 218/255
+straggler-light-390x844-026-end-caption.png          B vs A: 138598 px differ (42.107 %), 0.68 % by more than the threshold, max 223/255 | A0 vs A: 166479 px differ (50.577 %), 3.69 % by more than the threshold, max 228/255
+straggler-light-390x844-026-end-card.png             B vs A: 106137 px differ (32.245 %), 0.57 % by more than the threshold, max 160/255 | A0 vs A: 135654 px differ (41.212 %), 0.70 % by more than the threshold, max 160/255
+straggler-light-390x844-026-end-check.png            B vs A: 49341 px differ (14.990 %), 0.01 % by more than the threshold, max 66/255 | A0 vs A: 47490 px differ (14.428 %), 0.01 % by more than the threshold, max 66/255
+
+## sheet: 2 files; B vs A: 0 same pixels; A0 vs A: 0 same pixels
+contact-2.png                                        B vs A: 238125 px differ (4.912 %), 0.05 % by more than the threshold, max 202/255 | A0 vs A: 376363 px differ (7.763 %), 0.17 % by more than the threshold, max 227/255
+contact.png                                          B vs A: 1545186 px differ (7.361 %), 0.02 % by more than the threshold, max 225/255 | A0 vs A: 1682240 px differ (8.014 %), 0.16 % by more than the threshold, max 228/255
+
+## teaching cards, summary
+big B vs A: median 0.00 p90 0.68 max 4.09 | A0 vs A: median 0.00 p90 3.61 max 15.40
+share B vs A: median 44.84 p90 54.35 max 55.82 | A0 vs A: median 46.46 p90 55.26 max 68.16
+largest B-vs-A excess over A0-vs-A (big %):
+  crash-light-390x844-026-end-cannow.png 1.67 0.57
+  skew-dark-390x844-007-ask.png 0.99 0.00
+  crash-light-390x844-026-end-caption.png 4.09 3.17
+  happy-light-390x844-018-ask.png 0.56 0.03
+  straggler-light-390x844-026-end-cannow.png 2.00 1.71
+  crash-dark-390x844-026-end-card.png 0.52 0.29
+largest B vs A:
+  crash-light-390x844-026-end-caption.png 4.09 3.17
+  crash-dark-390x844-026-end-caption.png 2.58 4.13
+  straggler-light-390x844-026-end-cannow.png 2.00 1.71
+  crash-light-390x844-026-end-cannow.png 1.67 0.57
+  happy-dark-390x844-012-wrong.png 1.40 3.94
+
+Verdict:
+- Frozen phase shots: 158 of 160 same pixels; the other 2 (skew, light, 1440x900, step 1 mid and end) differ in 2 pixels
+  by 1/255. Main against itself: 159 of 160, one shot with 43 px up to 60/255. Both are the machine's own noise; the
+  fast encoder only compresses differently (decoded, the same pixels: commit 0ae689c paired 80 of 80 shots).
+- Teaching cards are shot during live play, where the camera and the shimmer follow the wall clock, so no two runs
+  match (main against itself: 0 of 104). The branch's tools differ from main's by at most 4.09 % of pixels beyond the
+  threshold, against up to 15.40 % for main against itself; the median is 0.00 % in both. The two cards that exceed
+  their own baseline pair most (skew-dark-390x844-007-ask, crash-light-390x844-026-end-cannow) were read: same card,
+  same words, the small world strip above the card framed a little differently, the live camera.

@@ -1,0 +1,40 @@
+QUEUED 20:17:35 6.15 8.14 6.84
+START 20:17:35 load 6.15 8.14 6.84
+[1:02] shot 1440x900 happy dark: 10 frames (51 s)
+[1:51] shot 1440x900 happy light: 10 frames (49 s)
+[2:21] shot 1440x900 crash dark: 10 frames (30 s)
+[2:50] shot 1440x900 crash light: 10 frames (29 s)
+[3:19] shot 1440x900 straggler dark: 10 frames (29 s)
+[3:52] shot 1440x900 straggler light: 10 frames (33 s)
+[4:37] shot 1440x900 skew dark: 10 frames (46 s)
+[5:19] shot 1440x900 skew light: 10 frames (41 s)
+[16:53] teach 1440x900 happy dark: 7 cards (684 s)
+[19:04] teach 1440x900 crash dark: 5 cards (132 s)
+[20:50] teach 1440x900 straggler dark: 5 cards (106 s)
+[23:27] teach 1440x900 skew dark: 7 cards (157 s)
+[33:44] teach 1440x900 happy light: 7 cards (614 s)
+[35:51] teach 1440x900 crash light: 5 cards (128 s)
+[37:31] teach 1440x900 straggler light: 5 cards (100 s)
+[39:57] teach 1440x900 skew light: 7 cards (147 s)
+[41:02] shot 390x844 happy dark: 10 frames (53 s)
+[41:54] shot 390x844 happy light: 10 frames (53 s)
+[42:15] shot 390x844 crash dark: 10 frames (20 s)
+[42:36] shot 390x844 crash light: 10 frames (21 s)
+[42:57] shot 390x844 straggler dark: 10 frames (21 s)
+[43:18] shot 390x844 straggler light: 10 frames (21 s)
+[43:38] shot 390x844 skew dark: 10 frames (20 s)
+[43:57] shot 390x844 skew light: 10 frames (19 s)
+[52:19] teach 390x844 happy dark: 8 cards (494 s)
+[53:40] teach 390x844 crash dark: 6 cards (81 s)
+[54:46] teach 390x844 straggler dark: 6 cards (65 s)
+[56:02] teach 390x844 skew dark: 8 cards (76 s)
+[64:20] teach 390x844 happy light: 8 cards (498 s)
+[65:50] teach 390x844 crash light: 6 cards (89 s)
+[66:55] teach 390x844 straggler light: 6 cards (66 s)
+[68:10] teach 390x844 skew light: 8 cards (75 s)
+shot 264 PNGs -> runs/shoot-base/
+sheet runs/shoot-base/contact.png
+sheet runs/shoot-base/contact-2.png
+audit problems (1 distinct, in 10 of 264 shots; run audit.mjs for every step):
+  focus-outside at steps 4, 19, 22: part of the step's focus is outside the frame (first: "map 1 writes a slip for each of its 4 words, like `(jum…")  [happy-dark-390x844-004-mid, happy-dark-390x844-019-mid, happy-light-390x844-004-mid +7]
+END 21:25:57 load 6.34 7.50 7.93 rc=0 WALL 4102.780235086 s

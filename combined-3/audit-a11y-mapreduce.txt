@@ -1,0 +1,9 @@
+QUEUED 20:06:10 3.78 3.46 4.24
+START 20:06:10 load 3.78 3.46 4.24
+audit new-mapreduce: happy/light/1440x900 10 frames, happy/dark/1440x900 10 frames, crash/light/1440x900 10 frames, crash/dark/1440x900 10 frames, straggler/light/1440x900 10 frames, straggler/dark/1440x900 10 frames, skew/light/1440x900 10 frames, skew/dark/1440x900 10 frames, happy/light/390x844 10 frames, happy/dark/390x844 10 frames, crash/light/390x844 10 frames, crash/dark/390x844 10 frames, straggler/light/390x844 10 frames, straggler/dark/390x844 10 frames, skew/light/390x844 10 frames, skew/dark/390x844 10 frames
+warnings (3 distinct, 3 occurrences):
+  frame-time: average frame 323.0 ms > 16 ms budget  [happy/light/1440x900]
+  frame-time: average frame 62.2 ms > 16 ms budget  [happy/dark/1440x900]
+  frame-time: average frame 19.4 ms > 16 ms budget  [happy/light/390x844]
+ok: no problems, 3 warning(s)
+END 20:17:35 load 6.15 8.14 6.84 rc=0 WALL 684.636711012 s

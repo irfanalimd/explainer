@@ -1,0 +1,108 @@
+{
+ "mapreduce": {
+  "problems": [
+   {
+    "kind": "frame-time",
+    "level": "warn",
+    "step": null,
+    "where": "happy/1440x900",
+    "message": "average frame 154.8 ms > 16 ms budget"
+   }
+  ],
+  "errors": [],
+  "runs": [
+   {
+    "where": "happy/1440x900",
+    "frames": 10,
+    "steps": 25,
+    "ms": 154.80000007152557
+   },
+   {
+    "where": "crash/1440x900",
+    "frames": 10,
+    "steps": 27,
+    "ms": 2
+   },
+   {
+    "where": "straggler/1440x900",
+    "frames": 10,
+    "steps": 27,
+    "ms": 0.7000000476837158
+   },
+   {
+    "where": "skew/1440x900",
+    "frames": 10,
+    "steps": 30,
+    "ms": 2.200000047683716
+   },
+   {
+    "where": "happy/390x844",
+    "frames": 10,
+    "steps": 25,
+    "ms": 12.100000023841858
+   },
+   {
+    "where": "crash/390x844",
+    "frames": 10,
+    "steps": 27,
+    "ms": 0.9000000953674316
+   },
+   {
+    "where": "straggler/390x844",
+    "frames": 10,
+    "steps": 27,
+    "ms": 2.100000023841858
+   },
+   {
+    "where": "skew/390x844",
+    "frames": 10,
+    "steps": 30,
+    "ms": 0.8999999761581421
+   }
+  ],
+  "target": "new-mapreduce"
+ },
+ "raft": {
+  "problems": [],
+  "errors": [],
+  "runs": [
+   {
+    "where": "happy/1440x900",
+    "frames": 6,
+    "steps": 31,
+    "ms": 0.8999999761581421
+   },
+   {
+    "where": "crash/1440x900",
+    "frames": 12,
+    "steps": 41,
+    "ms": 0.8999999761581421
+   },
+   {
+    "where": "partition/1440x900",
+    "frames": 12,
+    "steps": 87,
+    "ms": 1
+   },
+   {
+    "where": "happy/390x844",
+    "frames": 6,
+    "steps": 31,
+    "ms": 1.2000000476837158
+   },
+   {
+    "where": "crash/390x844",
+    "frames": 12,
+    "steps": 41,
+    "ms": 1.3000000715255737
+   },
+   {
+    "where": "partition/390x844",
+    "frames": 12,
+    "steps": 87,
+    "ms": 0.6000000238418579
+   }
+  ],
+  "target": "new-raft"
+ }
+}

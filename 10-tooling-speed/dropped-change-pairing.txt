@@ -1,0 +1,40 @@
+The dropped change: set the speed only when the run starts or stops (commits 8993397 + 732cf96, not on the branch).
+shoot --scenario all --sizes 390x844 --themes dark --teach --at none, MapReduce, same page, run side by side:
+  base-C2 = main's tools (759.8 s), new-C2 = the dropped change (695.4 s). Logs: dropped-change-main.log, dropped-change-new.log.
+  base-C = a second run of main's tools (790.1 s), for the machine's own noise.
+Share of pixels beyond pngcmp's threshold:
+
+card                                          dropped vs main   main vs main
+contact.png                                             1.02 %         0.75 %
+crash-dark-390x844-007-ask.png                          0.10 %         0.00 %
+crash-dark-390x844-007-why.png                          0.00 %         0.00 %
+crash-dark-390x844-026-end-cannow.png                   1.37 %         1.31 %
+crash-dark-390x844-026-end-caption.png                  4.28 %         0.00 %
+crash-dark-390x844-026-end-card.png                     0.51 %         0.53 %
+crash-dark-390x844-026-end-check.png                    0.00 %         0.00 %
+happy-dark-390x844-012-right.png                        4.68 %         1.81 %
+happy-dark-390x844-012-wrong.png                        4.77 %         0.45 %
+happy-dark-390x844-018-ask.png                          0.00 %         0.48 %
+happy-dark-390x844-018-why.png                          0.31 %         0.22 %
+happy-dark-390x844-024-end-cannow.png                  12.16 %        11.09 %
+happy-dark-390x844-024-end-caption.png                 18.09 %        17.45 %
+happy-dark-390x844-024-end-card.png                     2.91 %         2.51 %
+happy-dark-390x844-024-end-check.png                    6.34 %         5.20 %
+skew-dark-390x844-007-ask.png                           0.98 %         0.99 %
+skew-dark-390x844-007-why.png                           0.04 %         0.05 %
+skew-dark-390x844-028-ask.png                           1.64 %         0.67 %
+skew-dark-390x844-028-why.png                           0.01 %         0.00 %
+skew-dark-390x844-029-end-cannow.png                    1.06 %         1.07 %
+skew-dark-390x844-029-end-caption.png                   1.60 %         1.07 %
+skew-dark-390x844-029-end-card.png                      1.16 %         0.35 %
+skew-dark-390x844-029-end-check.png                     0.06 %         0.07 %
+straggler-dark-390x844-006-ask.png                      0.23 %         0.94 %
+straggler-dark-390x844-006-why.png                      0.00 %         0.00 %
+straggler-dark-390x844-026-end-cannow.png               1.82 %         1.52 %
+straggler-dark-390x844-026-end-caption.png              4.29 %         2.71 %
+straggler-dark-390x844-026-end-card.png                 0.43 %         0.45 %
+straggler-dark-390x844-026-end-check.png                0.02 %         0.02 %
+
+crash-dark-390x844-026-end-caption: 4.28 % where two runs of main match exactly; happy-dark-390x844-012-wrong: 4.77 % against
+0.45 %. The camera moves only when a frame is drawn, and the change drew one frame fewer between cards shot back to back,
+so those cards were framed for the card before. The images must not change, so the change was dropped.
