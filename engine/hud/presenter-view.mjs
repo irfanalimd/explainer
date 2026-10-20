@@ -72,7 +72,7 @@ export function openPresenterView(ctx, { onClose } = {}) {
   const mainBtn = btn("ix-pv-main-btn", I.play, "Play", "Play", () => ctx.actions.primary());
   const fwdBtn = btn("ix-pv-fwd", I.fwd, "Next", "Next step", () => ctx.actions.advance());
   // the story: a plain select, so a teacher can switch to the next what-if without walking to the projector
-  const scenarioEl = h("label", { class: "ix-pv-scenario" }, h("span", { class: "ix-pv-scenario-k", text: "Story" }),
+  const scenarioEl = h("label", { class: "ix-pv-scenario" }, h("span", { class: "ix-pv-scenario-k", text: "Scenario" }),
     h("select", { class: "ix-pv-select", onchange: (e) => ctx.actions.story(e.target.value) }));
   const levelEl = ctx.level ? ctx.level.control(h, { cls: "ix-pv-levels" }) : null;
   const root = h("div", { class: "ix ix-pv", role: "main", tabindex: "-1" },
