@@ -95,9 +95,9 @@ span at the higher scale would sit well inside the budget, never sooner than `AD
 **Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
 and while the camera or the HUD's insets still move. On a software rasterizer (SwiftShader, llvmpipe and the like:
 `look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
-tier (`look.mjs` `DRAFT`): WebGL2 at half the pixel ratio with the low preset's maps and no MSAA or tilt-shift, WebGPU at
-half its scene scale. When the camera comes to rest on a draft (`r.drafted`) the runtime draws that frame again without
-`draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
+tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps and no MSAA or
+tilt-shift, WebGPU at three quarters of its scene scale. When the camera comes to rest on a draft (`r.drafted`) the
+runtime draws that frame again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
 
 **The DrawList** carries `dl.fields`: the scale fields' packed machines (`[{ n, version, slabs, memo }]`, one per `field`
 pose; `null` when none), which the packer caches by each machine's version.

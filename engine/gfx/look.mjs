@@ -12,8 +12,9 @@ export const QUALITY = {
 
 // The draft tier: a frame in motion (playing, the camera easing) on a software rasterizer, where a full frame takes a
 // second or more without a GPU. It draws over the quality preset at `scale` of its pixel ratio; the frame the picture
-// comes to rest on, and every captured frame, is drawn in full (CONTRACTS.md 3.1, `draft`).
-export const DRAFT = { shadow: 1024, contact: 512, bloom: 4, samples: 0, bounce: 128, dof: false, scale: 0.5 };
+// comes to rest on, and every captured frame, is drawn in full (CONTRACTS.md 3.1, `draft`). At half the pixel ratio the
+// world's names (map 0, reduce 1) blur past reading at 1440x900; three quarters keeps them legible.
+export const DRAFT = { shadow: 1024, contact: 512, bloom: 4, samples: 0, bounce: 128, dof: false, scale: 0.75 };
 // renderer strings of software rasterizers (WebGL's UNMASKED_RENDERER, WebGPU's adapter info)
 export const SOFTWARE = /swiftshader|llvmpipe|softpipe|lavapipe|software|basic render/i;
 
