@@ -68,7 +68,7 @@ export async function shoot(target, o = {}) {
             const errBefore = fp.errors.length;
             const r = await fp.renderAt(s.t, o.camera ?? "settled");
             const name = `${id}-${theme}-${size.width}x${size.height}-${String(s.step).padStart(3, "0")}-${s.tag}.png`;
-            await fp.page.shot(join(outDir, name));
+            await fp.page.shot(join(outDir, name), null, FAST_PNG);
             const audit = await fp.audit().catch((e) => [{ kind: "audit-error", message: e.message }]);
             const caption = r?.caption ?? info.steps[s.step]?.caption ?? "";
             shots.push({ file: name, scenario: id, theme, size, step: s.step, tag: s.tag, t: s.t, phase: s.phase, caption });
@@ -91,6 +91,9 @@ export async function shoot(target, o = {}) {
   }
 }
 
+// Chrome's fast PNG encoding: the same pixels (checked shot by shot against the default encoding), about a third
+// larger, and 0.4 s less a 1440x900 shot (0.65 s -> 0.25 s), which is a fifth of a frozen shot on software rendering
+const FAST_PNG = { fast: true };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const TEACH_SPEED = 16;   // --teach: the playback speed between cards
 const TEACH_WAIT = 4;     // --teach: how much longer than the nominal timeouts a slow machine may take
@@ -116,7 +119,7 @@ async function teachShots(browser, url, size, o) {
   const snap = async (file) => {
     await ev("__internals.setSpeed(1), true");
     await waitFor(`(document.querySelector(".ix-speed-val")?.textContent ?? "1×") === "1×"`, 3000);
-    await fp.page.shot(file);
+    await fp.page.shot(file, null, FAST_PNG);
     await ev(`${fast}, true`);
   };
   const tag = (id, theme) => `${id}-${theme}-${size.width}x${size.height}`;
@@ -307,7 +310,7 @@ async function contactSheet(browser, outDir, shots, title) {
     await page.evaluate("Promise.all([...document.images].map((i) => i.decode().catch(() => null))).then(() => true)");
     const h = await page.evaluate("Math.ceil(document.documentElement.scrollHeight)");
     await page.setViewport(W, Math.min(16000, h), 1);
-    await page.shot(join(outDir, `${name}.png`));
+    await page.shot(join(outDir, `${name}.png`), null, FAST_PNG);
     await page.close();
     rmSync(join(outDir, `${name}.html`));
     files.push(join(outDir, `${name}.png`));
