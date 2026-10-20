@@ -2154,10 +2154,10 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 }
 .ix-pv-end:hover { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-pv-where { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 16px; row-gap: 12px; padding: 0 32px 20px; }
-.ix-pv-map { display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ix-pv-map { display: flex; align-items: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .ix-pv-map li { position: relative; width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ix-ink-4); }
-/* each dot goes to its chapter: a 24 px target around an 8 px mark */
-.ix-pv-map-btn { position: absolute; inset: -8px -3px; padding: 0; border: 0; border-radius: 999px; background: none; cursor: pointer; }
+/* each dot goes to its chapter: a 24 px target around an 8 px mark, the dots 24 px apart so no two targets touch */
+.ix-pv-map-btn { position: absolute; inset: -8px; padding: 0; border: 0; border-radius: 999px; background: none; cursor: pointer; }
 .ix-pv-map-btn:hover { background: rgb(var(--ix-ink-rgb) / 0.08); }
 .ix-pv-map-btn:focus-visible { outline: var(--ix-ring); outline-offset: 0; }
 .ix-pv-map li.ix-pv-past { background: var(--ix-ink); box-shadow: none; }
