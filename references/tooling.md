@@ -112,7 +112,10 @@ hung) instead of hanging the caller. Checks, in order:
   `new Date`).
 - **runs**: every scenario at its defaults, the same on a portrait phone (`env` = 390×844, so a figure's phone layout is
   checked too), then every param at its extremes under every scenario (int/float min and
-  max, bool flipped, select first and last; params a scenario pins are left alone). `--quick` runs defaults only.
+  max, bool flipped, select first and last; params a scenario pins are left alone), then the extremes combined on the
+  phone: every param at its low end at once (bools off, selects first) and at its high end at once (bools on, selects
+  last), where knobs that only misbehave together show up (Event loop's repaint count did). `--quick` runs defaults
+  only.
 - per run: compile; **determinism** (a second compile must give the same `tl.hash` and the same steps and final
   counters; the first differing step is named); **timing** (positive durations, contiguous steps, duration matches);
   **captions** on every step; `tl.problems` from the compiler (more than 3 of one kind collapse into one line);
@@ -452,7 +455,11 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   **push** (the chapter's stage: the union of its steps' focus and `look` boxes), **detail** (a `key` step's `look`
   ids, close, from where they start to where they land, so a move's source and target share the frame), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
   last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
-  box, craning up as it widens). Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
+  box, craning up as it widens). Every shot also holds the step's focus and tags in the free area (`holdShot`, on
+  every screen size), so a detail shot pushes in only as far as keeps a focused ring or cluster whole. When the shot on
+  screen as a step starts does not hold that step's focus, a **bridge** keyframe sets the camera off up to
+  `SHOTS.bridge` (0.7 s) early, through a shot of both steps' focus (no closer than either end), so it is in frame
+  from the step's first frame. Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
   `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).
 - **Keep** (`dir.keep(bounds)`): while the reader must click something (an `s.choose` pick, which the runtime passes
   through `onPickArea`), the planned shot stands when it already holds the box inside the free area at half the

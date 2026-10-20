@@ -55,7 +55,7 @@ holds its sorted value; at the end the array is sorted.
 
 ```sh
 node ../../scripts/lesson.mjs figure.mjs --all           # the lesson as text, then the teaching checks
-node ../../scripts/verify.mjs figure.mjs                 # 12 runs, 0 failing
+node ../../scripts/verify.mjs figure.mjs                 # 18 runs, 0 failing
 node ../../scripts/build.mjs figure.mjs                  # quicksort.html
 node ../../scripts/shoot.mjs quicksort.html --scenario all
 node ../../scripts/audit.mjs quicksort.html --scenario all

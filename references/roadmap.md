@@ -25,14 +25,23 @@ What the engine does not do yet, collected while building the flagship examples 
 
 ## Timeline and narration
 
-- **Lane-mark labels collide** when events fall within about 25 ms of each other; the lanes board should thin or offset them.
-- **The `x` counter format is fixed at one decimal**, and an unset gauge shows `0.0×` instead of `—`.
-- **Counters are global**, so a counter meant for one scenario shows in every tab. Wanted: a counter definition `scenarios: [ids]`, or hide counters that never move in the current timeline.
-- **No chip is both identity-coloured and linked.** Wanted: `{ref:id}` takes the entity's key colour when it has one.
-- **verify varies one knob at a time.** Combined extremes and the phone env at extremes are not exercised.
 
 ## Done (recent)
 
+- A step boundary the shot on screen does not cover gets a bridge move that starts up to 0.7 s early, so the new
+  step's focus is in frame from its first frame. With the detail-shot fix below, steps over the 8 examples with
+  the focus partly off screen: 119 → 0 at 1440×900, 89 → 0 at 390×844.
+- A detail shot holds the step's focus on every screen, not only phones, so a focused ring or cluster stays whole.
+- verify also runs every scenario with its knobs at their extremes combined (all low, all high) on the phone (from
+  `examples/event-loop`, whose repaint count was wrong only with two knobs at once).
+- A `{ref:id}` chip on an entity with an identity key shows that key's colour in its dot (a legend swatch) and
+  stays a link (from `examples/quicksort`: the duplicate values in "Many repeats").
+- Lane-mark names that would run into each other on a rail stack up a level (`SIZE.lane.mark`: at most 3 high; a
+  name with no free level is left off, its puck stays). Raft's split story: 4 of 14 names overlapped, now none.
+- A counter definition takes `scenarios: [ids]`; other stories leave it out of the dock and the readout (from
+  `examples/event-loop`: screen repaints only in the stories that repaint).
+- A counter the run has not set yet reads `—` when it is a reading (`ms`, `pct`, `x`) and 0 when it is a tally
+  (`int`, `bytes`); `decimals` sets the digits of an `x` counter.
 - `s.trace(..., { key })`: a trace in an identity colour; `s.tile(..., { w })`: a wider tile; a pointer on a housing's
   tile stands on the floor in front of the housing (from `examples/linked-list`).
 

@@ -28,6 +28,18 @@ test("counter formats", () => {
   assert.equal(formatText(0.5, "pct"), "50%");
 });
 
+test("a counter the run has not set: a tally reads 0, a reading reads —", () => {
+  assert.deepEqual(formatCounter(undefined, "x"), ["—", ""]);
+  assert.deepEqual(formatCounter(null, "x", { decimals: 2 }), ["—", ""]);
+  assert.deepEqual(formatCounter(undefined, "pct"), ["—", ""]);
+  assert.deepEqual(formatCounter(null, "ms"), ["—", ""]);
+  assert.deepEqual(formatCounter(undefined, "int"), ["0", ""]);
+  assert.deepEqual(formatCounter(undefined), ["0", ""]);
+  assert.deepEqual(formatCounter(null, "bytes"), ["0", "B"]);
+  assert.deepEqual(formatCounter(0, "x"), ["0.0", "×"]);   // a value of 0 is still a value
+  assert.equal(formatText(undefined, "x"), "—");
+});
+
 test("counter decimals and unit (int and x)", () => {
   assert.deepEqual(formatCounter(9.25, "int", { decimals: 2, unit: "MSS" }), ["9.25", "MSS"]);
   assert.deepEqual(formatCounter(9.125, "int", { decimals: 1 }), ["9.1", ""]);

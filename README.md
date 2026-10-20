@@ -171,7 +171,7 @@ s.step("{ref:m0|map 0} emits `(fox, 1)`", {
 });
 ```
 
-Before anything ships, `verify` runs every scenario and every knob at its extremes, checks the invariants on every step, and checks the lesson and its wording. It must end with `0 failing`.
+Before anything ships, `verify` runs every scenario and every knob at its extremes, alone and all together, checks the invariants on every step, and checks the lesson and its wording. It must end with `0 failing`.
 
 ### The teacher pipeline
 

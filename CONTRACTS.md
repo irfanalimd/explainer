@@ -157,7 +157,9 @@ export const counters = {                    // the numbers, in display order
   bytes: { label: "sent between machines", short: "sent", format: "bytes", primary: true,   // format: "int" | "bytes" | "ms" | "pct" | "x" (ratio); int also takes decimals, unit
     hint: "Data the shuffle moves from mappers to reducers." },                               // hint: one line on what it means
   tasks: { label: "tasks finished", format: "int", hint: "Map and reduce tasks completed so far." },
-};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better
+};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better,
+                                             // scenarios ([ids]: only those stories show it, in the dock and the readout)
+                                             // a counter not set yet reads 0 (int, bytes) or "—" (ms, pct, x)
 export const code = { lang: "python", source: "def map(doc):\n    for w in doc.split():\n        emit(w, 1)\n" }; // optional
 export const invariants = {                  // checked on every step snapshot by verify; return true or a message
   "records conserved": (snap) => true,
@@ -268,7 +270,7 @@ tl.problems                       // build-time problems: unknown ids, overflowi
 
 Captions are plain text with inline marks, rendered by the HUD:
 - `{key:fox}` → a chip in fox's identity colour reading `fox`; `{key:fox|the word fox}` custom text.
-- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`.
+- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`. When m2 has an identity `key`, the chip's dot is in that key's colour.
 - `{tone:fail|crashed}` → a word in a status tone (`ok`, `busy`, `warn`, `fail`, `idle`).
 - `{term:pointer}` → a glossary word, underlined; its plain definition from `meta.terms` shows on hover, focus or tap (`{term:pointer|pointers}` custom text).
 - `` `hash(k) % R` `` → inline code. `**bold**`.
@@ -290,7 +292,7 @@ Implement every transition in `DESIGN.md` section 8: move along traces (lift, po
   text, sub, textOut, roll /* 0..1 */,
   title, led, meter, tray /* {x, y, w, d} local to the housing centre */,
   points /* [[x,y]…] for trace/bus/lane/bracket */, pulses /* [{s0, s1, key, intensity}] */, grow, style, dashed, arrow /* trace: "end" | "both" | null */,
-  t /* lane mark time */, label }
+  t /* lane mark time */, level /* lane mark: its name's stack level, -1 none */, label }
 ```
 
 Sizes come from `SIZE` (by kind); the scene decides *where* and *what state*, the skin decides *how it looks*.
@@ -414,8 +416,11 @@ playhead time, so play, scrub, step and capture agree. Per chapter (`tl.phases`)
 its first step, from the chapter's own yaw, held while the entry card reads), **push** (the chapter's stage, the
 union of its steps' focus and `look` boxes), **detail** (a `key` step's `layers.look`, close), **pull** (its last
 step, back to the world); then **payoff** (the run's last step before any scale shot) and **scale** (a tracking shot
-along `tl.scales`' reveal box). Moves are eased, never shorter than `SHOTS.move[0]`; a shot within `SHOTS.rest` of
-the current one is not taken. Reduced motion cuts. Authors never call it: chapters, focus and `look` ids drive it.
+along `tl.scales`' reveal box). Every shot holds its step's focus and tags in the free area (a detail shot pushes in
+only as far as that allows). Where a step's focus is not in the shot on screen when the step starts, a **bridge**
+(holding both steps' focus) starts the move up to `SHOTS.bridge` s before it, so the focus is never out of frame.
+Moves are eased, never shorter than `SHOTS.move[0]`; a shot within `SHOTS.rest` of the current one is not taken.
+Reduced motion cuts. Authors never call it: chapters, focus and `look` ids drive it.
 Without a timeline the director follows `frame.focus` with a dead zone and springs, and establishes at phase changes.
 **Keep.** While a pick is open (10.5) the runtime passes the candidates' bounds to `dir.keep()`. When the planned shot
 already holds them inside the free area (the viewport minus `insets`, with half the margin) nothing changes; otherwise
@@ -430,7 +435,7 @@ Framing must be exact: project the eight corners of the bounds box with the real
 |---|---|
 | `build.mjs <figure.mjs> [--out f.html] [--theme dark]` | one self-contained HTML page (with the `lesson.mjs` beside the figure, mounted as `figure.lesson`): fonts inlined (base64 `@font-face`), `hud.css`, an import map that maps every engine module and the figure to `data:` URLs (relative imports rewritten to bare `@internals/<path>` specifiers), and a boot module that calls `mount()` from `engine/runtime.mjs`. Works from `file://`. Verified: import maps with `data:` URLs work in headless Chrome from file://. |
 | `serve.mjs` | dev server (exists); add live reload. |
-| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (and param extremes), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint. Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
+| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (param extremes one at a time, then combined on a phone), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint. Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
 | `shoot.mjs <page.html> [--at phases\|all\|0,5,9] [--themes dark,light] [--sizes 1440x900,390x844] [--scenario id] [--out dir] [--teach]` | screenshots at chosen steps (mid-step and end-of-step) via `window.__internals`, both themes, both sizes, plus a contact sheet PNG; reports console errors. `--teach` plays live: each predict card (asked, revealed), each pick (`-wrong.png`: a wrong pick's detour held on its consequence; `-right.png`: the right pick and its why) and the end card; every wait times out and is reported, never stalls. |
 | `audit.mjs <page.html>` | in the browser via `window.__internals.audit()`: label overflow, tags off-screen or overlapping, focus outside frame, frame time; exit 1 on problems. |
 | `record.mjs <page.html> --out x.mp4\|x.webm\|frames/ [--fps 60] [--size 1920x1080] [--scenario id] [--from s] [--to s]` | deterministic frame-by-frame capture via `__internals.renderAt(t)`; encodes with ffmpeg when available (PATH, or `npx -y ffmpeg-static` with the user's consent), otherwise writes PNG frames and prints the ffmpeg command. |

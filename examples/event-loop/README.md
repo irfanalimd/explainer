@@ -79,7 +79,7 @@ Knobs: network delay (5–120 ms), chunks (3–10), work per chunk (1–8 ms), s
 ## Commands
 
 ```sh
-node ../../scripts/verify.mjs figure.mjs                 # 36 runs, 0 failing
+node ../../scripts/verify.mjs figure.mjs                 # 44 runs, 0 failing
 node ../../scripts/build.mjs figure.mjs                  # the-event-loop.html
 node ../../scripts/shoot.mjs the-event-loop.html --scenario all
 node ../../scripts/audit.mjs the-event-loop.html --scenario all

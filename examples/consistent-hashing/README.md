@@ -75,7 +75,7 @@ screen (`env.portrait`) the board is a 3-column grid under the ring.
 
 ```sh
 node ../../scripts/lesson.mjs figure.mjs --all           # the lesson as text, then the teaching checks
-node ../../scripts/verify.mjs figure.mjs                 # 20 runs, 0 failing
+node ../../scripts/verify.mjs figure.mjs                 # 23 runs, 0 failing
 node ../../scripts/build.mjs figure.mjs                  # consistent-hashing.html
 node ../../scripts/shoot.mjs consistent-hashing.html --scenario all
 node ../../scripts/audit.mjs consistent-hashing.html --scenario all

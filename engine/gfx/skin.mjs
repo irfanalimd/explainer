@@ -582,7 +582,9 @@ function mark(p, dl, ctx) {
   const s = { id: p.id, x: p.x, y: p.y, z: p.z ? p.z : railH, w: mw, d: mw, h: mh, r: mw / 2, bevel: Math.min(1.1, mh * 0.45), color: col, material: "ceramic" };
   attention(p, s, theme, { keyed: true, body: col });
   dl.slab(s);
-  if (p.text) dl.text({ x: p.x, y: p.y - 9, text: p.text, font: "mono", weight: 500, size: 5.8, color: P.inkMuted, opacity: num(p.opacity, 1) });
+  // its name stacks up a level when it would run into an earlier one on the rail (the scene's level; -1: left off)
+  const M = SIZE.lane.mark, level = num(p.level, 0);
+  if (p.text && level >= 0) dl.text({ x: p.x, y: p.y - M.rise - level * M.stack, text: p.text, font: "mono", weight: 500, size: M.label, color: P.inkMuted, opacity: num(p.opacity, 1) });
 }
 
 function playhead(p, dl, ctx) {

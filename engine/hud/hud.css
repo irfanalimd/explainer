@@ -556,6 +556,8 @@
 .ix-ref::before { content: ""; width: 5px; height: 5px; border-radius: 50%; margin-right: 6px; background: var(--ix-ink-faint); transition: background-color var(--ix-dur-fast) var(--ix-ease); }
 .ix-ref:hover, .ix-ref:focus-visible { background: var(--ix-hover); box-shadow: inset 0 0 0 1px var(--ix-ink); }
 .ix-ref:hover::before, .ix-ref:focus-visible::before { background: var(--ix-ink); }
+/* an entity with an identity key: its dot is a swatch of that key, as in the legend */
+.ix-ref[data-key]::before, .ix-ref[data-key]:is(:hover, :focus-visible)::before { width: 7px; height: 7px; margin-right: 5px; background: var(--k); }
 .ix-tone { font-weight: 500; }
 .ix-tone-ok { color: var(--ix-ok-text); }
 .ix-tone-busy { color: var(--ix-busy-text); }

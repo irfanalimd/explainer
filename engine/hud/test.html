@@ -759,6 +759,27 @@ window.__results = (async () => {
     hud5.setScenario("crash");
     check("a story-specific primary joins the dock in its story", shownNames() === "words mapped|sent between machines|busiest reducer's load", shownNames());
     hud5.setScenario("happy");
+    {
+      // a counter kept to some stories (scenarios: [ids]) is left out of the others, in the dock and the readout;
+      // a reading the run has not set yet shows a dash, not 0.0×
+      const sdefs = { ...pdefs, skew: { ...pdefs.skew, scenarios: ["crash"] } };
+      hud5.setTimeline({ ...tl, counters: sdefs });
+      hud5.update(frame(1, { counters: { records: 4, bytes: 30, tasks: 1 } }), { time: 1, playing: false, speed: 1 });
+      await frameWait();
+      const listed = () => [...root5.querySelectorAll(".ix-meters .ix-meter .ix-ml-full")].map((e) => e.textContent).join("|");
+      check("a story's own counter is left out of the other stories", !listed().includes("busiest reducer's load"), listed());
+      hud5.setScenario("crash");
+      const skewVal = () => [...root5.querySelectorAll(".ix-meters .ix-meter")].find((e) => e.querySelector(".ix-ml-full").textContent === "busiest reducer's load")?.querySelector(".ix-meter-val")?.textContent;
+      check("…and is listed in its own story", listed().includes("busiest reducer's load") && shownNames().includes("busiest reducer's load"), listed());
+      check("an unset ratio reads —, not 0.0×", skewVal() === "—", skewVal());
+      hud5.update(frame(2, { counters: { records: 4, bytes: 30, skew: 1.5, tasks: 1 } }), { time: 2, playing: false, speed: 1 });
+      await frameWait();
+      check("…and its value once the run sets it", skewVal() === "1.5×", skewVal());
+      hud5.setScenario("happy");
+      hud5.setTimeline({ ...tl, counters: pdefs });
+      hud5.update(frame(1, { counters: { records: 4, bytes: 30, skew: 1.2, tasks: 1 } }), { time: 1, playing: false, speed: 1 });
+      await frameWait();
+    }
     check("labels are plain words in sentence case, not code-like capitals", getComputedStyle(root5.querySelector(".ix-stat-label")).textTransform === "none");
     const st5 = root5.querySelector(".ix-stat");
     check("each stat carries its hint for the tooltip", st5.dataset.tip === "One record per word a mapper reads." && st5.dataset.tipHead === "words mapped");

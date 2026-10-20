@@ -365,7 +365,7 @@ export function createHud(root, opts = {}, cb = {}) {
     placeThumb();
     if (storyMode !== "strip" && S.W) updateInsets();   // the pill's width follows its label
     renderChips();
-    applyPrimary();
+    if (meterSigOf(S.counters ?? {}) !== meterSig) buildMeters(); else applyPrimary();   // a story's own counters
   }
   // the thumb slides under the current story (layout boxes, so a transform on the bar never skews it)
   let thumbSet = false;
@@ -631,7 +631,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // the printable handout (handout.mjs): the runtime compiles every story and draws the pictures (onHandoutData)
   const handout = createHandout({
     h, doc, segmented, icons: { print: ICON.print, close: ICON.close, check: ICON.check },
-    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex }),
+    md: (src, keyIndex) => toDOM(parse(src ?? ""), doc, { ...markupOpts, keyIndex, refKey: null }),   // another run's keys
     data: (o) => fire("onHandoutData", o),
     pictures: (d, onEach) => fire("onHandoutPictures", d, onEach),
     result: () => { const r = check.result; return r ? { ...r, levelName: LEVELS.find((l) => l.id === level.value)?.label ?? level.value } : null; },
@@ -1888,6 +1888,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const markupOpts = {
     keyIndex: (name) => S.keyIndex.get(String(name)) ?? null,
     refTitle: (id) => S.entities?.get?.(id)?.title ?? null,
+    refKey: (id) => S.entities?.get?.(id)?.keyIndex ?? null,
     // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
     term: (name) => termOf(S.lesson, S.meta, name)?.def ?? null,
   };
@@ -2031,7 +2032,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const meterCell = (name, def) => ({
     name, def, num: h("span", { class: "ix-meter-num" }), unit: h("span", { class: "ix-meter-unit" }),
     sNum: h("span", { class: "ix-stat-num" }), sUnit: h("span", { class: "ix-stat-unit" }),
-    target: null, shown: 0, from: 0, t0: 0, n: null, u: null, hist: [], max: 0, min: 0, sparkKey: "", row: null,
+    target: null, shown: null, from: 0, t0: 0, n: null, u: null, hist: [], max: 0, min: 0, sparkKey: "", row: null,
   });
   // the dock's compact strip: one stat per counter (or per compare row), label over value, like the chapter bar
   const statLabel = (def, name) => h("span", { class: "ix-stat-label" }, h("span", { class: "ix-ml-full", text: def.label ?? name }),
@@ -2042,9 +2043,12 @@ export function createHud(root, opts = {}, cb = {}) {
   let statEls = [];
   // Compare mode: counters with a `group` and the same `label` share a row, one column per group (CONTRACTS 4.1).
   let cmpRows = [];
+  // A counter with `scenarios: [ids]` belongs to those stories only: the others leave it out of the dock and the readout.
+  function inStory(def) { return !Array.isArray(def?.scenarios) || def.scenarios.includes(S.scenario); }
+  function meterSigOf(defs) { return JSON.stringify(defs) + "|" + Object.keys(defs).filter((k) => inStory(defs[k])).join(); }
   function buildMeters() {
     const defs = S.counters ?? {};
-    const sig = JSON.stringify(defs);
+    const sig = meterSigOf(defs);
     if (sig === meterSig) {
       for (const m of meters) { m.hist = []; m.max = 0; m.min = 0; m.sparkKey = ""; }
       return;
@@ -2054,7 +2058,7 @@ export function createHud(root, opts = {}, cb = {}) {
     statsList.replaceChildren();
     statEls = [];
     meters = []; cmpRows = [];
-    const entries = Object.entries(defs).filter(([, d]) => d && !d.hidden);
+    const entries = Object.entries(defs).filter(([, d]) => d && !d.hidden && inStory(d));
     for (const [name, def] of entries.filter(([, d]) => d.group == null)) {
       const m = meterCell(name, def);
       m.area = svg("path", { class: "ix-spark-area" }); m.line = svg("path", { class: "ix-spark-line" });
@@ -2067,7 +2071,7 @@ export function createHud(root, opts = {}, cb = {}) {
       st._defs = [def];
       statsList.append(st); statEls.push(st);
       meters.push(m);
-      renderMeterValue(m, 0);
+      renderMeterValue(m, null);
     }
     const grouped = entries.filter(([, d]) => d.group != null);
     if (grouped.length) {
@@ -2091,7 +2095,7 @@ export function createHud(root, opts = {}, cb = {}) {
           c.fill = h("i");
           c.el = h("span", { class: "ix-cmp-cell", role: "cell" }, h("span", { class: "ix-meter-val" }, c.num, c.unit), h("i", { class: "ix-cmp-bar", "aria-hidden": "true" }, c.fill));
           meters.push(c);
-          renderMeterValue(c, 0);
+          renderMeterValue(c, null);
           return c.el;
         });
         table.append(h("div", { class: "ix-cmp-row", role: "row" }, h("span", { class: "ix-cmp-label", role: "rowheader" }, meterLabel(row.def, row.label)), cellsEl));
@@ -2207,15 +2211,16 @@ export function createHud(root, opts = {}, cb = {}) {
   function setMeters(values, step) {
     for (const m of meters) {
       const raw = values[m.name];
-      const v = typeof raw === "number" ? raw : Array.isArray(raw) ? raw[0] : 0;
-      if (step >= 0) {
+      // a counter this run has not set yet stays null: a tally reads 0, a reading reads "—" (format.mjs)
+      const v = typeof raw === "number" ? raw : Array.isArray(raw) && typeof raw[0] === "number" ? raw[0] : null;
+      if (step >= 0 && v !== null) {
         if (m.hist[step] !== v) { m.hist[step] = v; if (v > m.max) m.max = v; if (v < m.min) m.min = v; sparksDirty = true; }
       }
       if (v === m.target) continue;
       const first = m.target === null;
       m.target = v;
       if (m.row) { m.row.leadDirty = true; rowsDirty = true; }
-      if (first || scrubbing || still() || Math.abs(v - m.shown) < 1e-9) { m.t0 = 0; m.shown = v; renderMeterValue(m, v); continue; }
+      if (first || v === null || m.shown === null || scrubbing || still() || Math.abs(v - m.shown) < 1e-9) { m.t0 = 0; m.shown = v; renderMeterValue(m, v); continue; }
       m.from = m.shown; m.t0 = now();
       if (!countRaf) countRaf = raf(countLoop);
     }

@@ -13,8 +13,11 @@ test("a clean figure passes every run (scenarios x param extremes)", async () =>
   const r = await verify(join(root, "scripts", "test", "fake-figure.mjs"), { compiler });
   const rep = report(r);
   assert.equal(rep.errors, 0, rep.text);
-  assert.equal(r.runs.length, 22);   // 19 + one portrait-phone run per scenario
-  assert.ok(r.runs.every((x) => x.steps >= 10));
+  assert.equal(r.runs.length, 28);   // 19 + one portrait-phone run per scenario + the knobs' extremes combined on the phone
+  // every knob at its low end together, and at its high end (bools on), on the phone; knobs a scenario pins stay put
+  const labels = r.runs.map((x) => x.label);
+  for (const id of ["ring", "drop", "glitch"]) for (const end of ["min", "max"]) assert.ok(labels.includes(`${id} · phone · all ${end}`), labels.join("\n"));
+  assert.ok(r.runs.every((x) => x.steps >= (/ · all min$/.test(x.label) ? 8 : 10)));   // 3 nodes, 1 round: 8 steps
   // the teaching lint reads the lesson too: its own section, advice only for this figure
   assert.ok(r.teaching && r.teaching.errors.length === 0 && /teaching {2}the lesson a beginner reads/.test(rep.text), rep.text);
 });
@@ -35,6 +38,8 @@ test("a broken figure gets precise, actionable findings", async () => {
     'counter(s) "extra" used by s.count/s.gauge but not declared',
     "two compiles differ",
     'counter "idle" is declared but never changes',
+    'counters.idle.scenarios must be a list of scenario ids, got nope',
+    'counter(s) "items" change in scenario "base", which their `scenarios` leave out, so the page hides them here',
     "hang",
     "still running build() at bad-figure.mjs:21, an endless loop?",   // the hung line, found through the inspector
     "bad-figure.mjs:30: Math.random()",

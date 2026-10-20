@@ -12,7 +12,7 @@ export const scenarios = [
   { id: "chaos", label: "Chaos", params: { n: 5, wobble: 2, sped: 1 } },
   { id: "hang", label: "Hangs", params: { n: 3 } },
 ];
-export const counters = { items: { label: "items", format: "count" }, idle: { label: "never used", format: "int" } };
+export const counters = { items: { label: "items", format: "count", scenarios: ["chaos"] }, idle: { label: "never used", format: "int", scenarios: ["nope"] } };
 export const invariants = {
   "at most 8 items": (snap) => (snap.counters.items ?? 0) <= 8 || `items = ${snap.counters.items}`,
   "forgot to return": () => {},
