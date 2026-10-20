@@ -510,6 +510,10 @@ A var's kind fixes how a template prints it:
 | `{ ref: id, text }` | an entity chip `{ref:id\|text}`; in `look`, the id |
 | `{ markup: m }` | caption markup as is (a composite item the figure builds, e.g. `{key:fox} = 2`) |
 
+A string is escaped, so a chip made with `fmt.key()` and passed as a bare string would print its letters
+(`{key:timeout}`); verify reports such a var (alone or in a list) as a lesson error. Pass `{ key }`, `{ ref }` or
+`{ markup }`.
+
 ### 10.2 The lesson file
 
 ```js

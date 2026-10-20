@@ -461,12 +461,15 @@ function machine(s, cfg, sc, view = {}) {
   // every step passes the clock, the queue lengths and the knobs, plus its own run values (the header lists them)
   const base = () => ({ now: round(now), at: ms(now), tasksQueued: tasks.length, microQueued: micro.length, depth: stack.length,
     chunks: cfg.chunks, work: cfg.work, latency: cfg.latency, hz: cfg.hz });
+  // a var made with K() or C() is caption markup: the lesson takes it as { markup } (a bare string prints as its letters)
+  const mark = (v) => (typeof v === "string" && /[{`]/.test(v) ? { markup: v } : Array.isArray(v) ? v.map(mark) : v);
+  const marked = (vars) => Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, mark(v)]));
   function step(sid, caption, vars = {}, o = {}) {
     if (view.whole && !focused) s.focus(view.whole);
     focused = false;
     s.gauge("now", round(now));
     s.set("stack", { state: { frames: stack.map((f) => f.label), began } });
-    s.step(caption, { ...o, t: now, id: sid, vars: { ...base(), ...vars } });
+    s.step(caption, { ...o, t: now, id: sid, vars: marked({ ...base(), ...vars }) });
     began = null;
   }
   const line = (a, b = a) => s.line(LN[a], LN[b]);
