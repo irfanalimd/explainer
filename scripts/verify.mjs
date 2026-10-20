@@ -103,9 +103,11 @@ function staticChecks(fig, file) {
     if (c && !c.hint) W(`counters.${k} has no hint: one plain line on what the number means (the readout and its tooltip show it)`);
     if (c?.primary != null && c.primary !== true && c.primary !== false && !(Array.isArray(c.primary) && c.primary.every((id) => (scen ?? []).some((x) => x?.id === id))))
       E(`counters.${k}.primary must be true or a list of scenario ids, got ${fmtVal(c.primary)}`);
+    if (c?.scenarios != null && !(Array.isArray(c.scenarios) && c.scenarios.length && c.scenarios.every((id) => (scen ?? []).some((x) => x?.id === id))))
+      E(`counters.${k}.scenarios must be a list of scenario ids, got ${fmtVal(c.scenarios)}`);
   }
   // the dock shows a story's primary numbers: 1 to 3 of them read at a glance
-  const prim = (c, id) => c?.primary === true || (Array.isArray(c?.primary) && c.primary.includes(id));
+  const prim = (c, id) => (c?.primary === true || (Array.isArray(c?.primary) && c.primary.includes(id))) && (!Array.isArray(c?.scenarios) || c.scenarios.includes(id));
   const cs = Object.values(fig.counters ?? {});
   if (cs.some((c) => c?.primary)) for (const id of (scen?.length ? scen.map((x) => x?.id) : [undefined])) {
     // grouped counters with one label share a dock slot
@@ -375,6 +377,9 @@ function verifyRun(fig, compile, run, sample) {
   const declared = Object.keys(fig.counters ?? {});
   const undeclared = [...used].filter((k) => !declared.includes(k));
   if (undeclared.length) E("counters", `counter(s) ${undeclared.map((k) => `"${k}"`).join(", ")} used by s.count/s.gauge but not declared in export const counters`);
+  // a counter kept to some stories (`scenarios`) that moves in another: the HUD would hide a number the run makes
+  const offStory = [...changed].filter((k) => Array.isArray(fig.counters?.[k]?.scenarios) && !fig.counters[k].scenarios.includes(run.scenario ?? tl.scenario));
+  if (offStory.length) W("counters", `counter(s) ${offStory.map((k) => `"${k}"`).join(", ")} change in scenario "${run.scenario ?? tl.scenario}", which their \`scenarios\` leave out, so the page hides them here`);
   // sampler
   if (sample && typeof tl.sample === "function" && steps.length) {
     const view = { pxPerUnit: 1, hover: null, selected: null, reducedMotion: false };

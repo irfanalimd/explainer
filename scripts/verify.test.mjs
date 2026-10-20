@@ -35,6 +35,8 @@ test("a broken figure gets precise, actionable findings", async () => {
     'counter(s) "extra" used by s.count/s.gauge but not declared',
     "two compiles differ",
     'counter "idle" is declared but never changes',
+    'counters.idle.scenarios must be a list of scenario ids, got nope',
+    'counter(s) "items" change in scenario "base", which their `scenarios` leave out, so the page hides them here',
     "hang",
     "still running build() at bad-figure.mjs:21, an endless loop?",   // the hung line, found through the inspector
     "bad-figure.mjs:30: Math.random()",

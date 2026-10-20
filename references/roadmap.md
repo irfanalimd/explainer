@@ -26,12 +26,13 @@ What the engine does not do yet, collected while building the flagship examples 
 ## Timeline and narration
 
 - **Lane-mark labels collide** when events fall within about 25 ms of each other; the lanes board should thin or offset them.
-- **Counters are global**, so a counter meant for one scenario shows in every tab. Wanted: a counter definition `scenarios: [ids]`, or hide counters that never move in the current timeline.
 - **No chip is both identity-coloured and linked.** Wanted: `{ref:id}` takes the entity's key colour when it has one.
 - **verify varies one knob at a time.** Combined extremes and the phone env at extremes are not exercised.
 
 ## Done (recent)
 
+- A counter definition takes `scenarios: [ids]`; other stories leave it out of the dock and the readout (from
+  `examples/event-loop`: screen repaints only in the stories that repaint).
 - A counter the run has not set yet reads `—` when it is a reading (`ms`, `pct`, `x`) and 0 when it is a tally
   (`int`, `bytes`); `decimals` sets the digits of an `x` counter.
 - `s.trace(..., { key })`: a trace in an identity colour; `s.tile(..., { w })`: a wider tile; a pointer on a housing's

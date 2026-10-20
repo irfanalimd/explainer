@@ -157,7 +157,8 @@ export const counters = {                    // the numbers, in display order
   bytes: { label: "sent between machines", short: "sent", format: "bytes", primary: true,   // format: "int" | "bytes" | "ms" | "pct" | "x" (ratio); int also takes decimals, unit
     hint: "Data the shuffle moves from mappers to reducers." },                               // hint: one line on what it means
   tasks: { label: "tasks finished", format: "int", hint: "Map and reduce tasks completed so far." },
-};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better
+};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better,
+                                             // scenarios ([ids]: only those stories show it, in the dock and the readout)
                                              // a counter not set yet reads 0 (int, bytes) or "—" (ms, pct, x)
 export const code = { lang: "python", source: "def map(doc):\n    for w in doc.split():\n        emit(w, 1)\n" }; // optional
 export const invariants = {                  // checked on every step snapshot by verify; return true or a message

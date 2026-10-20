@@ -141,7 +141,7 @@ export const counters = {
     hint: "Jobs taken from the task queue, one at a time and each to the end: the script, timers, network replies, repaints." },
   microtasks: { label: "microtasks run", format: "int", primary: true,
     hint: "Promise callbacks and code resuming after await. After each task, the loop runs every one that is waiting." },
-  frames: { label: "screen repaints", short: "repaints", format: "int", primary: ["starve", "yield"],
+  frames: { label: "screen repaints", short: "repaints", format: "int", primary: ["starve", "yield"], scenarios: ["starve", "yield"],
     hint: "Times the browser redrew the screen. A repaint is a task too, so it can only happen between tasks." },
   now: { label: "simulated time", short: "time", format: "ms",
     hint: "The clock inside the simulation, from the moment the script starts." },

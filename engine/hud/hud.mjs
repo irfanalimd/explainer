@@ -365,7 +365,7 @@ export function createHud(root, opts = {}, cb = {}) {
     placeThumb();
     if (storyMode !== "strip" && S.W) updateInsets();   // the pill's width follows its label
     renderChips();
-    applyPrimary();
+    if (meterSigOf(S.counters ?? {}) !== meterSig) buildMeters(); else applyPrimary();   // a story's own counters
   }
   // the thumb slides under the current story (layout boxes, so a transform on the bar never skews it)
   let thumbSet = false;
@@ -2042,9 +2042,12 @@ export function createHud(root, opts = {}, cb = {}) {
   let statEls = [];
   // Compare mode: counters with a `group` and the same `label` share a row, one column per group (CONTRACTS 4.1).
   let cmpRows = [];
+  // A counter with `scenarios: [ids]` belongs to those stories only: the others leave it out of the dock and the readout.
+  function inStory(def) { return !Array.isArray(def?.scenarios) || def.scenarios.includes(S.scenario); }
+  function meterSigOf(defs) { return JSON.stringify(defs) + "|" + Object.keys(defs).filter((k) => inStory(defs[k])).join(); }
   function buildMeters() {
     const defs = S.counters ?? {};
-    const sig = JSON.stringify(defs);
+    const sig = meterSigOf(defs);
     if (sig === meterSig) {
       for (const m of meters) { m.hist = []; m.max = 0; m.min = 0; m.sparkKey = ""; }
       return;
@@ -2054,7 +2057,7 @@ export function createHud(root, opts = {}, cb = {}) {
     statsList.replaceChildren();
     statEls = [];
     meters = []; cmpRows = [];
-    const entries = Object.entries(defs).filter(([, d]) => d && !d.hidden);
+    const entries = Object.entries(defs).filter(([, d]) => d && !d.hidden && inStory(d));
     for (const [name, def] of entries.filter(([, d]) => d.group == null)) {
       const m = meterCell(name, def);
       m.area = svg("path", { class: "ix-spark-area" }); m.line = svg("path", { class: "ix-spark-line" });
