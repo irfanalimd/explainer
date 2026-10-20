@@ -1245,13 +1245,13 @@
 .ix[data-size="phone"] .ix-cap-stage { min-height: 44px; }
 .ix[data-size="phone"] .ix-cap-text { font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); }
 .ix[data-size="phone"] .ix-bar { border-radius: var(--ix-r-lg); }
-/* phones: the numbers are one line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock gives
-   the world back a row; tapping the strip still opens the full readout */
-.ix[data-size="phone"] .ix-stats { height: 36px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
+/* phones: the numbers are one 32 px line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock
+   gives the world back a row; tapping the strip still opens the full readout */
+.ix[data-size="phone"] .ix-stats { height: 32px; gap: 8px; padding: 0 8px 0 12px; margin-top: 4px; margin-left: 4px; }
 .ix[data-size="phone"] .ix-stats-list { column-gap: 16px; }
 .ix[data-size="phone"] .ix-stat { flex-direction: row; align-items: baseline; gap: 6px; }
 .ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
-.ix[data-size="phone"] .ix-legend-btn { height: 36px; padding: 0 12px; gap: 0; }
+.ix[data-size="phone"] .ix-legend-btn { height: 32px; margin-top: 4px; padding: 0 12px; gap: 0; }
 .ix[data-size="phone"] .ix-legend-count { display: none; }
 
 .ix[data-size="phone"] .ix-transport {
