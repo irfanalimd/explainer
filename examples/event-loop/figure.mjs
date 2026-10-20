@@ -871,6 +871,8 @@ function machine(s, cfg, sc, view = {}) {
     function work(fr) {
       const t0 = now;
       now = round(now + cfg.work);
+      // the bar changes when the work is done: a frame that fell due during it found the page as last painted
+      while (!dirty && vsync <= now) vsync = round(vsync + cfg.frame);
       done++; dom = done; dirty = true;
       s.set("page", { state: { painted, dom } });
       return t0;
