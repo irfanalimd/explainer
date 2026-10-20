@@ -48,7 +48,8 @@ export function createLayers(ctx) {
     if (why && !whyShown) chips.push(h("button", { class: "ix-l-chip ix-l-whybtn", type: "button", "aria-expanded": "false",
       onclick: () => { open.why = true; ctx.onChange?.(); } }, "Why?"));
     const fields = deeperOf(layers);
-    if (!panel && fields.length && P.deeper !== "closed") {
+    // the caption's way into the deeper layer: the peek's own More where the peek shows, else this chip (never both)
+    if (!panel && fields.length && P.deeper !== "closed" && P.deeper !== "peek") {
       chips.push(h("button", { class: "ix-l-chip", type: "button", onclick: () => ctx.onMore?.() }, "Deeper", h("span", { class: "ix-l-chev", html: ICON.chevron })));
     }
     if (chips.length) out.append(h("div", { class: "ix-l-chips" }, chips));
