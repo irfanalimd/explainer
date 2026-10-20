@@ -170,6 +170,7 @@ function planRuns(fig, quick) {
     // the same story on a portrait phone: figures may lay themselves out differently there (build's 4th argument)
     runs.push({ label: `${s.id ?? "default"} · phone`, scenario: s.id, params: base, changed: {}, env: PHONE_ENV });
     if (quick) continue;
+    const ends = [{}, {}];   // every knob at its low end together, and at its high end (bools false, then true)
     for (const [k, d] of Object.entries(params)) {
       if (!d || (s.params && k in s.params)) continue;      // the scenario pins it
       let values = [];
@@ -177,6 +178,13 @@ function planRuns(fig, quick) {
       else if (d.type === "bool") values = [!d.value];
       else if (d.type === "select") { const o = (d.options ?? []).map((x) => (x && typeof x === "object" ? x.value : x)); values = [o[0], o[o.length - 1]]; }
       for (const v of new Set(values)) if (v !== base[k] && v !== undefined) runs.push({ label: `${s.id ?? "default"} · ${k}=${fmtVal(v)}`, scenario: s.id, params: { ...base, [k]: v }, changed: { [k]: v } });
+      const lo = d.type === "bool" ? false : values[0], hi = d.type === "bool" ? true : values[values.length - 1];
+      if (lo !== undefined && lo !== base[k]) ends[0][k] = lo;
+      if (hi !== undefined && hi !== base[k]) ends[1][k] = hi;
+    }
+    // the knobs' extremes combined, on the phone: the same run as on a wide screen, in the tighter layout
+    for (const [i, changed] of ends.entries()) {
+      if (Object.keys(changed).length) runs.push({ label: `${s.id ?? "default"} · phone · all ${i ? "max" : "min"}`, scenario: s.id, params: { ...base, ...changed }, changed, env: PHONE_ENV });
     }
   }
   return runs;

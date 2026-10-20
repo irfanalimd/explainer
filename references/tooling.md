@@ -112,7 +112,10 @@ hung) instead of hanging the caller. Checks, in order:
   `new Date`).
 - **runs**: every scenario at its defaults, the same on a portrait phone (`env` = 390×844, so a figure's phone layout is
   checked too), then every param at its extremes under every scenario (int/float min and
-  max, bool flipped, select first and last; params a scenario pins are left alone). `--quick` runs defaults only.
+  max, bool flipped, select first and last; params a scenario pins are left alone), then the extremes combined on the
+  phone: every param at its low end at once (bools off, selects first) and at its high end at once (bools on, selects
+  last), where knobs that only misbehave together show up (Event loop's repaint count did). `--quick` runs defaults
+  only.
 - per run: compile; **determinism** (a second compile must give the same `tl.hash` and the same steps and final
   counters; the first differing step is named); **timing** (positive durations, contiguous steps, duration matches);
   **captions** on every step; `tl.problems` from the compiler (more than 3 of one kind collapse into one line);

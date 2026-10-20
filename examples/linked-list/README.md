@@ -57,7 +57,7 @@ chain are always in view.
 ## Commands
 
 ```sh
-node ../../scripts/verify.mjs figure.mjs                 # 15 runs, 0 failing, teaching checks clean
+node ../../scripts/verify.mjs figure.mjs                 # 21 runs, 0 failing, teaching checks clean
 node ../../scripts/lesson.mjs figure.mjs                 # the lesson as a beginner reads it
 node ../../scripts/build.mjs figure.mjs                  # linked-list.html
 node ../../scripts/shoot.mjs linked-list.html --scenario all
