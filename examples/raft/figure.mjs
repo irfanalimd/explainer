@@ -464,7 +464,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   let uid = 0;
   function appendTile(id, entry) {
     const t = `${id}.e${uid++}`;
-    const tk = { in: id, text: entry.cmd, sub: `t${entry.term}` };
+    // 2 u wider than a stock tile, so "x←3" (the arrow is wider than a digit) keeps the face's margin
+    const tk = { in: id, text: entry.cmd, sub: `t${entry.term}`, w: 28 };
     if (termKey(entry.term)) tk.key = termKey(entry.term);
     s.tile(t, tk);
     s.set(t, { dim: true });
