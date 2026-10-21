@@ -43,13 +43,15 @@ export function scorecard(r) {
   if (S && !S.skipped && !S.error) {
     const hard = (ps) => (ps ?? []).filter((p) => p.level !== "warn");
     const distinct = new Set([...hard(S.problems), ...hard(A?.problems)].map((p) => p.kind + p.message)).size;
+    // advice (frame time, focus under the HUD) shows as advice, as on the other cards; it never fails the verdict
+    const advice = new Set([...(S.problems ?? []), ...(A?.problems ?? [])].filter((p) => p.level === "warn").map((p) => p.kind + p.message)).size;
     const errs = S.errors.length + (A?.errors?.length ?? 0);
     const cards2 = S.shots.filter((s) => !["mid", "end"].includes(s.tag)).length;
     cards.push({
-      key: "looks", label: "Looks right", status: distinct || errs ? "fail" : "ok", value: `${plural(distinct, "finding")}`,
+      key: "looks", label: "Looks right", status: distinct || errs ? "fail" : advice ? "warn" : "ok", value: `${plural(distinct, "finding")}`,
       detail: [`${plural(S.shots.length, "shot")} (${S.themes.join(" and ")}, 1440×900 and 390×844)${cards2 ? `, ${plural(cards2, "teaching card")}` : ""}`,
         A ? `audit over every step: ${plural(A.runs?.reduce((a, x) => a + x.frames, 0) ?? 0, "frame")}` : "audit on each shot (check --full audits every step)",
-        `${plural(errs, "page error")}`],
+        `${plural(errs, "page error")}${advice ? `, ${plural(advice, "piece")} of advice` : ""}`],
     });
   } else cards.push({ key: "looks", label: "Looks right", status: "skip", value: "not shot", detail: [S?.skipped ?? S?.error ?? "no shots (--no-shots)"] });
   // pacing: what a viewer sits through
