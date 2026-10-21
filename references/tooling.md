@@ -85,7 +85,8 @@ network) in the HUD's own tokens:
   blind review yet) or "Ready to ship" (`--full` passed and the latest review round passed its gate), and the next
   thing to do;
 - a **scorecard**: Correct (verify), Teaches (the lint and the reading grade against the level's ceiling), Looks
-  right (audit findings and page errors over every shot), Pacing (the first story's time to watch at 1x, the longest
+  right (audit findings and page errors over every shot; Advice when the only findings are warnings, such as frame
+  time or the focus under the HUD), Pacing (the first story's time to watch at 1x, the longest
   chapter), One file (size against the 2.5 MB budget) and Reviewed (the lowest novice chapter score and open findings
   from `review/round-N/scores.json`, when the teacher pipeline has run);
 - **stories**: steps, time to watch (and from where a story splits off the first), a bar of each chapter's share,
@@ -126,6 +127,13 @@ hung) instead of hanging the caller. Checks, in order:
   **pacing** (warn above 400 or below 4 steps, or, as advice, a phase that takes longer than 150 s to watch at 1x with repeats sped up); a **sampler pass** (mid-step
   `tl.sample` must not throw, pose numbers and points finite, focus and world well formed, focus inside the world,
   tag anchors finite) and an **exact backward scrub** check.
+- **framing**, on each scenario's two default runs (not the knob runs or branches): the director's shot plan
+  (`planShots`) for 1440×900 and 390×844, with the HUD's overlays as the page reports them on MapReduce and Raft
+  (`scripts/lib/framing.mjs` `VIEWPORTS`: 64/384/90/0 with the explain panel docked, 92/0/274/0 on the phone), sampled
+  every 0.1 s of every step. A step's focus box more than 2 px outside the viewport at any sample is an error (the
+  same test as audit's `focus-outside`, which samples a step twice; this sees the camera's moves between). A step
+  whose focus stays under an overlay for 0.5 s or more (`UNDER_HUD`) is a warning; a move passing over an overlay's
+  edge is shorter than that. Scale shots are left out (they frame their reveal). Costs about 6 % of verify's time.
 - **the lesson in every run**: the figure is loaded with its `lesson.mjs`, so each run above merges it, and a
   template var the step does not pass, a `look` id that does not exist at the end of its step, an unknown picture
   row, `deeper` field or misconception id, or an ask whose option count differs is a `lesson` error in that run, at
@@ -318,7 +326,8 @@ there is one instance per module); everything else is served byte for byte.
 
 Renders mid and end of every step of every scenario at each size (settled camera) and collects
 `__internals.audit()` (label overflow, tags off-screen, focus outside the frame, whatever the runtime checks) plus
-page errors and a frame-time warning from `__internals.stats().ms`. One line per distinct finding with the steps,
+page errors and a frame-time warning from `__internals.stats().ms`. The step's focus inside the frame but more than
+2 px under a HUD overlay is `focus-under-hud`, a warning (verify's framing check sees the moves between shots). One line per distinct finding with the steps,
 the first step's caption and where it was seen. Problems with `level: "warn"` do not fail. Exit 1 on problems or
 page errors.
 

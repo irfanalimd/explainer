@@ -26,8 +26,17 @@ What the engine does not do yet, collected while building the flagship examples 
   rest) and the layered caption above it 108–264 px, so a tall world gets 0.45 px/u. The numbers could share the
   transport's row only by hiding a number behind "+1" (the speed pill and the three buttons leave about 100 px).
 - **Focus shots can crop a ring.** A figure whose whole picture matters (rings, clusters) should `s.focus` the group every step, as `examples/raft` does.
+- **A pull-out overshoots by a few pixels.** When the camera widens from a detail shot to a payoff, the far edge of the
+  focus passes 2–5 px over the dock for about 0.3 s before it settles 8 px inside (MapReduce, crash and straggler,
+  step 24, on a phone). Too short for verify's framing check (0.5 s); removing it means changing the move's curve for
+  every figure.
 
 ## Done (recent)
+
+- verify sweeps the director's shot plan every 0.1 s at 1440×900 and 390×844 and fails a step whose focus leaves the
+  frame (Node only; audit samples a step twice). On the tree before the bridge and the detail-shot hold it finds
+  65 s at 390×844 and 311 s at 1440×900 over the 8 examples; on this one, none. A focus held under the HUD is a
+  warning in verify and audit (`focus-under-hud`), and the check report's Looks right card says Advice for warnings.
 
 - A step boundary the shot on screen does not cover gets a bridge move that starts up to 0.7 s early, so the new
   step's focus is in frame from its first frame. With the detail-shot fix below, steps over the 8 examples with
