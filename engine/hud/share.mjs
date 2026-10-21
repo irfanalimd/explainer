@@ -9,6 +9,7 @@
 // that means for its link instead of offering one that will not open elsewhere.
 import { formatMoment } from "../embed/deeplink.mjs";
 
+let uid = 0;   // ids for the switches' names, unique across figures on one page
 const SESSION = ["embed", "origin", "present", "autoplay", "gfx"];   // query keys that belong to this visit, not the link
 
 /** The page's address without its hash and this visit's own switches; null when the page has no address to give. */
@@ -61,8 +62,10 @@ export function createShare(ctx) {
   const nativeBtn = h("button", { class: "ix-pill ix-share-native", type: "button", hidden: true, onclick: () => nativeShare() }, h("span", { class: "ix-share-icon", html: I.share }), "Share…");
 
   const toggle = (label, get, set) => {
-    const sw = h("button", { class: "ix-switch", type: "button", role: "switch", "aria-checked": String(get()), onclick: () => { set(!get()); sw.setAttribute("aria-checked", String(get())); refresh(); } });
-    const text = h("span", { class: "ix-share-opt-label" });
+    // the switch is named by its line (aria-labelledby), not only by the label around it, so every reader hears it
+    const id = `ix-share-opt-${++uid}`;
+    const sw = h("button", { class: "ix-switch", type: "button", role: "switch", "aria-checked": String(get()), "aria-labelledby": id, onclick: () => { set(!get()); sw.setAttribute("aria-checked", String(get())); refresh(); } });
+    const text = h("span", { class: "ix-share-opt-label", id });
     const row = h("label", { class: "ix-share-opt" }, text, sw);   // the label's click is the switch's
     return { row, text, sw };
   };

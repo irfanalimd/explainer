@@ -9,6 +9,8 @@
 //   pull       the chapter's last step pulls back to the whole world (phones: to the stage), its result in view at the recap
 //   payoff     the run's last step (before any scale shot) frames the answer close and large
 //   scale      s.scale: a tracking shot that follows the reveal box from the answer out to the whole field
+//   bridge     just before a step whose focus the shot on screen does not hold: both steps' focus, so neither leaves
+//              the frame at the boundary (every shot holds its own step's focus and tags)
 // Moves are eased in and out and never shorter than DIRECTOR.move[0]; a shot close to the current one is not taken,
 // so the camera rests while the reader reads. Reduced motion cuts.
 import { CAMERA } from "../tokens.mjs";
@@ -25,6 +27,7 @@ export const SHOTS = {
   settle: 0.35,            // s a move leaves before the next keyframe, so a step ends on a still frame
   establishHold: 0.42,     // share of a chapter's first step the establishing shot holds (at most DIRECTOR.establish)
   rest: { pan: 0.07, zoom: 1.14, angle: 1.5 },   // a new shot closer than this to the current one is not taken
+  bridge: 0.7,             // s before a step the camera may set off, when its shot does not cover the step's focus
   // angles, degrees: pitch per shot kind; each chapter turns the world a little, alternating sides
   pitch: { establish: 60, push: 56, pull: 58, detail: 50, payoff: 52 },
   yaw: { chapter: 4.5, detail: 0.6 },              // detail keeps this share of the chapter's yaw
@@ -55,17 +58,19 @@ export function planShots(tl, viewport, frame) {
   const lastRun = (() => { let i = steps.length - 1; while (i > 0 && scaleAt.has(i)) i--; return i; })();
 
   const keys = [];
-  // a shot close to the current one is not taken, unless the current one leaves the step's focus or tags out (phones)
+  // a shot close to the current one is not taken, unless the current one leaves the step's focus or tags out
+  let step = 0;
   const add = (at, kind, shot, o = {}, hold = null) => {
     const prev = keys[keys.length - 1];
     if (prev && !o.force && !prev.track && !shot.track && resting(prev.shot, shot, viewport) && (!hold || frame.holds?.(prev.shot, hold) !== false)) return;
-    keys.push({ at, kind, shot, ...o });
+    keys.push({ at, kind, shot, step, ...o });
   };
   const angle = (kind, c, lean = 1) => ({ pitch: SHOTS.pitch[kind], yaw: c.yaw * lean });
   const grow = (box, k) => (k > 0 ? toward(box, world, k) : box);
 
   for (let i = 0; i < steps.length; i++) {
     const st = steps[i], c = chapterOf(i);
+    step = i;
     let at = st.t0;
     const scale = scaleAt.get(i);
     if (scale) { add(at, "scale", { track: scaleTrack(scale, frame) }, { force: true, move: SCALE.hold + 0.6, local: st.t0 }); continue; }
@@ -92,6 +97,19 @@ export function planShots(tl, viewport, frame) {
     }
     K.move = Math.max(0.2, Math.min(K.move, next - K.at - SHOTS.settle));
   }
+  // A step boundary the shot on screen does not cover: the new step's focus would sit out of frame while the camera
+  // catches up. The camera sets off a little earlier instead, through a bridge shot that holds the step ending and the
+  // step beginning, so at the boundary both are in frame; the planned move then carries on from there.
+  for (let k = 1; k < keys.length; k++) {
+    const K = keys[k], P = keys[k - 1], i = K.step;
+    if (K.track || P.track || K.bridge || P.bridge || !i || K.at !== steps[i].t0 || !focus[i] || !focus[i - 1] || frame.holds?.(P.shot, { box: focus[i] }) !== false) continue;
+    const at = Math.max(P.at + Math.min(P.move, SHOTS.move[0]), K.at - SHOTS.bridge);
+    if (!(at < K.at - 0.05) || !frame.bridge) continue;
+    const near = Math.min(frame.zoomOf(P.shot), frame.zoomOf(K.shot));
+    keys.splice(k, 0, { at, kind: "bridge", shot: frame.bridge(union(focus[i - 1], focus[i]), { yaw: K.shot.yaw, pitch: K.shot.pitch }, near), step: i - 1, bridge: true, move: K.at - at });
+    P.move = Math.min(P.move, at - P.at);
+    k++;
+  }
   for (let k = 0; k < keys.length; k++) keys[k].from = k ? poseOf(keys, k - 1, keys[k].at, false) : null;
   return { keys };
 }
@@ -102,6 +120,7 @@ export function cameraAt(plan, time, reduced = false, out = { target: [0, 0, 0] 
   if (!keys.length) return null;
   let k = 0;
   for (let lo = 0, hi = keys.length - 1; lo <= hi;) { const m = (lo + hi) >> 1; if (keys[m].at <= time + 1e-9) { k = m; lo = m + 1; } else hi = m - 1; }
+  if (reduced && k && keys[k].bridge) k--;   // reduced motion cuts at the step itself, straight to a shot that holds it
   const p = poseOf(keys, k, time, reduced);
   out.target[0] = p.target[0]; out.target[1] = p.target[1]; out.target[2] = p.target[2];
   out.distance = p.distance; out.yaw = p.yaw; out.pitch = p.pitch; out.fov = p.fov ?? CAMERA.fov; out.kind = keys[k].kind;

@@ -66,13 +66,14 @@ import { createRenderer } from "./engine/gfx/renderer.mjs";
 const r = createRenderer(canvas, { theme: "light", quality: "high" /* | "medium" | "low" */, gfx /* "webgpu" | "webgl2" */, timing });
 r.resize(cssWidth, cssHeight, devicePixelRatio);
 r.setTheme("dark"); r.setQuality("medium");
-r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture });
+r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture, draft });
 r.pick(cssX, cssY)            // -> entity id string | null (slabs only)
 r.project([x, y, z])          // -> [cssX, cssY, depth, onScreen]
 r.unproject(cssX, cssY, z=0)  // -> [x, y] on the horizontal plane at height z
 r.pxPerUnit(at = [x, y, z])   // -> CSS px per world unit at that point (for LOD and tag sizing)
-r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", gpuMs? }
+r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", draft, gpuMs? }
 r.busy                        // true while the last frame had something still fading out: draw another
+r.drafted                     // true when the last frame was drawn as a draft: draw the frame that comes to rest again without `draft`
 r.size                        // { cssW, cssH, dpr, W, H, scale } (scale: WebGPU's adaptive resolution, 1 on WebGL2)
 r.profile(opts)               // -> Promise of per-pass GPU timings (WebGPU), or null
 r.backend                     // "webgpu" | "webgl2" | null before ready
@@ -90,6 +91,13 @@ long (a second of frames over the GPU budget that miss their vsync), the scene p
 the device pixel ratio (1, 0.92, 0.84, 0.75) and the composite still fills the canvas; it steps back up only when the
 span at the higher scale would sit well inside the budget, never sooner than `ADAPT.hold`. Captured frames
 (`capture: true`) always draw at full scale.
+
+**Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
+and while the camera or the HUD's insets still move. On a software rasterizer (SwiftShader, llvmpipe and the like:
+`look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
+tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps and no MSAA or
+tilt-shift, WebGPU at three quarters of its scene scale. When the camera comes to rest on a draft (`r.drafted`) the
+runtime draws that frame again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
 
 **The DrawList** carries `dl.fields`: the scale fields' packed machines (`[{ n, version, slabs, memo }]`, one per `field`
 pose; `null` when none), which the packer caches by each machine's version.
@@ -157,7 +165,9 @@ export const counters = {                    // the numbers, in display order
   bytes: { label: "sent between machines", short: "sent", format: "bytes", primary: true,   // format: "int" | "bytes" | "ms" | "pct" | "x" (ratio); int also takes decimals, unit
     hint: "Data the shuffle moves from mappers to reducers." },                               // hint: one line on what it means
   tasks: { label: "tasks finished", format: "int", hint: "Map and reduce tasks completed so far." },
-};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better
+};                                           // optional: short, hint, primary (true | [scenario ids]: shown in the dock), group, better,
+                                             // scenarios ([ids]: only those stories show it, in the dock and the readout)
+                                             // a counter not set yet reads 0 (int, bytes) or "—" (ms, pct, x)
 export const code = { lang: "python", source: "def map(doc):\n    for w in doc.split():\n        emit(w, 1)\n" }; // optional
 export const invariants = {                  // checked on every step snapshot by verify; return true or a message
   "records conserved": (snap) => true,
@@ -268,7 +278,7 @@ tl.problems                       // build-time problems: unknown ids, overflowi
 
 Captions are plain text with inline marks, rendered by the HUD:
 - `{key:fox}` → a chip in fox's identity colour reading `fox`; `{key:fox|the word fox}` custom text.
-- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`.
+- `{ref:m2}` → a chip with entity m2's title; hovering it lights m2 in the world; `{ref:m2|mapper 2}`. When m2 has an identity `key`, the chip's dot is in that key's colour.
 - `{tone:fail|crashed}` → a word in a status tone (`ok`, `busy`, `warn`, `fail`, `idle`).
 - `{term:pointer}` → a glossary word, underlined; its plain definition from `meta.terms` shows on hover, focus or tap (`{term:pointer|pointers}` custom text).
 - `` `hash(k) % R` `` → inline code. `**bold**`.
@@ -290,7 +300,7 @@ Implement every transition in `DESIGN.md` section 8: move along traces (lift, po
   text, sub, textOut, roll /* 0..1 */,
   title, led, meter, tray /* {x, y, w, d} local to the housing centre */,
   points /* [[x,y]…] for trace/bus/lane/bracket */, pulses /* [{s0, s1, key, intensity}] */, grow, style, dashed, arrow /* trace: "end" | "both" | null */,
-  t /* lane mark time */, label }
+  t /* lane mark time */, level /* lane mark: its name's stack level, -1 none */, label }
 ```
 
 Sizes come from `SIZE` (by kind); the scene decides *where* and *what state*, the skin decides *how it looks*.
@@ -414,8 +424,11 @@ playhead time, so play, scrub, step and capture agree. Per chapter (`tl.phases`)
 its first step, from the chapter's own yaw, held while the entry card reads), **push** (the chapter's stage, the
 union of its steps' focus and `look` boxes), **detail** (a `key` step's `layers.look`, close), **pull** (its last
 step, back to the world); then **payoff** (the run's last step before any scale shot) and **scale** (a tracking shot
-along `tl.scales`' reveal box). Moves are eased, never shorter than `SHOTS.move[0]`; a shot within `SHOTS.rest` of
-the current one is not taken. Reduced motion cuts. Authors never call it: chapters, focus and `look` ids drive it.
+along `tl.scales`' reveal box). Every shot holds its step's focus and tags in the free area (a detail shot pushes in
+only as far as that allows). Where a step's focus is not in the shot on screen when the step starts, a **bridge**
+(holding both steps' focus) starts the move up to `SHOTS.bridge` s before it, so the focus is never out of frame.
+Moves are eased, never shorter than `SHOTS.move[0]`; a shot within `SHOTS.rest` of the current one is not taken.
+Reduced motion cuts. Authors never call it: chapters, focus and `look` ids drive it.
 Without a timeline the director follows `frame.focus` with a dead zone and springs, and establishes at phase changes.
 **Keep.** While a pick is open (10.5) the runtime passes the candidates' bounds to `dir.keep()`. When the planned shot
 already holds them inside the free area (the viewport minus `insets`, with half the margin) nothing changes; otherwise
@@ -430,7 +443,7 @@ Framing must be exact: project the eight corners of the bounds box with the real
 |---|---|
 | `build.mjs <figure.mjs> [--out f.html] [--theme dark]` | one self-contained HTML page (with the `lesson.mjs` beside the figure, mounted as `figure.lesson`): fonts inlined (base64 `@font-face`), `hud.css`, an import map that maps every engine module and the figure to `data:` URLs (relative imports rewritten to bare `@internals/<path>` specifiers), and a boot module that calls `mount()` from `engine/runtime.mjs`. Works from `file://`. Verified: import maps with `data:` URLs work in headless Chrome from file://. |
 | `serve.mjs` | dev server (exists); add live reload. |
-| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (and param extremes), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint. Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
+| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (param extremes one at a time, then combined on a phone), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint. Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
 | `shoot.mjs <page.html> [--at phases\|all\|0,5,9] [--themes dark,light] [--sizes 1440x900,390x844] [--scenario id] [--out dir] [--teach]` | screenshots at chosen steps (mid-step and end-of-step) via `window.__internals`, both themes, both sizes, plus a contact sheet PNG; reports console errors. `--teach` plays live: each predict card (asked, revealed), each pick (`-wrong.png`: a wrong pick's detour held on its consequence; `-right.png`: the right pick and its why) and the end card; every wait times out and is reported, never stalls. |
 | `audit.mjs <page.html>` | in the browser via `window.__internals.audit()`: label overflow, tags off-screen or overlapping, focus outside frame, frame time; exit 1 on problems. |
 | `record.mjs <page.html> --out x.mp4\|x.webm\|frames/ [--fps 60] [--size 1920x1080] [--scenario id] [--from s] [--to s]` | deterministic frame-by-frame capture via `__internals.renderAt(t)`; encodes with ffmpeg when available (PATH, or `npx -y ffmpeg-static` with the user's consent), otherwise writes PNG frames and prints the ffmpeg command. |
@@ -504,6 +517,10 @@ A var's kind fixes how a template prints it:
 | `{ path: [a, b, c] }` | each item by its kind, joined "a → b → c" |
 | `{ ref: id, text }` | an entity chip `{ref:id\|text}`; in `look`, the id |
 | `{ markup: m }` | caption markup as is (a composite item the figure builds, e.g. `{key:fox} = 2`) |
+
+A string is escaped, so a chip made with `fmt.key()` and passed as a bare string would print its letters
+(`{key:timeout}`); verify reports such a var (alone or in a list) as a lesson error. Pass `{ key }`, `{ ref }` or
+`{ markup }`.
 
 ### 10.2 The lesson file
 

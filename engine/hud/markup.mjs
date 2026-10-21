@@ -82,6 +82,7 @@ export function toText(nodes, refTitle = () => null) {
 /**
  * Build DOM nodes for a node list into a DocumentFragment.
  * opts.keyIndex(name) -> identity index or null; opts.refTitle(id) -> entity title or null;
+ * opts.refKey(id) -> the entity's identity index or null (an entity chip's dot takes its key colour);
  * opts.term(name) -> the term's plain definition or null (meta.terms).
  * Key chips colour themselves from --ix-key-N, so a theme switch needs no re-render.
  */
@@ -149,6 +150,12 @@ function node(n, doc, opts) {
     case "ref": {
       const e = span("ix-chip ix-ref", n.text ?? opts.refTitle?.(n.id) ?? n.id);
       e.dataset.ref = n.id;
+      const idx = opts.refKey?.(n.id);
+      if (idx != null) {
+        const k = ((idx % 8) + 8) % 8;
+        e.dataset.key = String(k);
+        e.style.setProperty("--k", `var(--ix-key-${k})`);
+      }
       e.tabIndex = 0;
       e.setAttribute?.("role", "button");
       return e;

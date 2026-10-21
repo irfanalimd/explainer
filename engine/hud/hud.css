@@ -556,6 +556,8 @@
 .ix-ref::before { content: ""; width: 5px; height: 5px; border-radius: 50%; margin-right: 6px; background: var(--ix-ink-faint); transition: background-color var(--ix-dur-fast) var(--ix-ease); }
 .ix-ref:hover, .ix-ref:focus-visible { background: var(--ix-hover); box-shadow: inset 0 0 0 1px var(--ix-ink); }
 .ix-ref:hover::before, .ix-ref:focus-visible::before { background: var(--ix-ink); }
+/* an entity with an identity key: its dot is a swatch of that key, as in the legend */
+.ix-ref[data-key]::before, .ix-ref[data-key]:is(:hover, :focus-visible)::before { width: 7px; height: 7px; margin-right: 5px; background: var(--k); }
 .ix-tone { font-weight: 500; }
 .ix-tone-ok { color: var(--ix-ok-text); }
 .ix-tone-busy { color: var(--ix-busy-text); }
@@ -1245,13 +1247,13 @@
 .ix[data-size="phone"] .ix-cap-stage { min-height: 44px; }
 .ix[data-size="phone"] .ix-cap-text { font-size: var(--ix-fs-md); line-height: var(--ix-lh-md); letter-spacing: var(--ix-tr-md); }
 .ix[data-size="phone"] .ix-bar { border-radius: var(--ix-r-lg); }
-/* phones: the numbers are one line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock gives
-   the world back a row; tapping the strip still opens the full readout */
-.ix[data-size="phone"] .ix-stats { height: 36px; gap: 8px; padding: 0 8px 0 12px; margin-left: 4px; }
+/* phones: the numbers are one 32 px line ("Words read 11   Sent 49 B"), name and value on one baseline, so the dock
+   gives the world back a row; tapping the strip still opens the full readout */
+.ix[data-size="phone"] .ix-stats { height: 32px; gap: 8px; padding: 0 8px 0 12px; margin-top: 4px; margin-left: 4px; }
 .ix[data-size="phone"] .ix-stats-list { column-gap: 16px; }
 .ix[data-size="phone"] .ix-stat { flex-direction: row; align-items: baseline; gap: 6px; }
 .ix[data-size="phone"] .ix-stat-val { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
-.ix[data-size="phone"] .ix-legend-btn { height: 36px; padding: 0 12px; gap: 0; }
+.ix[data-size="phone"] .ix-legend-btn { height: 32px; margin-top: 4px; padding: 0 12px; gap: 0; }
 .ix[data-size="phone"] .ix-legend-count { display: none; }
 
 .ix[data-size="phone"] .ix-transport {
@@ -1273,6 +1275,9 @@
 .ix[data-size="phone"] .ix-predict-q { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); margin-bottom: 12px; }
 .ix[data-size="phone"] .ix-opt { min-height: 44px; padding: 6px 12px 6px 8px; }
 .ix[data-size="phone"] .ix-predict-foot { margin-top: 8px; }
+/* the answer's feedback and why sit as close under the options as on a short screen, so a long question still fits
+   between the header and the transport */
+.ix[data-size="phone"] .ix-predict-said { margin-top: 8px; gap: 8px; }
 
 /* drawers and the full readout become bottom sheets */
 .ix[data-size="phone"] .ix-drawer, .ix[data-size="phone"] .ix-code, .ix[data-size="phone"] .ix-inspector.ix-pinned, .ix[data-size="phone"] .ix-meters {
@@ -2154,10 +2159,10 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 }
 .ix-pv-end:hover { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-pv-where { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 16px; row-gap: 12px; padding: 0 32px 20px; }
-.ix-pv-map { display: flex; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ix-pv-map { display: flex; align-items: center; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .ix-pv-map li { position: relative; width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ix-ink-4); }
-/* each dot goes to its chapter: a 24 px target around an 8 px mark */
-.ix-pv-map-btn { position: absolute; inset: -8px -3px; padding: 0; border: 0; border-radius: 999px; background: none; cursor: pointer; }
+/* each dot goes to its chapter: a 24 px target around an 8 px mark, the dots 24 px apart so no two targets touch */
+.ix-pv-map-btn { position: absolute; inset: -8px; padding: 0; border: 0; border-radius: 999px; background: none; cursor: pointer; }
 .ix-pv-map-btn:hover { background: rgb(var(--ix-ink-rgb) / 0.08); }
 .ix-pv-map-btn:focus-visible { outline: var(--ix-ring); outline-offset: 0; }
 .ix-pv-map li.ix-pv-past { background: var(--ix-ink); box-shadow: none; }

@@ -103,9 +103,11 @@ function staticChecks(fig, file) {
     if (c && !c.hint) W(`counters.${k} has no hint: one plain line on what the number means (the readout and its tooltip show it)`);
     if (c?.primary != null && c.primary !== true && c.primary !== false && !(Array.isArray(c.primary) && c.primary.every((id) => (scen ?? []).some((x) => x?.id === id))))
       E(`counters.${k}.primary must be true or a list of scenario ids, got ${fmtVal(c.primary)}`);
+    if (c?.scenarios != null && !(Array.isArray(c.scenarios) && c.scenarios.length && c.scenarios.every((id) => (scen ?? []).some((x) => x?.id === id))))
+      E(`counters.${k}.scenarios must be a list of scenario ids, got ${fmtVal(c.scenarios)}`);
   }
   // the dock shows a story's primary numbers: 1 to 3 of them read at a glance
-  const prim = (c, id) => c?.primary === true || (Array.isArray(c?.primary) && c.primary.includes(id));
+  const prim = (c, id) => (c?.primary === true || (Array.isArray(c?.primary) && c.primary.includes(id))) && (!Array.isArray(c?.scenarios) || c.scenarios.includes(id));
   const cs = Object.values(fig.counters ?? {});
   if (cs.some((c) => c?.primary)) for (const id of (scen?.length ? scen.map((x) => x?.id) : [undefined])) {
     // grouped counters with one label share a dock slot
@@ -168,6 +170,7 @@ function planRuns(fig, quick) {
     // the same story on a portrait phone: figures may lay themselves out differently there (build's 4th argument)
     runs.push({ label: `${s.id ?? "default"} · phone`, scenario: s.id, params: base, changed: {}, env: PHONE_ENV });
     if (quick) continue;
+    const ends = [{}, {}];   // every knob at its low end together, and at its high end (bools false, then true)
     for (const [k, d] of Object.entries(params)) {
       if (!d || (s.params && k in s.params)) continue;      // the scenario pins it
       let values = [];
@@ -175,6 +178,13 @@ function planRuns(fig, quick) {
       else if (d.type === "bool") values = [!d.value];
       else if (d.type === "select") { const o = (d.options ?? []).map((x) => (x && typeof x === "object" ? x.value : x)); values = [o[0], o[o.length - 1]]; }
       for (const v of new Set(values)) if (v !== base[k] && v !== undefined) runs.push({ label: `${s.id ?? "default"} · ${k}=${fmtVal(v)}`, scenario: s.id, params: { ...base, [k]: v }, changed: { [k]: v } });
+      const lo = d.type === "bool" ? false : values[0], hi = d.type === "bool" ? true : values[values.length - 1];
+      if (lo !== undefined && lo !== base[k]) ends[0][k] = lo;
+      if (hi !== undefined && hi !== base[k]) ends[1][k] = hi;
+    }
+    // the knobs' extremes combined, on the phone: the same run as on a wide screen, in the tighter layout
+    for (const [i, changed] of ends.entries()) {
+      if (Object.keys(changed).length) runs.push({ label: `${s.id ?? "default"} · phone · all ${i ? "max" : "min"}`, scenario: s.id, params: { ...base, ...changed }, changed, env: PHONE_ENV });
     }
   }
   return runs;
@@ -375,6 +385,9 @@ function verifyRun(fig, compile, run, sample) {
   const declared = Object.keys(fig.counters ?? {});
   const undeclared = [...used].filter((k) => !declared.includes(k));
   if (undeclared.length) E("counters", `counter(s) ${undeclared.map((k) => `"${k}"`).join(", ")} used by s.count/s.gauge but not declared in export const counters`);
+  // a counter kept to some stories (`scenarios`) that moves in another: the HUD would hide a number the run makes
+  const offStory = [...changed].filter((k) => Array.isArray(fig.counters?.[k]?.scenarios) && !fig.counters[k].scenarios.includes(run.scenario ?? tl.scenario));
+  if (offStory.length) W("counters", `counter(s) ${offStory.map((k) => `"${k}"`).join(", ")} change in scenario "${run.scenario ?? tl.scenario}", which their \`scenarios\` leave out, so the page hides them here`);
   // sampler
   if (sample && typeof tl.sample === "function" && steps.length) {
     const view = { pxPerUnit: 1, hover: null, selected: null, reducedMotion: false };

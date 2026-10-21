@@ -67,7 +67,7 @@ emitted); at the end, the output sums to the number of input words; no word appe
 ## Commands
 
 ```sh
-node ../../scripts/verify.mjs figure.mjs                 # 26 runs, 0 failing, teaching clean
+node ../../scripts/verify.mjs figure.mjs                 # 34 runs, 0 failing, teaching clean
 node ../../scripts/lesson.mjs figure.mjs                 # the lesson as text
 node ../../scripts/build.mjs figure.mjs                  # mapreduce.html
 node ../../scripts/shoot.mjs mapreduce.html --scenario all

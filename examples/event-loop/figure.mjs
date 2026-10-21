@@ -141,7 +141,7 @@ export const counters = {
     hint: "Jobs taken from the task queue, one at a time and each to the end: the script, timers, network replies, repaints." },
   microtasks: { label: "microtasks run", format: "int", primary: true,
     hint: "Promise callbacks and code resuming after await. After each task, the loop runs every one that is waiting." },
-  frames: { label: "screen repaints", short: "repaints", format: "int", primary: ["starve", "yield"],
+  frames: { label: "screen repaints", short: "repaints", format: "int", primary: ["starve", "yield"], scenarios: ["starve", "yield"],
     hint: "Times the browser redrew the screen. A repaint is a task too, so it can only happen between tasks." },
   now: { label: "simulated time", short: "time", format: "ms",
     hint: "The clock inside the simulation, from the moment the script starts." },
@@ -461,12 +461,15 @@ function machine(s, cfg, sc, view = {}) {
   // every step passes the clock, the queue lengths and the knobs, plus its own run values (the header lists them)
   const base = () => ({ now: round(now), at: ms(now), tasksQueued: tasks.length, microQueued: micro.length, depth: stack.length,
     chunks: cfg.chunks, work: cfg.work, latency: cfg.latency, hz: cfg.hz });
+  // a var made with K() or C() is caption markup: the lesson takes it as { markup } (a bare string prints as its letters)
+  const mark = (v) => (typeof v === "string" && /[{`]/.test(v) ? { markup: v } : Array.isArray(v) ? v.map(mark) : v);
+  const marked = (vars) => Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, mark(v)]));
   function step(sid, caption, vars = {}, o = {}) {
     if (view.whole && !focused) s.focus(view.whole);
     focused = false;
     s.gauge("now", round(now));
     s.set("stack", { state: { frames: stack.map((f) => f.label), began } });
-    s.step(caption, { ...o, t: now, id: sid, vars: { ...base(), ...vars } });
+    s.step(caption, { ...o, t: now, id: sid, vars: marked({ ...base(), ...vars }) });
     began = null;
   }
   const line = (a, b = a) => s.line(LN[a], LN[b]);
@@ -871,6 +874,8 @@ function machine(s, cfg, sc, view = {}) {
     function work(fr) {
       const t0 = now;
       now = round(now + cfg.work);
+      // the bar changes when the work is done: a frame that fell due during it found the page as last painted
+      while (!dirty && vsync <= now) vsync = round(vsync + cfg.frame);
       done++; dom = done; dirty = true;
       s.set("page", { state: { painted, dom } });
       return t0;

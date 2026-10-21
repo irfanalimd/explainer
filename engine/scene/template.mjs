@@ -8,6 +8,8 @@ import { num, plural, and } from "../../sim/fmt.mjs";
 import { escape, key, code, ref } from "./narrate.mjs";
 
 const SLOT = /(?<!\\)\{(?:(count|be):)?([A-Za-z_]\w*)((?:\|[^{}|]*)*)\}/g;
+// a string var that is caption markup (fmt.key(...) and the like): it prints escaped, as the marks' own letters
+const MARKED = /(?<!\\)\{(?:key|ref|term|tone):/;
 
 const isList = (v) => Array.isArray(v) || Array.isArray(v?.path);
 const items = (v) => (Array.isArray(v) ? v : v.path);
@@ -32,11 +34,11 @@ export function show(v) {
 const raw = (v) => (v && typeof v === "object" ? String("ref" in v ? v.ref : "key" in v ? v.key : v) : String(v));
 
 /**
- * Fill a template. Returns { text, missing: [var names not in vars] }.
+ * Fill a template. Returns { text, missing: [var names not in vars], marked: [string vars that hold caption markup] }.
  * opts.raw prints vars as plain id fragments (for look ids) instead of markup.
  */
 export function fill(template, vars = {}, { raw: asRaw = false } = {}) {
-  const missing = [];
+  const missing = [], marked = [];
   const text = String(template).replace(SLOT, (whole, fn, name, rest) => {
     if (!vars || !(name in vars)) { missing.push(name); return whole; }
     const v = vars[name];
@@ -45,9 +47,10 @@ export function fill(template, vars = {}, { raw: asRaw = false } = {}) {
       const [one, many] = rest.slice(1).split("|");
       return plural(amount(v), one ?? "", many);
     }
+    if (!asRaw && (isList(v) ? items(v) : [v]).some((x) => typeof x === "string" && MARKED.test(x)) && !marked.includes(name)) marked.push(name);
     return asRaw ? raw(v) : show(v);
   });
-  return { text, missing };
+  return { text, missing, marked };
 }
 
 /** Look ids: each entry filled raw; an entry that is exactly "{name}" with a list var expands to one id per item. */

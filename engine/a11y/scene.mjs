@@ -111,7 +111,7 @@ export function createScene(root, { project, onFocus, onOpen } = {}) {
     for (const p of tl.phases) if (p.t0 <= (s?.t0 ?? 0) + 1e-9) ph = p;   // the chapter this step plays in
     const nums = Object.entries(frame?.counters ?? {}).map(([k, v]) => {
       const d = tl.counters?.[k];
-      if (!d || d.hidden || typeof v !== "number") return null;
+      if (!d || d.hidden || typeof v !== "number" || (Array.isArray(d.scenarios) && !d.scenarios.includes(tl.scenario))) return null;
       return `${speak(d.label ?? k)} ${formatText(v, d.format, d)}`;
     }).filter(Boolean);
     const numbers = nums.length ? `${nums.join(", ")}.` : "";

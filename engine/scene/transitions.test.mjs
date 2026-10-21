@@ -249,6 +249,32 @@ test("marks sit on their lane at their time; the playhead runs on interpolated s
   assert.ok(mid.simTime > 0 && mid.simTime < 12);
 });
 
+test("marks close in time stack their names instead of printing them over each other", () => {
+  // scale 1 u per ms: "vote" is 4 x 5.8 x 0.6 = 13.9 u wide, so marks 5 ms apart collide and 40 ms apart do not
+  const tl = compile(fig((s) => {
+    s.row("r"); s.housing("a", { in: "r" }); s.housing("b", { in: "r" });
+    s.lanes("L", { for: ["a", "b"], length: 500, scale: 1 });
+    s.step("start", { t: 0 });
+    for (const [id, t, text] of [["a", 10, "vote"], ["a", 15, "vote"], ["a", 20, "grant"], ["a", 25, "lead"], ["a", 70, "beat"], ["b", 12, "vote"]]) s.mark(id, { t, text });
+    s.step("marks", { t: 70 });
+  }));
+  const marks = tl.sample(tl.duration).poses.filter((p) => p.kind === "mark").sort((p, q) => p.y - q.y || p.t - q.t);
+  const levels = marks.map((p) => `${p.t}:${p.level}`).join(" ");
+  // rail a: 10 → 0, 15 → 1, 20 → 2, 25 has no free level among SIZE.lane.mark.levels (3) → -1, 70 → back to 0; rail b on its own
+  assert.equal(SIZE.lane.mark.levels, 3);
+  assert.equal(levels, "10:0 15:1 20:2 25:-1 70:0 12:0");
+  // a later mark never moves an earlier name: the same levels at the step where only the first marks exist
+  const tl2 = compile(fig((s) => {
+    s.row("r"); s.housing("a", { in: "r" }); s.housing("b", { in: "r" });
+    s.lanes("L", { for: ["a", "b"], length: 500, scale: 1 });
+    s.step("start", { t: 0 });
+    s.mark("a", { t: 10, text: "vote" }); s.mark("a", { t: 15, text: "vote" });
+    s.step("marks", { t: 15 });
+  }));
+  const early = tl2.sample(tl2.duration).poses.filter((p) => p.kind === "mark").sort((p, q) => p.t - q.t).map((p) => p.level);
+  assert.deepEqual(early, [0, 1]);
+});
+
 test("pointers stand in front of their slot and glide between slots", () => {
   const tl = compile(fig((s) => {
     s.array("a", [3, 1, 2]);

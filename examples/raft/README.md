@@ -59,7 +59,7 @@ matching (same index and term means the same prefix); committed entries are neve
 ## Commands
 
 ```sh
-node ../../scripts/verify.mjs figure.mjs                 # 24 runs, 0 failing, teaching clean
+node ../../scripts/verify.mjs figure.mjs                 # 30 runs, 0 failing (pacing advice at every knob's maximum)
 node ../../scripts/lesson.mjs figure.mjs                 # the lesson as text
 node ../../scripts/build.mjs figure.mjs                  # raft.html
 node ../../scripts/shoot.mjs raft.html --scenario all

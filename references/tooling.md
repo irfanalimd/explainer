@@ -95,7 +95,8 @@ network) in the HUD's own tokens:
 
 `--no-shots` skips Chrome (verify, pacing and build only). Exit 1 when anything fails. Measured on a 4-core machine
 with no GPU (SwiftShader) and other jobs running, on MapReduce: quick 5 min 17 s (80 shots), `--full` 75 min 22 s
-(240 shots and teaching cards in 62 min, then the audit over every step in 13 min). `doctor`'s speed line estimates
+(240 shots and teaching cards in 62 min, then the audit over every step in 13 min); with no other Chrome running,
+quick takes about 3 min (shots 2 min 48 s). `doctor`'s speed line estimates
 the shots for the machine at hand.
 
 ## verify.mjs
@@ -112,7 +113,10 @@ hung) instead of hanging the caller. Checks, in order:
   `new Date`).
 - **runs**: every scenario at its defaults, the same on a portrait phone (`env` = 390×844, so a figure's phone layout is
   checked too), then every param at its extremes under every scenario (int/float min and
-  max, bool flipped, select first and last; params a scenario pins are left alone). `--quick` runs defaults only.
+  max, bool flipped, select first and last; params a scenario pins are left alone), then the extremes combined on the
+  phone: every param at its low end at once (bools off, selects first) and at its high end at once (bools on, selects
+  last), where knobs that only misbehave together show up (Event loop's repaint count did). `--quick` runs defaults
+  only.
 - per run: compile; **determinism** (a second compile must give the same `tl.hash` and the same steps and final
   counters; the first differing step is named); **timing** (positive durations, contiguous steps, duration matches);
   **captions** on every step; `tl.problems` from the compiler (more than 3 of one kind collapse into one line);
@@ -206,11 +210,15 @@ objectives its "You can now…" lists.
   does the scanning, so imports inside strings, template literals (a figure's `code` export), comments and regexes
   are never touched. Unresolvable imports fail with `file:line` and a hint (a missing `.mjs` extension, a bare
   package name).
-- Specifiers become bare names in an import map of base64 `data:` URLs (the `@internals/` prefix is an internal
+- Specifiers become bare names in an import map of plain-text `data:text/javascript,` URLs (only `%`, `#` and control
+  characters percent-escaped, a quarter smaller than base64; the `@internals/` prefix is an internal
   name kept from before the skill was called Explainer): skill files are `@internals/<path in the
   skill>`, the figure is `@internals/figure`, files outside the skill (a figure's own helpers) are
   `@internals/local/<path from the figure>` (no absolute paths leak into the page). One file has one specifier, so
   one module instance, however it was imported (relative, absolute path, `file://` or `@internals/<path>`).
+- Every module goes in without its comments and indentation (`minify` in `scripts/lib/modules.mjs`: the same lexer
+  keeps every token byte for byte, a figure's `code` template included, and every line break that ends a statement),
+  and `hud.css` without its comments and runs of whitespace (`minifyCss`). The dev page serves the sources as they are.
 - Figures can live anywhere. They may import the skill by relative path, absolute path, or `@internals/<path>`
   (Node resolves that too in verify and build, through `scripts/lib/node-hooks.mjs`).
 - Inlines Geist and Geist Mono as base64 `@font-face` (variable, weights 100–900) and `engine/hud/hud.css` (its
@@ -274,7 +282,8 @@ there is one instance per module); everything else is served byte for byte.
 - Deterministic: `freeze(true)`, CSS transitions and animations jump to their end, then `renderAt(t, { camera:
   "settled" })` for each shot. Files: `<scenario>-<theme>-<w>x<h>-<step>-<mid|end|tN.NNs>.png` in `--out`
   (default `shots/` beside the page), plus `contact.png` (grouped by scenario, theme and size, each thumbnail
-  captioned with step, time, phase and caption; split into `contact-2.png`… past 14000 px).
+  captioned with step, time, phase and caption; split into `contact-2.png`… past 14000 px). PNGs use Chrome's fast
+  encoding: the same pixels as its default one, about a third larger, and 0.4 s less a 1440×900 shot.
 - Runs `__internals.audit()` after each shot and reports page errors (console errors, exceptions, failed loads)
   and audit problems grouped by finding, with the steps and shots where each occurs.
 - Size presets: `desktop` (1440x900), `phone` (390x844), `1080p`, `720p`, `vertical`, `square`. Use `--dpr 2` to
@@ -424,6 +433,16 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
+Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
+drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
+comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
+never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
+
+On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
+`--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader
+--disable-vulkan-surface` does start the WebGPU tier on SwiftShader (`?gfx=webgpu`, the self-test passes), but its canvas
+comes out blank in screenshots, so the WebGPU look still needs a machine with a GPU to check.
+
 ## Director (`engine/director/director.mjs`, `engine/director/shots.mjs`)
 
 ```js
@@ -452,7 +471,11 @@ dir.auto; dir.camera; dir.state   // state: { shot: "establish" | "focus" | "man
   **push** (the chapter's stage: the union of its steps' focus and `look` boxes), **detail** (a `key` step's `look`
   ids, close, from where they start to where they land, so a move's source and target share the frame), **pull** (the chapter's last step, back to the world; phones: the stage); then **payoff** (the run's
   last step before any scale shot, close and large) and **scale** (a tracking shot that follows `s.scale`'s reveal
-  box, craning up as it widens). Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
+  box, craning up as it widens). Every shot also holds the step's focus and tags in the free area (`holdShot`, on
+  every screen size), so a detail shot pushes in only as far as keeps a focused ring or cluster whole. When the shot on
+  screen as a step starts does not hold that step's focus, a **bridge** keyframe sets the camera off up to
+  `SHOTS.bridge` (0.7 s) early, through a shot of both steps' focus (no closer than either end), so it is in frame
+  from the step's first frame. Moves are eased, 1.1–2.4 s, longer for bigger zooms; a shot closer than
   `SHOTS.rest` to the current one is not taken. `dir.state.plan` lists the keyframes (`{ at, kind, move }`).
 - **Keep** (`dir.keep(bounds)`): while the reader must click something (an `s.choose` pick, which the runtime passes
   through `onPickArea`), the planned shot stands when it already holds the box inside the free area at half the
@@ -513,8 +536,20 @@ back).
 ## Known gaps
 
 - Live play is bound by frame time. On a 4-core machine with no GPU and other jobs running, `shoot --scenario all
-  --teach` over MapReduce took 57 min (160 phase shots in about 12 min, 80 teaching cards in about 44 min); on a page
-  that draws at 20 fps or better the pass keeps its old speeds and waits.
+  --teach` over MapReduce took 57 to 63 min (160 phase shots in about 10 min, the 104 teaching cards in the rest).
+  Most of the cards' time is the first story ("Everything works", 35 of those 63 min): its cards follow steps that
+  light tiles, and a lit tile's ping (0.7 s) and a trace's afterglow (1.1 s) fade on the runtime's clock, which steps
+  at most 1/20 s a frame, so the page keeps drawing for 14 to 22 frames after the run stops: 20 s and more at a second
+  a frame, and the card is shot mid-fade (live cards differ a little from run to run for this reason and for the
+  shimmer, which follows the wall clock). More tabs in one Chrome do not help: software rendering runs in Chrome's
+  one GPU process, and 2 to 4 tabs drew 1.2x the frozen frames of one on an idle machine and no more on a loaded one.
+  On a page that draws at 20 fps or better the pass keeps its old speeds and waits. Changing the speed only when the
+  run starts or stops would save two frames a card, but the camera moves only when a frame is drawn, so a card shot
+  right after another (the end check, You can now, the caption, the end card; a pick's wrong branch) was framed
+  differently: the pass keeps them. Drafts (Rendering backends) raised live MapReduce on that machine (SwiftShader,
+  WebGL2) from 0.9 to 2.2 frames a second at 1440x900 and from 2.2 to 7.0 at 390x844 (half the pixel ratio gave 4.2
+  and 11.3, but the world's names could not be read while it played); a full frame still takes about 1.5 s at
+  1440x900, and the closing scale shot (6008 slabs) about 10 s.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the

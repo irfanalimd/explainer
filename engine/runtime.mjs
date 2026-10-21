@@ -57,8 +57,9 @@ export async function mount(root, figure, options = {}) {
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
   let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false, covered = false;
-  // render on demand: something changed the picture (dirty), or the last frame was still moving; the two clocks
-  let dirty = true, moving = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
+  // render on demand: something changed the picture (dirty), or the last frame was still moving (settling: its camera
+  // or the HUD's insets moved; drafting: the frame being drawn is one in motion); the two clocks
+  let dirty = true, moving = false, settling = false, drafting = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
   // the start card is open; step mode (each Next plays one step); a guided pause at a chapter's end or the run's end
   let intro = false, stepMode = false, held = null, guided = true;
   let viewport = { width: 1, height: 1, dpr: 1 };
@@ -475,12 +476,16 @@ export async function mount(root, figure, options = {}) {
       const x = Math.round((ins.left ?? 0) * k), y = Math.round((ins.top ?? 0) * k);
       const w = Math.max(1, src.width - x - Math.round((ins.right ?? 0) * k)), h = Math.max(1, src.height - y - Math.round((ins.bottom ?? 0) * k));
       const shown = tags.filter((t) => t.text).map((t) => ({ text: t.text, tone: t.tone, x: t.x - (ins.left ?? 0), y: t.y - (ins.top ?? 0) }));
+      // the free area read back from the GPU once: the trim looks at it small and the picture is cut from it
+      const area = document.createElement("canvas");
+      area.width = w; area.height = h;
+      area.getContext("2d").drawImage(src, x, y, w, h, 0, 0, w, h);
       // the page frames the world for a wide screen; a picture in a column of print wants the world, not the stage
       // around it: trimmed to what was drawn and the tags over it (in CSS px), with a little air
-      const box = trimBox(src, x, y, w, h, k, shown);
+      const box = trimBox(area, 0, 0, w, h, k, shown);
       const c = document.createElement("canvas");
       c.width = Math.round(box.w * k); c.height = Math.round(box.h * k);
-      c.getContext("2d").drawImage(src, x + Math.round(box.x * k), y + Math.round(box.y * k), c.width, c.height, 0, 0, c.width, c.height);
+      c.getContext("2d").drawImage(area, Math.round(box.x * k), Math.round(box.y * k), c.width, c.height, 0, 0, c.width, c.height);
       job.story.pictures.push({ chapter: job.chapter, step: job.step, url: c.toDataURL("image/jpeg", 0.9), width: c.width / k, height: c.height / k,
         tags: shown.map((t) => ({ ...t, x: t.x - box.x, y: t.y - box.y })) });
     } catch (err) {
@@ -551,7 +556,8 @@ export async function mount(root, figure, options = {}) {
       if (!tl || renderer.lost) return false;
       drawJob(job);
     }
-    restoreFrame();
+    // the handout still covers the world: its closing draws the page's frame again (onCover)
+    if (!covered) restoreFrame();
     return true;
   }
   const stepOf = (t, at) => { let i = 0; while (i + 1 < t.steps.length && t.steps[i + 1].t0 <= at + 1e-9) i++; return i; };
@@ -576,7 +582,7 @@ export async function mount(root, figure, options = {}) {
     director.keep(keyFocus ? boundsOfIds([keyFocus]) : null, { as: "focus" });   // the keyboard's thing stays in view
     const camera = settle ? director.update(frame, viewport, dt, { settle: true }) : director.update(frame, viewport, dt);
     if (renderer && !renderer.lost) {
-      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping });
+      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping, draft: drafting });
       renders++;
       pxPerUnit = renderer.pxPerUnit(camera.target) || pxPerUnit;
       const tags = [];
@@ -655,10 +661,17 @@ export async function mount(root, figure, options = {}) {
       dirty = false;
       if (live) shimmer += dt;
       clock += dt;
+      // a frame the next one replaces at once (still playing, or the camera still easing) is a draft: without a GPU
+      // the renderer draws it cheaper (CONTRACTS.md 3.1)
+      drafting = playing || settling;
       const camera = renderFrame(dt, shimmer, clock, false);
+      drafting = false;
       // keep drawing while the picture is still settling: the camera easing, the HUD's insets changed while it drew
       // (the director eases to the new framing from the next frame), an afterglow or ping fading out
-      moving = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets) || !!renderer?.busy;
+      settling = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets);
+      // the camera comes to rest on a draft: draw that frame again in full
+      if (!(playing || dirty || settling) && renderer?.drafted) renderFrame(0, shimmer, clock, false);
+      moving = settling || !!renderer?.busy;
     }
     if (playing || dirty || moving) schedule(); else rest();
   }

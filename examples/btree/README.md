@@ -62,7 +62,7 @@ tree on its side (root on the left, one column per level, the leaf chain running
 
 ```sh
 node ../../scripts/lesson.mjs figure.mjs --all           # the lesson as text, then the teaching checks
-node ../../scripts/verify.mjs figure.mjs                 # 17 runs, 0 failing
+node ../../scripts/verify.mjs figure.mjs                 # 23 runs, 0 failing
 node ../../scripts/build.mjs figure.mjs                  # b-tree.html
 node ../../scripts/shoot.mjs b-tree.html --scenario all
 node ../../scripts/audit.mjs b-tree.html --scenario all
