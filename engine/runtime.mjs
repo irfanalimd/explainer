@@ -893,10 +893,15 @@ export async function mount(root, figure, options = {}) {
       }
       const f = frame.focus;
       if (f) {
+        // outside the frame is a problem; inside it but more than 2 px under a HUD overlay is advice (focus-under-hud)
+        const ins = hud.insets ?? {}, W = viewport.width, H = viewport.height;
+        let under = false;
         for (const c of [[f.minX, f.minY, 0], [f.maxX, f.minY, 0], [f.minX, f.maxY, 0], [f.maxX, f.maxY, 0]]) {
           const [x, y] = renderer.project(c);
-          if (x < -2 || y < -2 || x > viewport.width + 2 || y > viewport.height + 2) { out.push({ kind: "focus-outside", step: frame.step, message: "part of the step's focus is outside the frame" }); break; }
+          if (x < -2 || y < -2 || x > W + 2 || y > H + 2) { out.push({ kind: "focus-outside", step: frame.step, message: "part of the step's focus is outside the frame" }); under = false; break; }
+          if (x < (ins.left ?? 0) - 2 || y < (ins.top ?? 0) - 2 || x > W - (ins.right ?? 0) + 2 || y > H - (ins.bottom ?? 0) + 2) under = true;
         }
+        if (under) out.push({ kind: "focus-under-hud", level: "warn", step: frame.step, message: "part of the step's focus is under the interface" });
       }
     }
     return out;
