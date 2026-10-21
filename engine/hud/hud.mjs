@@ -946,7 +946,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const center = h("div", { class: "ix-center" }, predict, caption);
   const meterList = h("div", { class: "ix-meters-body" });
   const meterClose = iconBtn("close", "Close readout", "Esc", () => toggleReadout(false), "ix-btn-sm ix-close");
-  const meterBox = h("section", { class: "ix-meters ix-pop ix-glass", role: "group", "aria-label": "Numbers from this run", id: uid("readout") },
+  const meterBox = h("section", { class: "ix-meters ix-pop ix-glass", role: "group", "aria-label": "Numbers from this run", id: uid("readout"), tabindex: "-1" },
     h("header", { class: "ix-meters-head" }, h("span", { class: "ix-meters-title", text: "Numbers from this run" }), meterClose), meterList);
   const statsList = h("span", { class: "ix-stats-list" });
   const statsMore = h("span", { class: "ix-stat-more", hidden: true });
@@ -1079,7 +1079,19 @@ export function createHud(root, opts = {}, cb = {}) {
     const sheet = S.size === "phone" && (drawerOpen || shareOpen || codeOpen || pinCard.shown || !!readoutOpen);
     sheetScrim.classList.toggle("ix-open", sheet);
     root.classList.toggle("ix-sheet-open", sheet);
+    syncCover();
   }
+  // A sheet whose box holds the whole caption and dock bar hides them (as the explain sheet hides the caption), so what
+  // it covers is neither read aloud nor reached nor measured. Measured where the sheets come to rest (again when their
+  // slide in ends), and dropped the moment the sheet closes, so the caption is back before focus returns to the dock.
+  function syncCover() {
+    const open = [drawerOpen && drawer, shareOpen && share.el, codeOpen && codePanel, readoutOpen && meterBox, pinCard.shown && pinCard.el, helpOpen && help]
+      .filter(Boolean).map((el) => el.getBoundingClientRect());
+    const holds = (o, r) => r.height === 0 || (o.left <= r.left + 4 && o.right >= r.right - 4 && o.top <= r.top + 4 && o.bottom >= r.bottom - 4);
+    const cr = caption.getBoundingClientRect(), br = bar.getBoundingClientRect();
+    root.classList.toggle("ix-sheet-covers", open.some((o) => holds(o, cr) && holds(o, br)));
+  }
+  for (const el of [drawer, share.el, codePanel, meterBox, pinCard.el, help]) on(el, "transitionend", (e) => { if (e.target === el) syncCover(); });
   function toggleDrawer(open = !drawerOpen) {
     if (open === drawerOpen) return;
     drawerOpen = open;
@@ -1094,8 +1106,8 @@ export function createHud(root, opts = {}, cb = {}) {
       for (const k in knobs) knobs[k].fit?.();
       raf(knobFades);
     }
-    else if (drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
     syncSheets();
+    if (!open && drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
   }
   function toggleShare(open = !shareOpen) {
     if (open === shareOpen) return;
@@ -1104,9 +1116,9 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(share.el, open);
     shareBtn.setAttribute("aria-pressed", String(open));
     shareBtn.setAttribute("aria-expanded", String(open));
+    syncSheets();
     if (open) { lastFocus = doc.activeElement; share.el.focus({ preventScroll: true }); }
     else if (share.el.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true });
-    syncSheets();
   }
   function toggleCode(open = !codeOpen) {
     if (open === codeOpen || (open && !S.code?.source)) return;
@@ -1127,6 +1139,7 @@ export function createHud(root, opts = {}, cb = {}) {
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
     helpTool.setAttribute("aria-pressed", String(open));
+    syncCover();
     if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
@@ -1176,8 +1189,10 @@ export function createHud(root, opts = {}, cb = {}) {
     meterBox.classList.toggle("ix-open", !!mode);
     meterBox.classList.toggle("ix-pinned", mode === "pinned");
     stats.setAttribute("aria-expanded", String(!!mode));
-    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) stats.focus({ preventScroll: true });
     syncSheets();
+    // a phone's readout sheet covers the strip that opened it, so focus goes into the sheet (and comes back on close)
+    if (mode === "pinned" && root.classList.contains("ix-sheet-covers") && bottom.contains(doc.activeElement)) meterBox.focus({ preventScroll: true });
+    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) stats.focus({ preventScroll: true });
   }
   function toggleLegend(mode = legendOpen ? false : "pinned") {
     if (mode && !legend.childElementCount) mode = false;
@@ -3122,6 +3137,7 @@ export function createHud(root, opts = {}, cb = {}) {
     // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)
     root.style.setProperty("--ix-free-l", `${insets.left}px`);
     root.style.setProperty("--ix-free-r", `${insets.right}px`);
+    if (root.classList.contains("ix-sheet-covers")) syncCover();   // a caption that grew past the sheet shows again
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;

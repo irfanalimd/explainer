@@ -48,7 +48,7 @@
 .ix :focus { outline: none; }
 /* one focus ring everywhere: 2 px of ink, 2 px off the control */
 .ix :focus-visible { outline: var(--ix-ring); outline-offset: 2px; }
-.ix:focus-visible, .ix .ix-panel:focus-visible, .ix .ix-help:focus-visible, .ix .ix-predict:focus-visible, .ix .ix-intro:focus-visible { outline: none; }
+.ix:focus-visible, .ix .ix-panel:focus-visible, .ix .ix-meters:focus-visible, .ix .ix-help:focus-visible, .ix .ix-predict:focus-visible, .ix .ix-intro:focus-visible { outline: none; }
 .ix-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
 /* numbers that change sit on tabular figures so they never jitter */
 .ix :is(.ix-count, .ix-stat-val, .ix-meter-val, .ix-knob-val, .ix-speed-val, .ix-map-pos, .ix-ex-n, .ix-menu-val, .ix-recap-list li::before) { font-variant-numeric: tabular-nums; }
@@ -1591,6 +1591,8 @@
 }
 .ix.ix-ex-sheet .ix-ex-top { padding-top: 12px; }
 .ix.ix-ex-sheet-open .ix-caption { visibility: hidden; }
+/* a sheet that holds the whole caption and dock bar hides them: nothing under it is read aloud or reached by Tab */
+.ix.ix-sheet-covers .ix-bottom { visibility: hidden; }
 .ix[data-size="phone"].ix-ex-sheet .ix-explain { width: auto; border-radius: var(--ix-r-xl); }
 .ix[data-size="phone"] .ix-ex-title { display: none; }
 .ix[data-size="phone"] .ix-ex-capbtn { width: var(--ix-icon); padding: 0; justify-content: center; }
