@@ -557,8 +557,8 @@ export const lesson = {
     "update.gap": {
       when: only("update.gap"),
       first: { why: "Its log doesn't match the leader's at that point, so it can't take what comes after." },
-      plain: "{who} lacks entry {index} from term {term}, so it refuses the update.",
-      look: ["{whoId}"],
+      plain: "{who} {be:whoIds} missing entry {index} from term {term}, so the update is refused.",
+      look: ["{whoIds}"],
     },
     "update.back": {
       when: only("update.back"),
