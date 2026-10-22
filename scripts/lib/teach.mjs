@@ -122,7 +122,7 @@ export function grade(text) {
 }
 // prose of markup for readability: words and term text kept, chips kept as names, inline code dropped
 const prose = (markup) => {
-  const walk = (list) => list.map((t) => (t.type === "bold" ? walk(t.children) : t.type === "code" ? "" : t.type === "ref" ? (t.text ?? "") : t.text)).join("");
+  const walk = (list) => list.map((t) => (t.type === "bold" ? walk(t.children) : t.type === "code" || t.type === "cite" ? "" : t.type === "ref" ? (t.text ?? "") : t.text)).join("");
   return walk(tokens(markup ?? "")).replace(/\s+/g, " ").trim();
 };
 // the reader's own words of markup: text, tone and bold, but not chips or code; terms reported separately

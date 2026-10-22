@@ -24,6 +24,7 @@ import { rng as simRng } from "../sim/rng.mjs";   // the page (engine/runtime.mj
 import { extractLesson } from "./lib/lesson.mjs";
 import { loadFigure } from "./lib/lesson-load.mjs";
 import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teach.mjs";
+import { lintSources, citesOf } from "./lib/sources-lint.mjs";
 import { excerpt, keyLine, frameIn, importFailure, nearest } from "./lib/where.mjs";
 import { lessonBeside } from "./lib/modules.mjs";
 import { tokens } from "../engine/scene/narrate.mjs";
@@ -492,13 +493,17 @@ const listSteps = (xs) => (xs.length > 8 ? xs.slice(0, 8).join(", ") + ` … (${
 
 function idsReached() {
   const steps = new Set(), chapters = new Set(), asks = new Set(), chooses = new Set(), checks = new Set(), keyNoWhy = new Set();
+  const cites = new Map();   // source id -> where a run's text cites it (the figure's captions, the scale shot's lines)
   let unnamed = 0, unnamedChapters = 0;
+  const cite = (where, text) => { for (const c of citesOf(text)) if (!cites.has(c.id)) cites.set(c.id, where); };
   return {
-    steps, chapters, asks, chooses, checks, keyNoWhy,
+    steps, chapters, asks, chooses, checks, keyNoWhy, cites,
     get unnamed() { return unnamed; }, get unnamedChapters() { return unnamedChapters; },
     add(tl, run, first) {
       const base = first && !Object.keys(run.changed).length && !run.env;   // missing ids: counted once per story
       for (const st of tl.steps ?? []) {
+        if (typeof st.caption === "string") cite(`step ${st.index} caption`, st.caption);
+        for (const id of st.scale?.cites ?? []) if (!cites.has(id)) cites.set(id, `step ${st.index} scale shot`);
         if (st.id) steps.add(st.id); else if (base) unnamed++;
         if (st.ask?.id) asks.add(st.ask.id);
         if (st.choose?.id) chooses.add(st.choose.id);
@@ -598,6 +603,7 @@ async function workerMain({ figure, compiler, quick, sample, teach = true }) {
   }
   if (threw) { post({ type: "skipped", runs: threw }); post({ type: "done" }); return; }
   if (reached) post({ type: "lesson", result: lessonCoverage(fig.lesson, reached, lessonBeside(figure)) });
+  if (reached) post({ type: "sources", result: lintSources(fig.lesson, fig.meta, [...reached.cites].map(([id, where]) => ({ where, text: `[${id}]` }))) });
   if (teach) {
     post({ type: "start", label: "teaching" });
     let result;
@@ -622,7 +628,7 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
   const file = resolve(figure);
   compiler = resolve(compiler ?? DEFAULT_COMPILER);
   return new Promise((ok) => {
-    const out = { figure: file, compiler, static: null, runs: [], lesson: null, teaching: null, fatal: null, timedOut: null, timeout, ms: 0 };
+    const out = { figure: file, compiler, static: null, runs: [], lesson: null, sources: null, teaching: null, fatal: null, timedOut: null, timeout, ms: 0 };
     if (!existsSync(file)) { out.fatal = `figure not found: ${figure}`; return ok(out); }
     if (!existsSync(compiler)) { out.fatal = compiler === DEFAULT_COMPILER ? "engine/scene/index.mjs does not exist yet; pass --compiler <file>" : `compiler not found: ${compiler}`; return ok(out); }
     const t0 = performance.now();
@@ -642,6 +648,7 @@ export function verify(figure, { compiler, quick = false, sample = true, teach =
       else if (m.type === "start") current = m.label;
       else if (m.type === "run") out.runs.push({ ...m.run, ...m.result });
       else if (m.type === "lesson") out.lesson = m.result;
+      else if (m.type === "sources") out.sources = m.result;
       else if (m.type === "teaching") out.teaching = m.result;
       else if (m.type === "skipped") out.skipped = m.runs;
       else if (m.type === "fatal") out.fatal = m.message;
@@ -735,6 +742,14 @@ export function report(r) {
     for (const x of Ls.warnings) lines.push(`        warn   ${x.message}`);
     for (const x of Ls.notes) lines.push(`        note   ${x.message}`);
   }
+  // what the facts come from: lesson.sources, and every [id] the words cite (CONTRACTS.md 10.6)
+  const Sr = r.sources;
+  if (Sr) {
+    errors += Sr.errors.length; warnings += Sr.warnings.length;
+    lines.push(`  ${Sr.errors.length ? "FAIL" : Sr.warnings.length ? "WARN" : "ok  "}  sources   lesson.sources: ${Sr.info.sources} source(s), ${Sr.info.cites} citation(s)`);
+    for (const x of Sr.errors) lines.push(`        error  ${x.message}`);
+    for (const x of Sr.warnings) lines.push(`        warn   ${x.message}`);
+  }
   if (r.timedOut) {
     errors++;
     const st = r.stuck, rel = st && (st.file.startsWith(dirname(r.figure)) ? relative(dirname(r.figure), st.file) : showPath(st.file));
@@ -751,7 +766,7 @@ export function report(r) {
     lines.push(formatFindings(T, "        "));
   }
   // what fails: each run with an error, and the exports, the teaching lint and a run that never finished, once each
-  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0) + (r.static?.errors.length ? 1 : 0) + (r.timedOut ? 1 : 0);
+  const failing = r.runs.filter((x) => x.errors.length).length + (T?.errors.length ? 1 : 0) + (Sr?.errors.length ? 1 : 0) + (r.static?.errors.length ? 1 : 0) + (r.timedOut ? 1 : 0);
   lines.push(`summary  ${r.runs.length} run(s), ${failing} failing, ${errors} error(s), ${warnings} warning(s)  ${(r.ms / 1000).toFixed(1)} s`);
   return { text: lines.join("\n"), errors, warnings };
 }
