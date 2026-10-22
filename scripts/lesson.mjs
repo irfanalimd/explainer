@@ -12,6 +12,8 @@ import { parseArgs, isMain, showPath } from "./lib/args.mjs";
 import { extractLesson, formatLesson } from "./lib/lesson.mjs";
 import { loadFigure } from "./lib/lesson-load.mjs";
 import { lintLesson, formatFindings } from "./lib/teach.mjs";
+import { styleFindings, formatHit } from "./lib/style.mjs";
+import { lessonBeside } from "./lib/modules.mjs";
 import { rng as simRng } from "../sim/rng.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -22,6 +24,7 @@ usage: node scripts/lesson.mjs <figure.mjs> [options]
   --all             every step (by default a run of steps with one caption shape shows two, then a count)
   --full            later stories from step 0 (by default they start where they leave story 1)
   --no-lint         skip the teaching checks at the end
+  --style           only the writing lint (references/writing.md): every hit, with its file, line and a rewrite
   --json            the lesson and the findings as JSON
   --width <n>       wrap at n columns (default 100)
 `;
@@ -33,7 +36,10 @@ export async function lessonOf(figure, { scenario, params, compiler } = {}) {
   const fig = await loadFigure(file);              // with its lesson.mjs, when there is one
   const { compile } = await import(pathToFileURL(compiler ?? join(here, "..", "engine", "scene", "index.mjs")).href);
   const lesson = extractLesson(fig, compile, { rng: simRng, scenario, params });
-  return { fig, lesson, findings: lintLesson(lesson, fig) };
+  const findings = lintLesson(lesson, fig);
+  const style = styleFindings({ figureFile: file, lessonFile: lessonBeside(file), lesson });
+  findings.warnings.push(...style.warnings);
+  return { fig, lesson, findings, style: style.hits };
 }
 
 /** "n=7,at=4" -> { n: 7, at: 4 } (numbers where they parse, true/false, else strings) */
@@ -44,11 +50,16 @@ function knobs(list) {
 }
 
 if (isMain(import.meta)) {
-  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { scenario: "string", params: "string", all: "boolean", full: "boolean", lint: "boolean", json: "boolean", width: "number" } });
+  const a = parseArgs(process.argv.slice(2), { usage: USAGE, flags: { scenario: "string", params: "string", all: "boolean", full: "boolean", lint: "boolean", style: "boolean", json: "boolean", width: "number" } });
   if (a._.length !== 1) { console.error(USAGE.trim()); process.exit(2); }
   let r;
   try { r = await lessonOf(a._[0], { scenario: a.scenario, params: knobs(a.params) }); }
   catch (e) { console.error(`error  ${e.message}`); process.exit(1); }
+  if (a.style) {
+    for (const h of r.style) console.log(formatHit(h));
+    console.log(`${r.style.length} writing hit(s)  ${showPath(resolve(a._[0]))}`);
+    process.exit(0);
+  }
   if (a.json) {
     console.log(JSON.stringify({ figure: resolve(a._[0]), lesson: r.lesson, findings: r.findings }, null, 2));
   } else {

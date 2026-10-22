@@ -1,7 +1,8 @@
 // The words __TITLE__ teaches (CONTRACTS.md section 10), keyed by the ids figure.mjs gives its steps, chapters and
 // questions. The figure owns every fact and passes it as a var; nothing here computes. Every line must stay true at
 // every knob value and in every scenario (verify runs them all and checks each template, look id and misconception).
-// Writing rules: references/teaching.md section 5. The model to copy: examples/mapreduce/lesson.mjs.
+// Writing rules: references/teaching.md section 5 (what goes where) and references/writing.md (how every sentence
+// reads; `node scripts/lesson.mjs figure.mjs --style` lists what to fix). The model to copy: examples/mapreduce/lesson.mjs.
 //   run-wide vars: n, key, last, arrayId
 //   halve steps:   mid, value, midId, looks; side, than, left (a drop)
 //   answer:        at, looks

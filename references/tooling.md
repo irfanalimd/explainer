@@ -175,7 +175,10 @@ hung) instead of hanging the caller. Checks, in order:
   is not one of its options, a malformed `meta.level`, `meta.terms` or `meta.recap`); everything else is advice:
   level, hook, analogy, recap, takeaway, abouts, caption length, predict questions and their `why`, size for the
   level, terms used before they are defined, flagged jargon, jargon in story labels and chapter names, filler words,
-  long sentences and a rough reading grade. The words that appear only at other settings (the extreme and phone runs
+  long sentences and a rough reading grade. Then the writing lint (`scripts/lib/style.mjs`, `references/writing.md`)
+  reads every prose string of `figure.mjs` and `lesson.mjs` (every layer, card, definition, teacher's note and world
+  label; not comments, ids or the program listing) and the compiled lesson for repeats, one warning per kind with the
+  first lines and rewrites. The words that appear only at other settings (the extreme and phone runs
   above, kept from their first compile, so no extra compile) get the same checks, reported once as "at other
   settings". A teaching error counts as one failing entry in the summary. The full rule table is
   `references/teaching.md` section 9.
@@ -185,7 +188,7 @@ An invariant receives `(snap, { step, final, params, scenario, timeline })` and 
 
 ## lesson.mjs
 
-`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--params n=7,at=4] [--all] [--full] [--no-lint] [--json] [--width 100]`
+`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--params n=7,at=4] [--all] [--full] [--no-lint] [--style] [--json] [--width 100]`
 
 Prints the lesson as plain text, story by story, so it can be read like a script: the hook, the defined words, the
 numbers (`*` for the dock), then for each story its what-if and description, each chapter's name and about, every
@@ -206,6 +209,8 @@ objectives its "You can now…" lists.
 
 - A run of steps with one caption shape shows two, then "… 6 more like this (steps 14–19)"; `--all` shows every step.
 - Later stories start where they leave story 1 (as the page does on a switch); `--full` prints them from step 0.
+- `--style` prints only the writing lint: every hit, one per line, as `lesson.mjs:144  words  "crucial" → drop it, or
+  say what breaks without it  (why: "…")`, then the count. It exits 0: the hits are advice for now.
 - `--json` prints `{ figure, lesson, findings }`; with `--all --no-lint` it is the run a lesson writer works from (every
   step id, its caption and its layers). Exit 1 when the teaching checks find an error.
 
@@ -527,8 +532,9 @@ loads, screenshots; every Chrome it starts is killed and its profile removed on 
 `modules.mjs` (lexer, import scan, specifier resolution and mapping, rewrite, graph), `webm.mjs` (EBML writer,
 muxer, reader), `figure-page.mjs` (open a page through `__internals`, shot times, capture CSS, finding groups),
 `args.mjs`, `node-hooks.mjs`, `lesson-load.mjs` (`loadFigure()`: a figure with the `lesson.mjs` beside it),
-`lesson.mjs` (extract and format the lesson a figure teaches) and `teach.mjs` (the teaching lint, its jargon list and
-size limits, readability helpers).
+`lesson.mjs` (extract and format the lesson a figure teaches), `teach.mjs` (the teaching lint, its jargon list and
+size limits, readability helpers) and `style.mjs` (the writing lint: its word and phrase lists with their rewrites, the
+prose strings of a source file, repeats in a compiled lesson).
 
 ## Tests
 
