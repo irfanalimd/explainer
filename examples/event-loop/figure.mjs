@@ -76,7 +76,7 @@ export const meta = {
   subtitle: "One thread, a task queue and a microtask queue: why a promise callback beats setTimeout(0)",
   kicker: "Web platform",
   fig: 5,
-  cite: { text: "HTML Living Standard, §8.1.7 Event loops; ECMAScript 2025, §9.5 Jobs", url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops" },
+  cite: "[whatwg-loop] §8.1.7",
   theme: "light",
   level: "core",
   hook: "JavaScript does one thing at a time, yet timers and clicks keep coming. Why doesn't the page freeze? Why doesn't setTimeout(fn, 0) run now?",

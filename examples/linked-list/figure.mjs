@@ -15,7 +15,7 @@ export const meta = {
   kicker: "Data structures",
   fig: 8,
   level: "intro",
-  cite: { text: "D. E. Knuth, The Art of Computer Programming, Vol. 1, §2.2.3 “Linked Allocation”", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
+  cite: "[knuth1] §2.2.3",
   theme: "light",
   hook: "Putting a number in the middle of an array means sliding everything after it over. Can we insert without moving anything?",
   takeaway: "A linked list never moves its items: inserting changes two arrows. It pays with a walk from head, and more memory and slower visits per node.",
