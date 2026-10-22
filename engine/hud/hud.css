@@ -399,12 +399,14 @@
 }
 .ix-code-body { padding: 12px 0; font: 400 var(--ix-fs-code)/20px var(--ix-font-mono); -webkit-user-select: text; user-select: text; }
 .ix-code-lines { min-width: max-content; }
-.ix-line { position: relative; display: flex; padding-right: 20px; color: var(--ix-ink-muted); transition: background-color var(--ix-dur-base) var(--ix-ease), opacity var(--ix-dur-slow) var(--ix-ease); }
+.ix-line { position: relative; display: flex; padding-right: 20px; color: var(--ix-ink-muted); transition: background-color var(--ix-dur-base) var(--ix-ease), color var(--ix-dur-slow) var(--ix-ease); }
 .ix-ln { flex: none; width: 48px; padding-right: 16px; text-align: right; color: var(--ix-ink-faint); -webkit-user-select: none; user-select: none; font-variant-numeric: tabular-nums; }
 .ix-lc { white-space: pre; }
 .ix-lv { white-space: pre; margin-left: 24px; color: var(--ix-ink-faint); }
 .ix-lv:empty { display: none; }
-.ix-code.ix-has-active .ix-line:not(.ix-on) { opacity: 0.55; }
+/* the lines the step is not on recede to the faint ink, every token alike, at full opacity: 4.5:1 and more, where
+   fading them (0.55) left line numbers and comments at 2.2:1 */
+.ix-code.ix-has-active .ix-line:not(.ix-on) :is(.ix-lc, .ix-lc *) { color: var(--ix-ink-faint); font-weight: 400; transition: color var(--ix-dur-slow) var(--ix-ease); }
 .ix-line.ix-on { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-line.ix-on::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--ix-ink); }
 .ix-line.ix-on .ix-ln, .ix-line.ix-on .ix-lv { color: var(--ix-ink-muted); }
