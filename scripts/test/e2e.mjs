@@ -47,7 +47,8 @@ await check("record: .mp4 without ffmpeg refuses to download", () => {
   const r = run(["scripts/record.mjs", page, "--out", join(out, "x.mp4")], { env: { ...process.env, PATH: "/usr/bin:/bin" } });
   expect(r, 1, "needs ffmpeg", "--allow-download");
 });
-await check("verify: fake figure, all runs", () => expect(run(["scripts/verify.mjs", "scripts/test/fake-figure.mjs", "--compiler", "scripts/test/fake-scene.mjs"]), 0, "22 run(s), 0 failing"));
+// "glitch" plants a tag far away; the shot plan follows it off the step's focus, and verify's framing check says so
+await check("verify: fake figure, all runs, the planted framing problem found", () => expect(run(["scripts/verify.mjs", "scripts/test/fake-figure.mjs", "--compiler", "scripts/test/fake-scene.mjs"]), 1, "28 run(s), 2 failing", "framing: the step's focus leaves the frame in the shot plan at 1440x900: steps 9"));
 await check("new: template outside the skill verifies", () => {
   expect(run(["scripts/new.mjs", join(tmp, "binary-search")]), 0, "figure.mjs", "README.md");
   expect(run(["scripts/verify.mjs", join(tmp, "binary-search", "figure.mjs"), "--compiler", "scripts/test/fake-scene.mjs"]), 0, "0 failing");

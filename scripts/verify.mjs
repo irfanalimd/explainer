@@ -27,6 +27,7 @@ import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teac
 import { excerpt, keyLine, frameIn, importFailure, nearest } from "./lib/where.mjs";
 import { lessonBeside } from "./lib/modules.mjs";
 import { tokens } from "../engine/scene/narrate.mjs";
+import { frameSweep, VIEWPORTS, UNDER_HUD } from "./lib/framing.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const skillRoot = resolve(here, "..");
@@ -166,9 +167,10 @@ function planRuns(fig, quick) {
     if (ids.has(s.id)) continue;      // duplicate ids are an export error already
     ids.add(s.id);
     const base = { ...defaults, ...(s.params ?? {}) };
-    runs.push({ label: s.id ?? "default", scenario: s.id, params: base, changed: {} });
+    // the story as written, framed by the director's shot plan at the desktop and the phone size (frame)
+    runs.push({ label: s.id ?? "default", scenario: s.id, params: base, changed: {}, frame: VIEWPORTS.desktop });
     // the same story on a portrait phone: figures may lay themselves out differently there (build's 4th argument)
-    runs.push({ label: `${s.id ?? "default"} · phone`, scenario: s.id, params: base, changed: {}, env: PHONE_ENV });
+    runs.push({ label: `${s.id ?? "default"} · phone`, scenario: s.id, params: base, changed: {}, env: PHONE_ENV, frame: VIEWPORTS.phone });
     if (quick) continue;
     const ends = [{}, {}];   // every knob at its low end together, and at its high end (bools false, then true)
     for (const [k, d] of Object.entries(params)) {
@@ -422,6 +424,17 @@ function verifyRun(fig, compile, run, sample) {
         if (x !== y) { E("scrub", `sample(${a.toFixed(2)}) differs after sampling ${b.toFixed(2)} (backward scrub is not exact)`); break; }
       }
     } catch (e) { E("sample-throws", `scrub check threw ${firstLines(e)}`); }
+  }
+  // framing: the shot plan swept every 0.1 s (scripts/lib/framing.mjs). Focus out of the frame is a real problem; under
+  // the HUD for a moment is a move passing by, so only a step held there UNDER_HUD s or more is advice
+  if (run.frame && !run.main && steps.length && tl.world) {
+    try {
+      const r = frameSweep(tl, run.frame), size = `${run.frame.width}x${run.frame.height}`;
+      const list = (xs, k) => xs.map((x) => `${x.index} (${x[k].toFixed(1)} s)`).join(", ");
+      const out = r.steps.filter((x) => x.outside > 0), under = r.steps.filter((x) => x.under >= UNDER_HUD);
+      if (out.length) E("framing", `the step's focus leaves the frame in the shot plan at ${size}: step${out.length > 1 ? "s" : ""} ${list(out, "outside")}, first "${cap(out[0].index)}"`, out[0].index);
+      if (under.length) W("framing", `the step's focus sits under the HUD in the shot plan at ${size}: step${under.length > 1 ? "s" : ""} ${list(under, "under")}, first "${cap(under[0].index)}"`, under[0].index);
+    } catch (e) { E("framing", `the shot plan threw ${firstLines(e)}`); }
   }
   // the branches every s.choose makes, checked like the run (findings folded in, named by the pick)
   const branches = run.main ? [] : branchesOf(tl);

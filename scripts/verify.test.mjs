@@ -9,10 +9,13 @@ import { verify, report } from "./verify.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const compiler = join(root, "scripts", "test", "fake-scene.mjs");
 
-test("a clean figure passes every run (scenarios x param extremes)", async () => {
+test("a clean figure passes every run (scenarios x param extremes) but the one framing problem it plants", async () => {
   const r = await verify(join(root, "scripts", "test", "fake-figure.mjs"), { compiler });
   const rep = report(r);
-  assert.equal(rep.errors, 0, rep.text);
+  // "glitch" plants a tag at (9000, 9000) for audit's own test; the shot plan follows it, so the framing check sees
+  // the step's focus leave the frame there, and only there
+  const errs = r.runs.flatMap((x) => x.errors.map((e) => ({ run: x.label, ...e })));
+  assert.ok(errs.length > 0 && errs.every((e) => e.kind === "framing" && e.run.startsWith("glitch") && /steps? 9 /.test(e.message)), rep.text);
   assert.equal(r.runs.length, 28);   // 19 + one portrait-phone run per scenario + the knobs' extremes combined on the phone
   // every knob at its low end together, and at its high end (bools on), on the phone; knobs a scenario pins stay put
   const labels = r.runs.map((x) => x.label);
