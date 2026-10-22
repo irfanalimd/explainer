@@ -22,8 +22,8 @@ entry, keyed by term and dim until that server knows the entry is committed. It 
 
 ## The lesson
 
-- **Hook:** "Five servers keep copies of the same list, and any of them can crash. How do they never end up
-  disagreeing?"
+- **Hook:** "A few servers keep copies of the same list, and any of them can crash. How do they never end up
+  disagreeing?" (no count: the Servers knob runs from 3 to 7, and a shared link can open at any of them)
 - **Picture:** a group keeping one shared notebook. Each copy is a log, a line is an entry, the elected note-taker
   is the leader, "most of us have copied it" is a majority, a line that counts is committed, the note-taker's "still
   here" is a heartbeat, which vote this is is the term.

@@ -148,6 +148,7 @@ export const lesson = {
         done: "The old leader steps down, and its dim entry is replaced.",
       },
     },
+    // with noop: false only (the Figure 8 tests and old links); no knob or story sets it
     stuck: {
       about: "A leader may count copies only of entries from its own term. Without a blank entry of its own, an older one can never be committed, even on a majority.",
       enter: {
@@ -240,6 +241,7 @@ export const lesson = {
       why: "Each server votes once per term. {cand} needs a {term:majority}: {majority} of {N}, its own vote included.",
       look: ["{candId}", "{whoIds}"],
     },
+    // with message loss on (1 in 20 or 1 in 10) and some seeds: a request from an older term arrives late
     "vote.old": {
       when: only("vote.old"),
       first: { why: "A request from an older term comes from an election that is already over." },
@@ -447,6 +449,7 @@ export const lesson = {
       plain: "{who} sends {term:heartbeat|heartbeats}, “still here” messages, so no timer runs out.",
       look: ["{whoIds}"],
     },
+    // two leaders heartbeating in one step: none of 2,592 settings tried reaches it (a stranded leader resends instead)
     "beat.send-many": {
       when: only("beat.send-many"),
       plain: "{who} each still lead, in different terms, and both send heartbeats.",
@@ -571,8 +574,8 @@ export const lesson = {
           source: PAPER,
         },
       },
-      plain: "{who} lacks entry {missing}, so {leader} steps back to entry {next} and resends.",
-      look: ["{whoId}"],
+      plain: "{who} {be:whoIds} missing entry {missing}, so {leader} steps back to entry {next} and resends.",
+      look: ["{whoIds}"],
     },
 
     // ---- The network splits ----
@@ -664,6 +667,7 @@ export const lesson = {
     },
 
     // ---- Stuck (only without the nop) ----
+    // with noop: false only (the Figure 8 tests and old links); no knob or story sets it
     "stuck.old": {
       when: only("stuck.old"),
       key: true,
@@ -692,6 +696,7 @@ export const lesson = {
         source: "The Raft site's list of implementations, https://raft.github.io/",
       },
     },
+    // with no client commands (an empty "Client commands" field): only the leader's nop is committed
     "agree.where": {
       plain: "Committed so far: {count:committed|entry|entries}.",
       look: ["{whoId}"],
