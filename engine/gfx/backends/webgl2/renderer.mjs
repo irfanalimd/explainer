@@ -2,7 +2,7 @@
 // shadowed, bloomed little world. Passes per frame:
 //   1 shadow map (key light, PCSS-filtered when sampled)      2 contact map (plan-space blurred footprints)
 //   3 floor layer (zones, grooves with nearest-segment union, text, ticks; sRGB premultiplied)
-//   4 main MSAA pass into colour + emission (floor plane, opaque slabs, sorted transparent slabs)
+//   4 main MSAA pass into colour + emission (opaque slabs, the floor plane behind them, sorted transparent slabs)
 //   2b colour-bounce map (plan-space, wide blurred footprints of saturated bodies, in their colour)
 //   5 resolve, dual-filter bloom from emission only, tilt-shift DOF (high quality), composite (tonemap
 //     shoulder, vignette, grain, dither)
@@ -478,8 +478,27 @@ export function createRenderer(canvas, opts = {}) {
     gl.clearBufferfv(gl.COLOR, 1, [0, 0, 0, 1]);
     gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1, 0);
     bindLightTextures();
+    // opaque slabs first, then the floor behind them: the depth test spares the floor's shading where a slab covers it
+    // (most of the frame's cost without a GPU). The floor passes ties (LEQUAL), as it did when drawn first and a slab
+    // failed them (LESS), so every sample comes out the same.
+    const sp = R.slab;
+    if (!api.debug.skipSlabs) {
+      gl.useProgram(sp.program);
+      setLightUniforms(sp, fr, cam, sh);
+      gl.uniformMatrix4fv(sp.u.uViewProj, false, cam.viewProj);
+      gl.uniform1f(sp.u.uAtlasSize, atlas.size); gl.uniform1f(sp.u.uSpreadPx, atlas.spread);
+      gl.uniform3fv(sp.u.uLit, colors.lin.lit.slice(0, 3));
+      gl.uniform1f(sp.u.uTime, time);
+      const m = [];
+      for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
+      gl.uniform4fv(sp.u.uMat, m);
+      gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
+      stats.drawCalls += drawSlabs(sp, fr, opaque);
+      gl.disable(gl.CULL_FACE);
+    }
     // floor plane
     if (!api.debug.skipFloor) {
+      gl.depthFunc(gl.LEQUAL);
       const p = R.floor; gl.useProgram(p.program);
       setLightUniforms(p, fr, cam, sh);
       gl.uniformMatrix4fv(p.u.uViewProj, false, cam.viewProj);
@@ -499,21 +518,11 @@ export function createRenderer(canvas, opts = {}) {
       gl.bindVertexArray(R.fsqVao);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       stats.drawCalls++;
+      gl.depthFunc(gl.LESS);
     }
-    // slabs
+    // raised ink and transparent slabs, over both
     if (!api.debug.skipSlabs) {
-      const p = R.slab; gl.useProgram(p.program);
-      setLightUniforms(p, fr, cam, sh);
-      gl.uniformMatrix4fv(p.u.uViewProj, false, cam.viewProj);
-      gl.uniform1f(p.u.uAtlasSize, atlas.size); gl.uniform1f(p.u.uSpreadPx, atlas.spread);
-      gl.uniform3fv(p.u.uLit, colors.lin.lit.slice(0, 3));
-      gl.uniform1f(p.u.uTime, time);
-      const m = [];
-      for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
-      gl.uniform4fv(p.u.uMat, m);
-      gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
-      stats.drawCalls += drawSlabs(p, fr, opaque);
-      gl.disable(gl.CULL_FACE);
+      const p = sp; gl.useProgram(p.program);
       // raised ink (index numbers on plates, labels on tops): depth-tested decals pulled a hair toward the eye
       if (fr.nInkRaised) {
         gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.depthFunc(gl.LEQUAL);
