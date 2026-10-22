@@ -542,6 +542,7 @@ export const lesson = {
   choices: { [chooseId]: { prompt?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
   checks: { [checkId]: { question?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
   next: [{ title, href, why? }],                     // the lessons that follow; the end of the last story names them
+  sources: [{ id, title, by, year, where, url?, supports, short? }],   // what the facts come from (10.6)
 };
 ```
 
@@ -624,6 +625,50 @@ compile(figure, { params, scenario, choices: { [chooseId]: optionIndex } })   //
   end), the pick card closes; the run asks again when it plays up to the pick. On short roots (`.ix-short`, under
   560 px tall, e.g. an embed frame) an open card speaks alone (caption and readout step aside), tightens, and scrolls
   inside itself if it is still too tall.
+
+### 10.6 Sources (`engine/scene/sources.mjs`)
+
+What the figure's examples and its facts about real systems come from, so a reader (and the expert reviewer) can check
+each one. `lesson.sources` lists them; any text cites one as `[id]`.
+
+```js
+sources: [
+  { id: "dean2004", title: "MapReduce: Simplified Data Processing on Large Clusters", by: ["Jeffrey Dean", "Sanjay Ghemawat"],
+    year: 2004, where: "OSDI", url: "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+    supports: ["the word-count example (§2.1)", "re-running a dead worker's tasks (§3.3)", "the 2,000-machine job (§3.5)"] },
+  { id: "html-spec", title: "HTML Standard: Event loops", by: "WHATWG", short: "HTML Standard", year: "n.d.", where: "WHATWG",
+    url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops", supports: ["the order of tasks and microtasks"] },
+],
+```
+
+- **Fields.** `id`: a lowercase slug (`dean2004`, `html-spec`), unique. `title`, `by` (an array of names, or a string
+  of names separated by commas, "and" or "&"; "et al." allowed) and `year` (`"n.d."` for a living document) are
+  required. `where`: the venue or publisher. `url`: an http(s) address that opens, for the primary text where there
+  is one. `supports`: what the figure takes from it (its example, a number, a claim), for the expert reader to check.
+  `short`: the short form, only where the authors' surnames would not make one (an organisation, a standard).
+- **Order of preference.** The primary source (the paper, the standard, the specification, the original author's talk
+  or post), then the best-known textbook or reference (CLRS, OSTEP, MDN), then famous, widely cited explanations
+  (Jake Archibald's "Tasks, microtasks, queues and schedules", raft.github.io).
+- **Citing.** `[id]`, optionally followed by a locator: `§3.6`, `p. 171`, `pp. 170–173`, `ch. 7`, `fig. 2`,
+  `table 1`, `line 12` (`"[dean2004] §3.6"`). A citation starts where a word may (after a space, an opening bracket or
+  quote, or at the start), so `a[i]` is never one; `\[` is a literal bracket, and inline code is never read. A string
+  var never makes one (the template escapes its brackets).
+- **Where.** Any text layer may cite; the ones that state a fact about real systems should: `deeper.real`,
+  `deeper.source`, `deeper.edge`, `meta.cite` (`cite: "[dean2004]"` takes that source's words and url; the
+  `{ text, url }` form still works), a takeaway that says what real systems do, and a scale shot's `lines`.
+- **What the page shows.** The short form and the locator, never the brackets: "Dean & Ghemawat 2004, §3.6"
+  (`shortOf`: one surname, two joined by "&", or the first and "et al.", then the year). In the explain panel, the
+  caption, the presenter view and the handout it is a link to `url` (new tab) with the full reference as its tooltip
+  and accessible name; without a url a dotted-underlined reference. The Source row adds the outward arrow. The scale
+  shot, drawn in the world, prints the short form as text. The handout lists every source under "Sources" with its
+  address written out (the teacher's copy adds what each supports); `meta.cite` names the title's paper link.
+  `node scripts/lesson.mjs` prints citations in their short form and lists the sources at the end.
+- **The Timeline.** `tl.lesson.sources = [{ id, title, by, year, where, url, supports, short, full }]`.
+- **verify** (section `sources`): errors for a malformed list (not a list, a missing or malformed or repeated id, no
+  title, by or year, a url that is not http(s)) and for `[id]` naming no source; warnings for a source nobody cites, a
+  source with no `where` or `supports`, a `deeper.real` or `deeper.source` with no citation, a plain-text `meta.cite`,
+  and a lesson with no `sources` at all (one warning, counting its uncited claims). The warnings become errors once
+  every example cites its sources.
 
 ## 11. Access and embed (`engine/a11y/`, `engine/embed/`)
 

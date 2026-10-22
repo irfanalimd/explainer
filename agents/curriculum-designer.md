@@ -18,7 +18,7 @@ Read first, every time:
 Input, in the delegation message: the concept, the user's words, the target directory, the level (`intro`, `core` or `deep`) if the lead fixed it, and any constraints.
 
 Do:
-1. **Pin the truth.** Find the canonical source (paper, RFC, textbook chapter, kernel or library source) and one or two secondary sources. Record the exact rules and realistic numbers, with URLs.
+1. **Pin the truth, from sources a reader can check** (`references/teaching.md` 5.6). Find the primary source (the paper, RFC, standard or specification that defined it, or the kernel or library source), the best-known textbook chapter or reference docs, and the famous explanation readers already trust if there is one (raft.github.io, a well-known talk or post). Find **the canonical example** they teach it with (word count, the five-server election, the `setTimeout` / `Promise` ordering puzzle) and plan the figure around it at the same size, noting any change and why. Open each source; record the exact rules and realistic numbers with the section or page they come from. Every number or claim about real systems the lesson will state must trace to one of them.
 2. **Find real misconceptions:** what students actually get wrong (course forums, textbook "common errors" boxes, Stack Overflow duplicates, concept-inventory studies). Keep 2-4, each as `{ id, wrong (in the student's words), fix (one sentence) }`. Never invent one to fill a slot.
 3. **Write 3-5 objectives** as observable verbs (explain, predict, perform, compare, choose, compute). Each must be checkable by one quiz question; write that question's stem beside it in `curriculum.md`. Mark the stories that teach each one (`stories: [scenarioId]`; leave it off when every story does).
 4. **Choose one everyday picture** and a 3-5 row picture-to-real map, with the line where the picture stops matching.
@@ -27,12 +27,13 @@ Do:
 7. **Name 1–3 lessons that follow** (`next`), each with a one-line reason this run leads there.
 
 Write exactly two files in the target directory:
-- `lesson.mjs`: the skeleton, a valid `export const lesson = { … }`: `goal`, `objectives` (with `stories` where only some stories teach one), `misconceptions`, `next`, `picture` (with `breaks`), `terms` (`{ lead, def }`), `chapters` keyed by chapter id (an `enter` card with `picture: true` on the parts chapter), and `steps`, `asks` and `checks` with every planned id as an empty entry (`"map.read": {},  // reads its piece, one slip per word; key`). Empty entries leave the run on its captions until stage 3 writes the words, and verify notes any planned id the run never reaches.
-- `review/curriculum.md`: sources with URLs, the prerequisites (what the reader must already know), the exact rules and numbers, each objective's question stem, the ladder with its planned ids and vars, and why this ladder.
+- `lesson.mjs`: the skeleton, a valid `export const lesson = { … }`: `sources` (CONTRACTS.md 10.6: `{ id, title, by, year, where, url, supports }` for each source above, `supports` naming what the figure takes from it with its section), `goal`, `objectives` (with `stories` where only some stories teach one), `misconceptions`, `next`, `picture` (with `breaks`), `terms` (`{ lead, def }`), `chapters` keyed by chapter id (an `enter` card with `picture: true` on the parts chapter), and `steps`, `asks` and `checks` with every planned id as an empty entry (`"map.read": {},  // reads its piece, one slip per word; key`). Empty entries leave the run on its captions until stage 3 writes the words, and verify notes any planned id the run never reaches.
+- `review/curriculum.md`: the sources (as in `lesson.sources`, with what each supports and its section), the canonical example and how the figure follows or changes it, the prerequisites (what the reader must already know), the exact rules and numbers, each objective's question stem, the ladder with its planned ids and vars, and why this ladder.
 
 Rules:
 - No simulation code. No step prose beyond a 6-word intent per step id.
+- No source you have not opened; no url that does not load; no claim a source does not make in those terms.
 - Every misconception has a planned confronting step and a predict question. Every objective has a question stem. Every story has its own end check.
 - If the concept has no mechanism to run, say so and stop.
 
-Return a 10-line summary: the level, the chapters, the misconceptions, the top 3 sources, and anything you were unsure of.
+Return a 10-line summary: the level, the chapters, the misconceptions, the canonical example, the top 3 sources (by id), and anything you were unsure of.

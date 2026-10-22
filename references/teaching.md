@@ -258,7 +258,7 @@ export const lesson = {
 | `plain` | what just happened | Every step. At most 14 words and 2 sentences, present tense, the real values. No O(·) at `intro`. |
 | `why` | why it matters for the goal | Mostly per chapter: the entry card carries the chunk's purpose, so a step adds a `why` only where its purpose differs or defies intuition: the first time a move happens, the aha step, a misconception or failure step, the first of a repeat. Never on repeats. One sentence, at most 18 words, and it must not restate `plain`. |
 | `look` | the entity ids to watch | One cue per step; every id exists at the end of the step. The world lights them, and on a key step the camera takes a detail shot of them. |
-| `deeper` | the precise version, structured | `{ cost, how, code, edge, real, source }`, all optional, in that order: Basics shows the first present field as a one-line peek. `cost`: the complexity and the run's real count. `how`: the exact mechanism. `code`: the line, in a real language. `edge`: the case that breaks the simple story. `real`: where a real system does this. `source`: a URL, required when `real` makes a claim. At least one `cost` in the lesson, and one nuance a ten-year practitioner would not know. |
+| `deeper` | the precise version, structured | `{ cost, how, code, edge, real, source }`, all optional, in that order: Basics shows the first present field as a one-line peek. `cost`: the complexity and the run's real count. `how`: the exact mechanism. `code`: the line, in a real language. `edge`: the case that breaks the simple story. `real`: where a real system does this, citing it (`[id]`, 5.6). `source`: the citation the step rests on (`"[dean2004] §3.3"`), required when `real` makes a claim. At least one `cost` in the lesson, and one nuance a ten-year practitioner would not know. |
 | `picture` | the picture row this step uses | Only on steps that use the analogy. There is no persistent analogy table under the steps: the full map appears once, on the parts chapter's entry card, with its "where it stops matching" line; after that a flagged step gets one inline line at New, and the map stays in the Words drawer. |
 | `key` | `true` on the steps that carry the idea | Needs `why` (verify warns) and `deeper`. New holds after it; the camera frames its `look`. |
 
@@ -345,6 +345,36 @@ automatic switch.
 
 Every in-world pick has a keyboard and list equivalent: Tab or the arrow keys move through the candidates (each lights
 its thing), Enter picks, and 1–9 pick by number. Phones get 44 px targets.
+
+### 5.6 Sources and examples
+
+A reader trusts a figure that shows where its facts come from, and learns faster from an example they may meet again.
+So the research comes before the lesson (SKILL.md step 2) and is written down in `lesson.sources` (CONTRACTS.md 10.6).
+
+**Start from the field's own example.** Every well-taught concept has an instance its best-known sources use: word
+count for MapReduce (the paper's §2.1, and the first program in Hadoop's tutorial), a five-server cluster electing a
+leader for Raft, Jake Archibald's `setTimeout` / `Promise.then` / `console.log` ordering puzzle for the event loop,
+CLRS's partition trace for quicksort. Use it, at the same small size. Change it only where it cannot show something the
+lesson needs, and then say what you changed and why ("the paper counts words in documents; here one sentence, so every
+slip fits on screen").
+
+**Cite what you state about real systems.** A number, a default, a behaviour of a real product, a historical claim:
+each names its source as `[id]` with a locator a reader can open to. The run's own values need no citation: the run is
+the evidence. Prefer the primary source, then the standard reference, then a famous explanation; never a page that
+only repeats them.
+
+| Not like this | Like this |
+|---|---|
+| `real: "Real clusters re-run failed tasks automatically."` | `real: "Google's MapReduce re-ran a dead worker's map tasks on other machines, even finished ones, because their output sat on the dead machine's disk [dean2004] §3.3."` |
+| `source: "https://en.wikipedia.org/wiki/MapReduce"` | `source: "[dean2004] §3.3"` |
+| `real: "Raft elections usually finish within a few hundred milliseconds."` | `real: "In the paper's tests on five servers, with election timeouts of 150–200 ms, the slowest of 1,000 crashed leaders was replaced in 513 ms [ongaro2014] §9.3."` |
+| A made-up example ("imagine three servers called Alpha, Beta, Gamma") | The paper's own ("five servers, S1 to S5, as in the paper's figures") |
+| `cite: { text: "MapReduce paper" }` | `cite: "[dean2004]"`, with the full entry in `lesson.sources` |
+
+**Check every source before citing it.** Open the url; find the section the locator names; confirm it says what the
+words claim, in the same terms (a "median" is not an "average", "up to" is not "about"). Write in `supports` what the
+figure takes from it, so the expert reader can check the same thing. If a claim cannot be traced to a source, cut it or
+say it as the run's own result ("in this run, 4 of 6 messages arrived").
 
 ## 6. Worked example: a linked list
 
@@ -467,6 +497,11 @@ field or misconception id, and an ask whose option count differs from the figure
 across all the runs and warns about step ids with no `plain`, steps or chapters without an id, `key` steps without a
 `why`, and misconceptions no option (of an ask, a pick or an end-check question) names; it notes (without counting) lesson ids no run reaches, which is fine
 for a line only an untried knob value reaches (a very short input), and otherwise a typo.
+
+A **sources** section checks `lesson.sources` (5.6, CONTRACTS.md 10.6): an `[id]` that names no source, and a malformed
+list (a missing or repeated id, no title, author or year, a url that is not http(s)), are errors; a source nobody cites,
+a source without `where` or `supports`, a `deeper.real` or `deeper.source` with no citation, a plain-text `meta.cite`
+and a lesson with no sources at all are warnings.
 
 `node scripts/verify.mjs figure.mjs` ends with a **teaching** section (skip it with `--no-teach`). It reads the same
 lesson that `lesson.mjs` prints, at default params, every story from its fork. Then it checks the words the run shows

@@ -19,13 +19,14 @@
 // Build it:   node __SCRIPTS__/build.mjs figure.mjs            (one self-contained .html next to this file)
 // Look at it: node __SCRIPTS__/shoot.mjs <page>.html           (screenshots + contact sheet)
 
-// Title block and page metadata. `kicker` is shown as "ALGORITHMS · FIG 1"; `cite` links the source.
+// Title block and page metadata. `kicker` is shown as "ALGORITHMS · FIG 1"; `cite` names the primary source in
+// lesson.sources as "[id]" (the title links to it), or { text, url } for a figure without a lesson.
 export const meta = {
   title: "__TITLE__",
   subtitle: "Halving a sorted list until one number is left",
   kicker: "Algorithms",
   fig: 1,
-  cite: { text: "Knuth, The Art of Computer Programming, Vol. 3, §6.2.1", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
+  cite: "[knuth1998] §6.2.1",
   theme: "light",
   // "intro" (a first encounter: few slow chapters, one or two numbers), "core" (the default) or "deep"
   level: "intro",
