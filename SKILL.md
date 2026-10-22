@@ -46,12 +46,13 @@ When the plugin agents are loaded, run these steps inside the **Teacher pipeline
    - **Sketch** (~10–20 min): one board, one scenario, 10–25 steps.
    - **Figure** (~30–60 min): 2–4 scenarios including a failure or edge case, knobs, counters, code panel, a lesson file, both themes checked. This is the default.
    - **Feature** (1–2 h): several boards (for example a cluster plus a space-time lanes board), predict questions, a lockstep comparison, a recorded video.
-2. **Truth first.** Pin down the real mechanism and its numbers before writing any code:
-   - the exact rules, such as Raft's term and vote rules, or what the combiner is allowed to do
-   - realistic sizes, latencies and counts
-   - the canonical source to cite in `meta.cite`
+2. **Truth first.** Pin down the real mechanism and its numbers before writing any code, from sources a reader can check:
+   - **the primary source**: the paper, standard or specification that defined it (Dean & Ghemawat for MapReduce, the Raft paper, the HTML Standard's event loop), read for its rules, its numbers and its own worked example
+   - **the canonical example**: the instance the field teaches it with, which readers may already have met (word count for MapReduce, the five-server election, Jake Archibald's `setTimeout` / `Promise` ordering puzzle, CLRS's partition trace). Start from it; change it only to show something it cannot, and say so
+   - **one or two standard references** (the best-known textbook chapter or reference docs: CLRS, OSTEP, MDN) and, where they are famous, the explanations readers already trust (raft.github.io, a well-known talk)
+   - the exact rules, such as Raft's term and vote rules, or what the combiner is allowed to do; realistic sizes, latencies and counts, each from one of those sources
 
-   Choose a small instance that still shows the interesting behaviour: 3 mappers, not 300; a 5-node cluster; 8 keys. Decide which **scenarios** tell the story: the happy path, then what breaks (crash, partition, skew, worst case, collision, miss).
+   Record each in `lesson.sources` as `{ id, title, by, year, where, url, supports }` before the lesson is written, check each url opens, and cite it as `[id]` wherever the words state a fact about real systems (`deeper.real`, `deeper.source`, `meta.cite`, a scale shot's lines): CONTRACTS.md 10.6, `references/teaching.md` section 5.6. Choose a small instance that still shows the interesting behaviour: 3 mappers, not 300; a 5-node cluster; 8 keys. Decide which **scenarios** tell the story: the happy path, then what breaks (crash, partition, skew, worst case, collision, miss).
 3. **Plan the lesson** (`references/teaching.md`, read it every time) before any code. Write down, in plain text:
    - the level (`intro` for a linked list or binary search, `core`, `deep` for Raft), which sizes everything
    - the learner's question (the hook), and an everyday picture with an explicit mapping to the real parts

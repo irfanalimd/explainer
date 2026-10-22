@@ -18,7 +18,8 @@ const amount = (v) => (isList(v) ? items(v).length : Number(v));
 /** One var as caption markup. */
 export function show(v) {
   if (typeof v === "number") return num(v);
-  if (typeof v === "string") return escape(v);
+  // a run's string is literal text: its brackets never read as a citation ("[1, 2]" stays as it is)
+  if (typeof v === "string") return escape(v).replace(/\[/g, "\\[");
   if (Array.isArray(v)) return and(v.map(show));
   if (v && typeof v === "object") {
     if ("key" in v) return key(String(v.key));

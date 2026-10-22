@@ -41,6 +41,7 @@ function quotesOf(r, role) {
     add("nuance", r.nuance_learned);
     add("sloppy", r.sloppy);
     add("number", r.numbers_checked);
+    add("citation", r.citations_checked);
   }
   return out;
 }

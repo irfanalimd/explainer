@@ -1531,6 +1531,15 @@
 .ix-source { display: inline-flex; align-items: center; gap: 4px; color: var(--ix-ink); text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px; border-radius: 4px; }
 .ix-source:hover { text-decoration-color: var(--ix-ink); }
 .ix-source-icon svg { width: 12px; height: 12px; }
+/* a citation of the lesson's sources ([id] in the text): the short reference, quietly underlined like a source link;
+   the full reference shows in the tooltip. Without a url it is a plain reference with a dotted underline. */
+.ix-cite {
+  color: inherit; text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px;
+  border-radius: 3px; transition: text-decoration-color var(--ix-dur-fast) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-cite:hover, .ix-cite:focus-visible { text-decoration-color: var(--ix-ink); background: var(--ix-hover); }
+span.ix-cite { text-decoration-style: dotted; cursor: help; }
+.ix-cite .ix-source-icon { display: inline-flex; vertical-align: -1px; margin-left: 4px; }
 .ix-peek { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
 .ix-peek-text { flex: 1; min-width: 0; color: var(--ix-ink-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ix-peek-more {
@@ -1990,6 +1999,8 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 .ix-ho-boxes li::before { content: ""; left: 0; top: 4px; width: 11px; height: 11px; border: 1.25px solid var(--ix-ink); border-radius: 2px; }
 .ix-ho-p { color: var(--ix-ink); text-wrap: pretty; }
 .ix-ho-small { margin-top: 6px; font-size: 12px; line-height: 17px; color: var(--ix-ink-muted); text-wrap: pretty; }
+.ix-ho-refs li { margin: 6px 0; }
+.ix-ho-url a { color: inherit; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px; }
 .ix-ho-url { font: 500 12px/18px var(--ix-font-mono); word-break: break-all; }
 .ix-ho-sec, .ix-ho-part { padding: 22px 0 6px; }
 .ix-ho-sec + .ix-ho-sec, .ix-ho-part, .ix-ho-sec:has(+ .ix-ho-part) { border-bottom: 0; }

@@ -16,7 +16,7 @@ Read first, every time:
 - the target's `lesson.mjs` skeleton and `review/curriculum.md`
 - the run itself: `node ${CLAUDE_PLUGIN_ROOT}/scripts/lesson.mjs <figure.mjs> --json --all --no-lint`
 
-Read `figure.mjs` when you need to know what a step really does. Every number you write comes from the run, or is a template that resolves at every knob extreme.
+Read `figure.mjs` when you need to know what a step really does. Every number you write comes from the run, or is a template that resolves at every knob extreme. Every fact about real systems comes from a source in `lesson.sources`, cited as `[id]` with a locator, which you have opened and checked says it (`references/teaching.md` 5.6).
 
 **Stage 3 (write).** Fill `lesson.mjs` for every step id in the run, every chapter and every ask, as the teacher skill describes.
 
@@ -26,7 +26,7 @@ Read `figure.mjs` when you need to know what a step really does. Every number yo
 - A `sloppy` finding is fixed, not declined: rewrite the sentence to the writing standard.
 - If a finding needs the simulation to change (a wrong number that comes from `figure.mjs`), say so in `response.md` and leave it to the lead.
 
-Gate before you return: `node ${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs <figure.mjs>` ends `0 failing` with no teaching errors, no lesson warnings and no `writing` warnings (`node ${CLAUDE_PLUGIN_ROOT}/scripts/lesson.mjs <figure.mjs> --style` lists each one with its line and a rewrite). Fix and rerun at most twice; then return with the remaining errors listed.
+Gate before you return: `node ${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs <figure.mjs>` ends `0 failing` with no teaching errors, no lesson warnings, no sources warnings and no `writing` warnings (`node ${CLAUDE_PLUGIN_ROOT}/scripts/lesson.mjs <figure.mjs> --style` lists each one with its line and a rewrite). Fix and rerun at most twice; then return with the remaining errors listed.
 
 Never read anything under `bench/` or `review/packet/`, or any `canary.json` (the fence refuses them). Never spawn agents.
 

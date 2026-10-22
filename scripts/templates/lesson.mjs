@@ -6,9 +6,14 @@
 //   run-wide vars: n, key, last, arrayId
 //   halve steps:   mid, value, midId, looks; side, than, left (a drop)
 //   answer:        at, looks
-const SOURCE = "D. E. Knuth, The Art of Computer Programming, Vol. 3, §6.2.1, https://www-cs-faculty.stanford.edu/~knuth/taocp.html";
-
 export const lesson = {
+  // Where the facts come from (references/teaching.md 5.6, CONTRACTS.md 10.6): the primary source first, then the
+  // standard reference, each opened and checked. Any text cites one as [id] with a locator: "[knuth1998] §6.2.1".
+  sources: [
+    { id: "knuth1998", title: "The Art of Computer Programming, Volume 3: Sorting and Searching (2nd ed.)", by: "Donald E. Knuth",
+      year: 1998, where: "Addison-Wesley", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html",
+      supports: ["binary search on a sorted table, Algorithm B (§6.2.1)"] },
+  ],
   goal: "Find a number in a sorted list, or prove it is missing, in a few looks.",
   objectives: [
     { id: "o-half", text: "Say which half to drop after one look, and why the order of the list allows it." },
@@ -72,7 +77,7 @@ export const lesson = {
       first: {
         key: true,
         why: "One look at the middle splits the window into two halves.",
-        deeper: { how: "The middle is (lo + hi) // 2, rounded down, so both halves differ by at most one.", source: SOURCE },
+        deeper: { how: "The middle is (lo + hi) // 2, rounded down, so both halves differ by at most one.", source: "[knuth1998] §6.2.1" },
       },
     },
     "halve.drop": {
