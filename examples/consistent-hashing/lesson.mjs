@@ -40,7 +40,7 @@ export const lesson = {
       supports: "jump consistent hash moves 1/(n + 1) of the keys and needs no stored ring, but buckets can only be added or removed at the end" },
     { id: "white2007", title: "Consistent Hashing", by: "T. White", year: 2007, where: "blog post",
       url: "https://tom-e-white.com/2007/11/consistent-hashing.html",
-      supports: "with hash mod n, adding or removing a cache moves every object; virtual nodes; from Dynamo to memcached" },
+      supports: "the reshuffle that hash mod n causes when a cache joins or leaves; virtual nodes; from Dynamo to memcached" },
   ],
 
   goal: "Share keys among servers so that a server joining or leaving moves only the keys it must.",
@@ -153,7 +153,7 @@ export const lesson = {
         cost: "On average {N} keys in every {n1} move, the fraction N/(N + 1); one in {n1} is all that must. Here {moved} of {K} moved.",
         how: "A key keeps its server only if hash % {N} equals hash % {n1}. That holds for 1 number in {n1}, so the bigger the cluster, the worse it gets.",
         edge: "With only {K} keys, luck swings the count above or below the average; with a million keys the share moved lands within 0.1% of N/(N + 1).",
-        real: "This is the problem the ring was invented for. Karger et al. wanted web caches that could come and go, and a hash that “changes minimally as the range of the function changes”. Tom White's 2007 write-up opens the same way: with hash mod n, adding a cache moves every object.",
+        real: "This is the problem the ring was invented for. Karger et al. wanted web caches that could come and go, and a hash that “changes minimally as the range of the function changes”. Tom White's 2007 write-up starts from this same reshuffle.",
         source: "[karger1997]; [white2007]",
       },
     },

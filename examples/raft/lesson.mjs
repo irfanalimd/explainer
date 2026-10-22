@@ -43,7 +43,7 @@ export const lesson = {
       url: "https://thesquareplanet.com/blog/students-guide-to-raft/",
       supports: "the commit index from the last new entry, when to reset the election timer, cutting the log only on a conflict, accelerated backtracking by log length" },
     { id: "etcd-tuning", title: "Tuning", by: "etcd", year: 2023, where: "etcd v3.5 documentation", url: "https://etcd.io/docs/v3.5/tuning/",
-      supports: "a 100 ms heartbeat and a 1000 ms election timeout by default" },
+      supports: "a 100 ms heartbeat and a 1000 ms election timeout by default, both sized by the round trip between members" },
     { id: "etcd-raft", title: "etcd-io/raft: raft.go and README", by: "etcd", year: 2024, where: "etcd's Raft library", url: "https://github.com/etcd-io/raft",
       supports: "the PreVote and CheckQuorum options; CockroachDB, TiKV and etcd among its users" },
     { id: "raft-site", title: "The Raft Consensus Algorithm", by: "D. Ongaro et al.", year: 2024, where: "raft.github.io", url: "https://raft.github.io/",
@@ -192,7 +192,7 @@ export const lesson = {
       look: ["{serverIds}"], picture: "copy",
       deeper: {
         how: "The timer is the election timeout. Hearing nothing from a leader before it runs out, a server assumes there is none. The paper suggests {min}–{max} ms (§9.3): random, so two servers rarely run out together.",
-        real: "etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout, sized to the network's round trip and the disk's write time.",
+        real: "etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout. Its guide sets the heartbeat near the round trip between servers, and the timeout at least 10 times that round trip.",
         source: "[ongaro2014] §5.2, §9.3; [etcd-tuning]",
       },
     },

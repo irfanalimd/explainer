@@ -64,7 +64,7 @@ export const lesson = {
       fix: "Each signpost page sends the search to exactly one page below it, so it reads one page per level." },
     { id: "m-bottom", wrong: "When the tree needs more room, it grows downward: new levels appear under the bottom pages.",
       fix: "Full pages split and send an id up; only a root split adds a level, and it adds it on top." },
-    { id: "m-grow", wrong: "A full page can just hold one more id, or the new id gets a page of its own.",
+    { id: "m-grow", wrong: "A full page can stretch to hold one more id, or the new id gets a page of its own.",
       fix: "A page is a fixed-size block on disk, so a page with too many ids must split into two." },
     { id: "m-back", wrong: "To reach the next ids in a range, the search climbs back up the tree, like in a binary search tree.",
       fix: "Each bottom page links to the next one, so the search walks sideways and never re-reads the pages above." },
@@ -148,7 +148,7 @@ export const lesson = {
     "noindex.check": {
       key: true,
       plain: "With no index, finding {target} takes {count:checks|check}, one id at a time.",
-      why: "Each check rules out just one id, so every new order adds work to every search.",
+      why: "Each check rules out only one id, so every new order adds work to every search.",
       look: ["{targetId}"],
       deeper: {
         cost: "{checks} of {n} checks here. On average a search with no index checks half the rows, and an id that isn't there costs all of them: O(n).",
@@ -328,9 +328,9 @@ export const lesson = {
     },
     "descend.reads": {
       options: [
-        { feedback: "Right. The search reads {path}: {levels} pages, one per level. Each signpost page points to just one page below it." },
+        { feedback: "Right. The search reads {path}: {levels} pages, one per level. Each signpost page points to only one page below it." },
         { misconception: "m-every",
-          feedback: "If you thought a search must look everywhere to be sure: each signpost page points to just one page below it, so it is {levels} reads out of {pages} pages. A real tree of billions of rows reads about 4." },
+          feedback: "If you thought a search must look everywhere to be sure: each signpost page points to only one page below it, so it is {levels} reads out of {pages} pages. A real tree of billions of rows reads about 4." },
         { feedback: "Every search must start at the root, the only page it can find on its own, then read one page per level: {levels} pages." },
       ],
     },
