@@ -24,6 +24,7 @@ import { rng as simRng } from "../sim/rng.mjs";   // the page (engine/runtime.mj
 import { extractLesson } from "./lib/lesson.mjs";
 import { loadFigure } from "./lib/lesson-load.mjs";
 import { lintLesson, lintVariants, wordsShown, formatFindings } from "./lib/teach.mjs";
+import { styleFindings } from "./lib/style.mjs";
 import { excerpt, keyLine, frameIn, importFailure, nearest } from "./lib/where.mjs";
 import { lessonBeside } from "./lib/modules.mjs";
 import { tokens } from "../engine/scene/narrate.mjs";
@@ -607,6 +608,8 @@ async function workerMain({ figure, compiler, quick, sample, teach = true }) {
       const more = lintVariants(lesson, variants, fig, result);
       result.errors.push(...more.errors);
       result.warnings.push(...more.warnings);
+      // the writing lint: every prose string of figure.mjs and lesson.mjs, and repeats in the compiled lesson
+      result.warnings.push(...styleFindings({ figureFile: figure, lessonFile: lessonBeside(figure), lesson }).warnings);
     }
     catch (e) { result = { errors: [{ kind: "teaching", rule: "lesson", message: `could not read the lesson: ${firstLines(e)}` }], warnings: [], info: {} }; }
     post({ type: "teaching", result });
