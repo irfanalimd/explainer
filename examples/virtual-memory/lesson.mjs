@@ -343,7 +343,7 @@ export const lesson = {
       "plain@hit": "Frame {frame}, then offset {off}: the {term:physical address}, {pa}.",
       "why@hit": "The note gave the room, so not one directory line was read.",
       "deeper@hit": {
-        how: "The frame number fills bits 38–12 of the physical address and the offset bits 11–0: frame × 4,096 + offset.",
+        how: "The same sum as after a walk, frame × 4,096 + offset; only the frame number came from the note.",
         code: "`return pfn << 12 | off;` (line 5)",
       },
     },
@@ -425,7 +425,7 @@ export const lesson = {
       look: ["tlb"],
       deeper: {
         cost: "{first} cycles for the first read, then 1 for each of the rest: {cycles} cycles over {loads} reads.",
-        edge: "Reading one byte from each of many pages instead would miss on every page and pay a walk each time. Code that hops across a huge array feels this.",
+        edge: "Reading one byte from each of 4,096 different pages instead would miss 4,096 times and pay a walk for each. Code that hops across a huge array feels this.",
         real: "A 2 MiB huge page lets one note cover 512 small pages, and its walk stops at the third table. Linux uses them for large memory areas.",
         source: THP,
       },
@@ -549,7 +549,7 @@ export const lesson = {
       why: "The offset copies over unchanged; only the room number came from the directory.",
       look: ["pa"], picture: "room",
       deeper: {
-        how: "The frame number fills bits 38–12 of the physical address and the offset bits 11–0: frame × 4,096 + offset.",
+        how: "The sum is the usual frame × 4,096 + offset; the frame is the room the kernel filled from disk.",
         code: "`return table | off;` (line 15)",
       },
     },
@@ -560,7 +560,7 @@ export const lesson = {
       },
       plain: "A sticky note now maps page {vpn} to room {frame}, on a free note.",
       look: ["{noteIds}"],
-      deeper: { how: "With every note in use, the one used longest ago makes room: least recently used, LRU." },
+      deeper: { how: "This is the note the first try could not write: its walk found “not present”, so only the retry, ending in a room, leaves one." },
     },
     "retry.byte": {
       plain: "The byte at physical address {pa} is {byte}: {cycles} cycles for one byte.",

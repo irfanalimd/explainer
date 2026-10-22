@@ -195,7 +195,7 @@ export const lesson = {
 
     // ---- chapter 1, find story ----
     "jump.where": {
-      plain: "{n} numbers side by side from {arr}. Where is the {findth} item?",
+      plain: "{n} numbers side by side from {arr}. We want the {findth} item.",
       why: "An address is a number, so we can do arithmetic with it.",
       look: ["arr"],
       deeper: {
@@ -378,7 +378,7 @@ export const lesson = {
       look: ["arr", "{findId}"],
       deeper: {
         cost: "Array: one sum and one load. List: {findHops} loads, each waiting on the one before.",
-        real: "Need fast inserts and fast lookups? Skip lists add express lanes over a linked list, so a search skips most nodes (Pugh 1990).",
+        real: "For fast inserts and fast lookups together, skip lists add express lanes over a linked list, so a search skips most nodes (Pugh 1990).",
         source: "[pugh1990]",
       },
     },

@@ -950,7 +950,7 @@ function machine(s, cfg, sc, view = {}) {
       s.step(sc === "order"
         ? `The ${C("<script>")} in the code panel is the rail's first order. One thread, the cook, runs it`
         : sc === "await"
-          ? `An ${C("async")} function, ${C("load()")}, called from a script. Where does {term:await} send the rest of it?`
+          ? `An ${C("async")} function, ${C("load()")}, called from a script. Watch where {term:await} sends the rest of it.`
           : starve
             ? `A long job cut into ${cfg.chunks} chunks of ${ms(cfg.work)}. Each chunk queues the next with ${C("queueMicrotask")}`
             : `The same ${cfg.chunks} chunks of ${ms(cfg.work)}, but each queues the next with ${C("setTimeout(chunk, 0)")}`,
