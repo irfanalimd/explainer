@@ -34,7 +34,7 @@ export const lesson = {
       supports: "reduceByKey combines on the map side and spills its tables to disk; prefer it to groupByKey" },
     { id: "white2015", title: "Hadoop: The Definitive Guide, 4th edition", by: "T. White", year: 2015, where: "O'Reilly",
       url: "https://www.oreilly.com/library/view/hadoop-the-definitive/9781491901687/",
-      supports: "combiner functions (ch. 2), the shuffle and sort (ch. 7), input splits and records across blocks (ch. 8)" },
+      supports: "combiner functions (ch. 2), the shuffle and sort, with each map's output in one partitioned file (ch. 7), input splits and records across blocks (ch. 8)" },
     { id: "python-hashseed", title: "Command line and environment: PYTHONHASHSEED", by: "Python Software Foundation", year: 2024, where: "Python documentation",
       url: "https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHASHSEED",
       supports: "str hashes are salted per process unless PYTHONHASHSEED is set" },
@@ -206,7 +206,7 @@ export const lesson = {
         deeper: {
           how: "A real mapper buffers its slips, then writes them to its own local disk, divided into R regions, one per reduce task ({R} here, one per counting machine; Hadoop keeps them as parts of one indexed file). It tells the master where they are (§3.1).",
           code: "`emit(word, 1)` (lines 1–3)",
-          source: "[dean2004] §3.1",
+          source: "[dean2004] §3.1; [white2015] ch. 7",
         },
       },
       plain: "{map} writes a slip for each of its {count:count|word}, like {slip}.",
