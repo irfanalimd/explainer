@@ -18,7 +18,7 @@ export const meta = {
   cite: { text: "D. E. Knuth, The Art of Computer Programming, Vol. 1, §2.2.3 “Linked Allocation”", url: "https://www-cs-faculty.stanford.edu/~knuth/taocp.html" },
   theme: "light",
   hook: "Putting a number in the middle of an array means sliding everything after it over. Can we insert without moving anything?",
-  takeaway: "A linked list never moves its items: inserting just changes two arrows. It pays with a walk from head, and more memory and slower visits per node.",
+  takeaway: "A linked list never moves its items: inserting changes two arrows. It pays with a walk from head, and more memory and slower visits per node.",
   terms: {
     address: "The number that says where something is stored in memory, like a house number, such as 0x7f3a_2c10.",
     node: "One item of a linked list: a little box holding a value and the address of the next box.",
