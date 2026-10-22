@@ -22,6 +22,10 @@ usage: node scripts/audit.mjs <page.html | figure.mjs | url> [options]
   --json               machine-readable output
 `;
 
+// the toolbar's panel buttons, found by their words as a reader finds them (a figure with no code has no Code button)
+const tool = (re) => `[...document.querySelectorAll(".ix-tool")].find((b) => b.offsetParent && ${re}.test(b.textContent))`;
+const PANELS = [["code", tool("/^\\s*Code\\s*$/")], ["parameters", tool("/Parameters|Settings/")]];
+
 export async function audit(target, o = {}) {
   const sizes = (o.sizes ?? ["1440x900", "390x844"]).map(parseSize);
   const t = await resolveTarget(target, { runtime: o.runtime });
@@ -49,6 +53,16 @@ export async function audit(target, o = {}) {
             for (const p of probs) found.push({ ...p, step: p.step ?? s.step, where, t: s.t, caption: info.steps[p.step ?? s.step]?.caption ?? "" });
             if (o.a11y) for (const f of await a11yCheck(fp.page).catch((e) => [{ kind: "a11y-error", cls: e.message.split("\n")[0], text: "" }])) access.push({ ...f, step: s.step, where });
             for (const e of fp.errors.slice(e0)) errors.push({ ...e, where, step: s.step, caption: info.steps[s.step]?.caption ?? "" });
+            n++;
+          }
+          // the panels a reader opens (the code, the parameters) are in no step's frame: judge each once, open on the
+          // last frame, in the first scenario of each size and theme
+          if (o.a11y && id === ids[0]) for (const [panel, button] of PANELS) {
+            const open = await fp.page.evaluate(`(() => { const b = ${button}; if (!b) return false; if (b.getAttribute("aria-pressed") !== "true") b.click(); return true; })()`).catch(() => false);
+            if (!open) continue;
+            await fp.page.evaluate("new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))");
+            for (const f of await a11yCheck(fp.page).catch((e) => [{ kind: "a11y-error", cls: e.message.split("\n")[0], text: "" }])) access.push({ ...f, step: info.steps.length - 1, where: `${where}/${panel}` });
+            await fp.page.evaluate(`(() => { const b = ${button}; if (b && b.getAttribute("aria-pressed") === "true") b.click(); return true; })()`).catch(() => {});
             n++;
           }
           const stats = await fp.stats().catch(() => ({}));

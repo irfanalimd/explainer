@@ -334,8 +334,10 @@ component with the worst value seen:
 - `a11y-name`: buttons, links, inputs and widgets with no accessible name.
 - `a11y-focus`: controls that show nothing when focused from the keyboard.
 
-The probe is injected, so it measures any built page, an older build included. `--at phases --themes light,dark` is
-a quick pass (about 160 frames).
+The panels a reader opens are in no step's frame, so with `--a11y` each size and theme of the first scenario adds
+two frames on its last step: the code panel open (`…/code` in the report) and the parameters (or settings) panel open
+(`…/parameters`). The probe is injected, so it measures any built page, an older build included.
+`--at phases --themes light,dark` is a quick pass (about 160 frames).
 
 ## record.mjs
 
