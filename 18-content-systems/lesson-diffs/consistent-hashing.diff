@@ -1,0 +1,193 @@
+--- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/consistent-hashing-all.txt	2026-10-22 03:48:47.345939319 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/consistent-hashing-all.txt	2026-10-22 04:02:50.180872024 +0000
+@@ -86,12 +86,12 @@
+                   must. Here 14 of 16 moved.
+         · how     A key keeps its server only if hash % 4 equals hash % 5. That holds for 1 number
+                   in 5, so the bigger the cluster, the worse it gets.
+-        · edge    With only 16 keys, luck swings the count above or below the average; with millions
+-                  of keys it lands very close.
+-        · real    Early web caches spread keys this way. Tom White's widely linked 2007 write-up
+-                  uses this reshuffle to motivate the ring.
+-        · source  T. White, Consistent Hashing (2007),
+-                  https://tom-e-white.com/2007/11/consistent-hashing.html
++        · edge    With only 16 keys, luck swings the count above or below the average; with a
++                  million keys the share moved lands within 0.1% of N/(N + 1).
++        · real    This is the problem the ring was invented for. Karger et al. wanted web caches
++                  that could come and go, and a hash that “changes minimally as the range of the
++                  function changes”. Tom White's 2007 write-up starts from this same reshuffle.
++        · source  [karger1997]; [white2007]
+ 
+    ▸ Chapter 3 of 6 · The ring
+      about     Think of a round table whose seats are every hash number, bent into a ring. Each
+@@ -110,10 +110,10 @@
+                   number from 0 to 2^32 − 1
+         · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                   values in hex.
+-        · real    This run hashes with 32-bit MurmurHash3. Dynamo used 128-bit MD5 (§4.2);
+-                  Cassandra's default uses 64-bit numbers from MurmurHash3.
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
++                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
++                  function the same way.
++        · source  [dynamo2007] §4.1; [cassandra-dynamo]
+    4  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%. [arc: The stretch
+       of the circle from one server's seat back to the seat before it.]   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+@@ -125,9 +125,10 @@
+         · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                   is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+         · real    Karger et al. give each server about log N seats to fix this: then every share is
+-                  within a constant factor of fair.
+-        · source  D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent
+-                  Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660
++                  within a constant factor of fair. Their work grew into the business plan for
++                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
++                  Lewin, founded it.
++        · source  [karger1997]; [leighton2002]
+ 
+    ▸ Chapter 4 of 6 · Keys
+      about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+@@ -185,8 +186,7 @@
+         · how     A real server copies its keys first and starts answering for them after, so
+                   nothing is lost while they move.
+         · real    In Dynamo the existing nodes hand over the key ranges a new node now owns (§4.9).
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · source  [dynamo2007] §4.9
+      PREDICT  db05 takes over part of db04's arc. Which of the 16 keys have to move?
+               A) Only the keys between db05 and the server before it   ✓
+                  → Right. A key moves only if a seat of db05's is now first on its clockwise walk:
+@@ -208,8 +208,7 @@
+                   seats split.
+         · real    Dynamo adds a node the same way; only the nodes that owned its new ranges send
+                   data (§4.9).
+-        · source  D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent
+-                  Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660
++        · source  [karger1997]; [dynamo2007] §4.9
+ 
+    ▸ Chapter 6 of 6 · Result
+      about     On the ring, only the keys in the split arc moved: on average one key in 5. The
+@@ -226,8 +225,7 @@
+         · edge    With few keys, luck can flip a single run, so compare the averages, not one count.
+         · real    Jump consistent hash (Google, 2014) also moves just 1 key in N + 1 and needs no
+                   ring in memory, but servers can only join or leave at the end of the list.
+-        · source  J. Lamping and E. Veach, A Fast, Minimal Memory, Consistent Hash Algorithm, 2014,
+-                  https://arxiv.org/abs/1406.2294
++        · source  [jump2014]
+   15  But one seat each shares the ring unevenly: db03 now owns 49% of it.   ‹result.uneven›
+         why       db03 owns 2.5× the average share, so it stores and serves that much more.
+         look      db03
+@@ -261,10 +259,10 @@
+                   number from 0 to 2^32 − 1
+         · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                   values in hex.
+-        · real    This run hashes with 32-bit MurmurHash3. Dynamo used 128-bit MD5 (§4.2);
+-                  Cassandra's default uses 64-bit numbers from MurmurHash3.
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
++                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
++                  function the same way.
++        · source  [dynamo2007] §4.1; [cassandra-dynamo]
+    1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                   others.
+@@ -275,9 +273,10 @@
+         · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                   is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+         · real    Karger et al. give each server about log N seats to fix this: then every share is
+-                  within a constant factor of fair.
+-        · source  D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent
+-                  Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660
++                  within a constant factor of fair. Their work grew into the business plan for
++                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
++                  Lewin, founded it.
++        · source  [karger1997]; [leighton2002]
+ 
+    ▸ Chapter 2 of 4 · Keys
+      about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+@@ -348,8 +347,7 @@
+                   clockwise, so the next server already has a copy when one leaves (§4.3).
+         · real    Dynamo's paper gives this spread as the reason for many seats: a failed node's
+                   load is shared by the rest (§4.2).
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · source  [dynamo2007] §4.2, §4.3
+ 
+    ▸ Chapter 4 of 4 · Result
+      about     The ring moved the leaver's keys and nothing else. The remainder way would divide
+@@ -364,8 +362,7 @@
+                   moved only the leaver's keys.
+         · edge    A server that takes a leaver's whole arc can be overloaded in turn and fail too:
+                   one reason real stores give each server many seats.
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · source  [dynamo2007] §4.2
+ 
+    RECAP
+      1. Each key sits with the next server clockwise.
+@@ -394,10 +391,10 @@
+                   number from 0 to 2^32 − 1
+         · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                   values in hex.
+-        · real    This run hashes with 32-bit MurmurHash3. Dynamo used 128-bit MD5 (§4.2);
+-                  Cassandra's default uses 64-bit numbers from MurmurHash3.
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
++                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
++                  function the same way.
++        · source  [dynamo2007] §4.1; [cassandra-dynamo]
+    1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                   others.
+@@ -408,9 +405,10 @@
+         · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                   is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+         · real    Karger et al. give each server about log N seats to fix this: then every share is
+-                  within a constant factor of fair.
+-        · source  D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent
+-                  Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660
++                  within a constant factor of fair. Their work grew into the business plan for
++                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
++                  Lewin, founded it.
++        · source  [karger1997]; [leighton2002]
+ 
+    ▸ Chapter 2 of 5 · Keys
+      about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+@@ -467,8 +465,7 @@
+                   unevenness, so one doubling can even make it worse.
+         · real    Karger et al. show about log N seats per server keep every share within a constant
+                   factor of fair.
+-        · source  D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent
+-                  Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660
++        · source  [karger1997]
+    7  Now 4 seats each: 2 keys moved. Busiest share 1.6× → 1.4×.   ‹vnodes.more›
+         look      k.post:4410, k.post:12
+    8  Now 8 seats each: 7 keys moved. Busiest share 1.4× → 1.3×.   ‹vnodes.more›
+@@ -507,8 +504,7 @@
+                   clockwise, so the next server already has a copy when one leaves (§4.3).
+         · real    Dynamo's paper gives this spread as the reason for many seats: a failed node's
+                   load is shared by the rest (§4.2).
+-        · source  G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007,
+-                  https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
++        · source  [dynamo2007] §4.2, §4.3
+ 
+    ▸ Chapter 5 of 5 · Result
+      about     With many seats per server, each server owns many small arcs. A leaver's keys can
+@@ -523,10 +519,10 @@
+                   few dozen seats, more buys little.
+         · edge    Random seats even out slowly. Dynamo moved to equal-size slices of the ring handed
+                   out evenly, its best-balanced strategy (§6.2).
+-        · real    Cassandra cut its default from 256 random seats per node to 16 placed by an
+-                  allocator in 4.0: fewer seats meant fewer neighbours to stream from and to repair.
+-        · source  Apache Cassandra, Production recommendations (num_tokens),
+-                  https://cassandra.apache.org/doc/latest/getting-started/production.html
++        · real    Cassandra 4.0 cut its default from 256 random seats per node to 16, placed by an
++                  allocator so they still spread evenly. With 256 random seats, every node shared
++                  data with so many others that losing a few nodes could make some data unavailable.
++        · source  [dynamo2007] §6.2; [cassandra-dynamo]; [cassandra-13701]
+ 
+    RECAP
+      1. A server's share is the sum of its arcs, and more seats make more, smaller arcs.

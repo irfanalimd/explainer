@@ -1,0 +1,349 @@
+--- event-loop lesson on polish/round-4
++++ event-loop lesson on content/examples-foundations
+@@ -29,8 +29,8 @@
+   m-order: “Callbacks run in the order they were set up, so the timer queued first goes first.”
+            After each task the loop empties the microtask queue first; a timer is a task, so it
+            waits behind them all.
+-  m-await: “If the awaited value is already there, the function just carries on with the next line.”
+-           The rest of an async function always becomes a microtask, so the caller's code finishes
++  m-await: “If the awaited value is already there, the function carries on with the next line.” The
++           rest of an async function always becomes a microtask, so the caller's code finishes
+            first.
+   m-paint: “The browser repaints whenever a new frame is due, between any two pieces of work.” A
+            repaint is a task, and no task starts while microtasks wait, so a chain of microtasks
+@@ -87,8 +87,7 @@
+                   run it to the end, then perform a microtask checkpoint. Repeat forever.
+         · real    A browser keeps several task queues (input, timers, networking) and may choose
+                   which queue to serve next. Only the order inside one queue is fixed.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+    2  The script is what's cooking now, on the call stack. It prints `script`. [call stack: The
+       functions running right now, piled up. New work can start only when it is empty.]   ‹script.log›
+         why       Plain code runs line by line, and nothing can cut in while it does.
+@@ -112,8 +111,7 @@
+                   is up, the browser queues a task that calls the function.
+         · edge    The standard adds no delay to a 0 ms timer. Only timers that set timers more than
+                   five deep get at least 4 ms.
+-        · source  HTML Living Standard, timer initialisation steps,
+-                  https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps
++        · source  [whatwg-timers] the timer initialisation steps
+    4  The timer, one of the browser's Web APIs, is up: timeout joins the task queue. [Web APIs:
+       The browser's own helpers, like timers and the network, which work in the background.]   ‹arrive.timer›
+         why       The timer is done, but the script still holds the thread, so timeout waits in
+@@ -123,8 +121,9 @@
+                   the background
+         · how     A due timer never interrupts: the browser only queues a task, and the loop picks
+                   tasks only between other tasks.
+-        · source  HTML Living Standard, timer initialisation steps,
+-                  https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps
++        · real    This figure's boxes, the call stack, the Web APIs and the queue, follow Philip
++                  Roberts' JSConf EU 2014 talk on the event loop.
++        · source  [whatwg-timers]; [roberts2014]
+    5  `Promise.resolve()` is ready at once: then 1 joins the microtask queue; then 2 waits for it.
+       [microtask: A small job that must run as soon as the current code ends, before any new
+       task.]   ‹script.promise›
+@@ -144,8 +143,7 @@
+         look      micro
+         · how     The standard calls this “clean up after running script”: once the stack is empty,
+                   a microtask checkpoint runs before the loop returns to its task queues.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    ▸ Chapter 2 of 4 · Before the next task
+      about     When the stack is empty, the loop runs every waiting microtask. Microtasks added
+@@ -178,8 +176,7 @@
+         · real    A checkpoint runs whenever the stack empties, not only after a task. So a real
+                   click runs each listener's microtasks before the next listener, but
+                   `button.click()` from a script does not: the script is still on the stack.
+-        · source  J. Archibald, Tasks, microtasks, queues and schedules (2015),
+-                  https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
++        · source  [archibald2015]
+   11  then 1 returns, so its promise is ready: then 2 joins the microtask queue. [promise: An
+       object standing for a result that is not ready yet. Code can wait for it.]   ‹settle.ready›
+         why       A `.then` callback waits for the one before it, so then 2 is new to the queue.
+@@ -188,8 +185,7 @@
+                   settled, which queues the next handler as a job.
+         · edge    If a handler returns a promise instead of a value, the next `.then` waits two
+                   extra microtask turns (a NewPromiseResolveThenableJob, then its own `.then`).
+-        · source  ECMAScript, PerformPromiseThen and NewPromiseResolveThenableJob,
+-                  https://tc39.es/ecma262/#sec-newpromiseresolvethenablejob
++        · source  [ecma-promise] NewPromiseResolveThenableJob
+   12  First in, first out: micro runs next and prints `micro`.   ‹micro.micro›
+         look      log4
+   13  ★ then 2 runs too, though its promise was ready only mid-round. It prints `then 2`.   ‹micro.then-2›
+@@ -200,8 +196,7 @@
+                   empty”, so it checks the queue again after every microtask.
+         · edge    So a microtask that always queues another never lets the loop reach a task: no
+                   timer, no click, no repaint.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    ▸ Chapter 3 of 4 · The timer
+      about     A timer's callback waits in the task queue. The loop takes one task at a time, and
+@@ -216,8 +211,7 @@
+         · real    Browsers did not always agree. In 2015 Edge, Firefox 40 and Safari 8 printed
+                   `timeout` before the promise callbacks; today every engine runs promise callbacks
+                   as microtasks.
+-        · source  J. Archibald, Tasks, microtasks, queues and schedules (2015),
+-                  https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/
++        · source  [archibald2015]
+ 
+    ▸ Chapter 4 of 4 · The network
+      about     The request runs in the background, outside JavaScript. Its reply arrives as a task;
+@@ -236,7 +230,7 @@
+         · how     When the response arrives, the browser queues a task to resolve the promise
+                   `fetch` returned. Resolving it queues every waiting reaction as a microtask, in
+                   the order they were added.
+-        · source  Fetch Standard, the fetch() method, https://fetch.spec.whatwg.org/#fetch-method
++        · source  [whatwg-fetch] the fetch() method
+   17  Right after that task, the microtask runs: fetched prints `fetched`.   ‹micro.fetched›
+         look      log7
+   18  ★ Printed: script, done, then 1, micro, then 2, timeout and fetched. Script first, then
+@@ -245,11 +239,13 @@
+         look      console
+         · cost    The run takes 40 ms of simulated time, all of it the network delay: the thread
+                   itself never waits.
+-        · real    Node prints the same order here, but its loop has phases, and it runs
+-                  `process.nextTick` callbacks before promise jobs, so `setImmediate` against
+-                  `setTimeout(0)` can differ from a browser.
+-        · source  Node.js, The Node.js Event Loop,
+-                  https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick
++        · edge    This is Jake Archibald's 2015 test with `queueMicrotask` and `fetch` added. His
++                  answer holds: the script, then the promise callbacks, then the timer.
++        · real    Node prints the same order here. Its loop runs in phases (timers, poll, check),
++                  and it empties its `process.nextTick` queue before the promise jobs, so Node-only
++                  code can order differently.
++        · source  [node-loop] Phases overview; [node-process] queueMicrotask() vs.
++                  process.nextTick()
+ 
+    RECAP
+      1. The script runs to the end first; setTimeout only hands its callback to a timer.
+@@ -287,8 +283,7 @@
+                   run it to the end, then perform a microtask checkpoint. Repeat forever.
+         · real    A browser keeps several task queues (input, timers, networking) and may choose
+                   which queue to serve next. Only the order inside one queue is fixed.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+    2  The script is what's cooking now, on the call stack. It prints `script`.   ‹script.log›
+         why       Plain code runs line by line, and nothing can cut in while it does.
+         look      script-task, log1
+@@ -306,8 +301,7 @@
+         · edge    Awaiting a native promise costs one microtask turn since a 2018 spec change (V8
+                   7.2); before, it cost three, so this same code printed in a different order in
+                   older engines.
+-        · source  V8 blog, Faster async functions and promises (2018),
+-                  https://v8.dev/blog/fast-async
++        · source  [v8-async2018]
+    5  Back in the script, then joins the microtask queue, behind the rest of load.   ‹script.queue-then›
+         look      then#2
+      PREDICT  load() hit `await null` and the script went on. What prints next?
+@@ -331,15 +325,14 @@
+                   returns a promise to its caller, which carries on.
+         · edge    An async function with no `await` at all runs to its end on the spot. Only the
+                   `.then` callbacks on the promise it returns wait.
+-        · source  ECMAScript, Await, https://tc39.es/ecma262/#await
++        · source  [ecma-await] the Await abstract operation
+    7  ★ The script ends, so the stack is empty. load and then are in the microtask queue.   ‹script.end›
+         why       Nothing could cut in while the script ran; the empty stack is the loop's turn to
+                   choose.
+         look      micro
+         · how     The standard calls this “clean up after running script”: once the stack is empty,
+                   a microtask checkpoint runs before the loop returns to its task queues.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    ▸ Chapter 2 of 3 · Before the next task
+      about     When the stack is empty, the loop runs every waiting microtask, like the code after
+@@ -352,7 +345,7 @@
+         look      load#1, log4
+         · how     The engine saved load's local variables and its place when it paused. Resuming
+                   restores them in a fresh frame, with no caller under it.
+-        · source  ECMAScript, Await, https://tc39.es/ecma262/#await
++        · source  [ecma-await] the Await abstract operation
+    9  `fetch` returns a promise, a result not ready yet; `await` parks load on it.   ‹load.await-fetch›
+         why       This time the value is not ready, so load waits for the network, not the queue.
+         look      load#1
+@@ -375,7 +368,7 @@
+         · how     When the response arrives, the browser queues a task to resolve the promise
+                   `fetch` returned. Resolving it queues every waiting reaction as a microtask, in
+                   the order they were added.
+-        · source  Fetch Standard, the fetch() method, https://fetch.spec.whatwg.org/#fetch-method
++        · source  [whatwg-fetch] the fetch() method
+   13  load resumes after its second await, prints `load 3` and finishes.   ‹load.log-3›
+         look      log6
+   14  ★ Printed: script, load 1, done, load 2, then and load 3. Code after await ran later.   ‹end.await›
+@@ -383,7 +376,7 @@
+         look      console
+         · edge    A loop that awaits values that are already ready queues one microtask per pass, so
+                   it never lets a task, or a repaint, run in between.
+-        · source  ECMAScript, Await, https://tc39.es/ecma262/#await
++        · source  [ecma-await] the Await abstract operation
+ 
+    RECAP
+      1. `load()` ran at once, like any function, up to its first `await`.
+@@ -420,8 +413,7 @@
+                   run it to the end, then perform a microtask checkpoint. Repeat forever.
+         · real    A browser keeps several task queues (input, timers, networking) and may choose
+                   which queue to serve next. Only the order inside one queue is fixed.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+    2  The script, now on the call stack, sets a 0 ms timer for timeout.   ‹script.set-timeout›
+         look      timeout#1
+         picture   the dish in the cook's hands = the call stack: the code running now
+@@ -431,8 +423,9 @@
+         look      timeout#1
+         · how     A due timer never interrupts: the browser only queues a task, and the loop picks
+                   tasks only between other tasks.
+-        · source  HTML Living Standard, timer initialisation steps,
+-                  https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps
++        · real    This figure's boxes, the call stack, the Web APIs and the queue, follow Philip
++                  Roberts' JSConf EU 2014 talk on the event loop.
++        · source  [whatwg-timers]; [roberts2014]
+    4  `chunk()` goes on the stack: `processBatch()` keeps the thread busy 4 ms, then the bar reads
+       1.   ‹chunk.work›
+         look      chunk#2, page
+@@ -450,8 +443,7 @@
+         look      micro
+         · how     The standard calls this “clean up after running script”: once the stack is empty,
+                   a microtask checkpoint runs before the loop returns to its task queues.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    ▸ Chapter 2 of 3 · Before the next task
+      about     When the stack is empty, the loop runs every microtask, even new ones added along the
+@@ -483,13 +475,14 @@
+   12  ★ A repaint is due at 16.7 ms: a render task joins the task queue.   ‹arrive.render›
+         why       Like any task, it can start only once the microtask queue is empty.
+         look      render#8
+-        · how     At each rendering opportunity the standard queues a task to update the rendering.
+-                  It is a task like the timer, so it waits for the microtask checkpoint.
+-        · real    This model takes the oldest task first; real browsers may serve a waiting repaint
+-                  ahead of other tasks. None runs it between two microtasks: the checkpoint always
+-                  runs to empty.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · how     At each rendering opportunity the standard queues a task on the rendering task
++                  source to update the rendering. It is a task like the timer, so it waits for the
++                  microtask checkpoint.
++        · edge    This is recent: until January 2024 the standard updated the rendering as a step of
++                  the loop between tasks. Either way, it never ran between two microtasks.
++        · real    This model takes the oldest task first; a browser may serve a waiting repaint
++                  ahead of other tasks.
++        · source  [whatwg-loop] §8.1.7.3 Processing model; [whatwg-render-task]
+   13  The next chunk microtask runs 20 → 24 ms and prints `chunk 6`.   ‹chunk.run›
+         look      log6
+   14  The next chunk microtask runs 24 → 28 ms and prints `chunk 7`.   ‹chunk.run›
+@@ -498,9 +491,9 @@
+         look      log8
+ 
+    ▸ Chapter 3 of 3 · Tasks at last
+-     about     The microtasks are finally done, so the loop takes tasks again: the long-waiting
+-               timer, then the render task. This model takes the oldest task first; real browsers
+-               often let a repaint go ahead.
++     about     The microtasks are done at last, so the loop takes tasks again: the timer, then the
++               render task. This model takes the oldest task first; a real browser may serve the
++               repaint's queue sooner.
+      so far    The last chunk is done, but the 0 ms timer waited the whole time.
+      now       Take tasks again: the timer, then the repaint.
+      done when The screen jumps from nothing to done in one repaint.
+@@ -514,10 +507,9 @@
+         why       While microtasks kept coming, no task could start: not the timer, not a repaint.
+         look      page, console
+         · cost    8 chunks of 4 ms ran back to back, so the 0 ms timer waited 32 ms.
+-        · edge    A user's click is a task too, so for those 32 ms the page also ignored every click
+-                  and key.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · edge    A user's click is a task too, so for those 32 ms every click and key press waited
++                  in its queue: the page looked frozen.
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    RECAP
+      1. Each chunk added the next chunk to the microtask queue.
+@@ -554,8 +546,7 @@
+                   run it to the end, then perform a microtask checkpoint. Repeat forever.
+         · real    A browser keeps several task queues (input, timers, networking) and may choose
+                   which queue to serve next. Only the order inside one queue is fixed.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+    2  The script, now on the call stack, sets a 0 ms timer for timeout.   ‹script.set-timeout›
+         look      timeout#1
+         picture   the dish in the cook's hands = the call stack: the code running now
+@@ -565,8 +556,9 @@
+         look      timeout#1
+         · how     A due timer never interrupts: the browser only queues a task, and the loop picks
+                   tasks only between other tasks.
+-        · source  HTML Living Standard, timer initialisation steps,
+-                  https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps
++        · real    This figure's boxes, the call stack, the Web APIs and the queue, follow Philip
++                  Roberts' JSConf EU 2014 talk on the event loop.
++        · source  [whatwg-timers]; [roberts2014]
+    4  `chunk()` goes on the stack: `processBatch()` keeps the thread busy 4 ms, then the bar reads
+       1.   ‹chunk.work›
+         look      chunk#2, page
+@@ -585,8 +577,7 @@
+         · how     The standard calls this “clean up after running script”: once the stack is empty,
+                   a microtask checkpoint runs. Here it finds nothing, so the loop goes back to its
+                   task queues.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+ 
+    ▸ Chapter 2 of 3 · Taking turns
+      about     Each chunk is now its own task. Between chunks, the loop can run other tasks, like
+@@ -625,10 +616,9 @@
+   15  ★ The render task repaints: the screen shows `5/8`.   ‹task.render›
+         why       A repaint is a task, so all it needs is a gap between two other tasks.
+         look      page
+-        · how     `requestAnimationFrame` callbacks run inside this same rendering step, just before
+-                  the paint, so they see the page as the user will.
+-        · source  HTML Living Standard, §8.1.7 Event loops,
+-                  https://html.spec.whatwg.org/multipage/webappapis.html#event-loops
++        · how     `requestAnimationFrame` callbacks run inside this same rendering step, right
++                  before the paint, so they see the page as the user will.
++        · source  [whatwg-loop] §8.1.7.3 Processing model
+   16  The next chunk task runs 20 → 24 ms and prints `chunk 6`.   ‹chunk.run›
+         look      log7
+ 
+@@ -647,9 +637,9 @@
+                   deeper than the one that set it.
+         · cost    From here on, each chunk waits up to 4 ms with the thread idle, on top of its 4 ms
+                   of work.
+-        · real    Browsers throttle timers much harder in a background tab, often to once a second.
+-        · source  HTML Living Standard, timer initialisation steps,
+-                  https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps
++        · real    A hidden tab is slower still: Chrome checks its timers once a second, and a chain
++                  of timers once a minute after 5 minutes hidden.
++        · source  [whatwg-timers]; [chrome88-timers]
+   18  The thread idles 4 ms. At 32 ms the 4 ms timer puts chunk in the task queue.   ‹arrive.timer-late›
+         why       Nothing else was queued, so the thread sat idle, waiting only for the timer limit.
+         look      chunk#10
+@@ -664,15 +654,14 @@
+                   run.
+         look      page, console
+         · cost    In this run the timer limit left the thread idle for 4 ms.
+-        · real    `scheduler.yield()` gives the thread back without the 4 ms limit, and the rest of
+-                  the work resumes ahead of other ordinary tasks.
+-        · source  MDN, Scheduler: yield() method,
+-                  https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/yield
++        · real    `scheduler.yield()` hands the thread back with no 4 ms limit, and the rest of the
++                  work returns as a prioritized task. It is not yet in every major browser.
++        · source  [mdn-yield]
+ 
+    RECAP
+      1. Each chunk went back to the task queue with a 0 ms timer.
+      2. Between chunks, the loop was free to run other tasks: the timer and repaints.
+      3. So the page never froze for the whole job.
+-   TAKEAWAY  Putting each chunk back in the task queue lets timers and repaints run in between, at
+-             the cost of the timers' minimum delay.
++   TAKEAWAY  Chunks in the task queue let timers and repaints run in between; past five nested
++             timers, each chunk waits at least 4 ms.
+    CAN NOW   o-order, o-drain, o-await, o-paint

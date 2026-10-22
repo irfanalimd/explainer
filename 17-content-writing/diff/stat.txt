@@ -1,0 +1,15 @@
+ SKILL.md                     |   2 +
+ agents/expert-reader.md      |   6 +-
+ agents/novice-reader.md      |   4 +
+ agents/teacher.md            |   4 +-
+ references/teaching.md       |   8 +-
+ references/tooling.md        |  14 +-
+ references/writing.md        | 123 ++++++++++++++++++
+ scripts/lesson.mjs           |  15 ++-
+ scripts/lib/style.mjs        | 302 +++++++++++++++++++++++++++++++++++++++++++
+ scripts/lib/style.test.mjs   | 100 ++++++++++++++
+ scripts/review-check.mjs     |   2 +
+ scripts/templates/lesson.mjs |   3 +-
+ scripts/verify.mjs           |   3 +
+ skills/teacher/SKILL.md      |   8 +-
+ 14 files changed, 582 insertions(+), 12 deletions(-)

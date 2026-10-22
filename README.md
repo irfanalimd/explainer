@@ -1,14 +1,15 @@
 # Review: making Explainer a better product
 
 Each branch improves Explainer from one angle, using `examples/mapreduce` as the test page. Each one is a draft pull
-request, and they come in rounds, each with one combined PR. Rounds 1 and 2 added features; round 3 adds none and
-makes what exists faster, more accurate, leaner and more polished.
+request, and they come in rounds, each with one combined PR. Rounds 1 and 2 added features; rounds 3 and 4 add none and
+make what exists faster, more accurate, leaner and more polished.
 
 | Round | Combined PR | What it holds | State |
 |---|---|---|---|
 | 1 | [#4](https://github.com/irfanalimd/explainer/pull/4) | learner journey, active learning, world storytelling (#1–#3) | **merged** |
 | 2 | [#8](https://github.com/irfanalimd/explainer/pull/8) | author pipeline, share & teach, interface & access (#5–#7) | **merged** |
-| 3 | [#13](https://github.com/irfanalimd/explainer/pull/13) | accuracy, HUD and design, page speed, tooling speed (#9–#12) | **draft: merge this one** |
+| 3 | [#13](https://github.com/irfanalimd/explainer/pull/13) | accuracy, HUD and design, page speed, tooling speed (#9–#12) | **merged** |
+| 4 | [#19](https://github.com/irfanalimd/explainer/pull/19) | framing check, frame cost, phone sheets, code panel and landscape accessibility, lesson words (#14–#18) | **draft: merge this one** |
 
 | | Branch | What changes | Pull request |
 |---|---|---|---|
@@ -18,10 +19,15 @@ makes what exists faster, more accurate, leaner and more polished.
 | 05 | Share & teach | Links to an exact moment, a share panel (link, image, embed), a printable handout and teacher guide, presenter notes. | [#5](https://github.com/irfanalimd/explainer/pull/5) (merged via #8) |
 | 06 | Author pipeline | `doctor`, a one-command `check` with a quality report, errors that point at the line, all unit tests passing. | [#6](https://github.com/irfanalimd/explainer/pull/6) (merged via #8) |
 | 03 | Interface & access | Screen-reader narration, the world in words without a GPU, accessible contrast and target sizes. | [#7](https://github.com/irfanalimd/explainer/pull/7) (merged via #8) |
-| 07 | Accuracy | The camera keeps each step's subject in shot (so `check` passes), verify tries knob extremes together, four roadmap correctness gaps closed, Event loop's raw markup fixed. | [#9](https://github.com/irfanalimd/explainer/pull/9) |
-| 08 | HUD and design | A little more screen for the world, the newest pieces matched to DESIGN.md, the HUD browser suite running again. | [#10](https://github.com/irfanalimd/explainer/pull/10) |
-| 09 | Page speed | Live play without a GPU 2.6× (desktop) to 3.7× (phone) faster, the page 38 % smaller, the handout's pictures 5 s quicker. | [#11](https://github.com/irfanalimd/explainer/pull/11) |
-| 10 | Tooling speed | Chrome's fast PNG encoding, and where the teaching pass really spends its time. | [#12](https://github.com/irfanalimd/explainer/pull/12) |
+| 07 | Accuracy | The camera keeps each step's subject in shot (so `check` passes), verify tries knob extremes together, four roadmap correctness gaps closed, Event loop's raw markup fixed. | [#9](https://github.com/irfanalimd/explainer/pull/9) (merged via #13) |
+| 08 | HUD and design | A little more screen for the world, the newest pieces matched to DESIGN.md, the HUD browser suite running again. | [#10](https://github.com/irfanalimd/explainer/pull/10) (merged via #13) |
+| 09 | Page speed | Live play without a GPU 2.6× (desktop) to 3.7× (phone) faster, the page 38 % smaller, the handout's pictures 5 s quicker. | [#11](https://github.com/irfanalimd/explainer/pull/11) (merged via #13) |
+| 10 | Tooling speed | Chrome's fast PNG encoding, and where the teaching pass really spends its time. | [#12](https://github.com/irfanalimd/explainer/pull/12) (merged via #13) |
+| 11 | Framing check | verify sweeps the camera's shot plan every 0.1 s; audit warns when the focus is under the HUD; the report's card gives advice. | [#14](https://github.com/irfanalimd/explainer/pull/14) |
+| 12 | Frame cost | Faster live play without a GPU (phone 7.1 → 10.3 fps), a paused page at rest about 3× sooner, captures unchanged. | [#15](https://github.com/irfanalimd/explainer/pull/15) |
+| 13 | Phone sheets | The caption and dock hide under a sheet that covers them; Raft's busy steps say each thing once. | [#16](https://github.com/irfanalimd/explainer/pull/16) |
+| 14 | Code panel and landscape | Readable code lines (56 contrast findings → 0), usable panels on a landscape phone, an audit that opens them. | [#17](https://github.com/irfanalimd/explainer/pull/17) |
+| 15 | Lesson words | A Raft leader bug behind a contradiction, counts that follow the run, every unreached lesson entry explained. | [#18](https://github.com/irfanalimd/explainer/pull/18) |
 
 ## How to review one
 
@@ -57,10 +63,20 @@ and 02 each include a fix for that; 04 doesn't, so its run misses the same cards
 | `check`, MapReduce, quick tier | "Needs work" | "Passes the quick check" |
 | `check --full`, MapReduce | 74.4 min, "Needs work" | 59.2 min, "Ready for review" |
 
+## Round 4 checks (on the combined branch)
+
+| | `main` (1f93977) | #19 |
+|---|---|---|
+| `verify.mjs`, all 8 examples (now with the framing sweep) | 211 runs, 0 failing | 211 runs, 0 failing |
+| Unit tests | 332 / 332 | 342 / 342 |
+| HUD browser suite | 275 / 275 | 278 / 278 |
+| `audit --a11y`, with the code and parameters panels opened | 8 problems | 0 problems |
+| `check --full`, MapReduce | 70.3 min, "Ready for review" | 63.7 min, "Ready for review" |
+
 ## If you merge them
 
-Merge [#13](https://github.com/irfanalimd/explainer/pull/13), not #9–#12 separately: it resolves where they overlap.
-GitHub then marks #9–#12 as merged too.
+Merge [#19](https://github.com/irfanalimd/explainer/pull/19), not #14–#18 separately. GitHub then marks #14–#18 as merged
+too.
 
 ---
 

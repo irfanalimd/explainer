@@ -1,0 +1,336 @@
+--- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/btree-all.txt	2026-10-22 03:48:48.954904834 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/btree-all.txt	2026-10-22 04:02:50.872857190 +0000
+@@ -30,8 +30,8 @@
+   m-bottom: “When the tree needs more room, it grows downward: new levels appear under the bottom
+             pages.” Full pages split and send an id up; only a root split adds a level, and it adds
+             it on top.
+-  m-grow: “A full page can just hold one more id, or the new id gets a page of its own.” A page is a
+-          fixed-size block on disk, so a page with too many ids must split into two.
++  m-grow: “A full page can stretch to hold one more id, or the new id gets a page of its own.” A
++          page is a fixed-size block on disk, so a page with too many ids must split into two.
+   m-back: “To reach the next ids in a range, the search climbs back up the tree, like in a binary
+           search tree.” Each bottom page links to the next one, so the search walks sideways and
+           never re-reads the pages above.
+@@ -61,14 +61,13 @@
+         look      inserts
+         picture   books dropped in a pile, checked spine by spine = a table with no index
+    1  ★ With no index, finding 32 takes 8 checks, one id at a time.   ‹noindex.check›
+-        why       Each check rules out just one id, so every new order adds work to every search.
++        why       Each check rules out only one id, so every new order adds work to every search.
+         look      k32
+         · cost    8 of 10 checks here. On average a search with no index checks half the rows, and
+                   an id that isn't there costs all of them: O(n).
+         · real    A database does exactly this when no index fits the query: PostgreSQL's plan says
+                   Seq Scan, a read of every page of the table.
+-        · source  PostgreSQL docs, Using EXPLAIN,
+-                  https://www.postgresql.org/docs/current/using-explain.html
++        · source  [pg-explain]
+ 
+    ▸ Chapter 2 of 5 · One page
+      about     A B+ tree keeps ids sorted in pages, fixed-size blocks, like books on a shelf. A page
+@@ -88,9 +87,9 @@
+                   over the page, done in memory once the page is read.
+         · code    `insort(node.keys, key)` (line 6)
+         · real    Real pages are much bigger: PostgreSQL stores every table and index in 8 KB pages,
+-                  so one page holds hundreds of ids, not 3.
+-        · source  PostgreSQL docs, Database Page Layout,
+-                  https://www.postgresql.org/docs/current/storage-page-layout.html
++                  and MySQL's InnoDB uses 16 KB pages by default, so one page holds hundreds of ids,
++                  not 3.
++        · source  [pg-page-layout]; [mysql-innodb]
+    3  80 goes into p1 in sorted order; it holds 2 ids, room for 3.   ‹page.insert›
+         look      p1
+    4  19 goes into p1 in sorted order; it holds 3 ids, room for 3.   ‹page.insert›
+@@ -129,11 +128,11 @@
+                   first id up, because every id must stay in a leaf. Since p1 was the root, the copy
+                   goes into a new root, p3.
+         · code    `sep = right.keys[0] # copied up: it stays in the leaf` (line 12)
+-        · edge    A separator need not be a real id, only something between the two halves.
+-                  PostgreSQL 12 and later cut it to the shortest prefix that still separates (suffix
+-                  truncation), so upper pages fit more and the tree stays shorter.
+-        · source  PostgreSQL, src/backend/access/nbtree/README,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README
++        · edge    A separator need not be a real id, only something between the two halves. On a key
++                  of several columns, PostgreSQL 12 and later drop the trailing columns the
++                  separator doesn't need (suffix truncation), so upper pages fit more separators and
++                  the tree stays shorter.
++        · source  [pg-nbtree-readme]
+ 
+    ▸ Chapter 4 of 5 · Descend
+      about     Every insert starts at the root and follows its signposts down, one page per level,
+@@ -144,10 +143,10 @@
+      PREDICT  15 is next. How many pages must the search read to find the leaf it belongs in?
+               A) 2: one page per level   ✓
+                  → Right. The search reads p3 → p1: 2 pages, one per level. Each signpost page
+-                   points to just one page below it.
++                   points to only one page below it.
+               B) All 3 pages, to be sure
+                  → If you thought a search must look everywhere to be sure: each signpost page
+-                   points to just one page below it, so it is 2 reads out of 3 pages. A real tree of
++                   points to only one page below it, so it is 2 reads out of 3 pages. A real tree of
+                    billions of rows reads about 4. [m-every]
+               C) Only 1: it goes straight to a leaf
+                  → Every search must start at the root, the only page it can find on its own, then
+@@ -167,10 +166,9 @@
+                   leaf where that id itself lives.
+         · code    `node = node.kids[bisect_right(node.keys, key)]` (line 5)
+         · real    An 8 KB page holds a few hundred separators, so 3 levels reach tens of millions of
+-                  rows and 4 reach billions. The top levels stay in memory, so a lookup often costs
+-                  one or two disk reads.
+-        · source  PostgreSQL docs, Database Page Layout,
+-                  https://www.postgresql.org/docs/current/storage-page-layout.html
++                  rows and 4 reach billions. Every lookup reads the top levels, so they stay in
++                  memory, and a lookup that goes to disk reads only the lower levels there.
++        · source  [pg-page-layout]; [comer1979]
+    8  Insert 33 down p3 → p1: `33 < 80`.   ‹descend.insert›
+         look      p3, p1
+    9  p1 splits: 33 and 51 move to p4; 33 is copied up to p3.   ‹split.leaf›
+@@ -193,10 +191,10 @@
+                   after every page on the way down has filled.
+         · how     The leaves end 83% full. A leaf split leaves both halves at least 2 of 3 ids, so
+                   no leaf but the root falls below that: the B-tree's space promise.
+-        · edge    Real engines rarely merge half-empty pages after deletes. PostgreSQL deletes a
+-                  page only once it is completely empty, so a tree almost never gets shorter.
+-        · source  PostgreSQL, src/backend/access/nbtree/README,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README
++        · edge    Deletes do not merge half-empty pages back together. PostgreSQL deletes a page
++                  only once it is completely empty, and never the rightmost page of a level, so a
++                  tree almost never gets shorter.
++        · source  [pg-nbtree-readme]
+ 
+    ▸ Chapter 5 of 5 · Range scan
+      about     To find every id from 33 to 75, go down once, to the first one. The leaves are linked
+@@ -232,8 +230,7 @@
+         · real    The link matters beyond ranges. In Lehman and Yao's design, which PostgreSQL
+                   follows, a reader that reaches a page someone just split moves right along the
+                   link and still finds its id, without locking the path.
+-        · source  P. Lehman and S. B. Yao, Efficient Locking for Concurrent Operations on B-Trees,
+-                  ACM TODS 6(4), 1981, https://doi.org/10.1145/319628.319663
++        · source  [lehman1981]; [pg-nbtree-readme]
+   18  Walk on to p2: 0 ids in range. 80 is past 75, so the search stops.   ‹scan.stop›
+         why       The leaves are in order, so every id after 80 is past 75 too.
+         look      ln-p5-p2, p2
+@@ -244,8 +241,7 @@
+                   leaves it spans, however many ids lie outside it.
+         · real    PostgreSQL links each level's pages both ways, so a descending range (ORDER BY id
+                   DESC) walks the same chain to the left.
+-        · source  PostgreSQL docs, B-Tree Implementation,
+-                  https://www.postgresql.org/docs/current/btree-implementation.html
++        · source  [pg-btree]; [pg-nbtree-readme]
+ 
+    RECAP
+      1. Without an index, finding one id meant checking them one by one.
+@@ -272,14 +268,13 @@
+         look      inserts
+         picture   books dropped in a pile, checked spine by spine = a table with no index
+    1  ★ With no index, finding 58 takes 8 checks, one id at a time.   ‹noindex.check›
+-        why       Each check rules out just one id, so every new order adds work to every search.
++        why       Each check rules out only one id, so every new order adds work to every search.
+         look      k58
+         · cost    8 of 10 checks here. On average a search with no index checks half the rows, and
+                   an id that isn't there costs all of them: O(n).
+         · real    A database does exactly this when no index fits the query: PostgreSQL's plan says
+                   Seq Scan, a read of every page of the table.
+-        · source  PostgreSQL docs, Using EXPLAIN,
+-                  https://www.postgresql.org/docs/current/using-explain.html
++        · source  [pg-explain]
+ 
+    ▸ Chapter 2 of 6 · One page
+      about     A B+ tree keeps ids sorted in pages, fixed-size blocks, like books on a shelf. A page
+@@ -298,9 +293,9 @@
+                   over the page, done in memory once the page is read.
+         · code    `insort(node.keys, key)` (line 6)
+         · real    Real pages are much bigger: PostgreSQL stores every table and index in 8 KB pages,
+-                  so one page holds hundreds of ids, not 3.
+-        · source  PostgreSQL docs, Database Page Layout,
+-                  https://www.postgresql.org/docs/current/storage-page-layout.html
++                  and MySQL's InnoDB uses 16 KB pages by default, so one page holds hundreds of ids,
++                  not 3.
++        · source  [pg-page-layout]; [mysql-innodb]
+    3  52 goes into p1 in sorted order; it holds 2 ids, room for 3.   ‹page.insert›
+         look      p1
+    4  53 goes into p1 in sorted order; it holds 3 ids, room for 3.   ‹page.insert›
+@@ -324,11 +319,11 @@
+                   first id up, because every id must stay in a leaf. Since p1 was the root, the copy
+                   goes into a new root, p3.
+         · code    `sep = right.keys[0] # copied up: it stays in the leaf` (line 12)
+-        · edge    A separator need not be a real id, only something between the two halves.
+-                  PostgreSQL 12 and later cut it to the shortest prefix that still separates (suffix
+-                  truncation), so upper pages fit more and the tree stays shorter.
+-        · source  PostgreSQL, src/backend/access/nbtree/README,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README
++        · edge    A separator need not be a real id, only something between the two halves. On a key
++                  of several columns, PostgreSQL 12 and later drop the trailing columns the
++                  separator doesn't need (suffix truncation), so upper pages fit more separators and
++                  the tree stays shorter.
++        · source  [pg-nbtree-readme]
+ 
+    ▸ Chapter 4 of 6 · Descend
+      about     Every insert starts at the root and follows its signposts down, one page per level,
+@@ -339,10 +334,10 @@
+      PREDICT  55 is next. How many pages must the search read to find the leaf it belongs in?
+               A) 2: one page per level   ✓
+                  → Right. The search reads p3 → p2: 2 pages, one per level. Each signpost page
+-                   points to just one page below it.
++                   points to only one page below it.
+               B) All 3 pages, to be sure
+                  → If you thought a search must look everywhere to be sure: each signpost page
+-                   points to just one page below it, so it is 2 reads out of 3 pages. A real tree of
++                   points to only one page below it, so it is 2 reads out of 3 pages. A real tree of
+                    billions of rows reads about 4. [m-every]
+               C) Only 1: it goes straight to a leaf
+                  → Every search must start at the root, the only page it can find on its own, then
+@@ -362,10 +357,9 @@
+                   leaf where that id itself lives.
+         · code    `node = node.kids[bisect_right(node.keys, key)]` (line 5)
+         · real    An 8 KB page holds a few hundred separators, so 3 levels reach tens of millions of
+-                  rows and 4 reach billions. The top levels stay in memory, so a lookup often costs
+-                  one or two disk reads.
+-        · source  PostgreSQL docs, Database Page Layout,
+-                  https://www.postgresql.org/docs/current/storage-page-layout.html
++                  rows and 4 reach billions. Every lookup reads the top levels, so they stay in
++                  memory, and a lookup that goes to disk reads only the lower levels there.
++        · source  [pg-page-layout]; [comer1979]
+    8  Insert 56 down p3 → p2: `56 ≥ 53`.   ‹descend.insert›
+         look      p3, p2
+    9  p2 splits: 55 and 56 move to p4; 55 is copied up to p3.   ‹split.leaf›
+@@ -415,19 +409,20 @@
+         · code    `tree.root = Inner([sep], [node, right]) # one level taller` (line 19)
+         · edge    This is the only step that makes the tree taller, now 3 levels. Adding the level
+                   above every leaf at once is why all leaves always sit at one depth.
+-        · source  R. Bayer and E. McCreight, Organization and Maintenance of Large Ordered Indexes,
+-                  Acta Informatica 1, 1972, https://doi.org/10.1007/BF00288683
++        · real    Bayer and McCreight published the B-tree in 1972. By 1979 Comer's survey could
++                  call it “ubiquitous”: the de facto standard way to index a file. It is still the
++                  index PostgreSQL's CREATE INDEX builds unless told otherwise.
++        · source  [bayer1972]; [comer1979]; [pg-create-index]
+   17  ★ Done, but 4 of 5 leaves are stuck at 2 of 3 ids.   ‹summary.thin›
+         why       Each split leaves its left half behind, and no later, bigger id ever lands there
+                   again.
+         look      p1, p2, p4, p5, p6
+         · cost    The leaves end 67% full, spread over 8 pages. A fuller tree would hold the same
+                   ids in fewer pages, and fit more of itself in memory.
+-        · real    PostgreSQL spots a split of the rightmost page and leaves the left half 90% full
+-                  (the leaf fillfactor) instead of half; its code notes that 50/50 splits suit only
+-                  truly random inserts.
+-        · source  PostgreSQL, src/backend/access/nbtree/nbtsplitloc.c,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/nbtsplitloc.c
++        · real    PostgreSQL treats a split of the rightmost leaf as a sign of rising ids: the left
++                  half keeps the leaf fillfactor, 90% by default, instead of half. Every other leaf
++                  split is 50:50.
++        · source  [pg-splitloc]; [pg-create-index]
+ 
+    ▸ Chapter 6 of 6 · Range scan
+      about     To find every id from 54 to 58, go down once, to the first one. The leaves are linked
+@@ -463,8 +458,7 @@
+         · real    The link matters beyond ranges. In Lehman and Yao's design, which PostgreSQL
+                   follows, a reader that reaches a page someone just split moves right along the
+                   link and still finds its id, without locking the path.
+-        · source  P. Lehman and S. B. Yao, Efficient Locking for Concurrent Operations on B-Trees,
+-                  ACM TODS 6(4), 1981, https://doi.org/10.1145/319628.319663
++        · source  [lehman1981]; [pg-nbtree-readme]
+   20  Walk on to p5: 2 ids in range, none past 58.   ‹scan.walk›
+         look      ln-p4-p5, p5
+   21  Walk on to p6: 0 ids in range. 59 is past 58, so the search stops.   ‹scan.stop›
+@@ -477,8 +471,7 @@
+                   leaves it spans, however many ids lie outside it.
+         · real    PostgreSQL links each level's pages both ways, so a descending range (ORDER BY id
+                   DESC) walks the same chain to the left.
+-        · source  PostgreSQL docs, B-Tree Implementation,
+-                  https://www.postgresql.org/docs/current/btree-implementation.html
++        · source  [pg-btree]; [pg-nbtree-readme]
+ 
+    RECAP
+      1. Every new id was the biggest so far, so it went to the far right.
+@@ -510,11 +503,11 @@
+                   first id up, because every id must stay in a leaf. Since p1 was the root, the copy
+                   goes into a new root, p3.
+         · code    `sep = right.keys[0] # copied up: it stays in the leaf` (line 12)
+-        · edge    A separator need not be a real id, only something between the two halves.
+-                  PostgreSQL 12 and later cut it to the shortest prefix that still separates (suffix
+-                  truncation), so upper pages fit more and the tree stays shorter.
+-        · source  PostgreSQL, src/backend/access/nbtree/README,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README
++        · edge    A separator need not be a real id, only something between the two halves. On a key
++                  of several columns, PostgreSQL 12 and later drop the trailing columns the
++                  separator doesn't need (suffix truncation), so upper pages fit more separators and
++                  the tree stays shorter.
++        · source  [pg-nbtree-readme]
+    7  ★ Insert 75 down p3 → p2: `75 ≥ 41`.   ‹descend.insert›
+         why       The separator in each page rules out every page below it but one, so only 2 pages
+                   are read.
+@@ -528,10 +521,9 @@
+                   leaf where that id itself lives.
+         · code    `node = node.kids[bisect_right(node.keys, key)]` (line 5)
+         · real    An 8 KB page holds a few hundred separators, so 3 levels reach tens of millions of
+-                  rows and 4 reach billions. The top levels stay in memory, so a lookup often costs
+-                  one or two disk reads.
+-        · source  PostgreSQL docs, Database Page Layout,
+-                  https://www.postgresql.org/docs/current/storage-page-layout.html
++                  rows and 4 reach billions. Every lookup reads the top levels, so they stay in
++                  memory, and a lookup that goes to disk reads only the lower levels there.
++        · source  [pg-page-layout]; [comer1979]
+    8  Insert 52 down p3 → p2: `52 ≥ 41`.   ‹descend.insert›
+         look      p3, p2
+    9  p2 splits: 63 and 75 move to p4; 63 is copied up to p3.   ‹split.leaf›
+@@ -582,8 +574,10 @@
+         · code    `tree.root = Inner([sep], [node, right]) # one level taller` (line 19)
+         · edge    This is the only step that makes the tree taller, now 3 levels. Adding the level
+                   above every leaf at once is why all leaves always sit at one depth.
+-        · source  R. Bayer and E. McCreight, Organization and Maintenance of Large Ordered Indexes,
+-                  Acta Informatica 1, 1972, https://doi.org/10.1007/BF00288683
++        · real    Bayer and McCreight published the B-tree in 1972. By 1979 Comer's survey could
++                  call it “ubiquitous”: the de facto standard way to index a file. It is still the
++                  index PostgreSQL's CREATE INDEX builds unless told otherwise.
++        · source  [bayer1972]; [comer1979]; [pg-create-index]
+ 
+    ▸ Chapter 5 of 6 · Descend
+      about     Every insert starts at the root and follows its signposts down, one page per level,
+@@ -594,10 +588,10 @@
+      PREDICT  57 is next. How many pages must the search read to find the leaf it belongs in?
+               A) 3: one page per level   ✓
+                  → Right. The search reads p8 → p3 → p2: 3 pages, one per level. Each signpost page
+-                   points to just one page below it.
++                   points to only one page below it.
+               B) All 8 pages, to be sure
+                  → If you thought a search must look everywhere to be sure: each signpost page
+-                   points to just one page below it, so it is 3 reads out of 8 pages. A real tree of
++                   points to only one page below it, so it is 3 reads out of 8 pages. A real tree of
+                    billions of rows reads about 4. [m-every]
+               C) Only 1: it goes straight to a leaf
+                  → Every search must start at the root, the only page it can find on its own, then
+@@ -616,10 +610,10 @@
+                   after every page on the way down has filled.
+         · how     The leaves end 80% full. A leaf split leaves both halves at least 2 of 3 ids, so
+                   no leaf but the root falls below that: the B-tree's space promise.
+-        · edge    Real engines rarely merge half-empty pages after deletes. PostgreSQL deletes a
+-                  page only once it is completely empty, so a tree almost never gets shorter.
+-        · source  PostgreSQL, src/backend/access/nbtree/README,
+-                  https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README
++        · edge    Deletes do not merge half-empty pages back together. PostgreSQL deletes a page
++                  only once it is completely empty, and never the rightmost page of a level, so a
++                  tree almost never gets shorter.
++        · source  [pg-nbtree-readme]
+ 
+    ▸ Chapter 6 of 6 · Range scan
+      about     To find every id from 25 to 60, go down once, to the first one. The leaves are linked
+@@ -655,8 +649,7 @@
+         · real    The link matters beyond ranges. In Lehman and Yao's design, which PostgreSQL
+                   follows, a reader that reaches a page someone just split moves right along the
+                   link and still finds its id, without locking the path.
+-        · source  P. Lehman and S. B. Yao, Efficient Locking for Concurrent Operations on B-Trees,
+-                  ACM TODS 6(4), 1981, https://doi.org/10.1145/319628.319663
++        · source  [lehman1981]; [pg-nbtree-readme]
+   22  Walk on to p4: 0 ids in range. 63 is past 60, so the search stops.   ‹scan.stop›
+         why       The leaves are in order, so every id after 63 is past 60 too.
+         look      ln-p2-p4, p4
+@@ -667,8 +660,7 @@
+                   leaves it spans, however many ids lie outside it.
+         · real    PostgreSQL links each level's pages both ways, so a descending range (ORDER BY id
+                   DESC) walks the same chain to the left.
+-        · source  PostgreSQL docs, B-Tree Implementation,
+-                  https://www.postgresql.org/docs/current/btree-implementation.html
++        · source  [pg-btree]; [pg-nbtree-readme]
+ 
+    RECAP
+      1. Full pages split, and each split sent one id up to the page above.

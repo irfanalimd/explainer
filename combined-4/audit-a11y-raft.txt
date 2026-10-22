@@ -1,0 +1,4 @@
+START 03:06:32
+audit new-raft: happy/light/1440x900 8 frames, happy/dark/1440x900 8 frames, crash/light/1440x900 12 frames, crash/dark/1440x900 12 frames, partition/light/1440x900 12 frames, partition/dark/1440x900 12 frames, happy/light/390x844 8 frames, happy/dark/390x844 8 frames, crash/light/390x844 12 frames, crash/dark/390x844 12 frames, partition/light/390x844 12 frames, partition/dark/390x844 12 frames
+ok: no problems
+END 03:12:08 rc=0 WALL 336 s

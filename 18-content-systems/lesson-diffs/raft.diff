@@ -1,0 +1,372 @@
+--- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/raft-all.txt	2026-10-22 03:48:46.045967181 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/raft-all.txt	2026-10-22 04:02:49.328890288 +0000
+@@ -50,8 +50,8 @@
+           as x←3, to be saved.
+   commit: (make it count) Made final once most servers store it. A leader counts copies only of its
+           own round's entries.
+-  heartbeat: (a “still here” message) A short message the leader sends often, so no one starts an
+-             election.
++  heartbeat: (a “still here” message) A short message the leader sends at a steady interval, so no
++             server starts an election.
+   partition: (a split in the network) A break in the network that leaves groups of servers unable to
+              hear each other.
+ NUMBERS   election term * · entries committed * · time without a leader * · messages sent · messages lost   (* in the dock)
+@@ -73,16 +73,17 @@
+      card      shows the picture map (a group keeping one shared notebook)
+    0  ★ Each of 5 servers keeps a log and starts a random 150–300 ms timer. [log: A server's list of
+       commands, in order. Every server keeps its own copy.]   ‹elect.start›
+-        why       Random timers mean one server usually runs out first, so it asks to lead before
+-                  anyone else.
++        why       Random timers mean that, in most runs, one server runs out first and asks to lead
++                  before anyone else.
+         look      s1, s2, s3, s4, s5
+         picture   each person's copy of the notebook = a server's log
+         · how     The timer is the election timeout. Hearing nothing from a leader before it runs
+                   out, a server assumes there is none. The paper suggests 150–300 ms (§9.3): random,
+                   so two servers rarely run out together.
+-        · real    etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout, sized to the
+-                  network's round trip and the disk's write time.
+-        · source  etcd tuning guide, https://etcd.io/docs/v3.5/tuning/
++        · real    etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout. Its guide sets
++                  the heartbeat near the round trip between servers, and the timeout at least 10
++                  times that round trip.
++        · source  [ongaro2014] §5.2, §9.3; [etcd-tuning]
+    1  ★ S1's timer runs out first: it runs for leader in term 1, voting for itself. [term: An
+       election round number. Each new election raises it, and a newer round beats an older one.]   ‹elect.timeout›
+         why       Hearing from no leader, a server assumes there is none and asks the others to pick
+@@ -93,8 +94,7 @@
+                   itself, and asks every other server, sending the term and index of its last entry
+                   (§5.2).
+         · code    `self.term += 1; self.voted_for = self.id` (lines 1–4)
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.2
+    2  ★ 4 servers send S1 a vote. It needs a majority: 3 of 5. [majority: More than half of all the
+       servers, such as 3 of 5 or 4 of 7.]   ‹vote.grant›
+         why       Its own vote counts too. Each server votes once per term, and never for a less
+@@ -107,8 +107,7 @@
+                   (line 8)
+         · edge    A longer log can lose. One ending in an older term counts as less complete than a
+                   shorter one ending in a newer term.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.1
+ 
+    ▸ Chapter 2 of 3 · Copying the log
+      about     Like a note-taker reading out each new line, the leader writes each command into its
+@@ -128,8 +127,7 @@
+         · edge    Why the blank `nop`? A new leader learns which older entries are final only once
+                   an entry of its own term is stored on a majority. A blank one gets there at once
+                   (§8).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.2, §8
+    4  The client sends `x←3` to S1, the leader it knows. [client: The program outside the servers
+       that sends commands, such as x←3, to be saved.]   ‹client.send›
+         why       Only the leader adds commands, so every server's list gets them in one order.
+@@ -144,11 +142,14 @@
+         · how     Each update names the entry just before the new ones, by index and term. A
+                   follower accepts only if its own log has that entry, so a match there means the
+                   two logs agree all the way back (the Log Matching property, §5.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.3
+    7  S1 adds `x←3` to its log as entry 2 and sends copies.   ‹command.add›
+         why       Written on the leader alone, `x←3` doesn't count yet: one crash could take it.
+         look      s1
++        · real    The commands are the paper's own kind: its example log (Figure 6) is a list of
++                  assignments like x←3, y←7 and x←5. Applied in order, they leave every copy with
++                  the same variables.
++        · source  [ongaro2014] Figure 6
+    8  `nop` is copied to S2 and S5 as entry 1.   ‹update.copy›
+         look      s2, s5
+    9  S4 is now in step with S1's log.   ‹reply.match›
+@@ -170,8 +171,7 @@
+                   entry of the current term commits, every entry before it commits too.
+         · code    `if n > self.commit and self.log[n].term == self.term: self.commit = n` (lines
+                   35–36)
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.2, Figure 8
+   12  `x←3` is copied to S4 as entry 2.   ‹update.copy›
+         look      s4
+      PREDICT  S1 has heard that `x←3` is on 3 of the 5 servers, itself included. Can it count `x←3`
+@@ -196,8 +196,7 @@
+         look      client, s1
+         · how     The leader applies the entry to its own copy of the data, then answers the client.
+                   Followers apply it once they learn it is committed (§5.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.3
+   16  S1 adds `y←7` to its log as entry 3 and sends copies.   ‹command.add›
+         look      s1
+   17  `y←7` is copied to 4 servers, and up to entry 2 is marked committed.   ‹update.copy-commit›
+@@ -207,8 +206,7 @@
+                   up to that index, but never past the last entry this update gave it.
+         · code    `self.commit = max(self.commit, min(m.leader_commit, m.prev_index +
+                   len(m.entries)))` (line 26)
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] Figure 2
+   18  S1 hears `y←7` is on 3 of 5, a majority: it commits it.   ‹commit.majority›
+         look      s1
+   19  The client hears `y←7` is committed, and sends `x←5` to S1.   ‹client.done-next›
+@@ -229,7 +227,7 @@
+         why       An answer comes only after a commit: `x←5` is on a majority and can't be lost.
+         look      client
+   27  S1 sends heartbeats, “still here” messages, so no timer runs out. [heartbeat: A short
+-      message the leader sends often, so no one starts an election.]   ‹beat.send›
++      message the leader sends at a steady interval, so no server starts an election.]   ‹beat.send›
+         why       A server that stops hearing them assumes the leader is gone, and runs for leader.
+         look      s1
+         picture   the note-taker's “still here” = a heartbeat
+@@ -237,7 +235,7 @@
+                   every server ≪ the election timeout ≪ the time between crashes (§5.6).
+         · real    etcd sends a heartbeat every 100 ms by default, against a 1000 ms election
+                   timeout.
+-        · source  etcd tuning guide, https://etcd.io/docs/v3.5/tuning/
++        · source  [ongaro2014] §5.2, §5.6; [etcd-tuning]
+   28  S1 tells 4 servers: everything up to entry 4 is committed.   ‹update.learn›
+         why       The others learn of a commit only from the leader's next message, so their entries
+                   light up later.
+@@ -249,8 +247,7 @@
+         · edge    Not the follower's last log index: entries past this update may be stale ones from
+                   an old leader, not yet checked against this one. Taking the last index is a common
+                   student bug (Gjengset).
+-        · source  J. Gjengset, Students' Guide to Raft (MIT 6.824),
+-                  https://thesquareplanet.com/blog/students-guide-to-raft/
++        · source  [ongaro2014] Figure 2; [gjengset]
+   29  4 servers are now in step with S1's log.   ‹reply.match›
+         look      s3, s4, s5, s2
+ 
+@@ -267,7 +264,7 @@
+                   every server now has the same variables.
+         · real    etcd (behind Kubernetes), Consul and CockroachDB keep their data consistent with
+                   Raft.
+-        · source  The Raft site's list of implementations, https://raft.github.io/
++        · source  [raft-site]; [etcd-raft]
+ 
+    RECAP
+      1. The servers elected one leader, by majority vote.
+@@ -299,8 +296,7 @@
+                   (Figure 2). Which entries are committed it keeps only in memory.
+         · edge    Any 3 of the 5 servers can carry on alone. With fewer up, nothing new commits
+                   until enough come back.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] Figure 2
+   18  `y←7` is copied to 4 servers, and up to entry 2 is marked committed.   ‹update.copy-commit›
+         why       One update carries both: new entries, and how far the leader has committed.
+         look      s2, s3, s4, s5
+@@ -308,10 +304,9 @@
+                   up to that index, but never past the last entry this update gave it.
+         · code    `self.commit = max(self.commit, min(m.leader_commit, m.prev_index +
+                   len(m.entries)))` (line 26)
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] Figure 2
+   19  Messages sent to a crashed server are lost.   ‹net.down›
+-        why       A sender can't tell a crash from a slow network: it just hears nothing back.
++        why       A sender can't tell a crash from a slow network: either way it hears nothing back.
+   20  Messages sent to a crashed server are lost.   ‹net.down›
+   21  No answer for `y←7`, and no leader to ask: the client waits.   ‹client.wait›
+         why       With the leader down, nobody adds commands until a new leader is elected.
+@@ -349,8 +344,7 @@
+                   leader counts copies only of its own term's entries; an older entry, even on a
+                   majority, can still be overwritten (Figure 8). It becomes final only when a newer
+                   entry after it commits.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.1, §5.4.2, Figure 8
+   25  No answer for `y←7` in 174 ms: the client resends it, to S5.   ‹client.retry›
+         why       The client can't tell a slow leader from a lost one, so it tries again.
+         look      client, s5
+@@ -358,8 +352,7 @@
+         · edge    A retry can put a command in the log twice if the first copy survives too. Raft
+                   gives each client command a serial number, so a server applies it once (§8). This
+                   run avoids duplicates only by looking the command up in the leader's log.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §8
+   26  `nop` is copied to S4, S3 and S2 as entry 4.   ‹update.copy›
+         look      s4, s3, s2
+   27  S4 is now in step with S5's log.   ‹reply.match›
+@@ -372,8 +365,7 @@
+                   current term after it commits (§5.4.2). The leader's `nop` is that entry.
+         · edge    Until its `nop` commits, a new leader doesn't know which entries are committed, so
+                   it can't safely answer reads either (§8).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.2, §8, Figure 8
+   29  ★ S5 hears `nop` is on 3 of 5: it commits it, and the older `y←7` with it.   ‹commit.older›
+         why       A leader counts copies only of its own term's entries. `y←7` is older, so it
+                   commits only with `nop`, which comes after it.
+@@ -386,8 +378,7 @@
+         · edge    Once `nop` is on a majority, no server missing it can win a vote, and `nop` sits
+                   after `y←7` in every log that holds it. So `y←7` can no longer be overwritten
+                   either (§5.4.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.2, §5.4.3, Figure 8
+   30  The client hears `y←7` is committed, and sends `x←5` to S5.   ‹client.done-next›
+         look      client, s5
+   31  S5 adds `x←5` to its log as entry 5 and sends copies.   ‹command.add›
+@@ -405,8 +396,7 @@
+         look      s1
+         · how     Raft retries forever: every heartbeat to a server that is behind carries the
+                   entries it lacks (§5.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.3
+   36  S5 tells S4 and S2: everything up to entry 5 is committed.   ‹update.learn›
+         why       The others learn of a commit only from the leader's next message, so their entries
+                   light up later.
+@@ -418,8 +408,7 @@
+         · edge    Not the follower's last log index: entries past this update may be stale ones from
+                   an old leader, not yet checked against this one. Taking the last index is a common
+                   student bug (Gjengset).
+-        · source  J. Gjengset, Students' Guide to Raft (MIT 6.824),
+-                  https://thesquareplanet.com/blog/students-guide-to-raft/
++        · source  [ongaro2014] Figure 2; [gjengset]
+ 
+    ▸ Chapter 5 of 6 · Catch-up
+      about     The crashed server restarts with the log it saved on disk. The leader's updates find
+@@ -432,8 +421,7 @@
+         look      s1
+         · how     The term, the vote and the log are on disk (Figure 2); the commit index is not.
+                   The leader's next update tells it.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] Figure 2
+   38  `nop` and `x←5` are copied to S1, and up to entry 5 is marked committed.   ‹update.copy-commit›
+         look      s1
+   39  4 servers are now in step with S5's log.   ‹reply.match›
+@@ -452,7 +440,7 @@
+                   every server now has the same variables.
+         · real    etcd (behind Kubernetes), Consul and CockroachDB keep their data consistent with
+                   Raft.
+-        · source  The Raft site's list of implementations, https://raft.github.io/
++        · source  [raft-site]; [etcd-raft]
+ 
+    RECAP
+      1. The leader crashed while a command was still being copied.
+@@ -492,19 +480,18 @@
+   16  ★ A partition leaves the leader's side with 2 servers, the other with 3 servers.   ‹split.cut›
+         why       The leader's side has fewer than 3 servers, so it can never gather a majority.
+         look      s1, s2
+-        · edge    Neither side knows it is split: messages just stop arriving, exactly as if the
+-                  others had crashed.
+-        · real    CheckQuorum, used by etcd, makes a leader step down when it hasn't heard from a
+-                  majority for an election timeout (thesis §6.2).
+-        · source  D. Ongaro, Consensus: Bridging Theory and Practice, PhD thesis, Stanford 2014,
+-                  https://github.com/ongardie/dissertation
++        · edge    Neither side knows it is split: messages stop arriving, exactly as if the others
++                  had crashed.
++        · real    The thesis has a leader step down when an election timeout passes without a round
++                  of heartbeats reaching a majority (§6.2). etcd's Raft library calls this option
++                  CheckQuorum.
++        · source  [ongaro-thesis] §6.2; [etcd-raft]
+   17  Messages from S1 can't cross the split.   ‹split.send›
+         why       It still thinks it leads: nothing tells it the others can't hear it.
+         look      s1
+         · edge    A cut-off leader could still answer reads with stale data. Raft has it first
+                   confirm it leads, by hearing from a majority, or rely on a time lease (§8).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §8
+   18  S1 tells S2: everything up to entry 2 is committed.   ‹update.learn›
+         why       The others learn of a commit only from the leader's next message, so their entries
+                   light up later.
+@@ -516,8 +503,7 @@
+         · edge    Not the follower's last log index: entries past this update may be stale ones from
+                   an old leader, not yet checked against this one. Taking the last index is a common
+                   student bug (Gjengset).
+-        · source  J. Gjengset, Students' Guide to Raft (MIT 6.824),
+-                  https://thesquareplanet.com/blog/students-guide-to-raft/
++        · source  [ongaro2014] Figure 2; [gjengset]
+   19  The client sends `y←7` to S1, the leader it knows.   ‹client.send›
+         look      client, s1
+   20  S2 is now in step with S1's log.   ‹reply.match›
+@@ -544,8 +530,7 @@
+                   the split can't add theirs.
+         · edge    This is why a stranded leader is harmless for writes. Its client hears nothing and
+                   retries, and a retry may reach a leader that can commit.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.3, §5.4.2
+   24  Messages from S1 can't cross the split.   ‹split.send›
+         look      s1
+   25  S1's heartbeat, a “still here” message, restarts the timer on S2.   ‹update.beat›
+@@ -555,8 +540,7 @@
+         · edge    Restart the timer only on an update from the current leader, or when granting a
+                   vote. Restarting it on every message, old ones included, is a common bug
+                   (Gjengset).
+-        · source  J. Gjengset, Students' Guide to Raft (MIT 6.824),
+-                  https://thesquareplanet.com/blog/students-guide-to-raft/
++        · source  [gjengset]
+   26  S2 is now in step with S1's log.   ‹reply.match›
+         look      s2
+   27  Messages from S1 can't cross the split.   ‹split.send›
+@@ -576,8 +560,7 @@
+         · edge    A retry can put a command in the log twice if the first copy survives too. Raft
+                   gives each client command a serial number, so a server applies it once (§8). This
+                   run avoids duplicates only by looking the command up in the leader's log.
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §8
+   33  S2 is now in step with S1's log.   ‹reply.match›
+         look      s2
+   34  S1 already has `y←7` as entry 3; it waits for a majority.   ‹command.again›
+@@ -595,10 +578,9 @@
+         look      s3
+         · edge    A server cut off alone would time out again and again, raising its term each time.
+                   When it rejoins, its high term forces a healthy leader to step down. Pre-Vote,
+-                  where a server first asks whether it could win, prevents this (thesis §9.6); etcd
+-                  and Consul use it.
+-        · source  D. Ongaro, Consensus: Bridging Theory and Practice, PhD thesis, Stanford 2014,
+-                  https://github.com/ongardie/dissertation
++                  where a server first asks whether it could win, prevents this (thesis §9.6);
++                  etcd's Raft library offers it as an option, PreVote.
++        · source  [ongaro-thesis] §9.6; [etcd-raft]
+   39  2 servers send S3 a vote. It needs a majority: 3 of 5.   ‹vote.grant›
+         look      s3, s5, s4
+   40  S3 has 2 of the 3 votes it needs.   ‹vote.tally›
+@@ -637,8 +619,7 @@
+         · edge    Once `nop` is on a majority, no server missing it can win a vote, and `nop` sits
+                   after `x←3` in every log that holds it. So `x←3` can no longer be overwritten
+                   either (§5.4.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.4.2, §5.4.3, Figure 8
+   49  The client already has an answer for `x←3`, so it ignores this one.   ‹client.dup›
+         why       A new leader answers for every client command it commits, even one already
+                   answered.
+@@ -674,8 +655,7 @@
+         look      client, s3
+         · how     The leader applies the entry to its own copy of the data, then answers the client.
+                   Followers apply it once they learn it is committed (§5.3).
+-        · source  D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm
+-                  (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf
++        · source  [ongaro2014] §5.3
+   64  Messages from S3 can't cross the split.   ‹split.send›
+         look      s3
+   65  Messages from S1 can't cross the split.   ‹split.send›
+@@ -735,8 +715,7 @@
+         · edge    Cutting on every update is a classic bug: a late, reordered update would erase
+                   entries the follower had already confirmed (Gjengset). The client never got an
+                   answer for the replaced command, so its retry is safe.
+-        · source  J. Gjengset, Students' Guide to Raft (MIT 6.824),
+-                  https://thesquareplanet.com/blog/students-guide-to-raft/
++        · source  [ongaro2014] §5.3; [gjengset]
+   78  S4 and S5 are on term 2, so S1's term-1 update is refused.   ‹update.old›
+         look      s1
+   79  S1 ignores out-of-date replies from S3.   ‹reply.old›
+@@ -769,7 +748,7 @@
+                   every server now has the same variables.
+         · real    etcd (behind Kubernetes), Consul and CockroachDB keep their data consistent with
+                   Raft.
+-        · source  The Raft site's list of implementations, https://raft.github.io/
++        · source  [raft-site]; [etcd-raft]
+ 
+    RECAP
+      1. The split left the old leader with too few servers for a majority.

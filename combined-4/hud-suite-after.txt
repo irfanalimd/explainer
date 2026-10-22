@@ -1,0 +1,4 @@
+START 03:00:36
+[eval] "{\"pass\":278,\"fail\":0,\"failed\":[]}"
+/home/ubuntu/tmp/explainer-perf/r4/final/runs/hud.png
+END 03:00:53 rc=0 WALL 17 s

@@ -1,0 +1,56 @@
+Writing lint (scripts/lib/style.mjs) over the 8 examples on polish/round-4 (e2a9b24), before any rewrite.
+One line per hit: file:line  rule  "match" → rewrite  (field: "sentence").
+
+Counts per example:
+  btree                  0   
+  consistent-hashing     4   hedges 1, questions 2, vague 1, 
+  event-loop             1   questions 1, 
+  linked-list            5   hedges 1, questions 2, vague 2, 
+  mapreduce              5   hedges 5, 
+  quicksort              0   
+  raft                   2   questions 1, repeats 1, 
+  virtual-memory         5   repeats 2, vague 3, 
+
+Counts per rule:
+        7 hedges
+        6 vague
+        6 questions
+        3 repeats
+
+== btree
+
+== consistent-hashing
+examples/consistent-hashing/lesson.mjs:133  hedges  "very" → drop it  (edge: "With only X keys, luck swings the count above or below the average; with millions of keys…")
+examples/consistent-hashing/lesson.mjs:222  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (why: "Which keys now meet X first on their clockwise walk?")
+examples/consistent-hashing/lesson.mjs:226  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (why: "Which keys now meet one of X's seats first on their clockwise walk?")
+examples/consistent-hashing/lesson.mjs:337  vague  "many" → give the number, or name the system and its source  (edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reas…")
+
+== event-loop
+examples/event-loop/figure.mjs:953  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (step#0: "Where does await send the rest of it?")
+
+== linked-list
+examples/linked-list/lesson.mjs:126  vague  "in practice" → give the number, or name the system and its source  (how: "For short arrays this is fast in practice: the bytes sit side by side, so the CPU streams…")
+examples/linked-list/lesson.mjs:133  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (plain: "Where is the X item?")
+examples/linked-list/lesson.mjs:174  hedges  "really" → drop it  (real: "glibc's malloc hands out at least a 32-byte chunk on a 64-bit machine, so a 16-byte node …")
+examples/linked-list/lesson.mjs:303  vague  "often" → give the number, or name the system and its source  (edge: "Measured, arrays often win anyway, even for inserts in the middle: the shift is one strea…")
+examples/linked-list/lesson.mjs:315  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (real: "Need fast inserts and fast lookups?")
+
+== mapreduce
+examples/mapreduce/figure.mjs:51  hedges  "very" → drop it  (takeaway: "The what-ifs test it with a crash, a slow disk and one very common word.")
+examples/mapreduce/figure.mjs:82  hedges  "very" → drop it  (label: "One word is very common")
+examples/mapreduce/figure.mjs:85  hedges  "very" → drop it  (takeaway: "Every copy of a word goes to one counter: counts stay exact, but a very common word loads…")
+examples/mapreduce/lesson.mjs:26  hedges  "very" → drop it  (text: "Explain why one very common word overloads one counter, and why adding up repeats early h…")
+examples/mapreduce/lesson.mjs:39  hedges  "very" → drop it  (wrong: "More counting machines would spread out one very common word.")
+
+== quicksort
+
+== raft
+examples/raft/lesson.mjs:300  questions  "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt  (edge: "Why the blank CODE?")
+examples/raft/lesson.mjs:424  repeats  "same sentence" → said in 2 places (update.copy-commit deeper.how; update.learn deeper.how): say it once, where it first matters  ("Every update carries the leader's commit index.")
+
+== virtual-memory
+examples/virtual-memory/lesson.mjs:248  vague  "often" → give the number, or name the system and its source  (edge: "Real CPUs keep recently used upper lines in small paging-structure caches, so a walk to a…")
+examples/virtual-memory/lesson.mjs:376  vague  "many" → give the number, or name the system and its source  (edge: "Reading one byte from each of many pages instead would miss on every page and pay a walk …")
+examples/virtual-memory/lesson.mjs:407  vague  "often" → give the number, or name the system and its source  (edge: "Two directories may name the same room on purpose: that is how programs share library cod…")
+examples/virtual-memory/lesson.mjs:495  repeats  "same sentence" → said in 2 places (room.address deeper.how; retry.address deeper.how): say it once, where it first matters  ("The frame number fills bits 38–12 of the physical address and the offset bits 11–0: frame…")
+examples/virtual-memory/lesson.mjs:504  repeats  "same sentence" → said in 2 places (room.fill deeper.how; retry.fill deeper.how): say it once, where it first matters  ("With every note in use, the one used longest ago makes room: least recently used, LRU.")

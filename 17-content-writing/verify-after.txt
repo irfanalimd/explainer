@@ -1,0 +1,39 @@
+== btree
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.4 s
+== consistent-hashing
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 1 softeners (references/writing.md): lesson.mjs:133 "very" → drop it
+        warn   writing: 2 rhetorical questions in an explanation (references/writing.md): lesson.mjs:222 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt; lesson.mjs:226 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt
+        warn   writing: 1 vague amounts in a real-world claim (references/writing.md): lesson.mjs:337 "many" → give the number, or name the system and its source
+summary  23 run(s), 0 failing, 0 error(s), 3 warning(s)  4.1 s
+== event-loop
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 1 rhetorical questions in an explanation (references/writing.md): figure.mjs:953 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt
+summary  44 run(s), 0 failing, 0 error(s), 1 warning(s)  4.6 s
+== linked-list
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 2 vague amounts in a real-world claim (references/writing.md): lesson.mjs:126 "in practice" → give the number, or name the system and its source; lesson.mjs:303 "often" → give the number, or name the system and its source
+        warn   writing: 2 rhetorical questions in an explanation (references/writing.md): lesson.mjs:133 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt; lesson.mjs:315 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt
+        warn   writing: 1 softeners (references/writing.md): lesson.mjs:174 "really" → drop it
+summary  21 run(s), 0 failing, 0 error(s), 3 warning(s)  2.6 s
+== mapreduce
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 5 softeners (references/writing.md): figure.mjs:51 "very" → drop it; figure.mjs:82 "very" → drop it; figure.mjs:85 "very" → drop it; lesson.mjs:26 "very" → drop it; and 1 more (node scripts/lesson.mjs <figure> --style lists them all)
+summary  34 run(s), 0 failing, 0 error(s), 1 warning(s)  7.2 s
+== quicksort
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.5 s
+== raft
+  WARN  happy · phone · all max        95 steps  303.8 s  3 phases   93 ms
+        warn   pacing: phase "Copying the log" lasts 226 s at 1x (> 150 s; advisory): readers may lose the thread; consider trimming or splitting it
+  WARN  crash · phone · all max       145 steps  494.8 s  6 phases  269 ms
+        warn   pacing: phase "Re-election" lasts 223 s at 1x (> 150 s; advisory): readers may lose the thread; consider trimming or splitting it
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   caption: at other settings: 5 captions over 18 words (longest 31, crash · phone · all max, step 88: "s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refus…")
+        warn   writing: 1 rhetorical questions in an explanation (references/writing.md): lesson.mjs:300 "?" → say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt
+        warn   writing: 1 repeated words (references/writing.md): lesson.mjs:424 "same sentence" → said in 2 places (update.copy-commit deeper.how; update.learn deeper.how): say it once, where it first matters
+summary  30 run(s), 0 failing, 0 error(s), 5 warning(s)  7.9 s
+== virtual-memory
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 3 vague amounts in a real-world claim (references/writing.md): lesson.mjs:248 "often" → give the number, or name the system and its source; lesson.mjs:376 "many" → give the number, or name the system and its source; lesson.mjs:407 "often" → give the number, or name the system and its source
+        warn   writing: 2 repeated words (references/writing.md): lesson.mjs:495 "same sentence" → said in 2 places (room.address deeper.how; retry.address deeper.how): say it once, where it first matters; lesson.mjs:504 "same sentence" → said in 2 places (room.fill deeper.how; retry.fill deeper.how): say it once, where it first matters
+summary  18 run(s), 0 failing, 0 error(s), 2 warning(s)  4.3 s

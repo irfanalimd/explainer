@@ -1,0 +1,9 @@
+START 03:06:32
+audit new-mapreduce: happy/1440x900 10 frames, crash/1440x900 10 frames, straggler/1440x900 10 frames, skew/1440x900 10 frames, happy/390x844 10 frames, crash/390x844 10 frames, straggler/390x844 10 frames, skew/390x844 10 frames
+warnings (2 distinct, 2 occurrences):
+  frame-time: average frame 191.9 ms > 16 ms budget  [happy/1440x900]
+  frame-time: average frame 44.2 ms > 16 ms budget  [happy/390x844]
+ok: no problems, 2 warning(s)
+audit new-raft: happy/1440x900 6 frames, crash/1440x900 12 frames, partition/1440x900 12 frames, happy/390x844 6 frames, crash/390x844 12 frames, partition/390x844 12 frames
+ok: no problems
+END 03:12:14 rc=0 WALL 342 s

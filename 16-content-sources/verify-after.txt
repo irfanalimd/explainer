@@ -1,0 +1,49 @@
+== examples/btree/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (19 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 9 questions, 5 defined words, 1582 words, reading grade 4.7
+summary  23 run(s), 0 failing, 0 error(s), 1 warning(s)  3.9 s
+== examples/consistent-hashing/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (22 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 4 defined words, 1178 words, reading grade 4.5
+summary  23 run(s), 0 failing, 0 error(s), 1 warning(s)  4.6 s
+== examples/event-loop/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (27 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 4 chapters, 5 questions, 9 defined words, 1667 words, reading grade 5.9
+summary  44 run(s), 0 failing, 0 error(s), 1 warning(s)  3.3 s
+== examples/linked-list/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (24 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level intro, 5 chapters, 3 questions, 5 defined words, 972 words, reading grade 3.9
+summary  21 run(s), 0 failing, 0 error(s), 1 warning(s)  2.1 s
+== examples/mapreduce/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (33 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 5 questions, 8 defined words, 2147 words, reading grade 5.9
+summary  34 run(s), 0 failing, 0 error(s), 1 warning(s)  6.6 s
+== examples/quicksort/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (15 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 4 questions, 3 defined words, 1992 words, reading grade 5.4
+summary  18 run(s), 0 failing, 0 error(s), 1 warning(s)  2.0 s
+== examples/raft/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (34 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   caption: at other settings: 5 captions over 18 words (longest 31, crash · phone · all max, step 88: "s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refus…")
+--
+summary  30 run(s), 0 failing, 0 error(s), 4 warning(s)  5.9 s
+== examples/virtual-memory/figure.mjs
+  WARN  sources   lesson.sources: 0 source(s), 0 citation(s)
+        warn   no lesson.sources: the facts this figure states about real systems name no source the reader can check (32 layers of In real systems, Source or meta.cite). List them as lesson.sources and cite each as [id] (references/teaching.md 5.6)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 12 defined words, 1093 words, reading grade 5.8
+summary  18 run(s), 0 failing, 0 error(s), 1 warning(s)  3.6 s

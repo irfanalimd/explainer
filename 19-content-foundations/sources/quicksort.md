@@ -1,0 +1,21 @@
+# quicksort: sources
+
+Every real-world claim in `examples/quicksort/lesson.mjs` names one of these as `[id]`. Web pages, papers and source code
+were opened and each claim read there (DOIs checked on Crossref, source read at the cited lines). Books, and sites
+that refuse scripted requests (Intel, MIT Press, ACM), were checked by metadata only: see the README's Checks.
+
+| id | Title | By, year, where | What it supports | Cited in |
+|---|---|---|---|---|
+| `clrs4` | [Introduction to Algorithms, 4th edition](https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/) | Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest and Clifford Stein, 2022, MIT Press | §7.1 PARTITION with pivot A[r] and the test A[j] ≤ x (Figure 7.1 runs it on 2 8 7 1 3 5 6 4); §7.4.2 the chance 2/(j − i + 1) that two values meet | `steps.split`, `steps.repeat` |
+| `hoare1961` | [Algorithm 63: Partition; Algorithm 64: Quicksort](https://doi.org/10.1145/366622.366642) | C. A. R. Hoare, 1961, Communications of the ACM 4(7):321 | the first published quicksort, with two markers that walk toward each other from both ends | `steps.split` |
+| `hoare1962` | [Quicksort](https://doi.org/10.1093/comjnl/5.1.10) | C. A. R. Hoare, 1962, The Computer Journal 5(1):10–16 | the full paper: the method, its average cost, and picking the bound at random | `steps.split` |
+| `algs4` | [Algorithms, 4th edition, §2.3 Quicksort](https://algs4.cs.princeton.edu/23quicksort/) | Robert Sedgewick and Kevin Wayne, 2011, Addison-Wesley; algs4.cs.princeton.edu | Dijkstra's 3-way partitioning for many equal keys; Hoare's markers stopping on keys equal to the pivot | `steps.split`, `steps.repeat` |
+| `sedgewick1978` | [Implementing Quicksort programs](https://doi.org/10.1145/359619.359631) | Robert Sedgewick, 1978, Communications of the ACM 21(10):847–857 | sorting the smaller side first keeps the stack at most log2 n deep | `steps.repeat` |
+| `bentley-mcilroy1993` | [Engineering a sort function](https://doi.org/10.1002/spe.4380231105) | Jon L. Bentley and M. Douglas McIlroy, 1993, Software: Practice and Experience 23(11):1249–1265 | a 1991 qsort that took n² comparisons on an organ-pipe array; a dozen Unix qsorts all driven to quadratic time; the middle element, median of 3 and Tukey's ninther as pivots; a split that keeps equal keys apart | `steps.split`, `steps.repeat`, `steps.sorted` |
+| `mcilroy1999` | [A killer adversary for quicksort](https://doi.org/10.1002/(SICI)1097-024X(19990410)29:4%3C341::AID-SPE237%3E3.0.CO;2-R) | M. Douglas McIlroy, 1999, Software: Practice and Experience 29(4):341–344 | an adversary that picks values as the sort compares them drives any deterministic pivot rule to quadratic time | `steps.place`, `steps.sorted` |
+| `musser1997` | [Introspective sorting and selection algorithms](https://doi.org/10.1002/(SICI)1097-024X(199708)27:8%3C983::AID-SPE117%3E3.0.CO;2-%23) | David R. Musser, 1997, Software: Practice and Experience 27(8):983–993 | introsort: quicksort that switches to heapsort past a depth limit | `steps.place` |
+| `libstdcxx` | [libstdc++, bits/stl_algo.h: std::sort](https://raw.githubusercontent.com/gcc-mirror/gcc/master/libstdc++-v3/include/bits/stl_algo.h) | GCC, 2026, the GCC source tree | GCC's std::sort runs __introsort_loop with a depth limit of 2 × floor(log2 n), then heapsort | `steps.place` |
+| `go119` | [Go 1.19 release notes: sort](https://go.dev/doc/go1.19#sort) | The Go team, 2022, go.dev | Go's sort package rewritten as pattern-defeating quicksort | `steps.place` |
+| `peters2021` | [Pattern-defeating Quicksort](https://arxiv.org/abs/2106.05123) | Orson R. L. Peters, 2021, arXiv:2106.05123 | pdqsort: linear time on sorted input, heapsort fallback for a worst case of n log n | `steps.place` |
+| `java-arrays` | [Java SE 21 API, Arrays.sort(int[])](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(int%5B%5D)) | Oracle, 2023, docs.oracle.com | Dual-Pivot Quicksort by Vladimir Yaroslavskiy, Jon Bentley and Joshua Bloch | `steps.sorted` |
+| `rust-sort` | [Rust standard library, slice::sort_unstable](https://doc.rust-lang.org/std/primitive.slice.html#method.sort_unstable) | The Rust project, 2026, doc.rust-lang.org | ipnsort by Lukas Bergdoll and Orson Peters: quicksort's average case with heapsort's worst case | `steps.sorted` |
