@@ -289,6 +289,7 @@ export const lesson = {
       plain: "{x} is bigger than {pivot}: it stays right.",
       look: ["{xId}"],
     },
+    // "Lots of repeated numbers" with n = 5: the first copy of the pivot falls in a later split
     "repeat.copy": {
       // the split.equal ask when the first copy of a pivot turns up only in a later split (plays once)
       plain: "{x} equals {pivot}, and equal counts as small: it goes left.",

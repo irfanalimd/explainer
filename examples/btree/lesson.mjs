@@ -224,6 +224,7 @@ export const lesson = {
         source: BAYER,
       },
     },
+    // only with your own ids at order 3, e.g. "99 98 … 86" (descending); verify's knob runs never split a signpost page
     "split.signpost": {
       first: {
         why: "Signpost pages split like leaves, but their middle id moves up, since the leaves already hold every id.",

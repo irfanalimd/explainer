@@ -183,6 +183,7 @@ export const lesson = {
       "plain@skew": "{map} writes a slip for each of its {count:count|line}, like {slip}.",
       look: ["{mapId}"],
     },
+    // only with your own input shorter than the mappers (e.g. "a b" on 6); verify's knob runs keep the default text
     "map.empty": {
       plain: "{map} has an empty piece and finishes at once.",
       why: "There are more machines than words to share.",
@@ -384,6 +385,7 @@ export const lesson = {
       why: "The rest, seen only once, stay at 1: {ones}.",
       look: ["{sumIds}"],
     },
+    // only when every word on a reducer repeats (your own input, e.g. "fox fox dog dog the the")
     "reduce.sum-all": {
       first: {
         key: true,
