@@ -661,16 +661,16 @@ export async function mount(root, figure, options = {}) {
       dirty = false;
       if (live) shimmer += dt;
       clock += dt;
-      // a frame the next one replaces at once (still playing, or the camera still easing) is a draft: without a GPU
-      // the renderer draws it cheaper (CONTRACTS.md 3.1)
-      drafting = playing || settling;
+      // a frame the next one replaces at once (still playing, the camera still easing, or an afterglow or ping still
+      // fading in the last frame) is a draft: without a GPU the renderer draws it cheaper (CONTRACTS.md 3.1)
+      drafting = playing || settling || !!renderer?.fading;
       const camera = renderFrame(dt, shimmer, clock, false);
       drafting = false;
       // keep drawing while the picture is still settling: the camera easing, the HUD's insets changed while it drew
       // (the director eases to the new framing from the next frame), an afterglow or ping fading out
       settling = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets);
-      // the camera comes to rest on a draft: draw that frame again in full
-      if (!(playing || dirty || settling) && renderer?.drafted) renderFrame(0, shimmer, clock, false);
+      // the picture comes to rest on a draft: draw that frame again in full
+      if (!(playing || dirty || settling || renderer?.fading) && renderer?.drafted) renderFrame(0, shimmer, clock, false);
       moving = settling || !!renderer?.busy;
     }
     if (playing || dirty || moving) schedule(); else rest();
