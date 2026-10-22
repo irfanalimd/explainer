@@ -119,6 +119,9 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
     get drafted() { return drafted; },          // the last frame was drawn as a draft: draw the resting one again
     // the last frame had something still fading out, or a settled picture is still gathering its supersamples
     get busy() { return !!packer.fading || temporal.converging; },
+    // only the first: an afterglow or ping still fading, so the next frame replaces this one (a converging picture is
+    // the resting one gathering its samples, never a draft)
+    get fading() { return !!packer.fading && api.debug.draftFades !== false; },
     atlas,
   };
 
