@@ -128,7 +128,7 @@ export const scenarios = [
     ] },
   { id: "yield", label: "Taking turns with setTimeout", whatIf: "the work takes turns with setTimeout",
     description: "The same work, but each piece goes back in the task queue, so the screen can repaint in between.",
-    takeaway: "Putting each chunk back in the task queue lets timers and repaints run in between, at the cost of the timers' minimum delay.",
+    takeaway: "Chunks in the task queue let timers and repaints run in between; past five nested timers, each chunk waits at least 4 ms.",
     recap: [
       "Each chunk went back to the task queue with a 0 ms timer.",
       "Between chunks, the loop was free to run other tasks: the timer and repaints.",
