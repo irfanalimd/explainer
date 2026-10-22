@@ -18,7 +18,7 @@ import { createLevel, LEVELS, compiledPace, segmented } from "./level.mjs";
 import { createJourney, promiseOf, nextStory } from "./journey.mjs";
 import { createHandout } from "./handout.mjs";
 import { createLayers } from "./layers.mjs";
-import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
+import { lessonOf, layersOf, enterOf, termOf, feedbackOf, sourceOf, citeOf } from "./lesson.mjs";
 import { createTurn, liveTurns, detourOf } from "./turn.mjs";
 import { createCheck, checksFor } from "./check.mjs";
 import { createNudge, beliefBlock } from "./nudge.mjs";
@@ -291,7 +291,8 @@ export function createHud(root, opts = {}, cb = {}) {
   on(headRow, "click", (e) => { if (S.size === "phone" && e.target !== aboutBtn && !aboutBtn.contains(e.target)) toggleAbout(); });
   function renderTitle() {
     const m = S.meta;
-    const cite = typeof m.cite === "string" ? { text: m.cite } : m.cite;
+    // meta.cite, or the lesson source it names ("[dean2004]")
+    const cite = citeOf(m, S.lesson);
     // with a paper url the title itself is the link; the citation lives in its tooltip and accessible name
     if (cite?.url) {
       const label = `${m.title ?? ""} — read the paper${cite.text ? `: ${cite.text}` : ""}`;
@@ -660,7 +661,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const veiled = shot.step === veilStep();
     const where = [S.meta.title, sc?.label, S.phases[phaseAt(shot.step)]?.name, `step ${shot.step + 1} of ${S.steps.length}`].filter(Boolean).join("  ·  ");
     const blob = await composeStill(shot, { root, where, caption: veiled ? null : st?.layers?.plain ?? st?.caption ?? null,
-      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle });
+      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle, cite: markupOpts.cite });
     if (!blob) return null;
     const name = stillName(S.meta.title, S.scenario, shot.step);
     const a = h("a", { href: win.URL.createObjectURL(blob), download: name });
@@ -1497,7 +1498,7 @@ export function createHud(root, opts = {}, cb = {}) {
     else {
       const done = kind === "end" ? "Run complete" : `${name || `Chapter ${next.phase + 1}`} complete`;
       const t = kind === "end" ? takeaway() : "";
-      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${kind === "end" ? (storyAfter() ? `Press Enter for the next story, ${storyAfter().label ?? storyAfter().id}.` : "Press Enter to replay.") : `Press Enter to continue with ${nextChapter()}.`}`;
+      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts)} ` : ""}${kind === "end" ? (storyAfter() ? `Press Enter for the next story, ${storyAfter().label ?? storyAfter().id}.` : "Press Enter to replay.") : `Press Enter to continue with ${nextChapter()}.`}`;
     }
     if (keyboardMode) raf(() => { if (S.held) playBtn.focus({ preventScroll: true }); });
   }
@@ -1671,6 +1672,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function setTimeline(tl) {
     S.tl = tl;
     S.lesson = lessonOf(tl);
+    renderTitle();   // meta.cite may name one of the lesson's sources
     syncParamsOpen();   // a lesson starts the knobs folded
     S.steps = tl?.steps ?? [];
     S.duration = tl?.duration ?? (S.steps.length ? S.steps[S.steps.length - 1].t1 : 0);
@@ -1906,6 +1908,8 @@ export function createHud(root, opts = {}, cb = {}) {
     refKey: (id) => S.entities?.get?.(id)?.keyIndex ?? null,
     // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
     term: (name) => termOf(S.lesson, S.meta, name)?.def ?? null,
+    // [id]: a short, linked reference to one of the lesson's sources
+    cite: (id) => sourceOf(S.lesson, id),
   };
   const md = (src) => toDOM(parse(src ?? ""), doc, markupOpts);
   // the caption on narrow screens tells the step in layers too (layers.mjs), keeping to the plain line, the why and its chips
@@ -1946,12 +1950,12 @@ export function createHud(root, opts = {}, cb = {}) {
     // start the enter transition next frame instead of forcing a reflow now
     if (!instant) raf(() => el.classList.remove("ix-enter"));
     obstaclesDirty = true;
-    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts.refTitle));
+    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts));
     if (!S.held) announce();
   }
   // What the ear gets for a step is what the eye gets at this level (level.mjs POLICY): on entering a chapter its
   // number, name and about (as the panel heads it); then the plain line; then the why wherever the level shows it.
-  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts.refTitle);
+  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts);
   let spokenPhase = -1, chapterLead = { step: -1, text: "" };
   function spokenStep(step, plain) {
     const st = S.steps[step];

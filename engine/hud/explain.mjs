@@ -329,7 +329,7 @@ export function createExplain(ctx) {
     for (let k = S.step - 1; k >= first && items.length < EARLIER; k--) {
       const m = k - first + 1, plain = layersOf(S.steps[k]).plain;
       items.push(h("li", null, h("button", { class: "ix-ex-item", type: "button", title: `Go back to step ${m}`,
-        "aria-label": `Step ${m}: ${toText(parse(plain), markupOpts.refTitle)}`, onclick: () => ctx.onJump?.(k) },
+        "aria-label": `Step ${m}: ${toText(parse(plain), markupOpts)}`, onclick: () => ctx.onJump?.(k) },
       h("span", { class: "ix-ex-n", text: String(m) }), h("span", { class: "ix-ex-t" }, quiet(plain)))));
     }
     const more = S.step - first - items.length;

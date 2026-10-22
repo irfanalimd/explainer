@@ -3,6 +3,7 @@
 // the reader can always open what is folded away (Why, Go deeper, More). The same builder serves the explain panel
 // ("panel") and the caption on narrow screens ("caption"), which keeps to the plain line, the why and the chips.
 import { deeperOf, pictureRow, sourceLink } from "./lesson.mjs";
+import { citesIn } from "../scene/sources.mjs";
 
 const SVG = (body) => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const ICON = {
@@ -111,10 +112,16 @@ export function createLayers(ctx) {
   }
   function peek(f, more) {
     return h("div", { class: "ix-peek" }, h("span", { class: "ix-l-label", text: f.label }),
-      h("span", { class: "ix-peek-text" }, f.name === "source" ? sourceLink(f.text)?.label ?? f.text : markup(f.text)),
+      h("span", { class: "ix-peek-text" }, f.name === "source" && !citesIn(f.text).length ? sourceLink(f.text)?.label ?? f.text : markup(f.text)),
       h("button", { class: "ix-peek-more", type: "button", onclick: more }, "More"));
   }
   function value(f) {
+    // a source written as a citation ("[dean2004] §3.6") is a linked short reference, with the outward arrow
+    if (f.name === "source" && citesIn(f.text).length) {
+      const frag = markup(f.text);
+      for (const a of frag.querySelectorAll?.("a.ix-cite") ?? []) a.append(h("span", { class: "ix-source-icon", "aria-hidden": "true", html: ICON.out }));
+      return frag;
+    }
     if (f.name === "source") {
       const s = sourceLink(f.text);
       if (s) return h("a", { class: "ix-source", href: s.url, target: "_blank", rel: "noopener" }, s.label, h("span", { class: "ix-source-icon", html: ICON.out }));
