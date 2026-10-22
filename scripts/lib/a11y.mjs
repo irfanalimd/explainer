@@ -51,6 +51,28 @@ export const luminance = (r, g, b) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722
 export const ratio = (l1, l2) => (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 const hex = (c) => "#" + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
 
+/**
+ * A computed CSS colour as [r, g, b, a] (sRGB 0-255, alpha 0-1), or null if it is in a form this does not read.
+ * Chrome computes rgb()/rgba(), and keeps color-mix() results in their own space (oklab(), oklch(), color(srgb …)).
+ * Self-contained: it also runs in the page (the probe below is built from its source).
+ */
+export function parseColor(c) {
+  const m = /^(rgba?|color|oklab|oklch)\(([^)]*)\)$/.exec(String(c).trim());
+  if (!m) return null;
+  let parts = m[2].trim().split(/\s*\/\s*|\s*,\s*|\s+/);
+  const num = (v, scale = 1) => (v === "none" ? 0 : v.endsWith("%") ? (parseFloat(v) / 100) * scale : parseFloat(v));
+  const gamma = (v) => { v = Math.min(1, Math.max(0, v)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055); };
+  const fn = m[1];
+  if (fn === "color") { if (parts[0] !== "srgb" && parts[0] !== "srgb-linear") return null; const lin = parts.shift() === "srgb-linear"; const [r, g, b] = parts.slice(0, 3).map((v) => num(v)); const a = parts[3] === undefined ? 1 : num(parts[3]); return lin ? [gamma(r), gamma(g), gamma(b), a] : [r * 255, g * 255, b * 255, a]; }
+  if (fn === "rgb" || fn === "rgba") { const [r, g, b] = parts.slice(0, 3).map((v) => num(v, 255)); return [r, g, b, parts[3] === undefined ? 1 : num(parts[3])]; }
+  let L = num(parts[0]), A, B;
+  if (fn === "oklab") { A = num(parts[1], 0.4); B = num(parts[2], 0.4); }
+  else { const C = num(parts[1], 0.4), h = (num(parts[2]) * Math.PI) / 180; A = C * Math.cos(h); B = C * Math.sin(h); }
+  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, mm = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  return [gamma(4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * s), gamma(-1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * s),
+    gamma(-0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * s), parts[3] === undefined ? 1 : num(parts[3])];
+}
+
 // In the page: what is on screen, as plain data. No side effects except the focus pass, which restores focus.
 const PROBE = String.raw`(() => {
   const root = document.querySelector(".ix") ?? document.body;
@@ -59,7 +81,8 @@ const PROBE = String.raw`(() => {
   const opacityOf = (el) => { let o = 1; for (let e = el; e; e = e.parentElement) { const cs = getComputedStyle(e); o *= +cs.opacity; if (cs.visibility === "hidden" || cs.display === "none") return 0; } return o; };
   const hiddenSr = (el) => !!el.closest(".ix-sr, .ix-scene-doc");
   const inactive = (el) => !!el.closest("[inert], button:disabled, [aria-disabled=true]");
-  const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return [0, 0, 0, 1]; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [v[0], v[1], v[2], v[3] ?? 1]; };
+  // a colour this cannot read is left unjudged (null), never taken as black
+  const parse = ${parseColor.toString()};
   // what of a box is actually on screen: clipped by every scrolling or clipping ancestor (a list scrolled out of
   // view, a line-clamped third line), and not in a masked fade at a scroll edge (an affordance, read by scrolling)
   const clipOf = (el) => {
@@ -72,6 +95,22 @@ const PROBE = String.raw`(() => {
       c = { l: Math.max(c.l, b.left), t: Math.max(c.t, b.top + (mask && e.scrollTop > 0 ? 24 : 0)), r: Math.min(c.r, b.right), b: Math.min(c.b, b.bottom - edge) };
     }
     return c;
+  };
+  // what lies over a point: is the element painted there, or does an open panel (any opaque or frosted layer that is
+  // not the element, inside it or around it) cover it? Hit-tested with pointer events forced on, so a layer that only
+  // lets clicks through still counts; a faded-out or see-through layer does not. An element absent from the point
+  // (clipped by its scroller) is not on screen there either.
+  const seen = document.createElement("style");
+  seen.textContent = ".ix *, .ix *::before, .ix *::after { pointer-events: auto !important; }";
+  document.head.append(seen);
+  const covers = (e) => { const cs = getComputedStyle(e); const bg = parse(cs.backgroundColor);
+    return opacityOf(e) >= 0.5 && ((bg && bg[3] >= 0.3) || (cs.backdropFilter && cs.backdropFilter !== "none") || /^(CANVAS|IMG|VIDEO)$/.test(e.tagName)); };
+  const shownAt = (el, x, y) => {
+    for (const e of document.elementsFromPoint(Math.min(W - 1, Math.max(0, x)), Math.min(H - 1, Math.max(0, y)))) {
+      if (e === el || el.contains(e) || e.contains(el)) return true;
+      if (covers(e)) return false;
+    }
+    return false;
   };
   // text: one entry per element and line of text
   const texts = [];
@@ -91,7 +130,10 @@ const PROBE = String.raw`(() => {
       // most of the line hidden: judged once it is scrolled into view
       if (rt - l < 2 || (b - t) < Math.max(4, r0.height * 0.75)) continue;
       const r = { left: l, top: t, width: rt - l, height: b - t };
+      // under an open sheet or panel: not what the reader is shown
+      if (!shownAt(el, l + (rt - l) / 2, t + (b - t) / 2)) continue;
       const fg = parse(cs.color);
+      if (!fg) continue;
       const size = parseFloat(cs.fontSize), weight = +cs.fontWeight || 400;
       texts.push({ text: n.nodeValue.trim().slice(0, 40), cls: cls(el), x: r.left, y: r.top, w: r.width, h: r.height,
         fg: [fg[0], fg[1], fg[2], fg[3] * op], large: size >= 24 || (size >= 18.66 && weight >= 700), size });
@@ -114,8 +156,11 @@ const PROBE = String.raw`(() => {
     if (getComputedStyle(el).pointerEvents === "none" && !el.closest(".ix-hud, .ix-pop, .ix-intro")) continue;
     // inline in a sentence (an entity chip, a defined word): WCAG's inline exception
     const inline = !!el.closest(".ix-cap-text, .ix-l-plain, .ix-l-why, .ix-ex-about, .ix-predict-q, .ix-opt-text, p") && getComputedStyle(el).display.startsWith("inline");
-    controls.push({ el, cls: cls(el), name: nameOf(el), x: r.left, y: r.top, w: r.width, h: r.height, inline, tab: el.tabIndex >= 0 });
+    // a control under an open panel, or clipped out of its scroller, is not a target a pointer can reach
+    const reach = shownAt(el, r.left + r.width / 2, r.top + r.height / 2);
+    controls.push({ el, cls: cls(el), name: nameOf(el), x: r.left, y: r.top, w: r.width, h: r.height, inline, tab: el.tabIndex >= 0, reach });
   }
+  seen.remove();
   // focus: does a keyboard focus show anything? (outline, or a box-shadow / background that changes)
   const before = document.activeElement;
   const look = (el) => { const cs = getComputedStyle(el); return [cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 ? "o" : "", cs.boxShadow, cs.backgroundColor, cs.color].join("|"); };
@@ -166,10 +211,10 @@ export async function a11yCheck(page) {
   for (const c of ctl) {
     if (!c.name) out.push({ kind: "a11y-name", cls: c.cls, text: "" });
     if (c.tab && c.focus === false) out.push({ kind: "a11y-focus", cls: c.cls, text: c.name });
-    if ((c.w < 24 || c.h < 24) && !c.inline) {
+    if ((c.w < 24 || c.h < 24) && !c.inline && c.reach !== false) {
       const cx = c.x + c.w / 2, cy = c.y + c.h / 2;
       const sq = { l: cx - 12, t: cy - 12, r: cx + 12, b: cy + 12 };
-      const near = ctl.some((d) => d !== c && !(d.x >= c.x && d.y >= c.y && d.x + d.w <= c.x + c.w && d.y + d.h <= c.y + c.h)
+      const near = ctl.some((d) => d !== c && d.reach !== false && !(d.x >= c.x && d.y >= c.y && d.x + d.w <= c.x + c.w && d.y + d.h <= c.y + c.h)
         && !(c.x >= d.x && c.y >= d.y && c.x + c.w <= d.x + d.w && c.y + c.h <= d.y + d.h)
         && d.x < sq.r && d.x + d.w > sq.l && d.y < sq.b && d.y + d.h > sq.t);
       if (near) out.push({ kind: "a11y-target", cls: c.cls, text: c.name, value: Math.min(c.w, c.h) });

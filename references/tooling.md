@@ -337,13 +337,18 @@ page errors.
 component with the worst value seen:
 - `a11y-contrast`: each line of HUD text against the pixels actually behind it (the frame is shot again with the
   HUD's glyphs transparent, so plates, halos and the world stay), 4.5:1 or 3:1 for large text, with the two colours.
-  Text clipped out of view or in a scroll edge's fade is judged once it is scrolled in.
+  Text clipped out of view or in a scroll edge's fade is judged once it is scrolled in. The ink is read from the
+  computed colour in any form Chrome gives it (`rgb()`, and `oklab()`, `oklch()` or `color(srgb …)` for a
+  `color-mix()`); a colour it cannot read is left unjudged, never taken as black. Text and controls under an open
+  panel or sheet are not what the reader is shown, so they are not judged until it closes.
 - `a11y-target`: controls under 24 × 24 px that crowd another control (inline chips in a sentence are exempt).
 - `a11y-name`: buttons, links, inputs and widgets with no accessible name.
 - `a11y-focus`: controls that show nothing when focused from the keyboard.
 
-The probe is injected, so it measures any built page, an older build included. `--at phases --themes light,dark` is
-a quick pass (about 160 frames).
+The panels a reader opens are in no step's frame, so with `--a11y` each size and theme of the first scenario adds
+two frames on its last step: the code panel open (`…/code` in the report) and the parameters (or settings) panel open
+(`…/parameters`). The probe is injected, so it measures any built page, an older build included.
+`--at phases --themes light,dark` is a quick pass (about 160 frames).
 
 ## record.mjs
 
