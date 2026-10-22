@@ -12,7 +12,7 @@
 //
 // The lesson (references/teaching.md), for a reader who knows basic programming but not consensus:
 //   Level        core (teaching.md lists Raft as deep; a beginner gets fewer chapters and knobs, not more)
-//   Hook         five servers keep copies of one list and any can crash: how do they never disagree?
+//   Hook         a few servers (3 to 7, a knob) keep copies of one list and any can crash: how do they never disagree?
 //   Picture      a group keeping one shared notebook. Each person's copy = a log; a line = an entry; the elected
 //                note-taker = the leader; "most of us have copied it" = a majority; a line that counts = committed;
 //                the note-taker's "still here" = a heartbeat; which vote this is = the term. Where it stops
@@ -100,7 +100,7 @@ export const meta = {
   cite: { text: "Ongaro & Ousterhout, “In Search of an Understandable Consensus Algorithm”, USENIX ATC 2014", url: "https://raft.github.io/raft.pdf" },
   theme: "light",
   level: "core",
-  hook: "Five servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
+  hook: "A few servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
   terms: {
     leader: "The one server that decides what goes into the notebook. The others copy what it sends.",
     log: "A server's copy of the notebook: the list of commands, in order.",
