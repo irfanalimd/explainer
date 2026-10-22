@@ -181,7 +181,7 @@ export const lesson = {
       },
     },
     other: {
-      teach: { prompt: "Program B reads the same address program A just read. Does B see A's byte?", listen: "No: B's own directory sends it to a different room. Listen for “the system gives each program different addresses”; the run shows them sharing one.", minutes: 4 },
+      teach: { prompt: "Program B reads the address program A read a moment ago. Does B see A's byte?", listen: "No: B's own directory sends it to a different room. Listen for “the system gives each program different addresses”; the run shows them sharing one.", minutes: 4 },
       about: "The operating system now runs program B, which uses the same address through its own directory. This CPU wipes the notes on a switch. Real CPUs can tag each note with a small number for a recent program instead.",
       enter: {
         sofar: "Program A found its room and noted it. But program B may use the same address.",

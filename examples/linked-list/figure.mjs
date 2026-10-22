@@ -419,7 +419,7 @@ export function build(s, p, scenario, env = {}) {
     step("insert.link-prev", `Then point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)}. The chain runs ${fmt.key(prev.value)} → ${fmt.key(NEW.value)} → ${fmt.key(after.value)}.`);
     s.line(null);
     readAll("insert.read", (chain) => `Read from head: ${listOf(chain)}. Now ${fmt.key(NEW.value)} is in, and nothing moved.`);
-    s.phase("Trade-off", { id: "tradeoff", about: "Each is quick at something. An array slides items to make room. A linked list just changes two arrows, but must walk from head to find the spot." });
+    s.phase("Trade-off", { id: "tradeoff", about: "Each is quick at something. An array slides items to make room. A linked list changes two arrows, but must walk from head to find the spot." });
     s.remove("cur");
     s.tag("arr", `${n - k} moved`, { tone: "warn" });
     s.tag(prev.id, "2 arrows changed", { tone: "ok" });
@@ -439,7 +439,7 @@ export function build(s, p, scenario, env = {}) {
   step("wrong.prev-first", `Point ${fmt.key(prev.value)}'s \`next\` at ${fmt.key(NEW.value)} first. ${fmt.key(after.value)}'s address was written only there.`);
   s.ask(`Next, ${NEW.value} copies ${prev.value}'s next (\`new.next = prev.next\`). Where will ${NEW.value}'s next point?`,
     [`At ${after.value}`, `At ${NEW.value} itself`, "Nowhere: null"], 1,
-    { id: "wrong.self", why: `${prev.value}'s next was just set to ${NEW.value}'s own address, so copying it makes ${NEW.value} point at itself.` });
+    { id: "wrong.self", why: `${prev.value}'s next now holds ${NEW.value}'s own address, so copying it makes ${NEW.value} point at itself.` });
   setNext(fresh, prev.next);
   arrow(fresh, fresh);   // its next is its own address: an arrow that comes straight back
   loops = true;

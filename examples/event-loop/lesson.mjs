@@ -85,7 +85,7 @@ export const lesson = {
       fix: "Running code is never interrupted: a callback waits until the script ends and the stack is empty." },
     { id: "m-order", wrong: "Callbacks run in the order they were set up, so the timer queued first goes first.",
       fix: "After each task the loop empties the microtask queue first; a timer is a task, so it waits behind them all." },
-    { id: "m-await", wrong: "If the awaited value is already there, the function just carries on with the next line.",
+    { id: "m-await", wrong: "If the awaited value is already there, the function carries on with the next line.",
       fix: "The rest of an async function always becomes a microtask, so the caller's code finishes first." },
     { id: "m-paint", wrong: "The browser repaints whenever a new frame is due, between any two pieces of work.",
       fix: "A repaint is a task, and no task starts while microtasks wait, so a chain of microtasks holds it back." },
@@ -235,7 +235,8 @@ export const lesson = {
         why: "The timer is done, but the script still holds the thread, so {callback} waits in line.",
         deeper: {
           how: "A due timer never interrupts: the browser only queues a task, and the loop picks tasks only between other tasks.",
-          source: HTML_TIMERS,
+          real: "This figure's boxes, the call stack, the Web APIs and the queue, follow Philip Roberts' JSConf EU 2014 talk on the event loop.",
+          source: "[whatwg-timers]; [roberts2014]",
         },
       },
       plain: "The {delay} timer is up: {callback} joins the task queue at {due}.",
@@ -510,7 +511,7 @@ export const lesson = {
         key: true,
         why: "A repaint is a task, so all it needs is a gap between two other tasks.",
         deeper: {
-          how: "`requestAnimationFrame` callbacks run inside this same rendering step, just before the paint, so they see the page as the user will.",
+          how: "`requestAnimationFrame` callbacks run inside this same rendering step, right before the paint, so they see the page as the user will.",
           source: HTML_LOOP,
         },
       },

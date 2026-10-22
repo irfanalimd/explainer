@@ -105,7 +105,7 @@ export const lesson = {
   terms: {
     pivot: { lead: "the chosen number", def: "The number every other number in the group is compared with. Here it is the group's last number." },
     partition: { lead: "one split", def: "One pass that moves the numbers no bigger than the pivot to its left and the bigger ones right." },
-    recursion: { lead: "the same again, smaller", def: "Solving each smaller piece with the very same steps, until a piece has one number or none." },
+    recursion: { lead: "the same again, smaller", def: "Solving each smaller piece with the same steps, until a piece has one number or none." },
   },
 
   chapters: {
@@ -128,8 +128,8 @@ export const lesson = {
     },
     repeat: {
       teach: { prompt: "Point at two numbers on opposite sides of a green, placed number. Will quicksort ever compare them?", listen: "Never: every later group lies on one side of a placed pivot. Each pair split apart that way is a comparison saved.", minutes: 3 },
-      about: "Each placed number splits the line for good: a number on its left never meets one on its right. Each side gets the very same split: {term:recursion}.",
-      enter: { sofar: "{parent} is placed for good. Every other number waits beside it, left or right.", now: "Split each group with the very same steps, one group at a time.", done: "Every number turns green, placed by a split or alone in its group." },
+      about: "Each placed number splits the line for good: a number on its left never meets one on its right. Each side gets the same split: {term:recursion}.",
+      enter: { sofar: "{parent} is placed for good. Every other number waits beside it, left or right.", now: "Split each group with the same steps, one group at a time.", done: "Every number turns green, placed by a split or alone in its group." },
     },
     sorted: {
       teach: { prompt: "Would numbers already in order be quicksort's best case, or its worst?", listen: "With the last number as pivot, the worst: each split places one number, and every pair is compared. In 1991 a Unix `qsort` made n² comparisons on real data, an “organ-pipe” array, and ran for hours.", minutes: 4 },
@@ -305,7 +305,7 @@ export const lesson = {
       plain: "The {side} side of {parent}: slots {lo}–{hi}, pivot {pivot}.",
       look: ["{pivotId}"],
       first: {
-        why: "The same steps, on just these {size} numbers: this is {term:recursion}.",
+        why: "The same steps, on only these {size} numbers: this is {term:recursion}.",
         picture: "again",
         deeper: {
           code: "`quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)",
