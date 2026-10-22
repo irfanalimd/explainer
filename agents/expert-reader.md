@@ -26,7 +26,8 @@ Your final message is one fenced ```json block, with nothing before it:
                   "problem": "...", "correct_version": "...", "source": "<URL or citation>" } ],
   "least_precise_three": [ { "step": 0, "quote": "...", "why": "..." } ],
   "nuance_learned": [ { "step": 13, "quote": "...", "why_it_is_valuable": "..." } ],
-  "numbers_checked": [ { "quote": "...", "ok": true, "source": "..." } ]
+  "numbers_checked": [ { "quote": "...", "ok": true, "source": "..." } ],
+  "sloppy": [ { "step": 0, "quote": "...", "why": "..." } ]
 }
 ```
 
@@ -41,5 +42,8 @@ Rules:
 - `wrong` and `misleading` need a source.
 - Judge each statement under every reading a beginner could take from it. Check every number you see.
 - `least_precise_three` is required.
+- `sloppy` lists wording a careful technical editor would cut: inflating words, stock phrases, a vague amount about
+  real systems ("many databases", "often") with no number or named source, a rhetorical question, a sentence that
+  restates the one before. Leave it empty if there were none.
 - If you found no nuance worth learning, return an empty `nuance_learned`. That is a finding, not a failure.
 - No scores.
