@@ -515,7 +515,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   function becomeFollower(ctx, term) {
     const st = ctx.state;
     const was = st.role;
-    if (term > st.term) { st.term = term; st.votedFor = null; }
+    // a newer term, or a leader stepping down: who leads is unknown until that leader's heartbeat names it
+    if (term > st.term) { st.term = term; st.votedFor = null; st.leader = null; }
+    if (was === "leader") st.leader = null;
     st.role = "follower";
     st.votes = [];
     if (was === "leader") { ctx.cancel("heartbeat"); st.nextIndex = {}; st.matchIndex = {}; }
@@ -833,8 +835,10 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     line("replyFail");
     st.nextIndex[f] = Math.max(1, (st.matchIndex[f] ?? 0) + 1, Math.min(b.prev, b.last + 1));
     sendAppend(ctx, f);
-    say(ctx, "update.back", { ...lv, who: chip(f), whoId: f, missing: b.prev, next: st.nextIndex[f] },
-      `${R(f)} lacks entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${st.nextIndex[f]} and resends.`);
+    // followers that lack the same entry get one sentence: the leader steps back for each of them alike
+    const next = st.nextIndex[f];
+    sing(ctx, `back|${ctx.id}|${b.prev}|${next}`, "update.back", { ...lv, whoId: f, missing: b.prev, next },
+      (list, n) => `${crowd(list, n)} ${v(n, "lacks", "lack")} entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${next} and resends.`, f, { rank: 2 });
   });
 
   // ---- the client ----
@@ -849,11 +853,12 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (!ls.length) return null;
     return ls.reduce((a, b) => (net.state(b).term > net.state(a).term ? b : a));
   }
-  // the client keeps talking to the leader it believes in; only a retry (or having none) makes it look again
+  // the client keeps talking to the leader it believes in; only a retry, a refusal that names no leader ("lookup"), or
+  // having none makes it look again
   function submit(c, why) {
     const cl = net.state("client");
     if (cl.acked.includes(c.id)) return;
-    if (!cl.leader || why === "retry") cl.leader = discover();
+    if (!cl.leader || why === "retry" || why === "lookup") cl.leader = discover();
     const target = cl.leader;
     if (!target) {
       if (why === "retry" && !waiting.has(c.id)) { waiting.add(c.id); say(net, "client.wait", { cmd: K(c.cmd) }, `No answer for ${C(c.cmd)} and no leader to ask: the client waits.`); }
@@ -923,7 +928,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     s.line(null);
     cl.leader = m.body.hint ?? null;
     say(ctx, "client.redirect", { who: chip(m.from), whoId: m.from }, `The client hears that ${R(m.from)} is not the leader.`);
-    if (c && !cl.acked.includes(c.id)) submit(c, cl.leader ? "redirect" : "retry");
+    // refused without a hint, it looks for the leader at once: no timeout has run out, so this is not a retry
+    if (c && !cl.acked.includes(c.id)) submit(c, cl.leader ? "redirect" : "lookup");
   });
 
   net.on("client", MSG.answer, (m, ctx) => {

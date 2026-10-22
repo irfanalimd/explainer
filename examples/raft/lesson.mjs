@@ -571,8 +571,8 @@ export const lesson = {
           source: PAPER,
         },
       },
-      plain: "{who} lacks entry {missing}, so {leader} steps back to entry {next} and resends.",
-      look: ["{whoId}"],
+      plain: "{who} {be:whoIds} missing entry {missing}, so {leader} steps back to entry {next} and resends.",
+      look: ["{whoIds}"],
     },
 
     // ---- The network splits ----
