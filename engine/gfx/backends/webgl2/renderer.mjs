@@ -299,7 +299,8 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform1i(u.uNumLights, fr.nLights);
     gl.uniform4fv(u.uLP, fr.lightsPos); gl.uniform4fv(u.uLC, fr.lightsCol);
     gl.uniformMatrix4fv(u.uLightVP, false, sh.viewProj);
-    gl.uniform4f(u.uShadowP, 1 / R.shadowSize, sh.extent, sh.depthRange, api.debug.shadow === false ? 0 : 1);
+    // w: 0 no shadows, 1 the full filter, 2 a draft's few taps
+    gl.uniform4f(u.uShadowP, 1 / R.shadowSize, sh.extent, sh.depthRange, api.debug.shadow === false ? 0 : drafted ? 2 : 1);
     gl.uniform1f(u.uLightSize, TL.lightSize);
     gl.uniform4fv(u.uContactRect, R.contactRect);
     gl.uniform3fv(u.uEnvGain, TL.env); gl.uniform3fv(u.uEnvTint, TL.envTint);
