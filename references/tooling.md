@@ -306,7 +306,9 @@ there is one instance per module); everything else is served byte for byte.
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
   Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
   is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
-  on a loaded machine) 1× play would crawl and time out.
+  on a loaded machine) 1× play would crawl and time out. The cards are screenshots of live play, often taken while an
+  afterglow fades, so the pass turns fade drafts off for its page (`__gfx.debug.draftFades = false`): a fading frame
+  is drawn in full, the camera gets the frames it got before fades drafted, and the cards come out as they did.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error, and
   a page that stops answering ends that story's live play with an error instead of hanging the run. Progress goes to
   stderr, one line per group (`--quiet` turns it off). Live play takes a few seconds a card on a machine with a GPU;

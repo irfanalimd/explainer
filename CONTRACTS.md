@@ -95,7 +95,8 @@ span at the higher scale would sit well inside the budget, never sooner than `AD
 
 **Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
 while the camera or the HUD's insets still move, and while the last frame still had an afterglow or ping fading
-(`r.fading`). On a software rasterizer (SwiftShader, llvmpipe and the like:
+(`r.fading`; `r.debug.draftFades = false` draws fading frames in full, as `shoot --teach` does for its live
+cards). On a software rasterizer (SwiftShader, llvmpipe and the like:
 `look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
 tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps, no MSAA or
 tilt-shift and a lighter shadow filter (4 search and 4 filter taps for 12 and 16), WebGPU at three quarters of its

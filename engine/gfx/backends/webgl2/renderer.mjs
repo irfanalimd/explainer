@@ -50,7 +50,9 @@ export function createRenderer(canvas, opts = {}) {
     get theme() { return theme; },
     get size() { return { cssW, cssH, dpr, W, H }; },
     get busy() { return !!packer.fading; },     // the last frame had something still fading out
-    get fading() { return !!packer.fading; },   // the same: an afterglow or ping still fading (the next frame replaces it)
+    // the same: an afterglow or ping still fading, so the next frame replaces this one and it may be a draft
+    // (debug.draftFades false: such frames are full ones, as before fades drafted; shoot --teach's live cards)
+    get fading() { return !!packer.fading && api.debug.draftFades !== false; },
     get drafted() { return drafted; },          // the last frame was drawn in the draft tier: draw the resting one again
     atlas,
   };
