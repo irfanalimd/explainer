@@ -61,7 +61,7 @@ export const meta = {
   kicker: "Algorithms",
   fig: 2,
   level: "core",
-  // the partition that runs is Lomuto's, as CLRS presents it (Hoare's 1962 original uses two converging markers)
+  // the partition that runs is Lomuto's, as CLRS presents it (Hoare's 1961 original uses two converging markers)
   cite: { text: "Cormen, Leiserson, Rivest & Stein, “Introduction to Algorithms”, 4th ed., §7.1 (Lomuto partition)", url: "https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/" },
   theme: "light",
   hook: "Comparing every number with every other one is slow. How does quicksort sort with far fewer comparisons, and when does that fail?",
@@ -71,9 +71,9 @@ export const meta = {
     recursion: "solving each smaller piece with the very same steps, until the pieces are too small to need it",
   },
   recap: [
-    "Pick one number, the pivot: smaller ones go left, bigger ones right.",
+    "Pick one number, the pivot: numbers no bigger go left, bigger ones right.",
     "The pivot then sits in its final slot and never moves again.",
-    "Each side is split the same way, until every group has one number.",
+    "Each side is split the same way, until every group has one number or none.",
     "The two sides are never compared, so even splits skip most pairs.",
   ],
   takeaway: "Each split puts one number in its final place and leaves two smaller groups that never need comparing with each other.",
