@@ -164,6 +164,7 @@ export const lesson = {
       },
     },
     "room@hit": {
+      teach: { prompt: "The note handed over the room in one cycle. Which part of the address still needs no lookup at all?", listen: "The offset, the last 3 hex digits: it copies straight over, after the room number. Only the page number was ever translated, and the note did that.", minutes: 2 },
       about: "The note already had the room, so the CPU puts the offset after it to get the real address and reads the byte. The directory stays shut.",
       enter: {
         sofar: "A note already held page {vpn} and its room.",
