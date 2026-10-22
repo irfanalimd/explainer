@@ -156,7 +156,7 @@ export const lesson = {
         why: "Nobody picks the seats; the hash does, so some gaps come out far wider than others.",
         deeper: {
           how: "A server's arc runs from the seat before it up to its own seat, and it stores every key that lands there.",
-          edge: "With one random seat each, the biggest arc is not 1/N of the ring: on average it is about (ln N + 0.58)/N, roughly 52% for 4 servers.",
+          edge: "With one random seat each, the biggest arc is not 1/N of the ring: on average it is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.",
           real: "Karger et al. give each server about log N seats to fix this: then every share is within a constant factor of fair.",
           source: KARGER,
         },
