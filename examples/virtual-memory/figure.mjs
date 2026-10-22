@@ -70,10 +70,7 @@ export const meta = {
   kicker: "Operating systems",
   fig: 4,
   level: "core",
-  cite: {
-    text: "Intel SDM Vol. 3A §4.5, 4-level paging · latencies: Drepper, “What Every Programmer Should Know About Memory”, 2007",
-    url: "https://www.akkadia.org/drepper/cpumemory.pdf",
-  },
+  cite: "[intel-sdm3a] §4.5",
   theme: "light",
   hook: "Two programs can use the same memory address for their own data. Why don't they overwrite each other, and how is it fast?",
   terms: {

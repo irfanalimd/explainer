@@ -62,7 +62,7 @@ export const meta = {
   fig: 2,
   level: "core",
   // the partition that runs is Lomuto's, as CLRS presents it (Hoare's 1961 original uses two converging markers)
-  cite: { text: "Cormen, Leiserson, Rivest & Stein, “Introduction to Algorithms”, 4th ed., §7.1 (Lomuto partition)", url: "https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/" },
+  cite: "[clrs4] §7.1",
   theme: "light",
   hook: "Comparing every number with every other one is slow. How does quicksort sort with far fewer comparisons, and when does that fail?",
   terms: {
