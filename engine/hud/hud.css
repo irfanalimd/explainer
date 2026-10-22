@@ -1309,6 +1309,11 @@
 
 /* short viewports: give the world room */
 .ix.ix-short .ix-cap-stage { min-height: 0; }
+/* short and not a phone (a landscape phone, a short embed): the header and the dock leave no height for a side panel,
+   so the parameters drawer and the code panel run down over the caption and the dock (their own scroll), instead of
+   opening to their header alone */
+.ix.ix-short:not([data-size="phone"]) .ix-drawer { max-height: calc(100% - var(--ix-pad-t) - var(--ix-row) - 8px - var(--ix-pad-b)); }
+.ix.ix-short:not([data-size="phone"]) .ix-code { max-height: calc(100% - var(--ix-pad-t) - var(--ix-top-h) - 16px - var(--ix-pad-b)); }
 /* short viewports (an embed frame): an open pick, question or check speaks alone (the caption and readout step aside),
    the card tightens, and one still too tall scrolls inside itself rather than running off the top. The root is the
    viewport here (an iframe or a small window), so the cap is taken from it, less the header and the transport. */
