@@ -17,17 +17,60 @@
 //   end.*:        printed, lines, lineIds; starve and yield add timeoutAt, repaints, paints, firstPaint, lastPaint,
 //                 clampIdle, clamped
 // The figure's `lead` words are not used: each entry says how its frame was entered in its own words.
-const HTML_LOOP = "HTML Living Standard, §8.1.7 Event loops, https://html.spec.whatwg.org/multipage/webappapis.html#event-loops";
-const HTML_TIMERS = "HTML Living Standard, timer initialisation steps, https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps";
-const ES_PROMISE = "ECMAScript, PerformPromiseThen and NewPromiseResolveThenableJob, https://tc39.es/ecma262/#sec-newpromiseresolvethenablejob";
-const ES_AWAIT = "ECMAScript, Await, https://tc39.es/ecma262/#await";
-const ARCHIBALD = "J. Archibald, Tasks, microtasks, queues and schedules (2015), https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/";
-const V8_ASYNC = "V8 blog, Faster async functions and promises (2018), https://v8.dev/blog/fast-async";
-const FETCH = "Fetch Standard, the fetch() method, https://fetch.spec.whatwg.org/#fetch-method";
-const NODE_LOOP = "Node.js, The Node.js Event Loop, https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick";
-const MDN_YIELD = "MDN, Scheduler: yield() method, https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/yield";
+// Every real-world claim names its source as [id] (lesson.sources below), with a locator where it helps.
+const HTML_LOOP = "[whatwg-loop] §8.1.7.3 Processing model";
+const HTML_TIMERS = "[whatwg-timers] the timer initialisation steps";
+const ES_PROMISE = "[ecma-promise] NewPromiseResolveThenableJob";
+const ES_AWAIT = "[ecma-await] the Await abstract operation";
+const ARCHIBALD = "[archibald2015]";
+const V8_ASYNC = "[v8-async2018]";
+const FETCH = "[whatwg-fetch] the fetch() method";
+const NODE_LOOP = "[node-loop] Phases overview; [node-process] queueMicrotask() vs. process.nextTick()";
+const MDN_YIELD = "[mdn-yield]";
 
 export const lesson = {
+  sources: [
+    { id: "whatwg-loop", title: "HTML Living Standard, §8.1.7 Event loops", by: "WHATWG", year: 2026, where: "html.spec.whatwg.org",
+      url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops",
+      supports: "tasks and task queues, the microtask checkpoint that runs until the queue is empty, rendering queued as a task on the rendering task source" },
+    { id: "whatwg-render-task", title: "Refactor event-loop processing model to perform rendering as a task (pull request #10007)", by: "WHATWG", year: 2024, where: "github.com/whatwg/html",
+      url: "https://github.com/whatwg/html/pull/10007",
+      supports: "since January 2024 the standard updates the rendering in a task; before, it was a step of the loop between tasks" },
+    { id: "whatwg-timers", title: "HTML Living Standard, §8.6 Timers: the timer initialisation steps", by: "WHATWG", year: 2026, where: "html.spec.whatwg.org",
+      url: "https://html.spec.whatwg.org/multipage/timers-and-user-prompts.html#timer-initialisation-steps",
+      supports: "a due timer queues a task; past a nesting level of 5, a timeout under 4 ms becomes 4 ms" },
+    { id: "ecma-promise", title: "ECMAScript Language Specification, promise jobs", by: "Ecma TC39", year: 2026, where: "tc39.es/ecma262",
+      url: "https://tc39.es/ecma262/#sec-newpromiseresolvethenablejob",
+      supports: "a handler that returns a promise costs extra jobs before the next handler runs" },
+    { id: "ecma-await", title: "ECMAScript Language Specification, Await", by: "Ecma TC39", year: 2026, where: "tc39.es/ecma262",
+      url: "https://tc39.es/ecma262/#await",
+      supports: "the rest of an async function after await runs as a promise reaction job" },
+    { id: "archibald2015", title: "Tasks, microtasks, queues and schedules", by: "Jake Archibald", year: 2015, where: "jakearchibald.com",
+      url: "https://jakearchibald.com/2015/tasks-microtasks-queues-and-schedules/",
+      supports: "the script start / setTimeout / promise1 / promise2 / script end test and its answer; Edge, Firefox 40 and Safari 8.0.8 logging setTimeout first in 2015; a real click's listeners against element.click()" },
+    { id: "roberts2014", title: "What the heck is the event loop anyway?", by: "Philip Roberts", year: 2014, where: "JSConf EU (talk)",
+      url: "https://www.youtube.com/watch?v=8aGhZQkoFbQ",
+      supports: "the call stack, the Web APIs and the callback queue drawn as separate boxes: the parts this figure's world shows" },
+    { id: "v8-async2018", title: "Faster async functions and promises", by: "Maya Armyanova and Benedikt Meurer", year: 2018, where: "v8.dev blog",
+      url: "https://v8.dev/blog/fast-async",
+      supports: "awaiting a native promise went from three microtask ticks to one (V8 7.2, after a spec change)" },
+    { id: "whatwg-fetch", title: "Fetch Living Standard, the fetch() method", by: "WHATWG", year: 2026, where: "fetch.spec.whatwg.org",
+      url: "https://fetch.spec.whatwg.org/#fetch-method",
+      supports: "the response resolves fetch's promise from a queued task" },
+    { id: "node-loop", title: "The Node.js Event Loop", by: "Node.js", year: 2026, where: "nodejs.org/en/learn",
+      url: "https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick",
+      supports: "Node's loop runs in phases (timers, poll, check); setTimeout(0) against setImmediate in the main module runs in no fixed order" },
+    { id: "node-process", title: "Node.js API, process: when to use queueMicrotask() vs. process.nextTick()", by: "Node.js", year: 2026, where: "nodejs.org/api",
+      url: "https://nodejs.org/api/process.html#when-to-use-queuemicrotask-vs-processnexttick",
+      supports: "the next-tick queue drains before the promise microtask queue; process.nextTick is marked legacy in favour of queueMicrotask" },
+    { id: "mdn-yield", title: "Scheduler: yield() method", by: "MDN", year: 2026, where: "developer.mozilla.org",
+      url: "https://developer.mozilla.org/en-US/docs/Web/API/Scheduler/yield",
+      supports: "yield() hands the thread back and continues as a prioritized task; not yet in every major browser" },
+    { id: "chrome88-timers", title: "Heavy throttling of chained JS timers beginning in Chrome 88", by: "Jake Archibald, Chrome for Developers", year: 2021, where: "developer.chrome.com",
+      url: "https://developer.chrome.com/blog/timer-throttling-in-chrome-88",
+      supports: "a hidden tab checks timers once per second, and chained timers once per minute after 5 minutes hidden" },
+  ],
+
   goal: "Predict the order in which a page's code, promise callbacks, timers and repaints run on one thread.",
 
   objectives: [
@@ -42,7 +85,7 @@ export const lesson = {
       fix: "Running code is never interrupted: a callback waits until the script ends and the stack is empty." },
     { id: "m-order", wrong: "Callbacks run in the order they were set up, so the timer queued first goes first.",
       fix: "After each task the loop empties the microtask queue first; a timer is a task, so it waits behind them all." },
-    { id: "m-await", wrong: "If the awaited value is already there, the function just carries on with the next line.",
+    { id: "m-await", wrong: "If the awaited value is already there, the function carries on with the next line.",
       fix: "The rest of an async function always becomes a microtask, so the caller's code finishes first." },
     { id: "m-paint", wrong: "The browser repaints whenever a new frame is due, between any two pieces of work.",
       fix: "A repaint is a task, and no task starts while microtasks wait, so a chain of microtasks holds it back." },
@@ -77,6 +120,10 @@ export const lesson = {
 
   chapters: {
     script: {
+      teach: { prompt: "Before it runs: read the script on screen and write down the order you think its lines print.", listen: "Expect `timeout` early, right after `script`, because it was set up first with 0 ms. Keep every guess on the board: the run settles them. This is Jake Archibald's well-known test, with two calls added.", minutes: 3 },
+      "teach@await": { prompt: "Read `load()`. Does `load 2` print before or after the script's last line, `done`?", listen: "Expect “before”: `await null` waits for nothing, so it looks free. The run shows the rest of `load()` waits until the script has finished.", minutes: 3 },
+      "teach@starve": { prompt: "The job is cut into chunks so the page stays usable. Will the progress bar move while it runs?", listen: "Expect “yes, the chunks leave gaps”. Each chunk queues the next as a microtask, and the loop runs microtasks until none is left, so no gap opens.", minutes: 3 },
+      "teach@yield": { prompt: "Same job, but each chunk queues the next with `setTimeout(chunk, 0)`. What changes for the progress bar, and what might it cost?", listen: "The bar moves between chunks. The cost shows up later: past five nested timers, 0 ms becomes 4 ms, and the thread sits idle.", minutes: 3 },
       about: "Think of one cook with an order rail. Each order waits its turn on the rail, and sticky notes marked “before the next order” are read after every dish.",
       enter: { sofar: "You can call functions and print with `console.log`.", now: "Run the script, the first job, from top to bottom.",
         done: "Every line runs in order, and each function handed over for later waits in a box.", picture: true },
@@ -88,6 +135,9 @@ export const lesson = {
         done: "Chunk 1 prints, and the next chunk waits in the task queue.", picture: true },
     },
     micro: {
+      teach: { prompt: "The script is done. What runs first: the timer set at the top, or the promise callbacks?", listen: "Expect the order the lines were written in. The loop runs every waiting microtask before any task, even `then 2`, which joins the queue mid-round.", minutes: 4 },
+      "teach@await": { prompt: "Two microtasks wait: the rest of `load()` and `then`. Which goes first, and why?", listen: "The rest of `load()` was queued first, at the `await`, so it runs first. Both waited for the script to end.", minutes: 3 },
+      "teach@starve": { prompt: "Chunk 2 is a microtask that queues chunk 3. When does the 0 ms timer get its turn?", listen: "Only when the chain ends. The checkpoint checks the queue again after every microtask, so a chain that keeps adding one never lets a task in.", minutes: 4 },
       about: "When the stack is empty, the loop runs every waiting microtask. Microtasks added along the way run too, before any new task.",
       "about@await": "When the stack is empty, the loop runs every waiting microtask, like the code after an `await`. Microtasks added along the way run too, before any new task.",
       "about@starve": "When the stack is empty, the loop runs every microtask, even new ones added along the way. Here each chunk adds the next, so the timer and repaints must wait.",
@@ -99,11 +149,13 @@ export const lesson = {
         done: "No task runs, not even the 0 ms timer, until the last chunk is done." },
     },
     timer: {
+      teach: { prompt: "The timer was due at 0 ms, before every promise callback was even queued. Why does it print after them?", listen: "Its callback is a task, and the loop takes a task only once the microtask queue is empty. “Due” means “allowed to queue”, not “runs now”.", minutes: 2 },
       about: "A timer's callback waits in the task queue. The loop takes one task at a time, and only once the microtasks are done, so even a 0 ms timer waits.",
       enter: { sofar: "Every microtask has run, even `then 2`, added along the way.", now: "Take one task: the 0 ms timer, waiting since the start.",
         done: "`timeout` prints after every promise callback." },
     },
     network: {
+      teach: { prompt: "Nothing happens on the thread for a while. Where is the request meanwhile, and who is waiting for it?", listen: "In the browser's network code, outside JavaScript; the thread idles. The reply comes back as a task, and the code waiting on it follows as microtasks.", minutes: 3 },
       about: "The request runs in the background, outside JavaScript. Its reply arrives as a task; running it makes the promise ready, and the code waiting on it is queued as microtasks.",
       enter: { sofar: "Both queues are empty, but `fetch` has no reply yet.", now: "The reply arrives as a task, and the code waiting on it follows.",
         done: "`fetched` prints right after the reply task." },
@@ -111,16 +163,19 @@ export const lesson = {
         done: "`load 3` prints, and `load()` finishes." },
     },
     tasks: {
-      about: "The microtasks are finally done, so the loop takes tasks again: the long-waiting timer, then the render task. This model takes the oldest task first; real browsers often let a repaint go ahead.",
+      teach: { prompt: "The timer waited for the whole chain. What else was waiting with it?", listen: "The repaint, and any click or key press: all of them are tasks. So the screen jumped from nothing to done in one repaint, and no click got an answer until then.", minutes: 3 },
+      about: "The microtasks are done at last, so the loop takes tasks again: the timer, then the render task. This model takes the oldest task first; a real browser may serve the repaint's queue sooner.",
       enter: { sofar: "The last chunk is done, but the 0 ms timer waited the whole time.", now: "Take tasks again: the timer, then the repaint.",
         done: "The screen jumps from nothing to done in one repaint." },
     },
     turns: {
+      teach: { prompt: "Each chunk is now its own task. What can run between two chunks?", listen: "Any other task: the waiting timer, a repaint, a click. That gap is what keeps a long job from freezing the page.", minutes: 3 },
       about: "Each chunk is now its own task. Between chunks, the loop can run other tasks, like the waiting timer and the render task that repaints the page.",
       enter: { sofar: "The script ended, and the next chunk waits in the task queue.", now: "Let other tasks run between chunks.",
         done: "`timeout` prints right after chunk 1, and repaints can slot in between chunks." },
     },
     clamp: {
+      teach: { prompt: "Why would the standard slow down a chain of 0 ms timers on purpose?", listen: "So a page can't keep the thread busy flat out with timers alone. Past five nested timers, a 0 ms delay becomes 4 ms; a hidden tab is throttled much harder still.", minutes: 2 },
       about: "Browsers slow down long chains of timers: once timers have set timers more than five deep, a 0 ms delay becomes 4 ms. The thread idles meanwhile.",
       enter: { sofar: "Each chunk set a 0 ms timer, and the next chunk was queued at once.", now: "Past five timers deep, a 0 ms timer must wait 4 ms.",
         done: "The thread sits idle before each later chunk." },
@@ -180,7 +235,8 @@ export const lesson = {
         why: "The timer is done, but the script still holds the thread, so {callback} waits in line.",
         deeper: {
           how: "A due timer never interrupts: the browser only queues a task, and the loop picks tasks only between other tasks.",
-          source: HTML_TIMERS,
+          real: "This figure's boxes, the call stack, the Web APIs and the queue, follow Philip Roberts' JSConf EU 2014 talk on the event loop.",
+          source: "[whatwg-timers]; [roberts2014]",
         },
       },
       plain: "The {delay} timer is up: {callback} joins the task queue at {due}.",
@@ -335,7 +391,8 @@ export const lesson = {
       look: ["console"],
       deeper: {
         cost: "The run takes {at} of simulated time, all of it the network delay: the thread itself never waits.",
-        real: "Node prints the same order here, but its loop has phases, and it runs `process.nextTick` callbacks before promise jobs, so `setImmediate` against `setTimeout(0)` can differ from a browser.",
+        edge: "This is Jake Archibald's 2015 test with `queueMicrotask` and `fetch` added. His answer holds: the script, then the promise callbacks, then the timer.",
+        real: "Node prints the same order here. Its loop runs in phases (timers, poll, check), and it empties its `process.nextTick` queue before the promise jobs, so Node-only code can order differently.",
         source: NODE_LOOP,
       },
     },
@@ -427,8 +484,8 @@ export const lesson = {
         deeper: {
           how: "The standard's timer initialisation steps: “If nestingLevel is greater than 5, and timeout is less than 4, then set timeout to 4.” Each timer task runs one level deeper than the one that set it.",
           cost: "From here on, each chunk waits up to {delay} with the thread idle, on top of its {work} ms of work.",
-          real: "Browsers throttle timers much harder in a background tab, often to once a second.",
-          source: HTML_TIMERS,
+          real: "A hidden tab is slower still: Chrome checks its timers once a second, and a chain of timers once a minute after 5 minutes hidden.",
+          source: "[whatwg-timers]; [chrome88-timers]",
         },
       },
       plain: "{fn} prints {printed}, then sets a timer {level} deep: 0 ms becomes {delay}.",
@@ -440,9 +497,10 @@ export const lesson = {
       "key@starve": true,
       "why@starve": "Like any task, it can start only once the microtask queue is empty.",
       "deeper@starve": {
-        how: "At each rendering opportunity the standard queues a task to update the rendering. It is a task like the timer, so it waits for the microtask checkpoint.",
-        real: "This model takes the oldest task first; real browsers may serve a waiting repaint ahead of other tasks. None runs it between two microtasks: the checkpoint always runs to empty.",
-        source: HTML_LOOP,
+        how: "At each rendering opportunity the standard queues a task on the rendering task source to update the rendering. It is a task like the timer, so it waits for the microtask checkpoint.",
+        edge: "This is recent: until January 2024 the standard updated the rendering as a step of the loop between tasks. Either way, it never ran between two microtasks.",
+        real: "This model takes the oldest task first; a browser may serve a waiting repaint ahead of other tasks.",
+        source: "[whatwg-loop] §8.1.7.3 Processing model; [whatwg-render-task]",
       },
     },
     "task.render": {
@@ -453,7 +511,7 @@ export const lesson = {
         key: true,
         why: "A repaint is a task, so all it needs is a gap between two other tasks.",
         deeper: {
-          how: "`requestAnimationFrame` callbacks run inside this same rendering step, just before the paint, so they see the page as the user will.",
+          how: "`requestAnimationFrame` callbacks run inside this same rendering step, right before the paint, so they see the page as the user will.",
           source: HTML_LOOP,
         },
       },
@@ -465,7 +523,7 @@ export const lesson = {
       look: ["page", "console"],
       deeper: {
         cost: "{chunks} chunks of {work} ms ran back to back, so the 0 ms timer waited {timeoutAt}.",
-        edge: "A user's click is a task too, so for those {timeoutAt} the page also ignored every click and key.",
+        edge: "A user's click is a task too, so for those {timeoutAt} every click and key press waited in its queue: the page looked frozen.",
         source: HTML_LOOP,
       },
     },
@@ -476,7 +534,7 @@ export const lesson = {
       look: ["page", "console"],
       deeper: {
         cost: "In this run the timer limit left the thread idle for {clampIdle}.",
-        real: "`scheduler.yield()` gives the thread back without the 4 ms limit, and the rest of the work resumes ahead of other ordinary tasks.",
+        real: "`scheduler.yield()` hands the thread back with no 4 ms limit, and the rest of the work returns as a prioritized task. It is not yet in every major browser.",
         source: MDN_YIELD,
       },
     },

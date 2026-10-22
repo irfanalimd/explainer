@@ -12,21 +12,64 @@
 //                  loads, cycles, each, first (again.total)
 //   program B:     cr3 (other.switch); byteB, frameB, byteIdB, byteA, frameA, byteIdA (other.byte); pageIds (other.apart)
 // Chapter abouts and cards are filled with each step's own vars, so they use only the run-wide ones.
-const SDM = "Intel 64 and IA-32 Architectures Software Developer's Manual, Vol. 3A, ch. 4 (Paging), https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html";
-const SDM1 = "Intel 64 and IA-32 Architectures Software Developer's Manual, Vol. 1, §3.3.7.1 (canonical addressing), https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html";
-const DREPPER = "U. Drepper, What Every Programmer Should Know About Memory, 2007, §3.3 and §4, https://www.akkadia.org/drepper/cpumemory.pdf";
-const OSTEP_TLB = "Arpaci-Dusseau, Operating Systems: Three Easy Pieces, ch. 19 (TLBs), https://pages.cs.wisc.edu/~remzi/OSTEP/vm-tlbs.pdf";
-const OSTEP_SMALL = "Arpaci-Dusseau, Operating Systems: Three Easy Pieces, ch. 20 (Smaller Tables), https://pages.cs.wisc.edu/~remzi/OSTEP/vm-smalltables.pdf";
-const OSTEP_SWAP = "Arpaci-Dusseau, Operating Systems: Three Easy Pieces, ch. 21 (Swapping: Mechanisms), https://pages.cs.wisc.edu/~remzi/OSTEP/vm-beyondphys.pdf";
-const OSTEP_PAGING = "Arpaci-Dusseau, Operating Systems: Three Easy Pieces, ch. 18 (Paging), https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf";
-const LINUX_TLB = "Linux, arch/x86/include/asm/tlbflush.h (TLB_NR_DYN_ASIDS), https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/tlbflush.h";
-const LINUX_SWP = "Linux, arch/x86/include/asm/pgtable_64.h (__swp_entry), https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/pgtable_64.h";
-const KPTI = "D. Hansen, x86/mm/kaiser: Use PCID feature to make user and kernel switches faster, LKML 2017, https://lkml.iu.edu/hypermail/linux/kernel/1711.3/00118.html";
-const NESTED = "R. Bhargava et al., Accelerating Two-Dimensional Page Walks for Virtualized Systems, ASPLOS 2008, https://dl.acm.org/doi/10.1145/1346281.1346286";
-const THP = "Linux kernel docs, Transparent Hugepage Support, https://docs.kernel.org/admin-guide/mm/transhuge.html";
-const GREGG = "B. Gregg, Systems Performance, 2nd ed., 2020, Table 2.2 (example latencies), https://www.brendangregg.com/systems-performance-2nd-edition-book.html";
+// Every real-world claim names its source as [id] (lesson.sources below), with a locator where it helps.
+const SDM = "[intel-sdm3a] ch. 4, Paging";
+const SDM1 = "[intel-sdm1] §3.3.7.1, canonical addressing";
+const DREPPER = "[drepper2007] §3.3 and §4";
+const OSTEP_TLB = "[ostep19]";
+const OSTEP_SMALL = "[ostep20]";
+const OSTEP_SWAP = "[ostep21]";
+const OSTEP_PAGING = "[ostep18]";
+const LINUX_TLB = "[linux-tlbflush] TLB_NR_DYN_ASIDS";
+const LINUX_SWP = "[linux-pgtable64] __swp_entry";
+const KPTI = "[hansen2017]";
+const NESTED = "[bhargava2008]";
+const THP = "[linux-thp]";
+const GREGG = "[gregg2020] Table 2.2";
 
 export const lesson = {
+  sources: [
+    { id: "intel-sdm3a", title: "Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A, chapter 4: Paging", by: "Intel", year: 2025, where: "intel.com",
+      url: "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      supports: "4-level paging: CR3, four tables of 512 eight-byte entries, 9 index bits per level, the P, RW, US, A, D and NX flags, PCIDs, the paging-structure caches, invalidation (§4.10)" },
+    { id: "intel-sdm1", title: "Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 1, §3.3.7.1 Canonical addressing", by: "Intel", year: 2025, where: "intel.com",
+      url: "https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html",
+      supports: "with 48-bit linear addresses, bits 63–48 must copy bit 47" },
+    { id: "drepper2007", title: "What Every Programmer Should Know About Memory", by: "Ulrich Drepper", year: 2007, where: "akkadia.org (Red Hat)",
+      url: "https://www.akkadia.org/drepper/cpumemory.pdf",
+      supports: "the access times Intel lists for a Pentium M (L2 about 14 cycles, main memory about 240), the model's latencies; a fully associative TLB holds a few dozen entries at most" },
+    { id: "ostep18", title: "Operating Systems: Three Easy Pieces, ch. 18, Paging: Introduction", by: "Remzi H. Arpaci-Dusseau and Andrea C. Arpaci-Dusseau", year: 2023, where: "pages.cs.wisc.edu/~remzi/OSTEP",
+      url: "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf",
+      supports: "an address splits into a page number, which is translated, and an offset, which is not" },
+    { id: "ostep19", title: "Operating Systems: Three Easy Pieces, ch. 19, Paging: Faster Translations (TLBs)", by: "Remzi H. Arpaci-Dusseau and Andrea C. Arpaci-Dusseau", year: 2023, where: "pages.cs.wisc.edu/~remzi/OSTEP",
+      url: "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-tlbs.pdf",
+      supports: "the TLB caches translations; a hit avoids the extra memory reads; ASIDs instead of flushing on a switch" },
+    { id: "ostep20", title: "Operating Systems: Three Easy Pieces, ch. 20, Paging: Smaller Tables", by: "Remzi H. Arpaci-Dusseau and Andrea C. Arpaci-Dusseau", year: 2023, where: "pages.cs.wisc.edu/~remzi/OSTEP",
+      url: "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-smalltables.pdf",
+      supports: "multi-level page tables: a directory of tables, each index picking one line" },
+    { id: "ostep21", title: "Operating Systems: Three Easy Pieces, ch. 21, Beyond Physical Memory: Mechanisms", by: "Remzi H. Arpaci-Dusseau and Andrea C. Arpaci-Dusseau", year: 2023, where: "pages.cs.wisc.edu/~remzi/OSTEP",
+      url: "https://pages.cs.wisc.edu/~remzi/OSTEP/vm-beyondphys.pdf",
+      supports: "the present bit, the page fault, the swap slot kept in the entry, retrying the instruction" },
+    { id: "linux-tlbflush", title: "Linux, arch/x86/include/asm/tlbflush.h", by: "The Linux kernel", year: 2026, where: "kernel source",
+      url: "https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/tlbflush.h",
+      supports: "TLB_NR_DYN_ASIDS: each CPU recycles 6 PCID tags among recent address spaces" },
+    { id: "linux-pgtable64", title: "Linux, arch/x86/include/asm/pgtable_64.h", by: "The Linux kernel", year: 2026, where: "kernel source",
+      url: "https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/pgtable_64.h",
+      supports: "__swp_entry stores the swap offset inverted, against L1TF" },
+    { id: "hansen2017", title: "x86/mm/kaiser: Use PCID feature to make user and kernel switches faster", by: "Dave Hansen", year: 2017, where: "Linux kernel mailing list",
+      url: "https://lkml.iu.edu/hypermail/linux/kernel/1711.3/00118.html",
+      supports: "page-table isolation uses a pair of PCIDs per address space" },
+    { id: "bhargava2008", title: "Accelerating two-dimensional page walks for virtualized systems", by: "Ravi Bhargava, Benjamin Serebrin, Francesco Spadini and Srilatha Manne", year: 2008, where: "ASPLOS 2008",
+      url: "https://dl.acm.org/doi/10.1145/1346281.1346286",
+      supports: "a nested walk under a virtual machine takes up to 24 memory references" },
+    { id: "linux-thp", title: "Transparent Hugepage Support", by: "The Linux kernel documentation", year: 2026, where: "docs.kernel.org",
+      url: "https://docs.kernel.org/admin-guide/mm/transhuge.html",
+      supports: "2 MiB pages for large memory areas, one TLB entry for 512 small pages" },
+    { id: "gregg2020", title: "Systems Performance: Enterprise and the Cloud, 2nd edition", by: "Brendan Gregg", year: 2020, where: "Addison-Wesley",
+      url: "https://www.brendangregg.com/systems-performance-2nd-edition-book.html",
+      supports: "Table 2.2, example latencies: main memory about 100 ns, an SSD I/O 10–100 µs, a rotational disk I/O 1–10 ms" },
+  ],
+
   goal: "Turn a program's own address into a real place in memory, so programs stay apart and reads stay fast.",
 
   objectives: [
@@ -79,6 +122,7 @@ export const lesson = {
 
   chapters: {
     address: {
+      teach: { prompt: "Two programs both print the address of one of their variables, and they print the same number. Are they using the same byte of memory?", listen: "Expect “yes”: a number feels like a place. Each program's address is its own; its directory decides which real room it means. Hold the answer until program B's story.", minutes: 3 },
       about: "Think of a building where each program has its own apartment numbers, and its own directory that turns a number into a real room. Addresses are written in hex: each digit is 4 bits.",
       enter: {
         sofar: "Programs read memory by address, like a[3] in an array.",
@@ -88,6 +132,7 @@ export const lesson = {
       },
     },
     notes: {
+      teach: { prompt: "Finding the room means reading the directory from memory, four times. Why isn't every read of memory four times slower, then?", listen: "Because the CPU remembers recent answers: the sticky notes, the TLB. Listen for “it caches something”; ask what, and for how much memory one note answers.", minutes: 3 },
       about: "Reading the directory is slow, because it sits in memory too. So the CPU keeps sticky notes of recent lookups, the {term:TLB}, and checks them first, in one {term:cycle}.",
       enter: {
         sofar: "Only the page number, {vpn}, needs looking up. But the directory sits in slow memory.",
@@ -96,6 +141,7 @@ export const lesson = {
       },
     },
     walk: {
+      teach: { prompt: "One directory line for every page would be 2^36 lines. How does a chain of four small tables avoid that?", listen: "Each 9 bits of the page number picks one line in one table of 512, and only the tables a program uses need to exist. A program using a few pages needs a few tables, not 2^36 lines.", minutes: 4 },
       about: "On a miss, the CPU reads this program's directory, the {term:page table}: four small tables in a chain. Each 9 bits of the page number pick one line in one table.",
       enter: {
         sofar: "No note has page {vpn}, so the notes can't say where it lives.",
@@ -109,6 +155,7 @@ export const lesson = {
       },
     },
     room: {
+      teach: { prompt: "The room is found. What does the CPU do with the last 3 hex digits of the address?", listen: "Nothing: the offset copies straight over, after the room number. Only the page number is ever translated.", minutes: 2 },
       about: "The walk found the page's room. The CPU puts the offset after the room number to get the real address, writes a sticky note for next time, and reads the byte.",
       enter: {
         sofar: "Four slow reads later, the last table named the page's room.",
@@ -117,6 +164,7 @@ export const lesson = {
       },
     },
     "room@hit": {
+      teach: { prompt: "The note handed over the room in one cycle. Which part of the address still needs no lookup at all?", listen: "The offset, the last 3 hex digits: it copies straight over, after the room number. Only the page number was ever translated, and the note did that.", minutes: 2 },
       about: "The note already had the room, so the CPU puts the offset after it to get the real address and reads the byte. The directory stays shut.",
       enter: {
         sofar: "A note already held page {vpn} and its room.",
@@ -125,7 +173,8 @@ export const lesson = {
       },
     },
     again: {
-      about: "The program reads on through the same page. Every byte there has the same page number, so the note just written can answer for all of them.",
+      teach: { prompt: "The program reads the next byte in the same page. How much of the slow walk happens again?", listen: "None: the note answers in 1 cycle. Ask what changes if every read lands in a different page.", minutes: 2 },
+      about: "The program reads on through the same page. Every byte there has the same page number, so the note written a moment ago answers for all of them.",
       enter: {
         sofar: "The first byte's room took four slow reads, every line from main memory.",
         now: "Read the next byte, in the same page {vpn}.",
@@ -133,14 +182,16 @@ export const lesson = {
       },
     },
     other: {
-      about: "The operating system now runs program B, which uses the same address through its own directory. This CPU wipes the notes on a switch; most real CPUs instead tag each note with a small number for a recent program.",
+      teach: { prompt: "Program B reads the address program A read a moment ago. Does B see A's byte?", listen: "No: B's own directory sends it to a different room. Listen for “the system gives each program different addresses”; the run shows them sharing one.", minutes: 4 },
+      about: "The operating system now runs program B, which uses the same address through its own directory. This CPU wipes the notes on a switch. Real CPUs can tag each note with a small number for a recent program instead.",
       enter: {
-        sofar: "Program A found its room and noted it. But program B may use the very same address.",
+        sofar: "Program A found its room and noted it. But program B may use the same address.",
         now: "Switch to program B, and read {va} there.",
         done: "B lands in a different room, and A's byte stays as it was.",
       },
     },
     fault: {
+      teach: { prompt: "The directory line says the page isn't in memory. List, in order, what has to happen before the program gets its byte.", listen: "The CPU stops the program; the kernel copies the page back from disk, fixes the directory line, and the read runs again from the start. The disk copy is by far the slowest part.", minutes: 4 },
       about: "The page's contents went to storage: the operating system moved them to disk to free memory. This is a {term:page fault}: the CPU stops, and the operating system copies the page back.",
       enter: {
         sofar: "The last table's line says page {vpn} is not in memory.",
@@ -149,7 +200,8 @@ export const lesson = {
       },
     },
     retry: {
-      about: "The CPU runs the same read again from the very start: note check, directory, room. The directory lines it needs were read moments ago.",
+      teach: { prompt: "The kernel fixed the directory line. Does the sticky note know about the page now?", listen: "No: the kernel fixes the line, not the notes. The retried read misses once more and walks again, this time to a present page.", minutes: 3 },
+      about: "The CPU runs the same read again from the start: note check, directory, room. The directory lines it needs were read moments ago.",
       enter: {
         sofar: "The kernel fixed the directory line, but the read itself never finished.",
         now: "Run the same read again, from the start.",
@@ -207,8 +259,8 @@ export const lesson = {
       deeper: {
         cost: "1 cycle, hit or miss: every note is compared at the same moment.",
         how: "Each note pairs a page number with a room number. The TLB compares {vpn} with all {N} page numbers in parallel; a match is a hit.",
-        real: "Real CPUs have two levels of notes: about 64 for data in the first, which most CPUs split into sets (a page may sit in only 4 of them), then over 1,000 in a second level that costs several cycles more.",
-        source: OSTEP_TLB,
+        real: "Real CPUs keep two levels of notes: a first level of a few dozen, checked in parallel like these, then a bigger second level that costs a few cycles more.",
+        source: "[drepper2007] §3.3.1 and §4.3; [ostep19]",
       },
     },
     "notes.hit": {
@@ -217,10 +269,10 @@ export const lesson = {
       why: "The program used this page a moment ago, so the note still remembers its room.",
       look: ["{noteIds}"], picture: "notes",
       deeper: {
-        cost: "1 cycle. Without the note, the CPU would read up to 4 directory lines from main memory, about 240 cycles each.",
+        cost: "1 cycle. Without the note, the CPU would read up to 4 directory lines from main memory, about 240 cycles each: the Pentium M numbers Drepper quotes, which this model uses. A 2020 server's main memory takes about 100 ns, some 300 cycles at 3 GHz.",
         how: "The TLB compares {vpn} with all {N} notes at once; note {slot} matches and hands over its room number, {frame}.",
-        real: "Real programs find over 99% of their pages on a note, because they keep reusing the same few pages.",
-        source: OSTEP_TLB,
+        real: "One note covers a whole page, so a program reading through 4,096 one-byte values in a row misses once and hits 4,095 times. That reuse is why so few notes are enough.",
+        source: "[ostep19]; [drepper2007] §3.3; [gregg2020] Table 2.2",
       },
     },
 
@@ -245,7 +297,7 @@ export const lesson = {
           cost: "{cost} cycles: the line comes from main memory, the slow way.",
           how: "Each table has 512 lines of 8 bytes. 9 bits count from 0 to 511, so bits {bits} pick line {line}, read at the table's start + 8 × {line}.",
           code: "`u64 e = read64(table + 8 * i);` (line 9)",
-          edge: "Real CPUs keep recently used upper lines in small paging-structure caches, so a walk to a nearby page often reads only the last table. This run keeps none: the worst case.",
+          edge: "Real CPUs keep recently used upper lines in small paging-structure caches, so a walk to a nearby page may read only the last table. This run keeps none: the worst case.",
           source: SDM,
         },
       },
@@ -393,7 +445,7 @@ export const lesson = {
       },
     },
     "other.miss": {
-      plain: "Program B reads the very same address, {va}. No note has it: a {tone:warn|miss}.",
+      plain: "Program B reads the same address, {va}. No note has it: a {tone:warn|miss}.",
       look: ["tlb"],
     },
     "other.walk": {
@@ -404,7 +456,7 @@ export const lesson = {
       deeper: {
         cost: "{reads} reads, {cost} cycles: the wipe made B start with no notes.",
         how: "The 4 line numbers are the same as A's, because {va} has not changed. Only the tables they index differ, because the chain starts from B's CR3.",
-        edge: "Two directories may name the same room on purpose: that is how programs share library code and shared memory, often marked read-only.",
+        edge: "Two directories may name the same room on purpose: that is how programs share library code (marked read-only) and shared memory.",
         source: OSTEP_SMALL,
       },
     },
@@ -453,7 +505,7 @@ export const lesson = {
         cost: "{cycles} cycles at 3 GHz is 20 µs, a typical 4 KiB read from an NVMe SSD. The counter adds them as this read's delay, but the program does no work then: it sleeps, and the CPU runs another program until the disk is done.",
         how: "The kernel takes a free room, asks the disk for the slot named in the line, and waits for the copy to finish.",
         code: "`swap_read(pte_to_swp_entry(*pte), frame);` (line 22)",
-        edge: "A fault that needs no disk, such as the first touch of fresh memory (a minor fault), costs only about 1 µs.",
+        edge: "A fault that needs no disk, such as the first touch of fresh memory (a minor fault), costs only the stop and the kernel's work: no copy, no wait.",
         real: "An SSD read takes about 10–100 µs; a spinning disk takes milliseconds, millions of cycles.",
         source: GREGG,
       },
@@ -551,7 +603,7 @@ export const lesson = {
           feedback: "If you thought an address is one fixed place: it is only B's own number. B's directory turns {va} into room {frame}, a room A never uses." },
         { feedback: "Right. CR3 now points at B's directory, and its lines lead {va} to room {frame}, a room only B was given." },
         { misconception: "m-unique",
-          feedback: "If you thought two programs can't share an address: they share them all the time. B reads {va}, the very number A read, and its own directory sends it to room {frame}." },
+          feedback: "If you thought two programs can't share an address: they share them all the time. B reads {va}, the same number A read, and its own directory sends it to room {frame}." },
       ],
     },
     "retry.note": {

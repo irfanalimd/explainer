@@ -10,15 +10,16 @@
 //                  xs, xIds, count, from, to (repeat.takes · repeat.stays: a run said once)
 //   place:         mid (the group's middle slot, for the place.where feedback)
 //   sorted.done:   comparisons, saved, slowest
-const CLRS = "Cormen, Leiserson, Rivest & Stein, Introduction to Algorithms, 4th ed., MIT Press 2022, ch. 7, https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/";
-const HOARE = "C. A. R. Hoare, Quicksort, The Computer Journal 5(1):10–16, 1962, https://doi.org/10.1093/comjnl/5.1.10";
-const ALGS4 = "Sedgewick & Wayne, Algorithms, 4th ed., §2.3 Quicksort, https://algs4.cs.princeton.edu/23quicksort/";
-const MCILROY = "M. D. McIlroy, A Killer Adversary for Quicksort, Software: Practice and Experience 29(4):341–344, 1999, https://doi.org/10.1002/(SICI)1097-024X(19990410)29:4%3C341::AID-SPE237%3E3.0.CO;2-R";
+// Every real-world claim names its source as [id] (lesson.sources below), with a locator where it helps.
+const CLRS = "[clrs4] ch. 7";
+const HOARE = "[hoare1961]; [hoare1962]";
+const ALGS4 = "[algs4] §2.3, 3-way partitioning; [bentley-mcilroy1993] §4";
+const MCILROY = "[mcilroy1999]";
 
 // the first copy of the pivot in the run: the step right after the split.equal ask (dups story)
 const EQUAL = {
   key: true,
-  why: "Every copy of {pivot} joins the left side, so many copies make that side long.",
+  why: "Every copy of {pivot} joins the left side, so the more copies, the longer that side.",
   deeper: {
     how: "The test is `a[j] <= pivot`, so a copy goes left like any smaller number. This split has two sides and no middle.",
     edge: "So all-equal input costs every pair here. Hoare's two markers both stop on a copy and swap it, which splits a run of copies in half; a three-way split (Dijkstra's) keeps copies beside the pivot and never looks at them again.",
@@ -27,6 +28,48 @@ const EQUAL = {
 };
 
 export const lesson = {
+  sources: [
+    { id: "clrs4", title: "Introduction to Algorithms, 4th edition", by: "Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest and Clifford Stein", year: 2022, where: "MIT Press",
+      url: "https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/",
+      supports: "§7.1 PARTITION with pivot A[r] and the test A[j] ≤ x (Figure 7.1 runs it on 2 8 7 1 3 5 6 4); §7.4.2 the chance 2/(j − i + 1) that two values meet" },
+    { id: "hoare1961", title: "Algorithm 63: Partition; Algorithm 64: Quicksort", by: "C. A. R. Hoare", year: 1961, where: "Communications of the ACM 4(7):321",
+      url: "https://doi.org/10.1145/366622.366642",
+      supports: "the first published quicksort, with two markers that walk toward each other from both ends" },
+    { id: "hoare1962", title: "Quicksort", by: "C. A. R. Hoare", year: 1962, where: "The Computer Journal 5(1):10–16",
+      url: "https://doi.org/10.1093/comjnl/5.1.10",
+      supports: "the full paper: the method, its average cost, and picking the bound at random" },
+    { id: "algs4", title: "Algorithms, 4th edition, §2.3 Quicksort", by: "Robert Sedgewick and Kevin Wayne", year: 2011, where: "Addison-Wesley; algs4.cs.princeton.edu",
+      url: "https://algs4.cs.princeton.edu/23quicksort/",
+      supports: "Dijkstra's 3-way partitioning for many equal keys; Hoare's markers stopping on keys equal to the pivot" },
+    { id: "sedgewick1978", title: "Implementing Quicksort programs", by: "Robert Sedgewick", year: 1978, where: "Communications of the ACM 21(10):847–857",
+      url: "https://doi.org/10.1145/359619.359631",
+      supports: "sorting the smaller side first keeps the stack at most log2 n deep" },
+    { id: "bentley-mcilroy1993", title: "Engineering a sort function", by: "Jon L. Bentley and M. Douglas McIlroy", year: 1993, where: "Software: Practice and Experience 23(11):1249–1265",
+      url: "https://doi.org/10.1002/spe.4380231105",
+      supports: "a 1991 qsort that took n² comparisons on an organ-pipe array; a dozen Unix qsorts all driven to quadratic time; the middle element, median of 3 and Tukey's ninther as pivots; a split that keeps equal keys apart" },
+    { id: "mcilroy1999", title: "A killer adversary for quicksort", by: "M. Douglas McIlroy", year: 1999, where: "Software: Practice and Experience 29(4):341–344",
+      url: "https://doi.org/10.1002/(SICI)1097-024X(19990410)29:4%3C341::AID-SPE237%3E3.0.CO;2-R",
+      supports: "an adversary that picks values as the sort compares them drives any deterministic pivot rule to quadratic time" },
+    { id: "musser1997", title: "Introspective sorting and selection algorithms", by: "David R. Musser", year: 1997, where: "Software: Practice and Experience 27(8):983–993",
+      url: "https://doi.org/10.1002/(SICI)1097-024X(199708)27:8%3C983::AID-SPE117%3E3.0.CO;2-%23",
+      supports: "introsort: quicksort that switches to heapsort past a depth limit" },
+    { id: "libstdcxx", title: "libstdc++, bits/stl_algo.h: std::sort", by: "GCC", year: 2026, where: "the GCC source tree",
+      url: "https://raw.githubusercontent.com/gcc-mirror/gcc/master/libstdc++-v3/include/bits/stl_algo.h",
+      supports: "GCC's std::sort runs __introsort_loop with a depth limit of 2 × floor(log2 n), then heapsort" },
+    { id: "go119", title: "Go 1.19 release notes: sort", by: "The Go team", year: 2022, where: "go.dev",
+      url: "https://go.dev/doc/go1.19#sort",
+      supports: "Go's sort package rewritten as pattern-defeating quicksort" },
+    { id: "peters2021", title: "Pattern-defeating Quicksort", by: "Orson R. L. Peters", year: 2021, where: "arXiv:2106.05123",
+      url: "https://arxiv.org/abs/2106.05123",
+      supports: "pdqsort: linear time on sorted input, heapsort fallback for a worst case of n log n" },
+    { id: "java-arrays", title: "Java SE 21 API, Arrays.sort(int[])", by: "Oracle", year: 2023, where: "docs.oracle.com",
+      url: "https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(int%5B%5D)",
+      supports: "Dual-Pivot Quicksort by Vladimir Yaroslavskiy, Jon Bentley and Joshua Bloch" },
+    { id: "rust-sort", title: "Rust standard library, slice::sort_unstable", by: "The Rust project", year: 2026, where: "doc.rust-lang.org",
+      url: "https://doc.rust-lang.org/std/primitive.slice.html#method.sort_unstable",
+      supports: "ipnsort by Lukas Bergdoll and Orson Peters: quicksort's average case with heapsort's worst case" },
+  ],
+
   goal: "Sort a line of numbers by placing one number for good at a time, and skip comparing most pairs.",
 
   objectives: [
@@ -62,28 +105,34 @@ export const lesson = {
   terms: {
     pivot: { lead: "the chosen number", def: "The number every other number in the group is compared with. Here it is the group's last number." },
     partition: { lead: "one split", def: "One pass that moves the numbers no bigger than the pivot to its left and the bigger ones right." },
-    recursion: { lead: "the same again, smaller", def: "Solving each smaller piece with the very same steps, until a piece has one number or none." },
+    recursion: { lead: "the same again, smaller", def: "Solving each smaller piece with the same steps, until a piece has one number or none." },
   },
 
   chapters: {
     line: {
+      teach: { prompt: "Before any sorting: how many comparisons does checking every pair of 8 numbers take? And of 1,000?", listen: "28 and 499,500: n(n − 1)/2. Doubling the numbers roughly quadruples the work. That is the cost quicksort sets out to beat.", minutes: 3 },
       about: "Picture each number as a person in a line, and its value as their height. Sorting lines them up from shortest to tallest, one check at a time.",
       enter: { sofar: "You can sort a short list by hand: find the smallest, then the next smallest, and so on.", now: "Count what that simple way costs on these {n} numbers.", done: "You can say how many comparisons it needs: {worst}.", picture: true },
     },
     split: {
+      teach: { prompt: "On the board, split the textbook's example, 2 8 7 1 3 5 6 4, around its last number, 4: scan left to right, and swap each number no bigger than 4 to the front.", listen: "It ends 2 1 3 4 7 5 6 8, the line in CLRS's Figure 7.1: 4 sits right after the three numbers no bigger than it. Ask what stays true of every slot left of `i` at each step.", minutes: 5 },
+      "teach@dups": { prompt: "Before the scan: where should a number equal to the pivot go: left, right, or neither?", listen: "Expect “neither” or “right”. This code's test is “no bigger than the pivot”, so copies go left; a three-way split keeps them in a middle group instead.", minutes: 3 },
       about: "Pick one number, the {term:pivot}, like the chosen person in the line. Numbers smaller than it or equal to it go to its left, bigger ones to its right.",
       enter: { sofar: "The simple way checks every pair: {count:worst|comparison}.", now: "Choose one number, and move each other number to its left or its right.", done: "Every number left of `i` is no bigger than the chosen one." },
       "enter@dups": { sofar: "The simple way checks every pair, ties or not: {count:worst|comparison}.", now: "Choose one number, and move each other number left or right, even its copies.", done: "Every number left of `i` is no bigger than the chosen one." },
     },
     place: {
+      teach: { prompt: "The pivot is about to move. Which slot will it end in? Say it before it moves.", listen: "Count the numbers no bigger than it: it lands right after them. Expect “the middle”, which holds only when the pivot is the middle value.", minutes: 3 },
       about: "The pivot belongs right after the numbers no bigger than it. Everything left of that slot is no bigger, everything right is bigger, so the slot is final.",
       enter: { sofar: "Each other number now sits on the small side or the big side.", now: "Move the pivot into the slot it belongs in.", done: "The pivot turns green: it never moves again." },
     },
     repeat: {
-      about: "Each placed number splits the line for good: a number on its left never meets one on its right. Each side gets the very same split: {term:recursion}.",
-      enter: { sofar: "{parent} is placed for good. Every other number waits beside it, left or right.", now: "Split each group with the very same steps, one group at a time.", done: "Every number turns green, placed by a split or alone in its group." },
+      teach: { prompt: "Point at two numbers on opposite sides of a green, placed number. Will quicksort ever compare them?", listen: "Never: every later group lies on one side of a placed pivot. Each pair split apart that way is a comparison saved.", minutes: 3 },
+      about: "Each placed number splits the line for good: a number on its left never meets one on its right. Each side gets the same split: {term:recursion}.",
+      enter: { sofar: "{parent} is placed for good. Every other number waits beside it, left or right.", now: "Split each group with the same steps, one group at a time.", done: "Every number turns green, placed by a split or alone in its group." },
     },
     sorted: {
+      teach: { prompt: "Would numbers already in order be quicksort's best case, or its worst?", listen: "With the last number as pivot, the worst: each split places one number, and every pair is compared. In 1991 a Unix `qsort` made n² comparisons on real data, an “organ-pipe” array, and ran for hours.", minutes: 4 },
       about: "Every number was a pivot or alone in a group, so the line is sorted. The counter shows how many pairs were never compared.",
       enter: { sofar: "Each split placed one number for good and left smaller groups.", now: "Set quicksort's count against checking every pair.", done: "The counter is below {worst}, or at {worst} in the slow case." },
     },
@@ -103,7 +152,7 @@ export const lesson = {
     },
     "line.numbers@dups": {
       when: (v) => v.order === "dups",
-      plain: "{n} numbers with just {count:distinct|different value}: {shown}.",
+      plain: "{n} numbers with only {count:distinct|different value}: {shown}.",
       why: "Like people of only a few heights: many of them tie.",
       look: ["a"], picture: "height",
     },
@@ -111,12 +160,12 @@ export const lesson = {
       // n = 2 has one pair; first (the only time this step plays) covers every longer line
       key: true,
       plain: "The simple way compares the two numbers once: {count:worst|comparison}.",
-      why: "With two numbers there is just one pair to check.",
+      why: "With two numbers there is only one pair to check.",
       look: ["{smallestId}"],
       deeper: {
         cost: "Every pair once: n(n − 1)/2 = {n} × {first} / 2 = {worst}. Double the numbers and the work roughly quadruples: O(n²).",
         how: "This is selection sort: each round scans what is left for its smallest number and swaps it to the front.",
-        edge: "Not every simple sort is this slow on every input: insertion sort checks numbers already in order with just {count:first|comparison}. That is why sorted input feels easy.",
+        edge: "Not every simple sort is this slow on every input: insertion sort checks numbers already in order with {count:first|comparison}. That is why sorted input feels easy.",
       },
       first: {
         when: (v) => v.second > 0,
@@ -134,7 +183,7 @@ export const lesson = {
       deeper: {
         how: "The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule: it costs nothing to pick, but it never looks at the numbers.",
         code: "`pivot = a[hi]` (line 9)",
-        edge: "If the last number is the biggest or the smallest, every other number lands on one side, and the split places just one number.",
+        edge: "If the last number is the biggest or the smallest, every other number lands on one side, and the split places only one number.",
         source: CLRS,
       },
     },
@@ -145,7 +194,7 @@ export const lesson = {
       deeper: {
         how: "CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap; this code starts at `lo` and adds 1 after. The rule is the same: slots before `i` hold the small side.",
         code: "`i = lo` and `for j in range(lo, hi):` (lines 10–11)",
-        real: "This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is easy to prove. Hoare's original (1962) walks two markers toward each other from both ends and swaps a pair on the wrong sides: fewer swaps, harder to get right.",
+        real: "This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is easy to prove. Hoare's original (1961) walks two markers toward each other from both ends and swaps a pair on the wrong sides: fewer swaps, harder to get right.",
         source: `${CLRS}; ${HOARE}`,
       },
     },
@@ -230,8 +279,8 @@ export const lesson = {
       "deeper@sorted": {
         cost: "{count:hi|comparison} to place one number: the most a split can cost, for the least progress.",
         edge: "Every fixed pivot rule has inputs like this. McIlroy showed that an adversary, choosing values only as the sort compares them, drives any deterministic pivot rule to quadratic time.",
-        real: "Libraries guard against it. C++ `std::sort` is introsort: past about 2 log2 n nested splits it switches to heapsort. Go's `sort` (since 1.19) is pattern-defeating quicksort, which also spots runs already in order.",
-        source: `${MCILROY}; D. R. Musser, Introspective Sorting and Selection Algorithms, SP&E 27(8), 1997, https://doi.org/10.1002/(SICI)1097-024X(199708)27:8%3C983::AID-SPE117%3E3.0.CO;2-%23; Go 1.19 release notes, https://go.dev/doc/go1.19`,
+        real: "Libraries guard against it. GCC's `std::sort` is introsort: past 2 log2 n nested splits it switches to heapsort. Go's `sort` (since 1.19) is pattern-defeating quicksort, which sorts input already in order in one pass.",
+        source: "[mcilroy1999]; [musser1997]; [libstdcxx] __introsort_loop; [go119]; [peters2021]",
       },
     },
 
@@ -245,7 +294,7 @@ export const lesson = {
       deeper: {
         cost: "Two numbers meet only if one of them is the first pivot picked from the values between them, these two included. With random pivots, values k ranks apart meet with chance 2/(k + 1): about 1.39 n log2 n comparisons in all.",
         how: "Each placed pivot is a wall: every later group lies wholly on one side of it, so no pair across it is ever checked.",
-        source: `${CLRS} (§7.4.2)`,
+        source: "[clrs4] §7.4.2",
       },
       first: {
         when: (v) => !v.alone,
@@ -256,12 +305,12 @@ export const lesson = {
       plain: "The {side} side of {parent}: slots {lo}–{hi}, pivot {pivot}.",
       look: ["{pivotId}"],
       first: {
-        why: "The same steps, on just these {size} numbers: this is {term:recursion}.",
+        why: "The same steps, on only these {size} numbers: this is {term:recursion}.",
         picture: "again",
         deeper: {
           code: "`quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)",
           how: "Each group still waiting is a call on the stack. Sorted input nests about {n} calls deep; sorting the smaller side first and looping on the bigger one keeps it at most log2 n.",
-          source: "R. Sedgewick, Implementing Quicksort Programs, CACM 21(10):847–857, 1978, https://doi.org/10.1145/359619.359631",
+          source: "[sedgewick1978]",
         },
       },
     },
@@ -300,12 +349,12 @@ export const lesson = {
       when: (v) => !v.repeats,
       plain: "The next {count:count|number}, slots {from}–{to}, are smaller than {pivot}: they stay left.",
       look: ["{xIds}"],
-      first: { why: "Each one is already at `i`, so nothing moves: the left side just grows." },
+      first: { why: "Each one is already at `i`, so nothing moves: the left side grows by one each time." },
     },
     "repeat.takes@dups": {
       plain: "The next {count:count|number}, slots {from}–{to}, are no bigger than {pivot}: they stay left.",
       look: ["{xIds}"],
-      first: { why: "Each one is already at `i`, so nothing moves: the left side just grows. Copies of {pivot} count as small too." },
+      first: { why: "Each one is already at `i`, so nothing moves, and the left side grows. Copies of {pivot} count as small too." },
     },
     "repeat.stays": {
       plain: "The next {count:count|number}, slots {from}–{to}, are bigger than {pivot}: they stay right.",
@@ -320,12 +369,12 @@ export const lesson = {
       plain: "Nothing here is bigger than {pivot}: it stays in slot {slot}, placed.",
       look: ["{pivotId}"],
       first: {
-        why: "This group shrank by just one number: the most lopsided split there is.",
+        why: "This group shrank by one number: the most lopsided split there is.",
         deeper: { cost: "A split of m numbers always costs m − 1 comparisons. When it places only one, the next group is m − 1 long, and costs m − 2." },
       },
     },
     "repeat.alone": {
-      plain: "The {side} side of {parent} is just {x}: a group of one, so it is placed.",
+      plain: "The {side} side of {parent} holds only {x}: a group of one, so it is placed.",
       look: ["{xId}"],
       first: {
         why: "A group of one needs no split, so here the {term:recursion} stops.",
@@ -343,13 +392,13 @@ export const lesson = {
       deeper: {
         cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}: as slow as the simple way, O(n²).",
         edge: "With the last number as pivot, sorted, reverse-sorted and all-equal input all do this. A random pivot makes it unlikely on any input, and the median of the first, middle and last numbers makes sorted input fast.",
-        real: "Bentley and McIlroy found real C library `qsort`s going quadratic on inputs like these, and built the median-of-3 (and median-of-9) pivot that many libraries copied.",
-        source: "J. L. Bentley and M. D. McIlroy, Engineering a Sort Function, SP&E 23(11):1249–1265, 1993, https://doi.org/10.1002/spe.4380231105",
+        real: "In 1991 a Unix `qsort` ran for hours on an “organ-pipe” array, 1 2 … n n … 2 1. Bentley and McIlroy then drove all of a dozen Unix `qsort`s to quadratic time, and their replacement picks the median of 3 numbers, or of 9 for big groups.",
+        source: "[bentley-mcilroy1993] §1 and §3",
       },
       "deeper@sorted": {
         cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}: as slow as the simple way, O(n²). Yet sorted input makes 0 swaps: every number is already at `i`.",
-        edge: "Reverse-sorted and all-equal input are just as slow with this pivot rule. A random pivot makes it unlikely on any input; the median of the first, middle and last numbers makes sorted input fast.",
-        source: "J. L. Bentley and M. D. McIlroy, Engineering a Sort Function, SP&E 23(11):1249–1265, 1993, https://doi.org/10.1002/spe.4380231105",
+        edge: "Reverse-sorted and all-equal input are as slow with this pivot rule. A random pivot makes it unlikely on any input; the median of the first, middle and last numbers makes sorted input fast.",
+        source: "[bentley-mcilroy1993] §3",
       },
       first: {
         when: (v) => !v.slowest,
@@ -359,7 +408,7 @@ export const lesson = {
           cost: "With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1 + 1/2 + … + 1/n: about 1.39 n log2 n, or 20.6 for 9 numbers and 32.7 for 12. This run made {comparisons}.",
           edge: "The worst case is still every pair: McIlroy showed any deterministic pivot rule has inputs that force it.",
           real: "Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort (two pivots, three groups); Rust's `sort_unstable` is ipnsort, a quicksort that falls back to heapsort so it is never quadratic.",
-          source: `${MCILROY}; Java Arrays.sort, https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(int%5B%5D); Rust slice::sort_unstable, https://doc.rust-lang.org/std/primitive.slice.html#method.sort_unstable`,
+          source: "[mcilroy1999]; [java-arrays]; [rust-sort]",
         },
       },
     },
@@ -370,7 +419,7 @@ export const lesson = {
     // options in a fixed order: the right slot, the middle slot, where the pivot is now (the figure asks only when
     // those are three different slots)
     "place.where": {
-      why: "{count:before|other number} {be:before} no bigger than {pivot}, so it lands in slot {slot}, right after them. It is just the last number: it can land anywhere.",
+      why: "{count:before|other number} {be:before} no bigger than {pivot}, so it lands in slot {slot}, right after them. It was picked for being last, not for its value, so it can land anywhere.",
       options: [
         { feedback: "Right. {count:before|number} {be:before} no bigger than {pivot}, so it takes the slot right after them: slot {slot}." },
         { misconception: "m-middle",
