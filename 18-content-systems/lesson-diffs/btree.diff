@@ -1,5 +1,5 @@
 --- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/btree-all.txt	2026-10-22 03:48:48.954904834 +0000
-+++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/btree-all.txt	2026-10-22 04:02:50.872857190 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/btree-all.txt	2026-10-22 04:46:26.283815930 +0000
 @@ -30,8 +30,8 @@
    m-bottom: “When the tree needs more room, it grows downward: new levels appear under the bottom
              pages.” Full pages split and send an id up; only a root split adds a level, and it adds

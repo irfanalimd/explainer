@@ -140,8 +140,9 @@ wrong belief, and its fix says 4.
    lesson-structure decision.
 2. **verify could try the free-text knobs** (a short input, a falling list, an empty field) so live lesson entries stop
    showing as unreached. That is a new kind of run, so it needs a decision.
-3. **Event loop treats a repaint as a task in the task queue.** The HTML spec runs rendering as a step of the event loop
-   between tasks, not a queued task. The lesson is consistent with its own model; the model is the simplification.
+3. ~~Event loop treats a repaint as a task, where the HTML spec runs rendering between tasks.~~ Withdrawn: since
+   whatwg/html #10007 (merged 31 January 2024) the spec queues rendering as a task, so the model matches it. The
+   content round's Event loop rewrite says so, with the date.
 4. **Virtual memory:** program A's first lookup "cost 961 cycles" (with the note check), and B's "after 960 cycles" (the
    walk alone). Both are true, but side by side a reader may wonder why B was quicker; one framing for both would help.
 5. `beat.send-many` (two leaders heartbeating in one step) was never reached; a split that leaves both sides fully

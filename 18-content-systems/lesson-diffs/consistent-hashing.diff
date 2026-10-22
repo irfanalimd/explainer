@@ -1,5 +1,5 @@
 --- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/consistent-hashing-all.txt	2026-10-22 03:48:47.345939319 +0000
-+++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/consistent-hashing-all.txt	2026-10-22 04:02:50.180872024 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/consistent-hashing-all.txt	2026-10-22 04:46:25.182839520 +0000
 @@ -86,12 +86,12 @@
                    must. Here 14 of 16 moved.
          · how     A key keeps its server only if hash % 4 equals hash % 5. That holds for 1 number

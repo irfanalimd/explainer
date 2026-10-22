@@ -1,5 +1,5 @@
 --- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/mapreduce-all.txt	2026-10-22 03:48:44.417002095 +0000
-+++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/mapreduce-all.txt	2026-10-22 04:02:48.359911061 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/mapreduce-all.txt	2026-10-22 04:46:23.515875237 +0000
 @@ -10,11 +10,11 @@
    o-hash: Explain why every copy of a word must reach the same counter, and how a hash does it
            without asking anyone.
@@ -60,7 +60,7 @@
          · code    `emit(word, 1)` (lines 1–3)
 -        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
 -                  OSDI 2004, https://research.google/pubs/pub62/
-+        · source  [dean2004] §3.1
++        · source  [dean2004] §3.1; [white2015] ch. 7
     4  map 1 writes a slip for each of its 4 words, like `(jumps, 1)`.   ‹map.read›
          look      m1
     5  map 2 writes a slip for each of its 3 words, like `(dog, 1)`.   ‹map.read›
@@ -141,7 +141,7 @@
          · code    `emit(word, 1)` (lines 1–3)
 -        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
 -                  OSDI 2004, https://research.google/pubs/pub62/
-+        · source  [dean2004] §3.1
++        · source  [dean2004] §3.1; [white2015] ch. 7
     4  map 1 starts on its piece, writing a slip for each word.   ‹crash.start›
          look      m1
     5  ★ map 1 crashes after 2 of 4 words; its 2 slips are lost with it.   ‹crash.down›
@@ -239,7 +239,7 @@
          · code    `emit(word, 1)` (lines 1–3)
 -        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
 -                  OSDI 2004, https://research.google/pubs/pub62/
-+        · source  [dean2004] §3.1
++        · source  [dean2004] §3.1; [white2015] ch. 7
     4  ★ map 1's failing disk keeps retrying reads: it has written 1 of 4 slips.   ‹slow.disk›
          why       Counting can't finish until every piece has been read, so one slow machine holds
                    up the whole job.
@@ -326,7 +326,7 @@
 -        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
 -                  OSDI 2004, https://research.google/pubs/pub62/
 +        · real    The paper's second example is this same job: map reads a log of web page requests
-+                  and writes ⟨URL, 1⟩, and reduce adds up each URL's 1s (§2.3). This story counts
++                  and writes `(URL, 1)`, and reduce adds up each URL's 1s (§2.3). This story counts
 +                  status codes instead of URLs.
 +        · source  [dean2004] §2.3
     1  ★ The master hands out the log in 3 pieces of about 5 lines, one per machine.   ‹split.cut›
@@ -348,7 +348,7 @@
          · code    `emit(word, 1)` (lines 1–3)
 -        · source  J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters,
 -                  OSDI 2004, https://research.google/pubs/pub62/
-+        · source  [dean2004] §3.1
++        · source  [dean2004] §3.1; [white2015] ch. 7
     4  map 1 writes a slip for each of its 5 lines, like `(301, 1)`.   ‹map.read›
          look      m1
     5  map 2 writes a slip for each of its 4 lines, like `(200, 1)`.   ‹map.read›
@@ -398,8 +398,8 @@
 -        · real    Real data is like this: word frequencies follow Zipf's law, so a few keys, like
 -                  “the”, carry much of the data (§4.3).
 +        · real    Real text is lopsided the same way. The paper notes that word frequencies tend to
-+                  follow a Zipf distribution, so each map task writes hundreds or thousands of ⟨the,
-+                  1⟩ slips, all bound for one reduce task (§4.3).
++                  follow a Zipf distribution, so each map task writes hundreds or thousands of
++                  `(the, 1)` slips, all bound for one reduce task (§4.3).
          · edge    With few different keys, the hash alone can lump several on one counter and leave
                    another idle, so part of the overload is chance, not frequency: here reduce 0 got
                    3 different codes of the 5.

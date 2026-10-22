@@ -26,7 +26,7 @@
   The consistent-hashing ring began as a fix for web caches and became Akamai's business plan.
 - **Plain language.** Softeners and vague claims are gone: "can simply run again", "just ends the term", "real
   engines rarely merge", "lands very close" (now "within 0.1% of N/(N + 1)").
-- Branch **`content/examples-systems`**, 6 commits on `polish/round-4`. Text only; the simulation is unchanged.
+- Branch **`content/examples-systems`**, 7 commits on `polish/round-4`. Text only; the simulation is unchanged.
 
 ## Before and after
 
@@ -54,11 +54,8 @@ list is at the end of [FACTUAL-FIXES.md](FACTUAL-FIXES.md)). These did not:
 credited that to "§5.3, end". §5.3 says something else: the follower "can include the term of the conflicting entry
 and the first index it stores for that term", and adds "we doubt this optimization is necessary". The length jump is
 the one the 6.824 students' guide teaches. The step now cites each to its own source, and the edge line gives the
-paper's version and its doubt.
-
-| Before | After |
-|---|---|
-| ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/before/raft-update-back-1440.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/after/raft-update-back-1440.png?raw=true) |
+paper's version and its doubt. The default stories never reach this step (verify's knob runs do), so there is no
+screenshot of it.
 
 **Raft's real-world lines.**
 - **Pre-Vote:** "etcd and Consul use Pre-Vote" became "etcd's Raft library offers it as an option, PreVote". etcd's
@@ -68,6 +65,12 @@ paper's version and its doubt.
   passes without heartbeats reaching a majority.
 - **etcd's timers:** they are sized by the round trip between servers, the timeout at least 10 times it, not by
   "the disk's write time".
+
+The Pre-Vote line, at step 38 of "The network splits in two" with the expert layers open:
+
+| Before | After |
+|---|---|
+| ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/before/raft-prevote-1440.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/after/raft-prevote-1440.png?raw=true) |
 
 **Consistent hashing.**
 - **MD5's section:** Dynamo hashes keys with MD5 in §4.1, not §4.2.
@@ -79,6 +82,8 @@ paper's version and its doubt.
   wanted a hash that "changes minimally as the range of the function changes", for web caches that come and go.
 - **A contradiction:** the line no longer quotes Tom White's "every object moves" two lines after the lesson's own
   "1 key in N + 1 stays".
+
+In the panel, the edge line's new number shows; the origin line sits just below it:
 
 | Before | After |
 |---|---|
@@ -142,9 +147,8 @@ The four lessons and the figures' printed text were scanned for the round's bann
 The MapReduce story keeps its name, "One word is very common". The repo README and the hero image's description use
 it, and it is plain English. Its takeaways no longer repeat "very common".
 
-| Before (phone) | After |
-|---|---|
-| ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/before/mapreduce-step0-390.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/18-content-systems/shots/after/mapreduce-step0-390.png?raw=true) |
+One rendering bug turned up in the screenshots: the paper's records written as ⟨URL, 1⟩ drew as empty boxes, since
+the page's font has no angle-bracket glyphs. They are now `(URL, 1)`, as every other record in the lesson is written.
 
 ## Checks
 

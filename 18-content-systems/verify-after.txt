@@ -1,8 +1,8 @@
-btree: summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  4.7 s
-consistent-hashing: summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  6.2 s
-event-loop: summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  6.9 s
-linked-list: summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  2.7 s
-mapreduce: summary  34 run(s), 0 failing, 0 error(s), 0 warning(s)  7.7 s
-quicksort: summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.6 s
-raft: summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  7.8 s
-virtual-memory: summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  4.2 s
+btree: summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.7 s
+consistent-hashing: summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  5.5 s
+event-loop: summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  5.1 s
+linked-list: summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  2.0 s
+mapreduce: summary  34 run(s), 0 failing, 0 error(s), 0 warning(s)  6.4 s
+quicksort: summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.1 s
+raft: summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  6.5 s
+virtual-memory: summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  3.6 s

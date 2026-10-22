@@ -1,5 +1,5 @@
 --- /home/ubuntu/tmp/explainer-perf/content/systems/lesson-before/raft-all.txt	2026-10-22 03:48:46.045967181 +0000
-+++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/raft-all.txt	2026-10-22 04:02:49.328890288 +0000
++++ /home/ubuntu/tmp/explainer-perf/content/systems/lesson-after/raft-all.txt	2026-10-22 04:46:24.491854325 +0000
 @@ -50,8 +50,8 @@
            as x←3, to be saved.
    commit: (make it count) Made final once most servers store it. A leader counts copies only of its

@@ -5,5 +5,5 @@
  examples/quicksort/figure.mjs      |  20 +++----
  examples/quicksort/lesson.mjs      | 105 ++++++++++++++++++++++++----------
  examples/virtual-memory/figure.mjs |   6 +-
- examples/virtual-memory/lesson.mjs | 105 +++++++++++++++++++++++++---------
- 8 files changed, 341 insertions(+), 117 deletions(-)
+ examples/virtual-memory/lesson.mjs | 106 ++++++++++++++++++++++++++---------
+ 8 files changed, 342 insertions(+), 117 deletions(-)

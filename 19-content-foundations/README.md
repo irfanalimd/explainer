@@ -6,8 +6,10 @@
   list each get a `lesson.sources` list (13, 13, 13 and 17 entries), and every claim cites one as `[id]`.
   - **What I read:** specs fetched and searched, source code read at the cited line, DOIs resolved on Crossref,
     papers read where they could be opened.
-  - **Convention:** the `[id]` form is shared with this round's lint-and-render branch. On this branch alone the
-    deeper layer shows the ids as text.
+  - **Convention:** the `[id]` form is shared with this round's lint-and-render branch.
+  - **Merge this branch with or after that one.** On this branch alone, each Source field shows its ids as plain
+    text (`[whatwg-loop] §8.1.7.3 Processing model`). Before, a field with one source was a link; a field with
+    several ran together as one long link (see the Quicksort shots).
 - **Each lesson now uses its field's famous examples:**
   - Event loop: Jake Archibald's 2015 ordering test, which the first story extends, and the boxes from Philip
     Roberts' JSConf EU 2014 talk.
@@ -96,9 +98,15 @@ and Rust sort docs.
   algorithm.
 - The recap said "smaller ones go left". The run's test is `a[j] <= pivot`, so copies of the pivot go left too.
 
-| Before (sorted input, the last step, Expert) | After |
+| Before (sorted input, step 13, Expert) | After |
 |---|---|
-| ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/before/quicksort-sorted-1440x900.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/after/quicksort-sorted-1440x900.png?raw=true) |
+| ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/before/quicksort-introsort-1440x900.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/after/quicksort-introsort-1440x900.png?raw=true) |
+
+On a phone the same layer, in the explain sheet:
+
+| Before | After |
+|---|---|
+| ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/before/quicksort-introsort-390x844.png?raw=true) | ![](https://github.com/irfanalimd/explainer/blob/review/19-content-foundations/shots/after/quicksort-introsort-390x844.png?raw=true) |
 
 ## 3. Virtual memory
 
@@ -182,8 +190,8 @@ them.
   - **OSTEP**, whose PDFs my extractor could not read; no claim rests on OSTEP alone.
   - **Roberts' talk**: its title and speaker were confirmed through YouTube's oEmbed.
   - **ACM DL pages**: their DOIs were confirmed on Crossref.
-- **Screenshots:** one changed panel per example, before and after, at Expert, 1440×900 and 390×844. Every one was
-  read.
+- **Screenshots:** one changed panel per example, before and after, at Expert, 1440×900, plus Quicksort's on a
+  390×844 phone. The start card was dismissed and the panel scrolled to the step's deeper layer. Every one was read.
 - **Not run:** `check --full` and a blind-reader review of the new words. The words were read top to bottom with
   `lesson.mjs`, once as a beginner and once as an expert.
 
