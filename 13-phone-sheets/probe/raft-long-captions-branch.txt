@@ -1,0 +1,5 @@
+LONGCAP 31 | crash · phone · all max, step 88 | s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refuses s5: its own log is more complete. s2 steps down and votes for s5 too.
+LONGCAP 19 | crash · phone · all max, step 97 | The client hears that s3 is not the leader. The client sends `y←7` to s3, the leader it knows.
+LONGCAP 26 | crash · phone · all max, step 98 | s3 replaces 1 uncommitted entry. s4 and s6 copy `nop` as entry 4. s7 and s2 lack entry 3 from term 1 and refuse the update.
+LONGCAP 21 | partition · phone · all max, step 100 | s6 and s3 vote for s4: its log is as complete as theirs. s5 steps down and votes for s4 too.
+LONGCAP 20 | partition · phone · all max, step 155 | s7, s2 and s6 take s4's heartbeat and restart their timers. s5 and s1 mark up to entry 5 committed.

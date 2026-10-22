@@ -1,0 +1,10 @@
+1440x900 light code       1 contrast .ix-tag:hash(the) % 2 = 0 4.37 #0b0b0c/#eff1f5
+1440x900 dark code       1 contrast .ix-tool-label:Code 1.65 #484b52/#282a2d
+390x844 light code       0 
+390x844 light parameters 0 
+390x844 dark code       0 
+390x844 dark parameters 0 
+844x390 light code       0 
+844x390 light parameters 0 
+844x390 dark code       0 
+844x390 dark parameters 0 

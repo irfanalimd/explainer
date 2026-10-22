@@ -1,0 +1,27 @@
+## MapReduce, all 4 stories, both themes and sizes: main vs branch
+sheet: 1 paired, 0 byte-identical, 0 pixel-identical (bytes differ), 1 differ
+phase: 160 paired, 159 byte-identical, 0 pixel-identical (bytes differ), 1 differ
+  DIFF   contact.png  4 px (0.00%), >24: 0.00%, max 2, box 192,7215,282,7220
+  DIFF   happy-dark-390x844-001-end.png  23 px (0.01%), >24: 0.00%, max 8, box 33,787,323,806
+
+## The same: main vs a second run of main
+sheet: 1 paired, 0 byte-identical, 0 pixel-identical (bytes differ), 1 differ
+phase: 160 paired, 157 byte-identical, 0 pixel-identical (bytes differ), 3 differ
+  DIFF   contact.png  4 px (0.00%), >24: 0.00%, max 2, box 39,7215,129,7220
+  DIFF   happy-dark-390x844-000-mid.png  23 px (0.01%), >24: 0.00%, max 8, box 33,787,323,806
+  DIFF   skew-dark-1440x900-001-end.png  2 px (0.00%), >24: 0.00%, max 1, box 1117,360,1117,361
+  DIFF   skew-dark-1440x900-001-mid.png  2 px (0.00%), >24: 0.00%, max 1, box 1117,360,1117,361
+
+## Raft, first story: main vs branch
+sheet: 1 paired, 1 byte-identical, 0 pixel-identical (bytes differ), 0 differ
+phase: 24 paired, 24 byte-identical, 0 pixel-identical (bytes differ), 0 differ
+
+## Handout pictures (8 JPEGs), main vs branch
+byte-identical pic-0.jpg
+byte-identical pic-1.jpg
+byte-identical pic-2.jpg
+byte-identical pic-3.jpg
+byte-identical pic-4.jpg
+byte-identical pic-5.jpg
+byte-identical pic-6.jpg
+byte-identical pic-7.jpg

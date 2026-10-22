@@ -1,0 +1,20 @@
+390x844 ligh parameters cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+390x844 ligh code       cap 0.66 shown | closed: shown focus hash(the) % 2 = 0M | 56 .ix-lc:counts .ix-lc:split .ix-lc:word .ix-ln:1 .ix-ln:10 .ix-ln:11 .ix-ln:12 .ix-ln:2 .ix-ln:3 .ix-ln:4 .ix-ln:5 .ix-ln:6 .ix-ln:7 .ix-t-com:# a counting .ix-t-com:# a reading  .ix-t-com:# one slip p .ix-t-com:# optional:  .ix-t-fn:combine .ix-t-fn:emit .ix-t-fn:map .ix-t-fn:reduce .ix-t-fn:split .ix-t-fn:sum .ix-t-op:( .ix-t-op:(): .ix-t-op:) .ix-t-op:)) .ix-t-op:): .ix-t-op:, .ix-t-op:.
+390x844 ligh share      cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+390x844 ligh help       cap 1 HIDDEN | closed: shown focus About this figure | 0 
+390x844 ligh readout    cap 1 HIDDEN | closed: shown focus About this figure | 0 
+390x844 dark parameters cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+390x844 dark code       cap 0.6 shown | closed: shown focus hash(the) % 2 = 0M | 1 .ix-chip:the
+390x844 dark share      cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+390x844 dark help       cap 1 HIDDEN | closed: shown focus About this figure | 0 
+390x844 dark readout    cap 1 HIDDEN | closed: shown focus About this figure | 0 
+844x390 ligh parameters cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 1 .ix-peek-more:More
+844x390 ligh code       cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 1 .ix-story-k:Scenario
+844x390 ligh share      cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 ligh help       cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 ligh readout    cap 0.57 shown | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 dark parameters cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 1 .ix-peek-more:More
+844x390 dark code       cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 dark share      cap 0 shown | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 dark help       cap 1 HIDDEN | closed: shown focus hash(the) % 2 = 0M | 0 
+844x390 dark readout    cap 0.57 shown | closed: shown focus hash(the) % 2 = 0M | 0 

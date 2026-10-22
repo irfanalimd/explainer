@@ -1,0 +1,10 @@
+audit new-mapreduce: happy/light/1440x900 12 frames, happy/dark/1440x900 12 frames, crash/light/1440x900 10 frames, crash/dark/1440x900 10 frames, straggler/light/1440x900 10 frames, straggler/dark/1440x900 10 frames, skew/light/1440x900 10 frames, skew/dark/1440x900 10 frames, happy/light/390x844 12 frames, happy/dark/390x844 12 frames, crash/light/390x844 10 frames, crash/dark/390x844 10 frames, straggler/light/390x844 10 frames, straggler/dark/390x844 10 frames, skew/light/390x844 10 frames, skew/dark/390x844 10 frames, happy/light/844x390 12 frames, happy/dark/844x390 12 frames, crash/light/844x390 10 frames, crash/dark/844x390 10 frames, straggler/light/844x390 10 frames, straggler/dark/844x390 10 frames, skew/light/844x390 10 frames, skew/dark/844x390 10 frames
+problems (2 distinct, 2 occurrences):
+  tag-offscreen at step 1: tag "alone: 14 reads · shared: 5 each" is outside the frame (first: "The master hands out the log in 3 pieces of about 5 lin…")  [skew/dark/844x390]
+  focus-outside at step 1: part of the step's focus is outside the frame (first: "The master hands out the log in 3 pieces of about 5 lin…")  [skew/dark/844x390]
+warnings (5 distinct, 5 occurrences):
+  frame-time: average frame 184.5 ms > 16 ms budget  [happy/light/1440x900]
+  frame-time: average frame 60.8 ms > 16 ms budget  [happy/dark/1440x900]
+  frame-time: average frame 17.7 ms > 16 ms budget  [happy/light/390x844]
+  frame-time: average frame 16.2 ms > 16 ms budget  [happy/dark/390x844]
+  frame-time: average frame 25.4 ms > 16 ms budget  [happy/dark/844x390]

@@ -1,0 +1,24 @@
+ok    build fake figure (fake runtime)  (2.4 s)
+ok    snap from file://  (2.7 s)
+ok    shoot: phases x themes x sizes + contact sheet  (9.5 s)
+ok    audit: clean scenario passes  (4.9 s)
+ok    audit: planted problems are found  (3.0 s)
+ok    record: 3 s 1280x720 WebM plays back  (22.7 s)
+ok    record: .mp4 without ffmpeg refuses to download  (0.4 s)
+FAIL  verify: fake figure, all runs: output lacks 22 run(s), 0 failing
+s ("You can add to the front of a list in one step. Why does reaching the 5th item take five?")
+        warn   analogy: no everyday picture in the opening (hook, first chapter's about, first caption): give the reader an analogy and map it to the parts ("Think of it as a treasure hunt: each box holds a clue and directions to the next box")
+        warn   recap: no meta.recap: end with 2–4 short lines on what the run showed, in order (the explain panel shows them above the takeaway)
+        warn   takeaway: no meta.takeaway: the one sentence worth remembering, shown at the end
+        warn   about: 3 chapters without an about ("Boot", "Pass", "Settle"): say what the chapter does and why, in 1–2 plain sentences
+        warn   ask: no predict question: ask one just before the aha moment, where a beginner would guess wrong (s.ask)
+        warn   jargon: 1 flagged word used without a plain definition: node (story "ring" step 0). Say it in beginner words first, then name it: {term:…} with meta.terms, or a gloss ("the node, a box in the structure (or: a machine in the cluster)")
+        warn   labels: jargon where nothing is explained yet: story "drop" label "Node drops" (node). Name stories and chapters in learner words ("One word is everywhere", "A machine crashes", "Sort the slips") and ask the what-if as a learner would
+        info   level core, 3 chapters, 0 questions, 0 defined words, 162 words, reading grade n/a
+summary  28 run(s), 0 failing, 0 error(s), 14 warning(s)  0.2 s
+
+ok    new: template outside the skill verifies  (0.7 s)
+ok    new --from: imports into the skill are relocated  (0.2 s)
+ok    dev page: serve.mjs live reload  (2.0 s)
+1 check(s) failed
+DONE

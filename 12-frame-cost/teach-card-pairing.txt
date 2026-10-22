@@ -1,0 +1,33 @@
+Teaching cards, MapReduce, every story, 390x844 dark (shoot --teach --at none). Share of pixels that differ by more than 24/255.
+main-1 and main-2: main (1f93977) run twice; branch: perf/frame-cost, run side by side with main-1.
+
+card                                        main-1 vs branch  main-2 vs branch  main-1 vs main-2
+contact.png                                           1.42 %            1.38 %            1.47 %
+crash-dark-390x844-007-ask.png                        0.55 %            0.00 %            0.55 %
+crash-dark-390x844-007-why.png                        0.00 %            0.00 %            0.01 %
+crash-dark-390x844-026-end-cannow.png                 5.57 %            5.18 %            4.42 %
+crash-dark-390x844-026-end-caption.png                9.61 %           12.39 %           11.62 %
+crash-dark-390x844-026-end-card.png                   0.31 %            0.10 %            0.19 %
+crash-dark-390x844-026-end-check.png                  4.15 %            4.10 %            2.84 %
+happy-dark-390x844-012-right.png                      4.15 %            4.54 %            3.86 %
+happy-dark-390x844-012-wrong.png                      4.09 %            4.69 %            3.79 %
+happy-dark-390x844-018-ask.png                        0.12 %            0.12 %            0.00 %
+happy-dark-390x844-018-why.png                        0.40 %            0.33 %            0.26 %
+happy-dark-390x844-024-end-cannow.png                11.73 %           12.00 %           14.47 %
+happy-dark-390x844-024-end-caption.png               17.66 %           17.82 %           15.19 %
+happy-dark-390x844-024-end-card.png                   3.08 %            2.75 %            2.81 %
+happy-dark-390x844-024-end-check.png                  6.01 %            6.49 %            6.66 %
+skew-dark-390x844-007-ask.png                         0.90 %            0.50 %            0.89 %
+skew-dark-390x844-007-why.png                         0.14 %            0.04 %            0.15 %
+skew-dark-390x844-028-ask.png                         0.49 %            0.67 %            0.54 %
+skew-dark-390x844-028-why.png                         0.16 %            0.14 %            0.21 %
+skew-dark-390x844-029-end-cannow.png                  0.82 %            1.16 %            1.71 %
+skew-dark-390x844-029-end-caption.png                 5.32 %            4.59 %            6.30 %
+skew-dark-390x844-029-end-card.png                    2.03 %            0.00 %            2.03 %
+skew-dark-390x844-029-end-check.png                   0.65 %            2.13 %            2.12 %
+straggler-dark-390x844-006-ask.png                    1.64 %            0.00 %            1.64 %
+straggler-dark-390x844-006-why.png                    0.00 %            0.00 %            0.00 %
+straggler-dark-390x844-026-end-cannow.png             3.56 %            3.82 %            3.85 %
+straggler-dark-390x844-026-end-caption.png            6.74 %            5.73 %            6.80 %
+straggler-dark-390x844-026-end-card.png               0.18 %            0.16 %            0.00 %
+straggler-dark-390x844-026-end-check.png              2.73 %            2.51 %            3.32 %

@@ -1,0 +1,17 @@
+--- main raft
++++ branch raft
+@@ -1,7 +1,7 @@
+ Raft: How servers that can crash keep one shared log
+ level core · 3 stories · 5 knobs (Servers, Client commands, Message delay (ms), Lost messages, Message timeline)
+ 
+-HOOK      Five servers keep copies of the same list, and any of them can crash. How do they never
++HOOK      A few servers keep copies of the same list, and any of them can crash. How do they never
+           end up disagreeing?
+ GOAL      Keep one list of commands identical on every server, even when servers crash or the
+           network splits.
+@@ -780,4 +780,4 @@
+    CAN NOW   o-elect, o-commit, o-survive, o-split, o-own
+ 
+ teaching checks  examples/raft/figure.mjs
+-  info   level core, 6 chapters, 6 questions, 9 defined words, 1747 words, reading grade 5.8
++  info   level core, 6 chapters, 6 questions, 9 defined words, 1748 words, reading grade 5.8

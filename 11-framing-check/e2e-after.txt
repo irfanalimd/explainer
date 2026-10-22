@@ -1,0 +1,12 @@
+ok    build fake figure (fake runtime)  (3.0 s)
+ok    snap from file://  (3.3 s)
+ok    shoot: phases x themes x sizes + contact sheet  (8.6 s)
+ok    audit: clean scenario passes  (3.8 s)
+ok    audit: planted problems are found  (2.7 s)
+ok    record: 3 s 1280x720 WebM plays back  (21.9 s)
+ok    record: .mp4 without ffmpeg refuses to download  (0.3 s)
+ok    verify: fake figure, all runs, the planted framing problem found  (0.9 s)
+ok    new: template outside the skill verifies  (0.9 s)
+ok    new --from: imports into the skill are relocated  (0.2 s)
+ok    dev page: serve.mjs live reload  (2.0 s)
+all checks passed

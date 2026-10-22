@@ -1,0 +1,6 @@
+ engine/hud/hud.css        | 11 ++++++++--
+ references/tooling.md     | 11 +++++++---
+ scripts/audit.mjs         | 14 +++++++++++++
+ scripts/lib/a11y.mjs      | 53 +++++++++++++++++++++++++++++++++++++++++++----
+ scripts/lib/a11y.test.mjs | 31 +++++++++++++++++++++++++++
+ 5 files changed, 111 insertions(+), 9 deletions(-)

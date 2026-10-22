@@ -1,0 +1,9 @@
+START 01:57:44 load 7.57 7.82 6.01
+[3:55] teach 390x844 happy dark: 8 cards (218 s)
+[4:25] teach 390x844 crash dark: 6 cards (30 s)
+[4:52] teach 390x844 straggler dark: 6 cards (27 s)
+[5:22] teach 390x844 skew dark: 8 cards (30 s)
+shot 28 PNGs -> out/teach-main-2/
+sheet out/teach-main-2/contact.png
+no page errors, no audit problems
+END 02:03:08 rc=0 WALL 324 s load 6.73 7.60 6.50

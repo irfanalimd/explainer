@@ -1,0 +1,15 @@
+verify on main notes 9 lesson ids that no run it makes reaches. What reaches each (found with a knob sweep: every
+value of each knob alone, 300-600 random combinations per story, seeds 1-40, and the free-text knobs verify leaves at
+their defaults). None is a typo, none is a step the figure no longer makes. Each entry now has a comment naming its
+settings; its words were read in those runs and are unchanged.
+
+| example | id | reached by | words in that run |
+|---|---|---|---|
+| B+ tree | split.signpost | order 3 and your own ids in falling order, e.g. "99 98 97 … 86" (typed ids are capped at 14; no n or seed reaches it) | "p3 is over-full, so it splits: its middle id 92 moves up to p8." |
+| MapReduce | map.empty | your own input shorter than the mappers, e.g. "a b" with 6 mappers | "map 2 has an empty piece and finishes at once." / why: "There are more machines than words to share." |
+| MapReduce | reduce.sum-all | every word on a counter repeats, e.g. input "fox fox dog dog the the" | "reduce 0 adds up each group: fox = 2 and the = 2." |
+| Quicksort | repeat.copy | "Lots of repeated numbers" with n = 5 (the first split holds no copy of its pivot) | "3 equals 3, and equal counts as small: it goes left." |
+| Raft | vote.old | message loss on (1 in 20 or 1 in 10), crash or split story, some seeds (e.g. crash, latency 23, seed 23) | a request from an older term arrives after a newer one |
+| Raft | stuck.old, chapter "Stuck" | noop: false only (sim/fixtures/raft.test.mjs, Figure 8; old links). No knob or story sets it | kept on purpose: build still reads noop for tests and old links |
+| Raft | agree.where | an empty "Client commands" field | "Committed so far: 1 entry." (the leader's nop) |
+| Raft | beat.send-many | none of 2,592 settings tried (3 stories × 4 command lists × 3, 5, 7 servers × 3 latencies × 2 loss rates × 12 seeds). The figure's merge code can still say it (two leaders heartbeating in one step); in a split the stranded leader always has followers behind, so it resends instead | words kept |

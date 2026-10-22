@@ -1,0 +1,13 @@
+ CONTRACTS.md                 |  6 ++---
+ engine/runtime.mjs           |  7 +++++-
+ references/roadmap.md        |  9 ++++++++
+ references/tooling.md        | 13 +++++++++--
+ scripts/lib/framing.mjs      | 53 ++++++++++++++++++++++++++++++++++++++++++++
+ scripts/lib/framing.test.mjs | 34 ++++++++++++++++++++++++++++
+ scripts/lib/report.mjs       |  6 +++--
+ scripts/lib/report.test.mjs  | 21 ++++++++++++++++++
+ scripts/shoot.mjs            | 11 +++++----
+ scripts/test/e2e.mjs         |  3 ++-
+ scripts/verify.mjs           | 17 ++++++++++++--
+ scripts/verify.test.mjs      |  7 ++++--
+ 12 files changed, 170 insertions(+), 17 deletions(-)

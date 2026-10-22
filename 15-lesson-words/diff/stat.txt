@@ -1,0 +1,16 @@
+git diff --stat 1f93977 polish/lesson-words
+
+ examples/btree/lesson.mjs              |  1 +
+ examples/consistent-hashing/lesson.mjs |  2 +-
+ examples/mapreduce/lesson.mjs          |  4 +++-
+ examples/quicksort/lesson.mjs          |  1 +
+ examples/raft/README.md                |  4 ++--
+ examples/raft/figure.mjs               | 22 ++++++++++++++--------
+ examples/raft/lesson.mjs               |  9 +++++++--
+ 7 files changed, 29 insertions(+), 14 deletions(-)
+
+e34d8be Give the biggest arc's exact average, which the 52% comes from
+1f57d32 Give the shuffle's remainder for the run's own number of counters
+a0f2f92 Open Raft without naming how many servers it runs
+1663010 Say which settings reach the lesson entries verify never sees
+0833a87 Let a server that steps down forget who leads, so it never points the client at itself

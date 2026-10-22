@@ -1,0 +1,11 @@
+ CONTRACTS.md                               |  13 +++-
+ engine/gfx/backends/webgl2/mapkey.mjs      |  22 ++++++
+ engine/gfx/backends/webgl2/mapkey.test.mjs |  27 +++++++
+ engine/gfx/backends/webgl2/renderer.mjs    | 118 ++++++++++++++++++++---------
+ engine/gfx/backends/webgl2/shaders.mjs     |   9 ++-
+ engine/gfx/backends/webgpu/renderer.mjs    |   3 +
+ engine/gfx/select.mjs                      |   1 +
+ engine/runtime.mjs                         |  10 +--
+ references/tooling.md                      |  13 ++--
+ scripts/shoot.mjs                          |   3 +
+ 10 files changed, 168 insertions(+), 51 deletions(-)

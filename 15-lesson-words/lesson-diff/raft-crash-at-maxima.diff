@@ -1,0 +1,232 @@
+--- main: Raft crash, 7 servers, 30 ms, 1 in 10 lost
++++ branch
+@@ -269,7 +269,7 @@
+   plain: 5 servers are on term 3, so {ref:s3}'s term-2 update is refused.
+   why:   An update from an older term comes from a leader that has been replaced.
+ step 90 (client.refused) []
+-  plain: {ref:s3} is not the leader: it turns `y←7` away, pointing at {ref:s3}.
++  plain: {ref:s3} is not the leader and turns `y←7` away.
+   why:   
+ step 91 (vote.tally) []
+   plain: {ref:s5} has 3 of the 4 votes it needs. {ref:s3} turns {ref:s5} down; it has 3 of the 4 votes it needs.
+@@ -290,14 +290,14 @@
+   plain: {ref:s3} ignores out-of-date replies from {ref:s7}.
+   why:   
+ step 97 (client.redirect) []
+-  plain: The client hears that {ref:s3} is not the leader. The client sends `y←7` to {ref:s3}, the leader it knows.
++  plain: The client hears that {ref:s3} is not the leader. The client sends `y←7` to {ref:s5}, the leader it knows.
+   why:   
+ step 98 (update.gap) []
+   plain: {ref:s3} replaces 1 uncommitted entry. {ref:s4} and {ref:s6} copy `nop` as entry 4. {ref:s7} lacks entry 3 from term 1 and refuses the update. {ref:s2} lacks entry 3 from term 1 and refuses the update.
+   why:   
+-step 99 (client.refused) []
+-  plain: {ref:s3} is not the leader: it turns `y←7` away, pointing at {ref:s5}.
+-  why:   
++step 99 (command.again) []
++  plain: {ref:s5} already has `y←7` as entry 3, from an older term: it waits.
++  why:   A leader counts copies only of its own term's entries, so `y←7` must wait for one.
+ step 100 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+   why:   
+@@ -305,7 +305,7 @@
+   plain: {ref:s5} resends missing entries to 6 servers that fell behind.
+   why:   
+ step 102 (update.back) []
+-  plain: {ref:s7} lacks entry 3, so {ref:s5} steps back to entry 3 and resends.
++  plain: {ref:s7} is missing entry 3, so {ref:s5} steps back to entry 3 and resends.
+   why:   The leader backs up until it finds where the two logs agree, then sends everything after.
+ step 103 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+@@ -313,126 +313,123 @@
+ step 104 (commit.older) []
+   plain: {ref:s5} hears `nop` is on 4 of 7: it commits it, and the older `y←7` with it.
+   why:   A leader counts copies only of its own term's entries. `y←7` is older, so it commits only with `nop`, which comes after it.
+-step 105 (client.redirect) []
+-  plain: The client hears that {ref:s3} is not the leader. The client sends `y←7` to {ref:s5}, the leader it knows.
+-  why:   
+-step 106 (update.gap) []
+-  plain: {ref:s7} lacks entry 3 from term 1, so it refuses the update.
++step 105 (update.gap) []
++  plain: {ref:s2} lacks entry 3 from term 1 and refuses the update. {ref:s7} lacks entry 3 from term 1 and refuses the update. {ref:s7} copies entries 3–4.
+   why:   
+-step 107 (update.copy-commit) []
+-  plain: {ref:s7} copies entries 3–4.
+-  why:   
+-step 108 (beat.resend) []
+-  plain: {ref:s5} resends missing entries to 3 servers that fell behind.
+-  why:   
+-step 109 (client.done-next) []
++step 106 (client.done-next) []
+   plain: The client hears `y←7` is committed, and sends `x←5` to {ref:s5}.
+   why:   
+-step 110 (command.again) []
+-  plain: {ref:s5} already has `y←7` as entry 3, committed: it answers again.
++step 107 (beat.resend) []
++  plain: {ref:s5} resends missing entries to 3 servers that fell behind.
+   why:   
+-step 111 (update.back) []
+-  plain: {ref:s7} lacks entry 3, so {ref:s5} steps back to entry 3 and resends.
++step 108 (update.back) []
++  plain: {ref:s7} and {ref:s2} are missing entry 3, so {ref:s5} steps back to entry 3 and resends.
+   why:   
+-step 112 (reply.match) []
++step 109 (reply.match) []
+   plain: {ref:s7} is now in step with {ref:s5}'s log.
+   why:   
+-step 113 (update.gap) []
++step 110 (update.gap) []
+   plain: {ref:s2} lacks entry 3 from term 1, so it refuses the update.
+   why:   
+-step 114 (command.add) []
++step 111 (command.add) []
+   plain: {ref:s5} adds `x←5` to its log as {term:entry} 5 and sends copies.
+   why:   
+-step 115 (update.learn) []
+-  plain: {ref:s6} marks up to entry 4 committed. {ref:s7} takes {ref:s5}'s heartbeat and restarts its timer.
++step 112 (update.copy-commit) []
++  plain: `y←7` and `nop` are copied to {ref:s2}, and up to {term:entry} 4 is marked committed.
+   why:   
+-step 116 (client.dup) []
+-  plain: The client already has an answer for `y←7`, so it ignores this one.
+-  why:   A new leader answers for every client command it commits, even one already answered.
+-step 117 (update.back) []
+-  plain: {ref:s2} lacks entry 3, so {ref:s5} steps back to entry 3 and resends.
++step 113 (update.back) []
++  plain: {ref:s2} is missing entry 3, so {ref:s5} steps back to entry 3 and resends.
++  why:   
++step 114 (update.copy) []
++  plain: `x←5` is copied to {ref:s3} as {term:entry} 5.
++  why:   
++step 115 (reply.match) []
++  plain: {ref:s6} and {ref:s7} are now in step with {ref:s5}'s log.
++  why:   
++step 116 (update.copy) []
++  plain: `x←5` is copied to {ref:s7} as {term:entry} 5.
++  why:   
++step 117 (reply.match) []
++  plain: {ref:s3} is now in step with {ref:s5}'s log.
+   why:   
+ step 118 (update.copy) []
+-  plain: `x←5` is copied to {ref:s6} as {term:entry} 5.
++  plain: `x←5` is copied to {ref:s4} as {term:entry} 5.
+   why:   
+ step 119 (reply.match) []
+-  plain: {ref:s7} is now in step with {ref:s5}'s log.
++  plain: {ref:s7} and {ref:s4} are now in step with {ref:s5}'s log.
+   why:   
+ step 120 (update.copy) []
+-  plain: `x←5` is copied to {ref:s7} and {ref:s3} as {term:entry} 5.
++  plain: `x←5` is copied to {ref:s2} and {ref:s6} as {term:entry} 5.
+   why:   
+ step 121 (reply.match) []
+-  plain: {ref:s6} and {ref:s4} are now in step with {ref:s5}'s log.
+-  why:   
+-step 122 (update.gap) []
+-  plain: {ref:s4} copies `x←5` as entry 5. {ref:s2} lacks entry 3 from term 1 and refuses the update.
++  plain: {ref:s2} is now in step with {ref:s5}'s log.
+   why:   
+-step 123 (net.lost) []
++step 122 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+   why:   
+-step 124 (beat.resend) []
++step 123 (beat.resend) []
+   plain: {ref:s5} resends missing entries to 6 servers that fell behind.
+   why:   
+-step 125 (update.copy-commit) []
+-  plain: `y←7`, `nop` and `x←5` are copied to {ref:s2}, and up to {term:entry} 4 is marked committed.
++step 124 (update.beat) []
++  plain: {ref:s5}'s heartbeat restarts the election timer on {ref:s2}.
+   why:   
+-step 126 (commit.majority) []
++step 125 (commit.majority) []
+   plain: {ref:s5} hears `x←5` is on 4 of 7, a {term:majority}: it {term:commit|commits} it.
+   why:   
+-step 127 (update.back) []
+-  plain: {ref:s2} lacks entry 3, so {ref:s5} steps back to entry 3 and resends.
++step 126 (reply.match) []
++  plain: {ref:s6} is now in step with {ref:s5}'s log.
+   why:   
+-step 128 (update.beat) []
+-  plain: {ref:s5}'s heartbeat restarts the election timer on {ref:s3}, {ref:s6} and {ref:s2}.
++step 127 (update.beat) []
++  plain: {ref:s5}'s heartbeat restarts the election timer on 4 servers.
+   why:   
+-step 129 (reply.match) []
++step 128 (reply.match) []
+   plain: {ref:s2} is now in step with {ref:s5}'s log.
+   why:   
+-step 130 (update.beat) []
+-  plain: {ref:s5}'s heartbeat restarts the election timer on {ref:s4} and {ref:s7}.
++step 129 (update.beat) []
++  plain: {ref:s5}'s heartbeat restarts the election timer on {ref:s2}.
+   why:   
++step 130 (client.done) []
++  plain: The client hears `x←5` is committed.
++  why:   An answer comes only after a commit: `x←5` is on a majority and can't be lost.
+ step 131 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+   why:   
+-step 132 (net.down) []
+-  plain: Messages sent to a crashed server are {tone:fail|lost}.
+-  why:   
+-step 133 (client.done) []
+-  plain: The client hears `x←5` is committed.
+-  why:   An answer comes only after a commit: `x←5` is on a majority and can't be lost.
+-step 134 (beat.resend) []
+-  plain: {ref:s5} resends missing entries to 2 servers that fell behind.
++step 132 (beat.resend) []
++  plain: {ref:s5} resends missing entries to 1 server that fell behind.
+   why:   
+-step 135 (reply.match) []
+-  plain: 5 servers are now in step with {ref:s5}'s log.
++step 133 (reply.match) []
++  plain: {ref:s4}, {ref:s3} and {ref:s6} are now in step with {ref:s5}'s log.
+   why:   
+-step 136 (net.lost) []
++step 134 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+   why:   
+-step 137 (catchup.restart) []
++step 135 (reply.match) []
++  plain: {ref:s2} is now in step with {ref:s5}'s log.
++  why:   
++step 136 (catchup.restart) []
+   plain: {ref:s1} {tone:ok|restarts} with its 3 entries, unsure which are committed.
+   why:   Its log survived on disk, but which entries count was kept only in memory.
+-step 138 (update.copy-commit) []
++step 137 (update.copy-commit) []
+   plain: `nop` and `x←5` are copied to {ref:s1}, and up to {term:entry} 5 is marked committed.
+   why:   
+-step 139 (net.lost) []
++step 138 (net.lost) []
+   plain: A message is {tone:fail|lost} on the way.
+   why:   
+-step 140 (beat.resend) []
++step 139 (beat.resend) []
+   plain: {ref:s5} resends missing entries to 1 server that fell behind.
+   why:   
+-step 141 (reply.match) []
+-  plain: {ref:s2}, {ref:s7} and {ref:s6} are now in step with {ref:s5}'s log.
++step 140 (reply.match) []
++  plain: {ref:s2}, {ref:s4} and {ref:s7} are now in step with {ref:s5}'s log.
+   why:   
+-step 142 (update.learn) []
+-  plain: {ref:s3} marks up to entry 5 committed. 5 servers take {ref:s5}'s heartbeat and restart their timers.
++step 141 (update.learn) []
++  plain: {ref:s6} marks up to entry 5 committed. 5 servers take {ref:s5}'s heartbeat and restart their timers.
+   why:   
+-step 143 (reply.match) []
+-  plain: 4 servers are now in step with {ref:s5}'s log.
++step 142 (reply.match) []
++  plain: 5 servers are now in step with {ref:s5}'s log.
+   why:   
+-step 144 (reply.match) []
+-  plain: {ref:s1} and {ref:s2} are now in step with {ref:s5}'s log.
++step 143 (reply.match) []
++  plain: {ref:s1} is now in step with {ref:s5}'s log.
+   why:   
+-step 145 (agree.same) []
++step 144 (agree.same) []
+   plain: All 7 servers hold the same committed log: `x←3`, `y←7` and `x←5`, in the same order.
+   why:   The crash cost time, not entries: the new leader already held every committed one.

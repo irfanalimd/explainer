@@ -1,0 +1,17 @@
+audit base-mapreduce: happy/light/1440x900 12 frames, happy/dark/1440x900 12 frames, crash/light/1440x900 10 frames, crash/dark/1440x900 10 frames, straggler/light/1440x900 10 frames, straggler/dark/1440x900 10 frames, skew/light/1440x900 10 frames, skew/dark/1440x900 10 frames, happy/light/390x844 12 frames, happy/dark/390x844 12 frames, crash/light/390x844 10 frames, crash/dark/390x844 10 frames, straggler/light/390x844 10 frames, straggler/dark/390x844 10 frames, skew/light/390x844 10 frames, skew/dark/390x844 10 frames, happy/light/844x390 12 frames, happy/dark/844x390 12 frames, crash/light/844x390 10 frames, crash/dark/844x390 10 frames, straggler/light/844x390 10 frames, straggler/dark/844x390 10 frames, skew/light/844x390 10 frames, skew/dark/844x390 10 frames
+problems (10 distinct, 28 occurrences):
+  tag-offscreen at step 1: tag "alone: 14 reads · shared: 5 each" is outside the frame (first: "The master hands out the log in 3 pieces of about 5 lin…")  [skew/dark/844x390]
+  focus-outside at step 1: part of the step's focus is outside the frame (first: "The master hands out the log in 3 pieces of about 5 lin…")  [skew/dark/844x390]
+  a11y-contrast at step 24: .ix-ln text at 2.22:1, under 4.5:1 (#676b73 on #fdfdfe) (e.g. "1")  [happy/light/1440x900/code, happy/dark/1440x900/code, happy/light/390x844/code +1]
+  a11y-contrast at step 24: .ix-t-kw text at 3.29:1, under 4.5:1 (#1f315a on #fdfefe) (e.g. "def")  [happy/light/1440x900/code, happy/dark/1440x900/code, happy/light/390x844/code +1]
+  a11y-contrast at step 24: .ix-t-fn text at 4.35:1, under 4.5:1 (#0b0b0c on #fdfefe) (e.g. "map")  [happy/light/1440x900/code, happy/light/390x844/code]
+  a11y-contrast at step 24: .ix-t-op text at 2.73:1, under 4.5:1 (#484b52 on #fcfdfe) (e.g. "):")  [happy/light/1440x900/code, happy/dark/1440x900/code, happy/light/390x844/code +1]
+  a11y-contrast at step 24: .ix-lc text at 2.73:1, under 4.5:1 (#484b52 on #fdfdfe) (e.g. "counts")  [happy/light/1440x900/code, happy/dark/1440x900/code, happy/light/390x844/code +1]
+  a11y-contrast at step 24: .ix-t-com text at 2.22:1, under 4.5:1 (#676b73 on #fcfdfe) (e.g. "# optional: add up repeats first")  [happy/light/1440x900/code, happy/dark/1440x900/code, happy/light/390x844/code +1]
+  a11y-contrast at step 24: .ix-t-num text at 3.01:1, under 4.5:1 (#54391a on #fdfeff) (e.g. "1")  [happy/light/1440x900/code, happy/light/390x844/code]
+  a11y-target at step 24: .ix-peek-more is 20 px, under 24 px, and crowds another control (e.g. "More")  [happy/light/844x390/parameters, happy/dark/844x390/parameters]
+warnings (4 distinct, 4 occurrences):
+  frame-time: average frame 204.5 ms > 16 ms budget  [happy/light/1440x900]
+  frame-time: average frame 52.3 ms > 16 ms budget  [happy/dark/1440x900]
+  frame-time: average frame 16.8 ms > 16 ms budget  [happy/light/390x844]
+  frame-time: average frame 20.3 ms > 16 ms budget  [happy/dark/844x390]

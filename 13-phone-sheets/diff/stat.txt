@@ -1,0 +1,6 @@
+ engine/hud/hud.css       |  6 ++++--
+ engine/hud/hud.mjs       | 26 +++++++++++++++++++++-----
+ engine/hud/test.html     | 47 +++++++++++++++++++++++++++++++++++++++++++++++
+ examples/raft/figure.mjs | 14 ++++++++++----
+ examples/raft/lesson.mjs |  4 ++--
+ 5 files changed, 84 insertions(+), 13 deletions(-)

@@ -1,0 +1,2027 @@
+TAP version 13
+# Subtest: frameBounds fits the eight corners exactly inside the margin (independent projection)
+ok 1 - frameBounds fits the eight corners exactly inside the margin (independent projection)
+  ---
+  duration_ms: 154.654926
+  type: 'test'
+  ...
+# Subtest: projectPoint agrees with the independent projection
+ok 2 - projectPoint agrees with the independent projection
+  ---
+  duration_ms: 1.495432
+  type: 'test'
+  ...
+# Subtest: margin is a fraction of the shorter side; HUD insets shrink and shift the region
+ok 3 - margin is a fraction of the shorter side; HUD insets shrink and shift the region
+  ---
+  duration_ms: 9.537476
+  type: 'test'
+  ...
+# Subtest: HUD inset changes reframe smoothly; small ones are ignored; a resize cuts
+ok 4 - HUD inset changes reframe smoothly; small ones are ignored; a resize cuts
+  ---
+  duration_ms: 24.08044
+  type: 'test'
+  ...
+# Subtest: focus gesture frames the given bounds and holds them
+ok 5 - focus gesture frames the given bounds and holds them
+  ---
+  duration_ms: 11.41693
+  type: 'test'
+  ...
+# Subtest: settled without a timeline is stateless across phase changes
+ok 6 - settled without a timeline is stateless across phase changes
+  ---
+  duration_ms: 5.621215
+  type: 'test'
+  ...
+# Subtest: maxZoom stops the push-in on small things and keeps them centred
+ok 7 - maxZoom stops the push-in on small things and keeps them centred
+  ---
+  duration_ms: 0.594876
+  type: 'test'
+  ...
+# Subtest: starts on the establishing shot of the world, then pushes in on the focus
+ok 8 - starts on the establishing shot of the world, then pushes in on the focus
+  ---
+  duration_ms: 1.263409
+  type: 'test'
+  ...
+# Subtest: phase change returns to the establishing shot (history and timeline modes)
+ok 9 - phase change returns to the establishing shot (history and timeline modes)
+  ---
+  duration_ms: 3.002433
+  type: 'test'
+  ...
+# Subtest: dead zone: small focus moves keep the shot, leaving the central region reframes
+ok 10 - dead zone: small focus moves keep the shot, leaving the central region reframes
+  ---
+  duration_ms: 2.71116
+  type: 'test'
+  ...
+# Subtest: zoom hysteresis: < 22 % size change keeps the shot, more reframes
+ok 11 - zoom hysteresis: < 22 % size change keeps the shot, more reframes
+  ---
+  duration_ms: 2.963934
+  type: 'test'
+  ...
+# Subtest: springs are critically damped (no overshoot) and frame-rate independent
+ok 12 - springs are critically damped (no overshoot) and frame-rate independent
+  ---
+  duration_ms: 100.348747
+  type: 'test'
+  ...
+# Subtest: idle drift: bounded, slow, deterministic; none with reduced motion
+ok 13 - idle drift: bounded, slow, deterministic; none with reduced motion
+  ---
+  duration_ms: 12.315776
+  type: 'test'
+  ...
+# Subtest: reduced motion cuts to the new shot instead of flying
+ok 14 - reduced motion cuts to the new shot instead of flying
+  ---
+  duration_ms: 1.031136
+  type: 'test'
+  ...
+# Subtest: settled mode is stateless: same frame, same camera, whatever came before
+ok 15 - settled mode is stateless: same frame, same camera, whatever came before
+  ---
+  duration_ms: 5.179855
+  type: 'test'
+  ...
+# Subtest: orbit gestures take over within limits; auto resumes 4 s after the last gesture
+ok 16 - orbit gestures take over within limits; auto resumes 4 s after the last gesture
+  ---
+  duration_ms: 3.320544
+  type: 'test'
+  ...
+# Subtest: zoom gesture keeps the floor point under the pointer; pan follows the pointer
+ok 17 - zoom gesture keeps the floor point under the pointer; pan follows the pointer
+  ---
+  duration_ms: 1.758712
+  type: 'test'
+  ...
+# Subtest: fit frames the given bounds (instant) and holds them like a gesture
+ok 18 - fit frames the given bounds (instant) and holds them like a gesture
+  ---
+  duration_ms: 0.664238
+  type: 'test'
+  ...
+# Subtest: resizing reframes for the new aspect without a flight
+ok 19 - resizing reframes for the new aspect without a flight
+  ---
+  duration_ms: 0.710025
+  type: 'test'
+  ...
+# Subtest: a world too wide for the free area is framed at the minimum size, holding the focus, cut at the bare edge
+ok 20 - a world too wide for the free area is framed at the minimum size, holding the focus, cut at the bare edge
+  ---
+  duration_ms: 1.11523
+  type: 'test'
+  ...
+# Subtest: a focus the panel side can't reach keeps the focus, even if the world must run under the panel
+ok 21 - a focus the panel side can't reach keeps the focus, even if the world must run under the panel
+  ---
+  duration_ms: 0.743766
+  type: 'test'
+  ...
+# Subtest: with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+ok 22 - with a docked panel, a close-up that would leave the world under it shows the whole world when it fits
+  ---
+  duration_ms: 10.849757
+  type: 'test'
+  ...
+# Subtest: a small board fills a fair share of the free area instead of sitting tiny
+ok 23 - a small board fills a fair share of the free area instead of sitting tiny
+  ---
+  duration_ms: 3.817003
+  type: 'test'
+  ...
+# Subtest: the last step frames its focus close and large: the payoff
+ok 24 - the last step frames its focus close and large: the payoff
+  ---
+  duration_ms: 4.945314
+  type: 'test'
+  ...
+# Subtest: a key step's detail shot pushes in only as far as keeps the step's focus (a whole cluster) in frame
+ok 25 - a key step's detail shot pushes in only as far as keeps the step's focus (a whole cluster) in frame
+  ---
+  duration_ms: 1.583191
+  type: 'test'
+  ...
+# Subtest: at a step boundary the camera sets off early, through a shot that holds both steps' focus
+ok 26 - at a step boundary the camera sets off early, through a shot that holds both steps' focus
+  ---
+  duration_ms: 17.90335
+  type: 'test'
+  ...
+# Subtest: parseMoment reads the readable spelling and the HUD's
+ok 27 - parseMoment reads the readable spelling and the HUD's
+  ---
+  duration_ms: 6.075923
+  type: 'test'
+  ...
+# Subtest: linkParam keeps only what the figure can use, and says why
+ok 28 - linkParam keeps only what the figure can use, and says why
+  ---
+  duration_ms: 1.579074
+  type: 'test'
+  ...
+# Subtest: resolveMoment checks a moment against the figure
+ok 29 - resolveMoment checks a moment against the figure
+  ---
+  duration_ms: 1.213375
+  type: 'test'
+  ...
+# Subtest: resolveStep places a moment in a compiled run
+ok 30 - resolveStep places a moment in a compiled run
+  ---
+  duration_ms: 0.604644
+  type: 'test'
+  ...
+# Subtest: formatMoment round-trips through parseMoment
+ok 31 - formatMoment round-trips through parseMoment
+  ---
+  duration_ms: 0.990821
+  type: 'test'
+  ...
+# Subtest: share links drop this visit's switches and say nothing they don't need
+ok 32 - share links drop this visit's switches and say nothing they don't need
+  ---
+  duration_ms: 2.541381
+  type: 'test'
+  ...
+# Subtest: handout helpers
+ok 33 - handout helpers
+  ---
+  duration_ms: 1.559844
+  type: 'test'
+  ...
+# Subtest: camera: yaw 0 looks from +y toward -y with +x to the right and +y lower on screen
+ok 34 - camera: yaw 0 looks from +y toward -y with +x to the right and +y lower on screen
+  ---
+  duration_ms: 4.271117
+  type: 'test'
+  ...
+# Subtest: camera: unproject inverts project on any horizontal plane; pxPerUnit matches finite differences
+ok 35 - camera: unproject inverts project on any horizontal plane; pxPerUnit matches finite differences
+  ---
+  duration_ms: 1.278378
+  type: 'test'
+  ...
+# Subtest: shadow light box contains the scene and is texel-snapped
+ok 36 - shadow light box contains the scene and is texel-snapped
+  ---
+  duration_ms: 0.961721
+  type: 'test'
+  ...
+# Subtest: fitDistance frames a box inside the margin
+ok 37 - fitDistance frames a box inside the margin
+  ---
+  duration_ms: 4.746059
+  type: 'test'
+  ...
+# Subtest: EDT is exact against brute force
+ok 38 - EDT is exact against brute force
+  ---
+  duration_ms: 2.341967
+  type: 'test'
+  ...
+# Subtest: SDF of an anti-aliased disc: 128 on the edge, monotone across it
+ok 39 - SDF of an anti-aliased disc: 128 on the edge, monotone across it
+  ---
+  duration_ms: 11.352895
+  type: 'test'
+  ...
+# Subtest: slab template: closed ring stack, every triangle indexes a real vertex, outward winding on the side wall
+ok 40 - slab template: closed ring stack, every triangle indexes a real vertex, outward winding on the side wall
+  ---
+  duration_ms: 2.16499
+  type: 'test'
+  ...
+# Subtest: pack: slabs split by LOD and transparency, transparent sorted back to front
+ok 41 - pack: slabs split by LOD and transparency, transparent sorted back to front
+  ---
+  duration_ms: 7.171234
+  type: 'test'
+  ...
+# Subtest: pack: a tile in a tray lands its contact shadow on the well floor; a hopping one fades with height
+ok 42 - pack: a tile in a tray lands its contact shadow on the well floor; a hopping one fades with height
+  ---
+  duration_ms: 1.738202
+  type: 'test'
+  ...
+# Subtest: pack: lights capped at LIGHT.maxPointLights; grooves grow by arc length; rails become solids
+ok 43 - pack: lights capped at LIGHT.maxPointLights; grooves grow by arc length; rails become solids
+  ---
+  duration_ms: 4.071719
+  type: 'test'
+  ...
+# Subtest: pack: labels align left / centre / right on the face and shrink to fit
+ok 44 - pack: labels align left / centre / right on the face and shrink to fit
+  ---
+  duration_ms: 1.891683
+  type: 'test'
+  ...
+# Subtest: pack: zones go below grooves, texts and ticks above; outlines of raised things become ring slabs
+ok 45 - pack: zones go below grooves, texts and ticks above; outlines of raised things become ring slabs
+  ---
+  duration_ms: 2.781754
+  type: 'test'
+  ...
+# Subtest: atlas shelves: free gaps are reused, full atlas refuses
+ok 46 - atlas shelves: free gaps are reused, full atlas refuses
+  ---
+  duration_ms: 0.5684
+  type: 'test'
+  ...
+# Subtest: pack: status accent and crash darkening land in the slab texels
+ok 47 - pack: status accent and crash darkening land in the slab texels
+  ---
+  duration_ms: 1.030257
+  type: 'test'
+  ...
+# Subtest: pack: afterglow keeps a used groove faintly lit for GLOW.afterglow s, resets on a jump back
+ok 48 - pack: afterglow keeps a used groove faintly lit for GLOW.afterglow s, resets on a jump back
+  ---
+  duration_ms: 1.992449
+  type: 'test'
+  ...
+# Subtest: pack: a flashing tile in a tray pings on the tray floor; data tiles cast colour bounce, housings do not
+ok 49 - pack: a flashing tile in a tray pings on the tray floor; data tiles cast colour bounce, housings do not
+  ---
+  duration_ms: 1.203433
+  type: 'test'
+  ...
+# Subtest: every pose kind in CONTRACTS 4.6 has a look
+ok 50 - every pose kind in CONTRACTS 4.6 has a look
+  ---
+  duration_ms: 3.548331
+  type: 'test'
+  ...
+# Subtest: housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+ok 51 - housing: body slab with a real well from the tray, sans title in bright ink, LED puck, meter
+  ---
+  duration_ms: 4.949059
+  type: 'test'
+  ...
+# Subtest: fail LED blinks at 1.6 Hz from time
+ok 52 - fail LED blinks at 1.6 Hz from time
+  ---
+  duration_ms: 0.880724
+  type: 'test'
+  ...
+# Subtest: variants change the silhouette: store is a puck with a round well, chip has printed pins
+ok 53 - variants change the silhouette: store is a puck with a round well, chip has printed pins
+  ---
+  duration_ms: 1.522415
+  type: 'test'
+  ...
+# Subtest: tiles: keyed body with key ink, neutral, ghost; lit rises and rims; flash emits; dim desaturates
+ok 54 - tiles: keyed body with key ink, neutral, ghost; lit rises and rims; flash emits; dim desaturates
+  ---
+  duration_ms: 1.853306
+  type: 'test'
+  ...
+# Subtest: record: key left in key ink, value right lighter; a value roll yields two clipped labels
+ok 55 - record: key left in key ink, value right lighter; a value roll yields two clipped labels
+  ---
+  duration_ms: 1.246685
+  type: 'test'
+  ...
+# Subtest: packet: an emissive key-coloured pill that is a point light
+ok 56 - packet: an emissive key-coloured pill that is a point light
+  ---
+  duration_ms: 0.622343
+  type: 'test'
+  ...
+# Subtest: trace and bus: grooves with pulses coloured by key; bus accepts several polylines
+ok 57 - trace and bus: grooves with pulses coloured by key; bus accepts several polylines
+  ---
+  duration_ms: 1.359878
+  type: 'test'
+  ...
+# Subtest: keyed trace: an idle trace with a key keeps a faint glow in that key's colour; none without
+ok 58 - keyed trace: an idle trace with a key keeps a faint glow in that key's colour; none without
+  ---
+  duration_ms: 0.786182
+  type: 'test'
+  ...
+# Subtest: lane: rail + ruler + printed name in sentence case + time labels; mark is a puck on the rail; playhead is a lit print line
+ok 59 - lane: rail + ruler + printed name in sentence case + time labels; mark is a puck on the rail; playhead is a lit print line
+  ---
+  duration_ms: 1.917476
+  type: 'test'
+  ...
+# Subtest: zone, text, bracket, pointer, container
+ok 60 - zone, text, bracket, pointer, container
+  ---
+  duration_ms: 1.861423
+  type: 'test'
+  ...
+# Subtest: light theme picks light tokens
+ok 61 - light theme picks light tokens
+  ---
+  duration_ms: 0.405156
+  type: 'test'
+  ...
+# Subtest: pure: deterministic, DOM-free, never mutates poses
+ok 62 - pure: deterministic, DOM-free, never mutates poses
+  ---
+  duration_ms: 11.997273
+  type: 'test'
+  ...
+# Subtest: the gallery scene skins without unknown kinds and stays inside its bounds
+ok 63 - the gallery scene skins without unknown kinds and stays inside its bounds
+  ---
+  duration_ms: 5.2023
+  type: 'test'
+  ...
+# Subtest: ease matches the token curve endpoints and is monotonic
+ok 64 - ease matches the token curve endpoints and is monotonic
+  ---
+  duration_ms: 0.438434
+  type: 'test'
+  ...
+# Subtest: real format: traces ignore w:0, bus draws branches and tee fillets, pulses keep a0/a1 and direction
+ok 65 - real format: traces ignore w:0, bus draws branches and tee fillets, pulses keep a0/a1 and direction
+  ---
+  duration_ms: 1.03449
+  type: 'test'
+  ...
+# Subtest: real format: hop tilt is bank (roll is the value-roll progress), LED crossfade, store tray.round
+ok 66 - real format: hop tilt is bank (roll is the value-roll progress), LED crossfade, store tray.round
+  ---
+  duration_ms: 0.918137
+  type: 'test'
+  ...
+# Subtest: real format: lanes put the ruler and time labels where the scene says; messages and prints
+ok 67 - real format: lanes put the ruler and time labels where the scene says; messages and prints
+  ---
+  duration_ms: 0.868959
+  type: 'test'
+  ...
+# Subtest: real format: text variants label / index / floor, raised text keeps its z
+ok 68 - real format: text variants label / index / floor, raised text keeps its z
+  ---
+  duration_ms: 0.262922
+  type: 'test'
+  ...
+# Subtest: real compiled frames: every trace, branch and label becomes visible geometry
+ok 69 - real compiled frames: every trace, branch and label becomes visible geometry
+  ---
+  duration_ms: 579.118185
+  type: 'test'
+  ...
+# Subtest: status accent: a strip under the header from led, idle barely there, crossfades with ledPrev
+ok 70 - status accent: a strip under the header from led, idle barely there, crossfades with ledPrev
+  ---
+  duration_ms: 4.368054
+  type: 'test'
+  ...
+# Subtest: a crashed housing darkens and desaturates, its accent glows red and breathes; a lit one pools light
+ok 71 - a crashed housing darkens and desaturates, its accent glows red and breathes; a lit one pools light
+  ---
+  duration_ms: 0.694166
+  type: 'test'
+  ...
+# Subtest: bus: only the parts that carry data glow; tiles that flash or light carry a ping
+ok 72 - bus: only the parts that carry data glow; tiles that flash or light carry a ping
+  ---
+  duration_ms: 0.615422
+  type: 'test'
+  ...
+# Subtest: ink on identity colours: whichever of near-black and white contrasts more (WCAG), so every key takes dark ink
+ok 73 - ink on identity colours: whichever of near-black and white contrasts more (WCAG), so every key takes dark ink
+  ---
+  duration_ms: 5.307512
+  type: 'test'
+  ...
+# Subtest: tile sub-labels print at a readable size and strength; a ghost that says something uses muted ink
+ok 74 - tile sub-labels print at a readable size and strength; a ghost that says something uses muted ink
+  ---
+  duration_ms: 0.650774
+  type: 'test'
+  ...
+# Subtest: trace arrows: an inlaid chevron at the receiving port, in the trace's own groove and light
+ok 75 - trace arrows: an inlaid chevron at the receiving port, in the trace's own groove and light
+  ---
+  duration_ms: 3.891176
+  type: 'test'
+  ...
+# Subtest: counter formats
+ok 76 - counter formats
+  ---
+  duration_ms: 65.186692
+  type: 'test'
+  ...
+# Subtest: a counter the run has not set: a tally reads 0, a reading reads —
+ok 77 - a counter the run has not set: a tally reads 0, a reading reads —
+  ---
+  duration_ms: 0.592708
+  type: 'test'
+  ...
+# Subtest: counter decimals and unit (int and x)
+ok 78 - counter decimals and unit (int and x)
+  ---
+  duration_ms: 0.833186
+  type: 'test'
+  ...
+# Subtest: deep links parse and coerce by definition
+ok 79 - deep links parse and coerce by definition
+  ---
+  duration_ms: 1.471326
+  type: 'test'
+  ...
+# Subtest: deep links ignore bad parts and keep foreign hash keys
+ok 80 - deep links ignore bad parts and keep foreign hash keys
+  ---
+  duration_ms: 0.700104
+  type: 'test'
+  ...
+# Subtest: deep links round-trip
+ok 81 - deep links round-trip
+  ---
+  duration_ms: 0.702618
+  type: 'test'
+  ...
+# Subtest: only params that differ from the scenario's resolved values go in the link
+ok 82 - only params that differ from the scenario's resolved values go in the link
+  ---
+  duration_ms: 0.40585
+  type: 'test'
+  ...
+# Subtest: highlighter classifies tokens per language
+ok 83 - highlighter classifies tokens per language
+  ---
+  duration_ms: 4.974496
+  type: 'test'
+  ...
+# Subtest: highlighter reproduces the source exactly
+ok 84 - highlighter reproduces the source exactly
+  ---
+  duration_ms: 1.228803
+  type: 'test'
+  ...
+# Subtest: theme variables come from tokens
+ok 85 - theme variables come from tokens
+  ---
+  duration_ms: 5.728182
+  type: 'test'
+  ...
+# Subtest: the promise counts the run: chapters, minutes at the reading pace, questions, what-ifs
+ok 86 - the promise counts the run: chapters, minutes at the reading pace, questions, what-ifs
+  ---
+  duration_ms: 3.687658
+  type: 'test'
+  ...
+# Subtest: the next story is the one after this, and none after the last
+ok 87 - the next story is the one after this, and none after the last
+  ---
+  duration_ms: 0.387853
+  type: 'test'
+  ...
+# Subtest: finished stories and the place to pick up are remembered, and only worth-it places are offered
+ok 88 - finished stories and the place to pick up are remembered, and only worth-it places are offered
+  ---
+  duration_ms: 3.577467
+  type: 'test'
+  ...
+# Subtest: garbage in storage is ignored, never thrown
+ok 89 - garbage in storage is ignored, never thrown
+  ---
+  duration_ms: 0.577082
+  type: 'test'
+  ...
+# Subtest: plain text stays one text node
+ok 90 - plain text stays one text node
+  ---
+  duration_ms: 13.386248
+  type: 'test'
+  ...
+# Subtest: key chips, with and without custom text
+ok 91 - key chips, with and without custom text
+  ---
+  duration_ms: 1.123767
+  type: 'test'
+  ...
+# Subtest: ref chips keep a null text so the HUD can use the entity title
+ok 92 - ref chips keep a null text so the HUD can use the entity title
+  ---
+  duration_ms: 0.33838
+  type: 'test'
+  ...
+# Subtest: tone words; unknown tones keep their text but no tone
+ok 93 - tone words; unknown tones keep their text but no tone
+  ---
+  duration_ms: 0.431431
+  type: 'test'
+  ...
+# Subtest: inline code is literal, braces and stars inside it included
+ok 94 - inline code is literal, braces and stars inside it included
+  ---
+  duration_ms: 1.088605
+  type: 'test'
+  ...
+# Subtest: bold can contain marks, and ** inside code does not close it
+ok 95 - bold can contain marks, and ** inside code does not close it
+  ---
+  duration_ms: 0.58709
+  type: 'test'
+  ...
+# Subtest: malformed marks stay literal text
+ok 96 - malformed marks stay literal text
+  ---
+  duration_ms: 0.573456
+  type: 'test'
+  ...
+# Subtest: escapes produce literal characters
+ok 97 - escapes produce literal characters
+  ---
+  duration_ms: 0.590926
+  type: 'test'
+  ...
+# Subtest: newlines collapse to spaces
+ok 98 - newlines collapse to spaces
+  ---
+  duration_ms: 0.69983
+  type: 'test'
+  ...
+# Subtest: toText resolves refs through refTitle
+ok 99 - toText resolves refs through refTitle
+  ---
+  duration_ms: 0.968193
+  type: 'test'
+  ...
+# Subtest: toDOM builds chips with identity colour variables and data attributes
+ok 100 - toDOM builds chips with identity colour variables and data attributes
+  ---
+  duration_ms: 1.877222
+  type: 'test'
+  ...
+# Subtest: an entity chip takes its entity's key colour when it has one, and stays a link
+ok 101 - an entity chip takes its entity's key colour when it has one, and stays a link
+  ---
+  duration_ms: 0.552007
+  type: 'test'
+  ...
+# Subtest: toDOM marks keys it cannot resolve as unknown
+ok 102 - toDOM marks keys it cannot resolve as unknown
+  ---
+  duration_ms: 0.32856
+  type: 'test'
+  ...
+# Subtest: punctuation after a chip is glued to it so a line never starts with it
+ok 103 - punctuation after a chip is glued to it so a line never starts with it
+  ---
+  duration_ms: 0.429825
+  type: 'test'
+  ...
+# Subtest: glossary terms parse with and without custom text, and flatten to their text
+ok 104 - glossary terms parse with and without custom text, and flatten to their text
+  ---
+  duration_ms: 0.320627
+  type: 'test'
+  ...
+# Subtest: toDOM makes a defined term a focusable word that carries its definition; an undefined one stays plain text
+ok 105 - toDOM makes a defined term a focusable word that carries its definition; an undefined one stays plain text
+  ---
+  duration_ms: 0.421202
+  type: 'test'
+  ...
+# Subtest: captionTemplate: chips, code, numbers and comparisons become placeholders
+ok 106 - captionTemplate: chips, code, numbers and comparisons become placeholders
+  ---
+  duration_ms: 8.357171
+  type: 'test'
+  ...
+# Subtest: captionHead: the leading clause, never cut inside a chip or code
+ok 107 - captionHead: the leading clause, never cut inside a chip or code
+  ---
+  duration_ms: 1.152014
+  type: 'test'
+  ...
+# Subtest: foldPlan: a run folds after its pattern has played twice
+ok 108 - foldPlan: a run folds after its pattern has played twice
+  ---
+  duration_ms: 10.72165
+  type: 'test'
+  ...
+# Subtest: foldPlan: two in a row is not a pattern yet; chapters, asks and keep break runs
+ok 109 - foldPlan: two in a row is not a pattern yet; chapters, asks and keep break runs
+  ---
+  duration_ms: 1.253849
+  type: 'test'
+  ...
+# Subtest: foldPlan: a short cycle (heartbeat, ack) folds after two full cycles
+ok 110 - foldPlan: a short cycle (heartbeat, ack) folds after two full cycles
+  ---
+  duration_ms: 0.599804
+  type: 'test'
+  ...
+# Subtest: rateAt: 1 outside, eases up to the fold rate and back to 1 at the region's end
+ok 111 - rateAt: 1 outside, eases up to the fold rate and back to 1 at the region's end
+  ---
+  duration_ms: 31.900523
+  type: 'test'
+  ...
+# Subtest: forkOf: start at the first different step, backed off for context
+ok 112 - forkOf: start at the first different step, backed off for context
+  ---
+  duration_ms: 1.25288
+  type: 'test'
+  ...
+# Subtest: forkOf on the real figures: Raft crash starts at the crash, MapReduce crash at Map
+ok 113 - forkOf on the real figures: Raft crash starts at the crash, MapReduce crash at Map
+  ---
+  duration_ms: 1136.054914
+  type: 'test'
+  ...
+# Subtest: a mark without t lands at the sim time of the step it is committed in
+ok 114 - a mark without t lands at the sim time of the step it is committed in
+  ---
+  duration_ms: 48.666022
+  type: 'test'
+  ...
+# Subtest: the lanes rail ends just after the last event, on a round major tick
+ok 115 - the lanes rail ends just after the last event, on a round major tick
+  ---
+  duration_ms: 16.743588
+  type: 'test'
+  ...
+# Subtest: s.send { delay } and { at } stagger departures inside one step
+ok 116 - s.send { delay } and { at } stagger departures inside one step
+  ---
+  duration_ms: 32.386752
+  type: 'test'
+  ...
+# Subtest: paced steps: dur = max(paced, reading time); s.pace({ read: false }) keeps sim-time proportions
+ok 117 - paced steps: dur = max(paced, reading time); s.pace({ read: false }) keeps sim-time proportions
+  ---
+  duration_ms: 5.95175
+  type: 'test'
+  ...
+# Subtest: a trace takes tone, dim, state and dashed; other props on it are problems
+ok 118 - a trace takes tone, dim, state and dashed; other props on it are problems
+  ---
+  duration_ms: 4.135293
+  type: 'test'
+  ...
+# Subtest: a counter changes once its motion lands, not late in the reading hold after it
+ok 119 - a counter changes once its motion lands, not late in the reading hold after it
+  ---
+  duration_ms: 5.558558
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {}: no problems, invariants hold
+ok 120 - mapreduce happy {}: no problems, invariants hold
+  ---
+  duration_ms: 742.087128
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"mappers":1,"reducers":1}: no problems, invariants hold
+ok 121 - mapreduce happy {"mappers":1,"reducers":1}: no problems, invariants hold
+  ---
+  duration_ms: 196.889492
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"mappers":6,"reducers":4}: no problems, invariants hold
+ok 122 - mapreduce happy {"mappers":6,"reducers":4}: no problems, invariants hold
+  ---
+  duration_ms: 498.502794
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"combiner":true}: no problems, invariants hold
+ok 123 - mapreduce happy {"combiner":true}: no problems, invariants hold
+  ---
+  duration_ms: 142.900461
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"combiner":true,"mappers":1}: no problems, invariants hold
+ok 124 - mapreduce happy {"combiner":true,"mappers":1}: no problems, invariants hold
+  ---
+  duration_ms: 110.041716
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+ok 125 - mapreduce happy {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+  ---
+  duration_ms: 134.219703
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"input":""}: no problems, invariants hold
+ok 126 - mapreduce happy {"input":""}: no problems, invariants hold
+  ---
+  duration_ms: 94.309321
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {}: no problems, invariants hold
+ok 127 - mapreduce crash {}: no problems, invariants hold
+  ---
+  duration_ms: 104.426012
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"mappers":1,"reducers":1}: no problems, invariants hold
+ok 128 - mapreduce crash {"mappers":1,"reducers":1}: no problems, invariants hold
+  ---
+  duration_ms: 93.68419
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"mappers":6,"reducers":4}: no problems, invariants hold
+ok 129 - mapreduce crash {"mappers":6,"reducers":4}: no problems, invariants hold
+  ---
+  duration_ms: 310.959658
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"combiner":true}: no problems, invariants hold
+ok 130 - mapreduce crash {"combiner":true}: no problems, invariants hold
+  ---
+  duration_ms: 122.030939
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"combiner":true,"mappers":1}: no problems, invariants hold
+ok 131 - mapreduce crash {"combiner":true,"mappers":1}: no problems, invariants hold
+  ---
+  duration_ms: 114.649751
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+ok 132 - mapreduce crash {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+  ---
+  duration_ms: 53.641202
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {"input":""}: no problems, invariants hold
+ok 133 - mapreduce crash {"input":""}: no problems, invariants hold
+  ---
+  duration_ms: 25.323922
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {}: no problems, invariants hold
+ok 134 - mapreduce straggler {}: no problems, invariants hold
+  ---
+  duration_ms: 70.63436
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"mappers":1,"reducers":1}: no problems, invariants hold
+ok 135 - mapreduce straggler {"mappers":1,"reducers":1}: no problems, invariants hold
+  ---
+  duration_ms: 49.342604
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"mappers":6,"reducers":4}: no problems, invariants hold
+ok 136 - mapreduce straggler {"mappers":6,"reducers":4}: no problems, invariants hold
+  ---
+  duration_ms: 378.982267
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"combiner":true}: no problems, invariants hold
+ok 137 - mapreduce straggler {"combiner":true}: no problems, invariants hold
+  ---
+  duration_ms: 134.230143
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"combiner":true,"mappers":1}: no problems, invariants hold
+ok 138 - mapreduce straggler {"combiner":true,"mappers":1}: no problems, invariants hold
+  ---
+  duration_ms: 48.868462
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+ok 139 - mapreduce straggler {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+  ---
+  duration_ms: 68.819177
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {"input":""}: no problems, invariants hold
+ok 140 - mapreduce straggler {"input":""}: no problems, invariants hold
+  ---
+  duration_ms: 12.472709
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {}: no problems, invariants hold
+ok 141 - mapreduce skew {}: no problems, invariants hold
+  ---
+  duration_ms: 92.691198
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"mappers":1,"reducers":1}: no problems, invariants hold
+ok 142 - mapreduce skew {"mappers":1,"reducers":1}: no problems, invariants hold
+  ---
+  duration_ms: 52.223257
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"mappers":6,"reducers":4}: no problems, invariants hold
+ok 143 - mapreduce skew {"mappers":6,"reducers":4}: no problems, invariants hold
+  ---
+  duration_ms: 288.616464
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"combiner":true}: no problems, invariants hold
+ok 144 - mapreduce skew {"combiner":true}: no problems, invariants hold
+  ---
+  duration_ms: 39.28155
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"combiner":true,"mappers":1}: no problems, invariants hold
+ok 145 - mapreduce skew {"combiner":true,"mappers":1}: no problems, invariants hold
+  ---
+  duration_ms: 20.35787
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+ok 146 - mapreduce skew {"mappers":2,"reducers":3,"input":"a b a c b a d"}: no problems, invariants hold
+  ---
+  duration_ms: 58.481301
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {"input":""}: no problems, invariants hold
+ok 147 - mapreduce skew {"input":""}: no problems, invariants hold
+  ---
+  duration_ms: 23.661727
+  type: 'test'
+  ...
+# Subtest: mapreduce has every phase, the combiner shrinks the shuffle, the crash re-runs a split
+ok 148 - mapreduce has every phase, the combiner shrinks the shuffle, the crash re-runs a split
+  ---
+  duration_ms: 414.227315
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {}: motion is continuous (no jumps, no pops)
+ok 149 - mapreduce happy {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 4448.982385
+  type: 'test'
+  ...
+# Subtest: mapreduce crash {}: motion is continuous (no jumps, no pops)
+ok 150 - mapreduce crash {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1996.381922
+  type: 'test'
+  ...
+# Subtest: mapreduce straggler {}: motion is continuous (no jumps, no pops)
+ok 151 - mapreduce straggler {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1409.885833
+  type: 'test'
+  ...
+# Subtest: mapreduce skew {}: motion is continuous (no jumps, no pops)
+ok 152 - mapreduce skew {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1473.495367
+  type: 'test'
+  ...
+# Subtest: mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)
+ok 153 - mapreduce happy {"combiner":true,"mappers":2}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1490.72463
+  type: 'test'
+  ...
+# Subtest: heartbeat steady {}: motion is continuous (no jumps, no pops)
+ok 154 - heartbeat steady {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1045.530112
+  type: 'test'
+  ...
+# Subtest: heartbeat crash {}: motion is continuous (no jumps, no pops)
+ok 155 - heartbeat crash {}: motion is continuous (no jumps, no pops)
+  ---
+  duration_ms: 1006.919029
+  type: 'test'
+  ...
+# Subtest: heartbeat: held sends, lanes and marks compile cleanly and keep their invariant
+ok 156 - heartbeat: held sends, lanes and marks compile cleanly and keep their invariant
+  ---
+  duration_ms: 46.906766
+  type: 'test'
+  ...
+# Subtest: row places members left to right with the gap, centred on the cross axis
+ok 157 - row places members left to right with the gap, centred on the cross axis
+  ---
+  duration_ms: 26.773193
+  type: 'test'
+  ...
+# Subtest: column stacks top to bottom; align start/end
+ok 158 - column stacks top to bottom; align start/end
+  ---
+  duration_ms: 3.205251
+  type: 'test'
+  ...
+# Subtest: grid, ring and free layouts never overlap their members
+ok 159 - grid, ring and free layouts never overlap their members
+  ---
+  duration_ms: 10.903641
+  type: 'test'
+  ...
+# Subtest: housing measures to its tray plus header and inset, at least minW/minD
+ok 160 - housing measures to its tray plus header and inset, at least minW/minD
+  ---
+  duration_ms: 1.258403
+  type: 'test'
+  ...
+# Subtest: tile heights: in a housing on the well floor, on a plate, loose on the floor
+ok 161 - tile heights: in a housing on the well floor, on a plate, loose on the floor
+  ---
+  duration_ms: 16.956496
+  type: 'test'
+  ...
+# Subtest: trays keep one size for the whole run (capacity = most tiles ever held) and fill row-major
+ok 162 - trays keep one size for the whole run (capacity = most tiles ever held) and fill row-major
+  ---
+  duration_ms: 7.908783
+  type: 'test'
+  ...
+# Subtest: overflow compresses spacing inside the fixed extent and is reported
+ok 163 - overflow compresses spacing inside the fixed extent and is reported
+  ---
+  duration_ms: 13.911676
+  type: 'test'
+  ...
+# Subtest: titled groups become zones padded by SIZE.zone.pad and follow their members
+ok 164 - titled groups become zones padded by SIZE.zone.pad and follow their members
+  ---
+  duration_ms: 13.604288
+  type: 'test'
+  ...
+# Subtest: arrays and bits: cells, indices and bitfield brackets
+ok 165 - arrays and bits: cells, indices and bitfield brackets
+  ---
+  duration_ms: 21.445893
+  type: 'test'
+  ...
+# Subtest: a tile's own width (s.tile(id, { w })) sizes its slot, the tray and its pose; a keyed trace carries its key
+ok 166 - a tile's own width (s.tile(id, { w })) sizes its slot, the tray and its pose; a keyed trace carries its key
+  ---
+  duration_ms: 23.507876
+  type: 'test'
+  ...
+# Subtest: a trace leaves and enters on the facing edges, orthogonally
+ok 167 - a trace leaves and enters on the facing edges, orthogonally
+  ---
+  duration_ms: 22.949562
+  type: 'test'
+  ...
+# Subtest: corner arcs use SIZE.trace.corner and keep the arc-length table exact
+ok 168 - corner arcs use SIZE.trace.corner and keep the arc-length table exact
+  ---
+  duration_ms: 8.283722
+  type: 'test'
+  ...
+# Subtest: ports spread along a shared edge, ordered by their far ends; gutter runs get their own tracks
+ok 169 - ports spread along a shared edge, ordered by their far ends; gutter runs get their own tracks
+  ---
+  duration_ms: 16.027177
+  type: 'test'
+  ...
+# Subtest: a trace detours around a housing that stands in its way
+ok 170 - a trace detours around a housing that stands in its way
+  ---
+  duration_ms: 17.570234
+  type: 'test'
+  ...
+# Subtest: a bus is one trunk in its spacer with branches joining it
+ok 171 - a bus is one trunk in its spacer with branches joining it
+  ---
+  duration_ms: 17.201464
+  type: 'test'
+  ...
+# Subtest: routes are recomputed when the layout changes, and the trace morphs instead of jumping
+ok 172 - routes are recomputed when the layout changes, and the trace morphs instead of jumping
+  ---
+  duration_ms: 17.939855
+  type: 'test'
+  ...
+# Subtest: top-to-bottom flow: bottom->top traces fan out through a horizontal gutter; a bus trunk runs across its spacer
+ok 173 - top-to-bottom flow: bottom->top traces fan out through a horizontal gutter; a bus trunk runs across its spacer
+  ---
+  duration_ms: 38.840009
+  type: 'test'
+  ...
+# Subtest: a self-loop leaves its housing's right edge, wraps the corner outside it and comes back in through the front
+ok 174 - a self-loop leaves its housing's right edge, wraps the corner outside it and comes back in through the front
+  ---
+  duration_ms: 27.562501
+  type: 'test'
+  ...
+# Subtest: facing ports alone on their edges line up into one straight run; a narrow gap never curls
+ok 175 - facing ports alone on their edges line up into one straight run; a narrow gap never curls
+  ---
+  duration_ms: 5.641898
+  type: 'test'
+  ...
+# Subtest: arrow is a trace option and a settable prop
+ok 176 - arrow is a trace option and a settable prop
+  ---
+  duration_ms: 7.821338
+  type: 'test'
+  ...
+# Subtest: Frame shape matches engine/contracts.mjs
+ok 177 - Frame shape matches engine/contracts.mjs
+  ---
+  duration_ms: 259.900629
+  type: 'test'
+  ...
+# Subtest: sample is stable and pure: same time, same frame; order of calls does not matter
+ok 178 - sample is stable and pure: same time, same frame; order of calls does not matter
+  ---
+  duration_ms: 511.350603
+  type: 'test'
+  ...
+# Subtest: sample(t, view, out) refills a frame in place
+ok 179 - sample(t, view, out) refills a frame in place
+  ---
+  duration_ms: 346.591028
+  type: 'test'
+  ...
+# Subtest: compile is deterministic across runs and scenarios differ
+ok 180 - compile is deterministic across runs and scenarios differ
+  ---
+  duration_ms: 288.499981
+  type: 'test'
+  ...
+# Subtest: performance: <= 2 ms per sample with ~300 entities
+ok 181 - performance: <= 2 ms per sample with ~300 entities
+  ---
+  duration_ms: 919.664756
+  type: 'test'
+  ...
+# Subtest: actors: broadcasts, held sends delivered several steps later, crashes, drops, re-used ids
+ok 182 - actors: broadcasts, held sends delivered several steps later, crashes, drops, re-used ids
+  ---
+  duration_ms: 78.087413
+  type: 'test'
+  ...
+# Subtest: tracked arrays: one op per step with swap, set, tag, count, point and lit
+ok 183 - tracked arrays: one op per step with swap, set, tag, count, point and lit
+  ---
+  duration_ms: 18.973854
+  type: 'test'
+  ...
+# Subtest: tracked stacks and queues: containers along z and y, push by spawn, pop by remove
+ok 184 - tracked stacks and queues: containers along z and y, push by spawn, pop by remove
+  ---
+  duration_ms: 28.272994
+  type: 'test'
+  ...
+# Subtest: messages and tiles can travel a bus in both directions
+ok 185 - messages and tiles can travel a bus in both directions
+  ---
+  duration_ms: 40.670743
+  type: 'test'
+  ...
+# Subtest: s.zone: a printed region around entities that follows them, glides on membership change, fades in and out
+ok 186 - s.zone: a printed region around entities that follows them, glides on membership change, fades in and out
+  ---
+  duration_ms: 22.665352
+  type: 'test'
+  ...
+# Subtest: lost in flight: deliver({ remove, lost }) stops the packet where it is, flashes it fail and fades it; the diagonal stops there, dashed
+ok 187 - lost in flight: deliver({ remove, lost }) stops the packet where it is, flashes it fail and fades it; the diagonal stops there, dashed
+  ---
+  duration_ms: 10.194144
+  type: 'test'
+  ...
+# Subtest: a var passed as a key prints a chip; the same chip as a bare string prints its letters, and fill says so
+ok 188 - a var passed as a key prints a chip; the same chip as a bare string prints its letters, and fill says so
+  ---
+  duration_ms: 6.998516
+  type: 'test'
+  ...
+# Subtest: a list var is checked item by item, and plain words are never flagged
+ok 189 - a list var is checked item by item, and plain words are never flagged
+  ---
+  duration_ms: 4.021757
+  type: 'test'
+  ...
+# Subtest: declarations before the first step form S0; later ones are recorded and animate
+ok 190 - declarations before the first step form S0; later ones are recorded and animate
+  ---
+  duration_ms: 63.424704
+  type: 'test'
+  ...
+# Subtest: steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask, line
+ok 191 - steps: default dur MOTION.step, explicit dur, hold, sim time, phases, ask, line
+  ---
+  duration_ms: 11.076599
+  type: 'test'
+  ...
+# Subtest: phases carry an optional about: s.phase(name, { about }), a string, or none
+ok 192 - phases carry an optional about: s.phase(name, { about }), a string, or none
+  ---
+  duration_ms: 6.480746
+  type: 'test'
+  ...
+# Subtest: counters accumulate; snapshots hold the values at the start of each step
+ok 193 - counters accumulate; snapshots hold the values at the start of each step
+  ---
+  duration_ms: 4.802265
+  type: 'test'
+  ...
+# Subtest: snapshots are immutable records shared between steps (copy on write)
+ok 194 - snapshots are immutable records shared between steps (copy on write)
+  ---
+  duration_ms: 3.648438
+  type: 'test'
+  ...
+# Subtest: builder queries: s.get, s.has, s.key (first-seen order), s.rng is seeded and deterministic
+ok 195 - builder queries: s.get, s.has, s.key (first-seen order), s.rng is seeded and deterministic
+  ---
+  duration_ms: 26.954124
+  type: 'test'
+  ...
+# Subtest: problems: unknown ids, non-containers, overflow, overlaps, missing captions, >8 keys, ops after the last step
+ok 196 - problems: unknown ids, non-containers, overflow, overlaps, missing captions, >8 keys, ops after the last step
+  ---
+  duration_ms: 33.110905
+  type: 'test'
+  ...
+# Subtest: hash is stable for the same script and changes with it
+ok 197 - hash is stable for the same script and changes with it
+  ---
+  duration_ms: 11.531845
+  type: 'test'
+  ...
+# Subtest: params resolve: defaults, then scenario overrides, then explicit values
+ok 198 - params resolve: defaults, then scenario overrides, then explicit values
+  ---
+  duration_ms: 5.78764
+  type: 'test'
+  ...
+# Subtest: events mark notable ops for scrubber ticks; build errors become problems
+ok 199 - events mark notable ops for scrubber ticks; build errors become problems
+  ---
+  duration_ms: 8.883918
+  type: 'test'
+  ...
+# Subtest: narration helpers build markup that round-trips, and captions may only refer to real entities
+ok 200 - narration helpers build markup that round-trips, and captions may only refer to real entities
+  ---
+  duration_ms: 2.73266
+  type: 'test'
+  ...
+# Subtest: meta.level intro reads a little slower; ask keeps its why
+ok 201 - meta.level intro reads a little slower; ask keeps its why
+  ---
+  duration_ms: 1.530522
+  type: 'test'
+  ...
+# Subtest: move along a trace: lift out of the slot, glide on the groove with a pulse, settle into the new slot
+ok 202 - move along a trace: lift out of the slot, glide on the groove with a pulse, settle into the new slot
+  ---
+  duration_ms: 78.245149
+  type: 'test'
+  ...
+# Subtest: arc hop elsewhere: parabolic, height clamp(k * distance), tilts into travel and lands level
+ok 203 - arc hop elsewhere: parabolic, height clamp(k * distance), tilts into travel and lands level
+  ---
+  duration_ms: 18.68299
+  type: 'test'
+  ...
+# Subtest: swap: two arcs, one higher, ending in each other's slots
+ok 204 - swap: two arcs, one higher, ending in each other's slots
+  ---
+  duration_ms: 32.501463
+  type: 'test'
+  ...
+# Subtest: spawn emerges from its source, then travels to its slot
+ok 205 - spawn emerges from its source, then travels to its slot
+  ---
+  duration_ms: 7.255982
+  type: 'test'
+  ...
+# Subtest: create after the first step rises out of the floor with a flash
+ok 206 - create after the first step rises out of the floor with a flash
+  ---
+  duration_ms: 6.871094
+  type: 'test'
+  ...
+# Subtest: remove: sink and fade; or fly into a consumer, which flashes
+ok 207 - remove: sink and fade; or fly into a consumer, which flashes
+  ---
+  duration_ms: 11.235928
+  type: 'test'
+  ...
+# Subtest: set: value roll (textOut + roll over MOTION.roll), flash, LED crossfade, dim, meter
+ok 208 - set: value roll (textOut + roll over MOTION.roll), flash, LED crossfade, dim, meter
+  ---
+  duration_ms: 6.037727
+  type: 'test'
+  ...
+# Subtest: beats run in order; siblings in a beat stagger by MOTION.stagger
+ok 209 - beats run in order; siblings in a beat stagger by MOTION.stagger
+  ---
+  duration_ms: 347.200641
+  type: 'test'
+  ...
+# Subtest: send along a trace: packet from port to port, pulse behind it, absorbed on arrival
+ok 210 - send along a trace: packet from port to port, pulse behind it, absorbed on arrival
+  ---
+  duration_ms: 11.914116
+  type: 'test'
+  ...
+# Subtest: air send arcs over the floor and leaves a fading print trace
+ok 211 - air send arcs over the floor and leaves a fading print trace
+  ---
+  duration_ms: 4.715622
+  type: 'test'
+  ...
+# Subtest: held sends: positioned by simulated time across steps, delivered several steps later, many in flight
+ok 212 - held sends: positioned by simulated time across steps, delivered several steps later, many in flight
+  ---
+  duration_ms: 17.350873
+  type: 'test'
+  ...
+# Subtest: marks sit on their lane at their time; the playhead runs on interpolated simulated time
+ok 213 - marks sit on their lane at their time; the playhead runs on interpolated simulated time
+  ---
+  duration_ms: 2.172492
+  type: 'test'
+  ...
+# Subtest: marks close in time stack their names instead of printing them over each other
+ok 214 - marks close in time stack their names instead of printing them over each other
+  ---
+  duration_ms: 3.306811
+  type: 'test'
+  ...
+# Subtest: pointers stand in front of their slot and glide between slots
+ok 215 - pointers stand in front of their slot and glide between slots
+  ---
+  duration_ms: 4.632744
+  type: 'test'
+  ...
+# Subtest: LOD fades by view.pxPerUnit; hover and selected flags
+ok 216 - LOD fades by view.pxPerUnit; hover and selected flags
+  ---
+  duration_ms: 7.391755
+  type: 'test'
+  ...
+# Subtest: tags live for their step, fade in and out, anchored above their entity
+ok 217 - tags live for their step, fade in and out, anchored above their entity
+  ---
+  duration_ms: 12.583095
+  type: 'test'
+  ...
+# Subtest: focus covers both ends of this step's motion; s.focus overrides; world is stable
+ok 218 - focus covers both ends of this step's motion; s.focus overrides; world is stable
+  ---
+  duration_ms: 5.572418
+  type: 'test'
+  ...
+# Subtest: reduced motion: transitions become 150 ms crossfades without arcs
+ok 219 - reduced motion: transitions become 150 ms crossfades without arcs
+  ---
+  duration_ms: 17.28129
+  type: 'test'
+  ...
+# Subtest: tags on a housing, or on a tile resting in one, anchor above the housing's back edge (not over its header)
+ok 220 - tags on a housing, or on a tile resting in one, anchor above the housing's back edge (not over its header)
+  ---
+  duration_ms: 83.059212
+  type: 'test'
+  ...
+# Subtest: the world contains every pointer flag, arc peak and step focus
+ok 221 - the world contains every pointer flag, arc peak and step focus
+  ---
+  duration_ms: 2.393966
+  type: 'test'
+  ...
+# Subtest: a tag over the first housing of a titled zone sits above the zone's edge, not on its title
+ok 222 - a tag over the first housing of a titled zone sits above the zone's edge, not on its title
+  ---
+  duration_ms: 1.885811
+  type: 'test'
+  ...
+# Subtest: shot times: phases, all, explicit steps, times and end
+ok 223 - shot times: phases, all, explicit steps, times and end
+  ---
+  duration_ms: 8.970711
+  type: 'test'
+  ...
+# Subtest: findings repeating over steps and shots collapse into one line
+ok 224 - findings repeating over steps and shots collapse into one line
+  ---
+  duration_ms: 1.053043
+  type: 'test'
+  ...
+# Subtest: caption markup becomes plain text
+ok 225 - caption markup becomes plain text
+  ---
+  duration_ms: 0.358595
+  type: 'test'
+  ...
+# Subtest: argument parsing: values, =, lists, booleans, sizes
+ok 226 - argument parsing: values, =, lists, booleans, sizes
+  ---
+  duration_ms: 1.682746
+  type: 'test'
+  ...
+# Subtest: the shot plan keeps every step's focus in frame, at both sizes
+ok 227 - the shot plan keeps every step's focus in frame, at both sizes
+  ---
+  duration_ms: 1087.511808
+  type: 'test'
+  ...
+# Subtest: a move that passes over the HUD's edge is measured, and is shorter than what counts
+ok 228 - a move that passes over the HUD's edge is measured, and is shorter than what counts
+  ---
+  duration_ms: 237.650531
+  type: 'test'
+  ...
+# Subtest: a step whose shot loses its focus is found (the fake figure's planted far tag)
+ok 229 - a step whose shot loses its focus is found (the fake figure's planted far tag)
+  ---
+  duration_ms: 78.339256
+  type: 'test'
+  ...
+# Subtest: finds static, side-effect, re-export and literal dynamic imports
+ok 230 - finds static, side-effect, re-export and literal dynamic imports
+  ---
+  duration_ms: 10.81576
+  type: 'test'
+  ...
+# Subtest: ignores imports inside strings, templates, comments and regexes
+ok 231 - ignores imports inside strings, templates, comments and regexes
+  ---
+  duration_ms: 0.929625
+  type: 'test'
+  ...
+# Subtest: template substitutions keep lexing code (an import inside one is found)
+ok 232 - template substitutions keep lexing code (an import inside one is found)
+  ---
+  duration_ms: 0.351479
+  type: 'test'
+  ...
+# Subtest: reports computed dynamic imports and import.meta
+ok 233 - reports computed dynamic imports and import.meta
+  ---
+  duration_ms: 1.46663
+  type: 'test'
+  ...
+# Subtest: rewrite replaces only the specifier tokens
+ok 234 - rewrite replaces only the specifier tokens
+  ---
+  duration_ms: 1.103378
+  type: 'test'
+  ...
+# Subtest: specifiers: skill files by path, the figure as @internals/figure, outside files under local/
+ok 235 - specifiers: skill files by path, the figure as @internals/figure, outside files under local/
+  ---
+  duration_ms: 1.495478
+  type: 'test'
+  ...
+# Subtest: graph: figure outside the skill importing it by relative, absolute and @internals paths
+ok 236 - graph: figure outside the skill importing it by relative, absolute and @internals paths
+  ---
+  duration_ms: 16.301606
+  type: 'test'
+  ...
+# Subtest: minify drops comments and indentation and keeps every token, line break and template byte for byte
+ok 237 - minify drops comments and indentation and keeps every token, line break and template byte for byte
+  ---
+  duration_ms: 3.386352
+  type: 'test'
+  ...
+# Subtest: every module in the skill still parses after minify
+ok 238 - every module in the skill still parses after minify
+  ---
+  duration_ms: 1374.293316
+  type: 'test'
+  ...
+# Subtest: minifyCss keeps strings, url()s and descendant spaces
+ok 239 - minifyCss keeps strings, url()s and descendant spaces
+  ---
+  duration_ms: 2.446169
+  type: 'test'
+  ...
+# Subtest: moduleUrl escapes what a URL parser would drop or cut, and decodes back to the source
+ok 240 - moduleUrl escapes what a URL parser would drop or cut, and decodes back to the source
+  ---
+  duration_ms: 8.41737
+  type: 'test'
+  ...
+# Subtest: the Looks right card gives advice for warn-level findings and fails only on real ones
+ok 241 - the Looks right card gives advice for warn-level findings and fails only on real ones
+  ---
+  duration_ms: 7.332592
+  type: 'test'
+  ...
+# Subtest: the template is a clean model lesson: no errors, no warnings
+ok 242 - the template is a clean model lesson: no errors, no warnings
+  ---
+  duration_ms: 107.01503
+  type: 'test'
+  ...
+# Subtest: the lesson reads like a script: hook, words, chapters, captions, predict with why, recap, takeaway
+ok 243 - the lesson reads like a script: hook, words, chapters, captions, predict with why, recap, takeaway
+  ---
+  duration_ms: 19.213077
+  type: 'test'
+  ...
+# Subtest: a clean small figure passes; flat() flattens every mark
+ok 244 - a clean small figure passes; flat() flattens every mark
+  ---
+  duration_ms: 5.506326
+  type: 'test'
+  ...
+# Subtest: clear defects are errors: an undefined term, an answer that is not an option, a bad level, a bad recap
+ok 245 - clear defects are errors: an undefined term, an answer that is not an option, a bad level, a bad recap
+  ---
+  duration_ms: 5.502546
+  type: 'test'
+  ...
+# Subtest: advisories: no hook question, no analogy, no recap, no level, a question without why
+ok 246 - advisories: no hook question, no analogy, no recap, no level, a question without why
+  ---
+  duration_ms: 11.620335
+  type: 'test'
+  ...
+# Subtest: a defined word used before it is marked, and a defined word never marked
+ok 247 - a defined word used before it is marked, and a defined word never marked
+  ---
+  duration_ms: 7.324771
+  type: 'test'
+  ...
+# Subtest: jargon: flagged when undefined, quiet when glossed inline or defined as a term; always flagged in labels
+ok 248 - jargon: flagged when undefined, quiet when glossed inline or defined as a term; always flagged in labels
+  ---
+  duration_ms: 23.951855
+  type: 'test'
+  ...
+# Subtest: sizing by level: an intro lesson with many chapters and knobs is told to slim down
+ok 249 - sizing by level: an intro lesson with many chapters and knobs is told to slim down
+  ---
+  duration_ms: 2.619563
+  type: 'test'
+  ...
+# Subtest: captions over the budget and long sentences are reported once, with the worst example
+ok 250 - captions over the budget and long sentences are reported once, with the worst example
+  ---
+  duration_ms: 2.664594
+  type: 'test'
+  ...
+# Subtest: text helpers: sentences, syllables, grade
+ok 251 - text helpers: sentences, syllables, grade
+  ---
+  duration_ms: 1.454877
+  type: 'test'
+  ...
+# Subtest: tone: words that tell a beginner it should be easy
+ok 252 - tone: words that tell a beginner it should be easy
+  ---
+  duration_ms: 1.868138
+  type: 'test'
+  ...
+# Subtest: knobs marked hidden: true (kept out of the settings drawer) do not count toward the knob limit
+ok 253 - knobs marked hidden: true (kept out of the settings drawer) do not count toward the knob limit
+  ---
+  duration_ms: 4.61202
+  type: 'test'
+  ...
+# Subtest: chapter names are checked for jargon like story labels: the scrubber shows them before anything is explained
+ok 254 - chapter names are checked for jargon like story labels: the scrubber shows them before anything is explained
+  ---
+  duration_ms: 5.156971
+  type: 'test'
+  ...
+# Subtest: other knob values: captions, words and chapter names a run shows only there are linted too, each once
+ok 255 - other knob values: captions, words and chapter names a run shows only there are linted too, each once
+  ---
+  duration_ms: 14.439252
+  type: 'test'
+  ...
+# Subtest: vint uses the shortest length and never the all-ones value
+ok 256 - vint uses the shortest length and never the all-ones value
+  ---
+  duration_ms: 6.672701
+  type: 'test'
+  ...
+# Subtest: muxes a seekable file: header, info duration, track, clusters at keyframes, cues
+ok 257 - muxes a seekable file: header, info duration, track, clusters at keyframes, cues
+  ---
+  duration_ms: 16.471661
+  type: 'test'
+  ...
+# Subtest: a typo is one edit, a swap of two letters included
+ok 258 - a typo is one edit, a swap of two letters included
+  ---
+  duration_ms: 3.85453
+  type: 'test'
+  ...
+# Subtest: keyLine, excerpt and frameIn name the line
+ok 259 - keyLine, excerpt and frameIn name the line
+  ---
+  duration_ms: 6.450045
+  type: 'test'
+  ...
+# Subtest: a syntax error in an imported file is reported with its line and a caret
+ok 260 - a syntax error in an imported file is reported with its line and a caret
+  ---
+  duration_ms: 265.902418
+  type: 'test'
+  ...
+# Subtest: findChrome honours CHROME_PATH, says when it is wrong, and searches PATH
+ok 261 - findChrome honours CHROME_PATH, says when it is wrong, and searches PATH
+  ---
+  duration_ms: 5.174395
+  type: 'test'
+  ...
+# Subtest: a copied README's commands are rewritten to run from the new folder
+ok 262 - a copied README's commands are rewritten to run from the new folder
+  ---
+  duration_ms: 7.511097
+  type: 'test'
+  ...
+# Subtest: a clean figure passes every run (scenarios x param extremes) but the one framing problem it plants
+ok 263 - a clean figure passes every run (scenarios x param extremes) but the one framing problem it plants
+  ---
+  duration_ms: 557.99425
+  type: 'test'
+  ...
+# Subtest: a broken figure gets precise, actionable findings
+ok 264 - a broken figure gets precise, actionable findings
+  ---
+  duration_ms: 1934.119998
+  type: 'test'
+  ...
+# Subtest: events run in (time, seq) order and each makes one step at its sim time
+ok 265 - events run in (time, seq) order and each makes one step at its sim time
+  ---
+  duration_ms: 17.522804
+  type: 'test'
+  ...
+# Subtest: same seed, same recording; different seeds, different timings
+ok 266 - same seed, same recording; different seeds, different timings
+  ---
+  duration_ms: 74.17028
+  type: 'test'
+  ...
+# Subtest: latency stays within mean ± jitter (with a floor) and FIFO links keep order
+ok 267 - latency stays within mean ± jitter (with a floor) and FIFO links keep order
+  ---
+  duration_ms: 57.686639
+  type: 'test'
+  ...
+# Subtest: an analytic check: a token ring takes exactly the sum of its link latencies
+ok 268 - an analytic check: a token ring takes exactly the sum of its link latencies
+  ---
+  duration_ms: 5.127647
+  type: 'test'
+  ...
+# Subtest: random drops: about the configured rate, visible deaths, latency stream unchanged
+ok 269 - random drops: about the configured rate, visible deaths, latency stream unchanged
+  ---
+  duration_ms: 399.435943
+  type: 'test'
+  ...
+# Subtest: crash and recover: deaths at a down node, timers stop, LEDs and hooks
+ok 270 - crash and recover: deaths at a down node, timers stop, LEDs and hooks
+  ---
+  duration_ms: 7.528497
+  type: 'test'
+  ...
+# Subtest: partitions cut links between sides, at send time and in flight; unlisted nodes reach everyone
+ok 271 - partitions cut links between sides, at send time and in flight; unlisted nodes reach everyone
+  ---
+  duration_ms: 3.062168
+  type: 'test'
+  ...
+# Subtest: describe: the split and heal captions, the zone title and lost-message captions, per network or per call
+ok 272 - describe: the split and heal captions, the zone title and lost-message captions, per network or per call
+  ---
+  duration_ms: 6.535071
+  type: 'test'
+  ...
+# Subtest: pacing: builder pacing by default, explicit durations on request, both from the gap to the next step
+ok 273 - pacing: builder pacing by default, explicit durations on request, both from the gap to the next step
+  ---
+  duration_ms: 3.06574
+  type: 'test'
+  ...
+# Subtest: batching merges a burst into one step with chorus narration
+ok 274 - batching merges a burst into one step with chorus narration
+  ---
+  duration_ms: 12.193744
+  type: 'test'
+  ...
+# Subtest: quiet losses join the next step; drain finishes messages in flight
+ok 275 - quiet losses join the next step; drain finishes messages in flight
+  ---
+  duration_ms: 1.797613
+  type: 'test'
+  ...
+# Subtest: lanes: sends between laned nodes draw diagonals; timers, crashes mark lanes
+ok 276 - lanes: sends between laned nodes draw diagonals; timers, crashes mark lanes
+  ---
+  duration_ms: 1.818849
+  type: 'test'
+  ...
+# Subtest: node state is published as a copy, only when it changes
+ok 277 - node state is published as a copy, only when it changes
+  ---
+  duration_ms: 1.298208
+  type: 'test'
+  ...
+# Subtest: validation: unknown nodes, self-sends, scheduling in the past, drop rates
+ok 278 - validation: unknown nodes, self-sends, scheduling in the past, drop rates
+  ---
+  duration_ms: 1.467926
+  type: 'test'
+  ...
+# Subtest: fixtures compile on the real engine: no problems, invariants hold, hashes are stable
+ok 279 - fixtures compile on the real engine: no problems, invariants hold, hashes are stable
+  ---
+  duration_ms: 2724.417208
+  type: 'test'
+  ...
+# Subtest: sim/rng.mjs can be the builder's s.rng
+ok 280 - sim/rng.mjs can be the builder's s.rng
+  ---
+  duration_ms: 1.255884
+  type: 'test'
+  ...
+# Subtest: every runtime drives the real builder without problems
+ok 281 - every runtime drives the real builder without problems
+  ---
+  duration_ms: 54.138988
+  type: 'test'
+  ...
+# Subtest: every scenario, many seeds and sizes: clean recording, invariants hold, honest counters
+ok 282 - every scenario, many seeds and sizes: clean recording, invariants hold, honest counters
+  ---
+  duration_ms: 1573.24581
+  type: 'test'
+  ...
+# Subtest: already sorted input is the worst case; duplicates share identity colours
+ok 283 - already sorted input is the worst case; duplicates share identity colours
+  ---
+  duration_ms: 5.742344
+  type: 'test'
+  ...
+# Subtest: typed input overrides n and the generated values
+ok 284 - typed input overrides n and the generated values
+  ---
+  duration_ms: 7.445732
+  type: 'test'
+  ...
+# Subtest: the figure is deterministic and its narration is precise
+ok 285 - the figure is deterministic and its narration is precise
+  ---
+  duration_ms: 22.298846
+  type: 'test'
+  ...
+# Subtest: the invariants catch a broken array
+ok 286 - the invariants catch a broken array
+  ---
+  duration_ms: 0.897251
+  type: 'test'
+  ...
+# Subtest: 200 seeds × every scenario: clean recordings, Raft's safety invariants on every step, and liveness
+ok 287 - 200 seeds × every scenario: clean recordings, Raft's safety invariants on every step, and liveness
+  ---
+  duration_ms: 10668.663017
+  type: 'test'
+  ...
+# Subtest: other cluster sizes and lossy networks stay safe
+ok 288 - other cluster sizes and lossy networks stay safe
+  ---
+  duration_ms: 2737.44195
+  type: 'test'
+  ...
+# Subtest: chaos: random crashes, partitions and drop storms never break safety (200 seeds)
+ok 289 - chaos: random crashes, partitions and drop storms never break safety (200 seeds)
+  ---
+  duration_ms: 10505.804957
+  type: 'test'
+  ...
+# Subtest: the invariants have teeth: each deliberate protocol bug is caught
+ok 290 - the invariants have teeth: each deliberate protocol bug is caught
+  ---
+  duration_ms: 38172.628343
+  type: 'test'
+  ...
+# Subtest: Figure 8: correct Raft survives the adversary; counting old-term replicas does not
+ok 291 - Figure 8: correct Raft survives the adversary; counting old-term replicas does not
+  ---
+  duration_ms: 1359.036743
+  type: 'test'
+  ...
+# Subtest: deterministic, with honest counters and sim time on every step
+ok 292 - deterministic, with honest counters and sim time on every step
+  ---
+  duration_ms: 72.15742
+  type: 'test'
+  ...
+# Subtest: the invariants reject forged histories
+ok 293 - the invariants reject forged histories
+  ---
+  duration_ms: 1.546663
+  type: 'test'
+  ...
+# Subtest: bytes: decimal by default, binary on request, unit never wraps
+ok 294 - bytes: decimal by default, binary on request, unit never wraps
+  ---
+  duration_ms: 3.577659
+  type: 'test'
+  ...
+# Subtest: ms: ns, µs, ms and s
+ok 295 - ms: ns, µs, ms and s
+  ---
+  duration_ms: 0.613343
+  type: 'test'
+  ...
+# Subtest: pct, ratio, num and int
+ok 296 - pct, ratio, num and int
+  ---
+  duration_ms: 0.684256
+  type: 'test'
+  ...
+# Subtest: hex and bin: width, grouping, BigInt, sign
+ok 297 - hex and bin: width, grouping, BigInt, sign
+  ---
+  duration_ms: 1.100751
+  type: 'test'
+  ...
+# Subtest: plural, pluralize and and()
+ok 298 - plural, pluralize and and()
+  ---
+  duration_ms: 0.798859
+  type: 'test'
+  ...
+# Subtest: caption markup helpers
+ok 299 - caption markup helpers
+  ---
+  duration_ms: 1.945911
+  type: 'test'
+  ...
+# Subtest: variants advance in lockstep, one shared step per round
+ok 300 - variants advance in lockstep, one shared step per round
+  ---
+  duration_ms: 11.499684
+  type: 'test'
+  ...
+# Subtest: the scoped builder prefixes counters and ids and forbids stepping
+ok 301 - the scoped builder prefixes counters and ids and forbids stepping
+  ---
+  duration_ms: 6.862349
+  type: 'test'
+  ...
+# Subtest: bubble sort vs insertion sort on the same input, with honest per-variant counters
+ok 302 - bubble sort vs insertion sort on the same input, with honest per-variant counters
+  ---
+  duration_ms: 17.216984
+  type: 'test'
+  ...
+# Subtest: bit fields split and join, with masks and shifts, beyond 32 bits
+ok 303 - bit fields split and join, with masks and shifts, beyond 32 bits
+  ---
+  duration_ms: 16.213658
+  type: 'test'
+  ...
+# Subtest: the cache agrees with independent LRU and FIFO oracles on random traces
+ok 304 - the cache agrees with independent LRU and FIFO oracles on random traces
+  ---
+  duration_ms: 117.46255
+  type: 'test'
+  ...
+# Subtest: cache details: evicted line addresses, dirty write-backs, order and reset
+ok 305 - cache details: evicted line addresses, dirty write-backs, order and reset
+  ---
+  duration_ms: 3.07079
+  type: 'test'
+  ...
+# Subtest: TLB: LRU slots stay put; FIFO evicts the oldest
+ok 306 - TLB: LRU slots stay put; FIFO evicts the oldest
+  ---
+  duration_ms: 1.914302
+  type: 'test'
+  ...
+# Subtest: x86-64 page walk: indices, entry addresses, faults, canonical addresses
+ok 307 - x86-64 page walk: indices, entry addresses, faults, canonical addresses
+  ---
+  duration_ms: 5.360533
+  type: 'test'
+  ...
+# Subtest: MMU: a TLB hit skips the walk
+ok 308 - MMU: a TLB hit skips the walk
+  ---
+  duration_ms: 1.383629
+  type: 'test'
+  ...
+# Subtest: render helpers drive the builder cleanly
+ok 309 - render helpers drive the builder cleanly
+  ---
+  duration_ms: 35.719636
+  type: 'test'
+  ...
+# Subtest: xoshiro128** matches an independent reference
+ok 310 - xoshiro128** matches an independent reference
+  ---
+  duration_ms: 22.590366
+  type: 'test'
+  ...
+# Subtest: same seed, same stream; different seeds differ; numbers and strings agree
+ok 311 - same seed, same stream; different seeds differ; numbers and strings agree
+  ---
+  duration_ms: 8.785185
+  type: 'test'
+  ...
+# Subtest: fork is pure in (seed path, label) and independent of the parent's position
+ok 312 - fork is pure in (seed path, label) and independent of the parent's position
+  ---
+  duration_ms: 5.918394
+  type: 'test'
+  ...
+# Subtest: clone continues from the same position
+ok 313 - clone continues from the same position
+  ---
+  duration_ms: 0.691051
+  type: 'test'
+  ...
+# Subtest: int is inclusive, unbiased enough and validated
+ok 314 - int is inclusive, unbiased enough and validated
+  ---
+  duration_ms: 51.783019
+  type: 'test'
+  ...
+# Subtest: float, chance, bool, exp and normal have the right shape
+ok 315 - float, chance, bool, exp and normal have the right shape
+  ---
+  duration_ms: 65.427346
+  type: 'test'
+  ...
+# Subtest: shuffle, sample, pick and weighted
+ok 316 - shuffle, sample, pick and weighted
+  ---
+  duration_ms: 37.552236
+  type: 'test'
+  ...
+# Subtest: no simulation module uses Math.random or Date.now
+ok 317 - no simulation module uses Math.random or Date.now
+  ---
+  duration_ms: 10.157903
+  type: 'test'
+  ...
+# Subtest: records every call with a snapshot of its arguments
+ok 318 - records every call with a snapshot of its arguments
+  ---
+  duration_ms: 9.268236
+  type: 'test'
+  ...
+# Subtest: flags unknown ids, use before declaration, removed entities
+ok 319 - flags unknown ids, use before declaration, removed entities
+  ---
+  duration_ms: 1.81715
+  type: 'test'
+  ...
+# Subtest: flags steps without captions, trailing ops, held messages and bad deliveries
+ok 320 - flags steps without captions, trailing ops, held messages and bad deliveries
+  ---
+  duration_ms: 1.821506
+  type: 'test'
+  ...
+# Subtest: say() satisfies a step's caption; step merges caption and says
+ok 321 - say() satisfies a step's caption; step merges caption and says
+  ---
+  duration_ms: 0.963939
+  type: 'test'
+  ...
+# Subtest: validates tones, LEDs, set fields, counters, lanes, time and overflow
+ok 322 - validates tones, LEDs, set fields, counters, lanes, time and overflow
+  ---
+  duration_ms: 1.283036
+  type: 'test'
+  ...
+# Subtest: models membership: move, swap, spawn, remove, deliver into
+ok 323 - models membership: move, swap, spawn, remove, deliver into
+  ---
+  duration_ms: 2.929298
+  type: 'test'
+  ...
+# Subtest: bits, pointers, lanes and marks
+ok 324 - bits, pointers, lanes and marks
+  ---
+  duration_ms: 2.602782
+  type: 'test'
+  ...
+# Subtest: same build, same recording; strict mode throws
+ok 325 - same build, same recording; strict mode throws
+  ---
+  duration_ms: 3.175741
+  type: 'test'
+  ...
+# Subtest: runFigure resolves params like the runtime and checks invariants on every snapshot
+ok 326 - runFigure resolves params like the runtime and checks invariants on every snapshot
+  ---
+  duration_ms: 2.438691
+  type: 'test'
+  ...
+# Subtest: a comparison and its swap are one step with precise narration
+ok 327 - a comparison and its swap are one step with precise narration
+  ---
+  duration_ms: 28.430564
+  type: 'test'
+  ...
+# Subtest: bubble sort through tracked.array matches a naive bubble sort, step for step
+ok 328 - bubble sort through tracked.array matches a naive bubble sort, step for step
+  ---
+  duration_ms: 42.888431
+  type: 'test'
+  ...
+# Subtest: insertion sort with writes: set joins its comparison
+ok 329 - insertion sort with writes: set joins its comparison
+  ---
+  duration_ms: 1.978584
+  type: 'test'
+  ...
+# Subtest: pointers stay on their slots through swaps, hide off the ends and narrate as consequences
+ok 330 - pointers stay on their slots through swaps, hide off the ends and narrate as consequences
+  ---
+  duration_ms: 2.210398
+  type: 'test'
+  ...
+# Subtest: marks and dims belong to slots, not tiles
+ok 331 - marks and dims belong to slots, not tiles
+  ---
+  duration_ms: 2.632539
+  type: 'test'
+  ...
+# Subtest: auto: none leaves stepping to the author and hands back the narration
+ok 332 - auto: none leaves stepping to the author and hands back the narration
+  ---
+  duration_ms: 2.593656
+  type: 'test'
+  ...
+# Subtest: array state is published for invariants and survives as a copy
+ok 333 - array state is published for invariants and survives as a copy
+  ---
+  duration_ms: 1.332943
+  type: 'test'
+  ...
+# Subtest: stack and queue agree with native arrays over random operations
+ok 334 - stack and queue agree with native arrays over random operations
+  ---
+  duration_ms: 56.898676
+  type: 'test'
+  ...
+# Subtest: hash tables (chaining and linear probing) agree with a Map over random operations
+ok 335 - hash tables (chaining and linear probing) agree with a Map over random operations
+  ---
+  duration_ms: 165.365667
+  type: 'test'
+  ...
+# Subtest: hash table narration and tags show hash(k) % m and the probe sequence
+ok 336 - hash table narration and tags show hash(k) % m and the probe sequence
+  ---
+  duration_ms: 13.068147
+  type: 'test'
+  ...
+1..336
+# tests 336
+# suites 0
+# pass 336
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 80571.51146
+DONE

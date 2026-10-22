@@ -1,0 +1,39 @@
+--- main mapreduce
++++ branch mapreduce
+@@ -144,10 +144,10 @@
+ 
+    ▸ Chapter 3 of 5 · Shuffle
+      about     In the shuffle, each slip travels to one counting machine. A hash turns the word into
+-               a number. Divide it by the number of counters: the remainder (with 2 counters, 0 or
+-               1) names the counter. [shuffle: The step where every slip travels to the machine that
+-               adds up its word.] [hash: A function that turns a word into a big number. The same
+-               word always gives the same number.]
++               a number. Divide it by the number of counters, here 2: the remainder, always less
++               than 2, names the counter. [shuffle: The step where every slip travels to the machine
++               that adds up its word.] [hash: A function that turns a word into a big number. The
++               same word always gives the same number.]
+      so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+      now       Send each slip to one of the 2 counting machines.
+      done when Every slip sits on a counting machine, and you can say why it went there.
+@@ -426,8 +426,8 @@
+ 
+    ▸ Chapter 3 of 5 · Shuffle
+      about     In the shuffle, each slip travels to one counting machine. A hash turns the word into
+-               a number. Divide it by the number of counters: the remainder (with 2 counters, 0 or
+-               1) names the counter.
++               a number. Divide it by the number of counters, here 2: the remainder, always less
++               than 2, names the counter.
+      so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+      now       Send each slip to one of the 2 counting machines.
+      done when Every slip sits on a counting machine, and you can say why it went there.
+@@ -654,8 +654,8 @@
+ 
+    ▸ Chapter 3 of 5 · Shuffle
+      about     In the shuffle, each slip travels to one counting machine. A hash turns the word into
+-               a number. Divide it by the number of counters: the remainder (with 2 counters, 0 or
+-               1) names the counter.
++               a number. Divide it by the number of counters, here 2: the remainder, always less
++               than 2, names the counter.
+      so far    Every word is a `(word, 1)` slip, spread over the reading machines.
+      now       Send each slip to one of the 2 counting machines.
+      done when Every slip sits on a counting machine, and you can say why it went there.

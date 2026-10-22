@@ -1,0 +1,707 @@
+[
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "parameters",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "Parameters"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-parameters-light-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "code",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0.66,
+   "dockCovered": 0.66,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [
+   "a11y-contrast .ix-ln \"1\" 2.23",
+   "a11y-contrast .ix-t-fn \"map\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"split\" 2.75",
+   "a11y-contrast .ix-t-op \"):\" 2.75",
+   "a11y-contrast .ix-t-com \"# a reading machine\" 2.23",
+   "a11y-contrast .ix-ln \"2\" 2.23",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-lc \"split\" 2.75",
+   "a11y-contrast .ix-t-op \".\" 2.75",
+   "a11y-contrast .ix-t-fn \"split\" 4.36",
+   "a11y-contrast .ix-t-op \"():\" 2.75",
+   "a11y-contrast .ix-ln \"3\" 2.23",
+   "a11y-contrast .ix-t-fn \"emit\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-t-op \",\" 2.75",
+   "a11y-contrast .ix-t-op \")\" 2.75",
+   "a11y-contrast .ix-t-com \"# one slip per word\" 2.23",
+   "a11y-contrast .ix-ln \"4\" 2.23",
+   "a11y-contrast .ix-ln \"5\" 2.23",
+   "a11y-contrast .ix-t-fn \"combine\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-t-op \",\" 2.75",
+   "a11y-contrast .ix-lc \"counts\" 2.75",
+   "a11y-contrast .ix-t-op \"):\" 2.75",
+   "a11y-contrast .ix-t-com \"# optional: add up repeats first\" 2.23",
+   "a11y-contrast .ix-ln \"6\" 2.23",
+   "a11y-contrast .ix-t-fn \"emit\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-t-op \",\" 2.75",
+   "a11y-contrast .ix-t-fn \"sum\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"counts\" 2.75",
+   "a11y-contrast .ix-t-op \"))\" 2.75",
+   "a11y-contrast .ix-ln \"7\" 2.23",
+   "a11y-contrast .ix-ln \"10\" 2.23",
+   "a11y-contrast .ix-ln \"11\" 2.23",
+   "a11y-contrast .ix-t-fn \"reduce\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-t-op \",\" 2.75",
+   "a11y-contrast .ix-lc \"counts\" 2.75",
+   "a11y-contrast .ix-t-op \"):\" 2.75",
+   "a11y-contrast .ix-t-com \"# a counting machine\" 2.20",
+   "a11y-contrast .ix-ln \"12\" 2.23",
+   "a11y-contrast .ix-t-fn \"emit\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"word\" 2.75",
+   "a11y-contrast .ix-t-op \",\" 2.75",
+   "a11y-contrast .ix-t-fn \"sum\" 4.36",
+   "a11y-contrast .ix-t-op \"(\" 2.75",
+   "a11y-contrast .ix-lc \"counts\" 2.75",
+   "a11y-contrast .ix-t-op \"))\" 2.75"
+  ],
+  "shot": "after-code-light-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "share",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "Share"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-share-light-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "help",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-help"
+   ],
+   "rootSheet": false,
+   "focus": "How to use this figureThe inte"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "About this figure"
+  },
+  "a11y": [],
+  "shot": "after-help-light-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "readout",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-meters"
+   ],
+   "rootSheet": true,
+   "focus": "About this figure"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "About this figure"
+  },
+  "a11y": [],
+  "shot": "after-readout-light-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "light",
+  "sheet": "none",
+  "open": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  }
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "parameters",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "Parameters"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-parameters-dark-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "code",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0.6,
+   "dockCovered": 0.6,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [
+   "a11y-contrast .ix-chip \"the\" 2.12"
+  ],
+  "shot": "after-code-dark-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "share",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": true,
+   "focus": "Share"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-share-dark-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "help",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-help"
+   ],
+   "rootSheet": false,
+   "focus": "How to use this figureThe inte"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "About this figure"
+  },
+  "a11y": [],
+  "shot": "after-help-dark-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "readout",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 248,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-meters"
+   ],
+   "rootSheet": true,
+   "focus": "About this figure"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "About this figure"
+  },
+  "a11y": [],
+  "shot": "after-readout-dark-390x844.png"
+ },
+ {
+  "size": "390x844",
+  "dsize": "phone",
+  "theme": "dark",
+  "sheet": "none",
+  "open": {
+   "visible": true,
+   "capH": 248,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  }
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "parameters",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "Parameters"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [
+   "a11y-target .ix-peek-more \"More\" 20.00"
+  ],
+  "shot": "after-parameters-light-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "code",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [
+   "a11y-contrast .ix-story-k \"Scenario\" 4.39"
+  ],
+  "shot": "after-code-light-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "share",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "Share"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-share-light-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "help",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 160,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-help"
+   ],
+   "rootSheet": false,
+   "focus": "How to use this figureThe inte"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-help-light-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "readout",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0.57,
+   "dockCovered": 0.55,
+   "sheets": [
+    "ix-meters"
+   ],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-readout-light-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "light",
+  "sheet": "none",
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "MapReduceScenariosEverything w"
+  }
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "parameters",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "Parameters"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [
+   "a11y-target .ix-peek-more \"More\" 20.00"
+  ],
+  "shot": "after-parameters-dark-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "code",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-code-dark-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "share",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [
+    "ix-panel"
+   ],
+   "rootSheet": false,
+   "focus": "Share"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-share-dark-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "help",
+  "trigger": true,
+  "open": {
+   "visible": false,
+   "capH": 160,
+   "covered": 1,
+   "dockCovered": 1,
+   "sheets": [
+    "ix-help"
+   ],
+   "rootSheet": false,
+   "focus": "How to use this figureThe inte"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-help-dark-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "readout",
+  "trigger": true,
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0.57,
+   "dockCovered": 0.55,
+   "sheets": [
+    "ix-meters"
+   ],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "closed": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "hash(the) % 2 = 0MapReduceScen"
+  },
+  "a11y": [],
+  "shot": "after-readout-dark-844x390.png"
+ },
+ {
+  "size": "844x390",
+  "dsize": "compact",
+  "theme": "dark",
+  "sheet": "none",
+  "open": {
+   "visible": true,
+   "capH": 160,
+   "covered": 0,
+   "dockCovered": 0,
+   "sheets": [],
+   "rootSheet": false,
+   "focus": "MapReduceScenariosEverything w"
+  }
+ }
+]

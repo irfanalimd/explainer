@@ -1,0 +1,9 @@
+4://   await page.evaluate("1 + 1"); await page.shot("x.png"); await page.close(); browser.close();
+98:  let id = 0, closed = false, closing = false;
+109:  ws.addEventListener("close", () => {
+110:    closed = true;
+111:    for (const { fail, method } of pending.values()) fail(new Error(`${method}: Chrome connection closed`));
+{"page":"pages/b1-mapreduce.html","size":"1440x900","out":{"all":{"fps":1.51,"msCpu":0.9,"draft":true,"W":1080},"noShadowSample":{"fps":2.74,"msCpu":0.6,"draft":true,"W":1080},"noFloor":{"fps":3.86,"msCpu":0.9,"draft":true,"W":1080},"noSlabs":{"fps":2.77,"msCpu":1.5,"draft":true,"W":1080},"noBloom":{"fps":2.18,"msCpu":0.7,"draft":true,"W":1080},"noDraft":{"fps":0.51,"msCpu":1,"draft":false,"W":1440}}}
+{"page":"pages/b1-mapreduce.html","size":"390x844","out":{"all":{"fps":2.55,"msCpu":0.6,"draft":true,"W":293},"noShadowSample":{"fps":3.42,"msCpu":3,"draft":true,"W":293},"noFloor":{"fps":7,"msCpu":3.8,"draft":true,"W":293},"noSlabs":{"fps":5.57,"msCpu":3.5,"draft":true,"W":293},"noBloom":{"fps":2.23,"msCpu":4.3,"draft":true,"W":293},"noDraft":{"fps":1.86,"msCpu":0.9,"draft":false,"W":390}}}
+
+[exited with code 0]
