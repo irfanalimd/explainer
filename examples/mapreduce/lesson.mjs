@@ -161,7 +161,7 @@ export const lesson = {
       },
       "deeper@skew": {
         cost: "Alone: {n} reads, one after another. Shared {M} ways, the reading takes as long as the biggest piece: {biggest} reads.",
-        real: "The paper's second example is this same job: map reads a log of web page requests and writes ⟨URL, 1⟩, and reduce adds up each URL's 1s (§2.3). This story counts status codes instead of URLs.",
+        real: "The paper's second example is this same job: map reads a log of web page requests and writes `(URL, 1)`, and reduce adds up each URL's 1s (§2.3). This story counts status codes instead of URLs.",
         source: "[dean2004] §2.3",
       },
     },
@@ -515,7 +515,7 @@ export const lesson = {
       why: "{top} fills {topN} of the {n} lines, and every raw {top} slip must meet on one counter; other codes can hash there too.",
       look: ["{hotId}"],
       deeper: {
-        real: "Real text is lopsided the same way. The paper notes that word frequencies tend to follow a Zipf distribution, so each map task writes hundreds or thousands of ⟨the, 1⟩ slips, all bound for one reduce task (§4.3).",
+        real: "Real text is lopsided the same way. The paper notes that word frequencies tend to follow a Zipf distribution, so each map task writes hundreds or thousands of `(the, 1)` slips, all bound for one reduce task (§4.3).",
         edge: "With few different keys, the hash alone can lump several on one counter and leave another idle, so part of the overload is chance, not frequency: here {hot} got {count:codes|different code} of the {distinct}.",
         cost: "The job ends when its last counter ends, so the busy counter sets the pace, like the slow disk in “One machine is slow”. A backup copy cannot help here: it would get the same {load} slips (§3.6).",
         source: "[dean2004] §3.6, §4.3",
