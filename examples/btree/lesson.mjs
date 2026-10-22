@@ -12,16 +12,43 @@
 //                   (walk, stop), stop (stop only); found, foundKeys, foundIds, down, along (done)
 // A run that reaches 3 levels opens Descend (and its descend.reads question) after the root split, so the chapter's
 // words hold in either order.
-const COMER = "D. Comer, The Ubiquitous B-Tree, ACM Computing Surveys 11(2), 1979, https://doi.org/10.1145/356770.356776";
-const BAYER = "R. Bayer and E. McCreight, Organization and Maintenance of Large Ordered Indexes, Acta Informatica 1, 1972, https://doi.org/10.1007/BF00288683";
-const LEHMAN = "P. Lehman and S. B. Yao, Efficient Locking for Concurrent Operations on B-Trees, ACM TODS 6(4), 1981, https://doi.org/10.1145/319628.319663";
-const NBTREE = "PostgreSQL, src/backend/access/nbtree/README, https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README";
-const SPLITLOC = "PostgreSQL, src/backend/access/nbtree/nbtsplitloc.c, https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/nbtsplitloc.c";
-const PG_PAGE = "PostgreSQL docs, Database Page Layout, https://www.postgresql.org/docs/current/storage-page-layout.html";
-const PG_BTREE = "PostgreSQL docs, B-Tree Implementation, https://www.postgresql.org/docs/current/btree-implementation.html";
-const PG_EXPLAIN = "PostgreSQL docs, Using EXPLAIN, https://www.postgresql.org/docs/current/using-explain.html";
+// A layer that states a fact about real systems names its source in `deeper.source` as [id] plus a locator; the ids are
+// `lesson.sources`. The PostgreSQL claims were checked against the nbtree README, nbtsplitloc.c and the docs.
 
 export const lesson = {
+  sources: [
+    { id: "bayer1972", title: "Organization and Maintenance of Large Ordered Indexes", by: "R. Bayer, E. McCreight", year: 1972,
+      where: "Acta Informatica 1(3)", url: "https://doi.org/10.1007/BF00288683",
+      supports: "the B-tree: fixed-size pages that split, a tree that grows at the root so every leaf sits at one depth" },
+    { id: "comer1979", title: "The Ubiquitous B-Tree", by: "D. Comer", year: 1979, where: "ACM Computing Surveys 11(2)",
+      url: "https://doi.org/10.1145/356770.356776",
+      supports: "the B+ tree: ids in the leaves, separators above, the leaves linked for sequential access; B-trees as the de facto standard for indexing files" },
+    { id: "lehman1981", title: "Efficient Locking for Concurrent Operations on B-Trees", by: "P. Lehman, S. B. Yao", year: 1981, where: "ACM TODS 6(4)",
+      url: "https://doi.org/10.1145/319628.319663",
+      supports: "right-links and high keys, so a reader that meets a concurrent split moves right" },
+    { id: "pg-nbtree-readme", title: "src/backend/access/nbtree/README", by: "PostgreSQL", year: 2024, where: "PostgreSQL source tree",
+      url: "https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/README",
+      supports: "PostgreSQL implements Lehman and Yao; left links for backward scans; only completely empty pages are deleted; suffix truncation works on whole columns" },
+    { id: "pg-splitloc", title: "src/backend/access/nbtree/nbtsplitloc.c", by: "PostgreSQL", year: 2024, where: "PostgreSQL source tree",
+      url: "https://github.com/postgres/postgres/blob/master/src/backend/access/nbtree/nbtsplitloc.c",
+      supports: "a rightmost leaf split leaves the left half fillfactor% full; other leaf splits are 50:50" },
+    { id: "pg-create-index", title: "CREATE INDEX", by: "PostgreSQL", year: 2024, where: "PostgreSQL documentation",
+      url: "https://www.postgresql.org/docs/current/sql-createindex.html",
+      supports: "btree is the default index method; B-trees use a default fillfactor of 90, applied when extending the index at the right" },
+    { id: "pg-page-layout", title: "Database Page Layout", by: "PostgreSQL", year: 2024, where: "PostgreSQL documentation",
+      url: "https://www.postgresql.org/docs/current/storage-page-layout.html",
+      supports: "tables and indexes are arrays of fixed-size pages, usually 8 kB" },
+    { id: "pg-btree", title: "B-Tree Indexes: B-Tree Structure", by: "PostgreSQL", year: 2024, where: "PostgreSQL documentation",
+      url: "https://www.postgresql.org/docs/current/btree.html#BTREE-STRUCTURE",
+      supports: "each level of the tree can be used as a doubly-linked list of pages" },
+    { id: "pg-explain", title: "Using EXPLAIN", by: "PostgreSQL", year: 2024, where: "PostgreSQL documentation",
+      url: "https://www.postgresql.org/docs/current/using-explain.html",
+      supports: "a Seq Scan reads the whole table" },
+    { id: "mysql-innodb", title: "InnoDB Startup Options and System Variables: innodb_page_size", by: "Oracle", year: 2024, where: "MySQL 8.4 Reference Manual",
+      url: "https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html",
+      supports: "InnoDB's default page size is 16 KB" },
+  ],
+
   goal: "Find any id among many by reading one page per level, and keep the tree that short as ids arrive.",
 
   objectives: [
@@ -126,7 +153,7 @@ export const lesson = {
       deeper: {
         cost: "{checks} of {n} checks here. On average a search with no index checks half the rows, and an id that isn't there costs all of them: O(n).",
         real: "A database does exactly this when no index fits the query: PostgreSQL's plan says Seq Scan, a read of every page of the table.",
-        source: PG_EXPLAIN,
+        source: "[pg-explain]",
       },
     },
 
@@ -138,8 +165,8 @@ export const lesson = {
         deeper: {
           how: "Within a page the ids stay sorted, so finding an id's place is a binary search over the page, done in memory once the page is read.",
           code: "`insort(node.keys, key)` (line 6)",
-          real: "Real pages are much bigger: PostgreSQL stores every table and index in 8 KB pages, so one page holds hundreds of ids, not {M}.",
-          source: PG_PAGE,
+          real: "Real pages are much bigger: PostgreSQL stores every table and index in 8 KB pages, and MySQL's InnoDB uses 16 KB pages by default, so one page holds hundreds of ids, not {M}.",
+          source: "[pg-page-layout]; [mysql-innodb]",
         },
       },
       plain: "{key} goes into {leaf} in sorted order; it holds {count:held|id}, room for {M}.",
@@ -155,8 +182,8 @@ export const lesson = {
         deeper: {
           how: "{page} keeps the first {count:kept|id}; the rest move to {right}. A leaf copies its new right half's first id up, because every id must stay in a leaf. Since {page} was the root, the copy goes into a new root, {parent}.",
           code: "`sep = right.keys[0]  # copied up: it stays in the leaf` (line 12)",
-          edge: "A separator need not be a real id, only something between the two halves. PostgreSQL 12 and later cut it to the shortest prefix that still separates (suffix truncation), so upper pages fit more and the tree stays shorter.",
-          source: NBTREE,
+          edge: "A separator need not be a real id, only something between the two halves. On a key of several columns, PostgreSQL 12 and later drop the trailing columns the separator doesn't need (suffix truncation), so upper pages fit more separators and the tree stays shorter.",
+          source: "[pg-nbtree-readme]",
         },
       },
       plain: "{page} splits: {moved} move to {right}; {sep} is copied up to {parent}.",
@@ -178,8 +205,8 @@ export const lesson = {
           cost: "{count:reads|page read}, one per level, however many pages the tree holds. Each level multiplies the ids within reach by the ids per page, so levels grow as log n: O(log n) reads.",
           how: "At each page the search counts the separators that are ≤ the id and takes that child (Python's bisect_right). So an id equal to a separator goes right, to the leaf where that id itself lives.",
           code: "`node = node.kids[bisect_right(node.keys, key)]` (line 5)",
-          real: "An 8 KB page holds a few hundred separators, so 3 levels reach tens of millions of rows and 4 reach billions. The top levels stay in memory, so a lookup often costs one or two disk reads.",
-          source: PG_PAGE,
+          real: "An 8 KB page holds a few hundred separators, so 3 levels reach tens of millions of rows and 4 reach billions. Every lookup reads the top levels, so they stay in memory, and a lookup that goes to disk reads only the lower levels there.",
+          source: "[pg-page-layout]; [comer1979]",
         },
       },
       plain: "Insert {key} down {path}: {compares}.",
@@ -195,8 +222,8 @@ export const lesson = {
       deeper: {
         cost: "{count:height|page read} per lookup, against {count:checks|check} in the pile. More ids add a level only after every page on the way down has filled.",
         how: "The leaves end {fill}% full. A leaf split leaves both halves at least {minLeaf} of {M} ids, so no leaf but the root falls below that: the B-tree's space promise.",
-        edge: "Real engines rarely merge half-empty pages after deletes. PostgreSQL deletes a page only once it is completely empty, so a tree almost never gets shorter.",
-        source: NBTREE,
+        edge: "Deletes do not merge half-empty pages back together. PostgreSQL deletes a page only once it is completely empty, and never the rightmost page of a level, so a tree almost never gets shorter.",
+        source: "[pg-nbtree-readme]",
       },
     },
     "summary.thin": {
@@ -206,8 +233,8 @@ export const lesson = {
       look: ["{leafIds}"],
       deeper: {
         cost: "The leaves end {fill}% full, spread over {pages} pages. A fuller tree would hold the same ids in fewer pages, and fit more of itself in memory.",
-        real: "PostgreSQL spots a split of the rightmost page and leaves the left half 90% full (the leaf fillfactor) instead of half; its code notes that 50/50 splits suit only truly random inserts.",
-        source: SPLITLOC,
+        real: "PostgreSQL treats a split of the rightmost leaf as a sign of rising ids: the left half keeps the leaf fillfactor, 90% by default, instead of half. Every other leaf split is 50:50.",
+        source: "[pg-splitloc]; [pg-create-index]",
       },
     },
 
@@ -221,7 +248,8 @@ export const lesson = {
         how: "A signpost page moves its middle id up instead of copying it: {sep} leaves {page}, which keeps {count:kept|id}, and {moved} {be:moved} now in {right}. No copy is needed, because the leaves already hold every id.",
         code: "`tree.root = Inner([sep], [node, right])  # one level taller` (line 19)",
         edge: "This is the only step that makes the tree taller, now {height} levels. Adding the level above every leaf at once is why all leaves always sit at one depth.",
-        source: BAYER,
+        real: "Bayer and McCreight published the B-tree in 1972. By 1979 Comer's survey could call it “ubiquitous”: the de facto standard way to index a file. It is still the index PostgreSQL's CREATE INDEX builds unless told otherwise.",
+        source: "[bayer1972]; [comer1979]; [pg-create-index]",
       },
     },
     // only with your own ids at order 3, e.g. "99 98 … 86" (descending); verify's knob runs never split a signpost page
@@ -231,7 +259,7 @@ export const lesson = {
         deeper: {
           how: "{page} keeps {count:kept|id}, {moved} {be:moved} now in {right}, and {sep} leaves both, moving up to {parent}. The tree stays {height} levels tall.",
           code: "`sep = node.keys[mid]  # pushed up: it leaves this page` (line 15)",
-          source: COMER,
+          source: "[comer1979]",
         },
       },
       plain: "{page} is over-full, so it splits: its middle id {sep} moves up to {parent}.",
@@ -252,7 +280,7 @@ export const lesson = {
           how: "The search reads each leaf's ids in order and stops at the first id past {hi}, or when there is no next leaf.",
           code: "`leaf = leaf.next  # sideways, never back up` (line 33)",
           real: "The link matters beyond ranges. In Lehman and Yao's design, which PostgreSQL follows, a reader that reaches a page someone just split moves right along the link and still finds its id, without locking the path.",
-          source: LEHMAN,
+          source: "[lehman1981]; [pg-nbtree-readme]",
         },
       },
       plain: "Walk on to {leaf}: {count:hits|id} in range, none past {hi}.",
@@ -267,7 +295,7 @@ export const lesson = {
           how: "The search reads each leaf's ids in order and stops at the first id past {hi}, so it never reads a leaf it doesn't need.",
           code: "`if k > hi: return` (line 31)",
           real: "The link matters beyond ranges. In Lehman and Yao's design, which PostgreSQL follows, a reader that reaches a page someone just split moves right along the link and still finds its id, without locking the path.",
-          source: LEHMAN,
+          source: "[lehman1981]; [pg-nbtree-readme]",
         },
       },
       plain: "Walk on to {leaf}: {count:hits|id} in range. {stop} is past {hi}, so the search stops.",
@@ -282,7 +310,7 @@ export const lesson = {
       deeper: {
         cost: "{count:reads|read} = {count:down|level} down + {count:along|leaf|leaves} walked. A range costs the height plus the leaves it spans, however many ids lie outside it.",
         real: "PostgreSQL links each level's pages both ways, so a descending range (ORDER BY id DESC) walks the same chain to the left.",
-        source: PG_BTREE,
+        source: "[pg-btree]; [pg-nbtree-readme]",
       },
     },
   },
