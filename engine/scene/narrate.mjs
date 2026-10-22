@@ -1,6 +1,8 @@
 // Narration helpers (CONTRACTS.md 4.4): build caption markup safely, flatten it to plain text, and list the
 // keys and entity refs it mentions (compile checks that every {ref:id} names a real entity).
 //   {key:fox} {key:fox|the word fox}  {ref:m2} {ref:m2|mapper 2}  {tone:fail|crashed}  {term:pointer|pointers}  `code`  **bold**
+//   [dean2004] [dean2004] §3.6  a citation of lesson.sources (sources.mjs)
+import { citesIn } from "./sources.mjs";
 
 const SPECIAL = /[{}`*\\|]/g;
 export const escape = (text) => String(text ?? "").replace(SPECIAL, (c) => "\\" + c);
@@ -16,7 +18,7 @@ export const bold = (markup) => `**${markup}**`;
 const MARK = /^\{(key|ref|tone|term):((?:\\.|[^{}|\\])*)(?:\|((?:\\.|[^{}\\])*))?\}/;
 const unescape = (s) => s.replace(/\\(.)/g, "$1");
 
-/** Tokens: {type: "text"|"key"|"ref"|"tone"|"term"|"code"|"bold", ...}. Malformed marks stay literal. */
+/** Tokens: {type: "text"|"key"|"ref"|"tone"|"term"|"code"|"bold"|"cite", ...}. Malformed marks stay literal. */
 export function tokens(src) {
   const s = String(src ?? "");
   const out = [];
@@ -45,6 +47,15 @@ export function tokens(src) {
         else if (m[1] === "term") out.push({ type: "term", name, text: text ?? name });
         else out.push({ type: "tone", tone: name, text: text ?? name });
         i += m[0].length;
+        continue;
+      }
+    }
+    if (c === "[" && (i === 0 || /[\s(“"'‘]/.test(s[i - 1]))) {
+      const m = citesIn(s.slice(i))[0];
+      if (m && m.index === 0) {
+        flush();
+        out.push({ type: "cite", id: m.id, at: m.at, text: s.slice(i, i + m.length) });
+        i += m.length;
         continue;
       }
     }
