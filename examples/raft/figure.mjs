@@ -637,8 +637,11 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const cv = { cand: chip(b.candidate), candId: b.candidate };
     if (grant) {
       grantAt.set(b.candidate, net.stepSerial);
+      // the servers that stepped down first get a sentence of their own; beside the others' it needs no reason again
       sing(ctx, `grant|${b.candidate}|${st.term}|${stepped}`, "vote.grant", { ...cv, term: st.term, stepped }, (list, n) =>
-        `${crowd(list, n)}${stepped ? ` ${v(n, "steps", "step")} down and` : ""} ${v(n, "votes", "vote")} for ${R(b.candidate)}: its log is as complete as ${v(n, "its own", "theirs")}.`);
+        stepped && subjects.has(`grant|${b.candidate}|${st.term}|false`)
+          ? `${crowd(list, n)} ${v(n, "steps", "step")} down and ${v(n, "votes", "vote")} for ${R(b.candidate)} too.`
+          : `${crowd(list, n)}${stepped ? ` ${v(n, "steps", "step")} down and` : ""} ${v(n, "votes", "vote")} for ${R(b.candidate)}: its log is as complete as ${v(n, "its own", "theirs")}.`);
     } else if (b.term < st.term) {
       const now = st.term;
       sing(ctx, `old-vote|${b.candidate}|${b.term}|${now}`, "vote.old", { ...cv, term: b.term, own: now }, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
@@ -667,7 +670,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (!st.votes.includes(m.from)) st.votes.push(m.from);
     if (st.votes.length >= majority) return becomeLeader(ctx);
     const term = st.term;
-    sing(ctx, `tally|${ctx.id}|${term}`, "vote.tally", { ...cv, votes: st.votes.length, need: majority }, () => (st.role === "candidate" && st.term === term ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
+    // a refusal in the same step already ends with the tally ("…; it has 2 of the 4 votes it needs")
+    sing(ctx, `tally|${ctx.id}|${term}`, "vote.tally", { ...cv, votes: st.votes.length, need: majority }, () => (st.role === "candidate" && st.term === term
+      && !subjects.has(`deny|${ctx.id}|${term}`) ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
   });
 
   // ---- replication ----
@@ -704,8 +709,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (b.prevLogIndex > lastIndex(st) || termAt(st, b.prevLogIndex) !== b.prevLogTerm) {
       line("appendCheck");
       ctx.reply(m, MSG.updateReply, { term: st.term, success: false, prev: b.prevLogIndex, last: lastIndex(st) });
-      return say(ctx, "update.gap", { who: chip(ctx.id), whoId: ctx.id, from: chip(m.from), fromId: m.from, index: b.prevLogIndex, term: b.prevLogTerm },
-        `${R(ctx.id)} lacks entry ${b.prevLogIndex} from term ${b.prevLogTerm} and refuses the update.`);
+      // servers that lack the same entry refuse it in one sentence
+      return sing(ctx, `gap|${m.from}|${b.prevLogIndex}|${b.prevLogTerm}`, "update.gap", { whoId: ctx.id, from: chip(m.from), fromId: m.from, index: b.prevLogIndex, term: b.prevLogTerm },
+        (list, n) => `${crowd(list, n)} ${v(n, "lacks", "lack")} entry ${b.prevLogIndex} from term ${b.prevLogTerm} and ${v(n, "refuses", "refuse")} the update.`, ctx.id, { rank: 2 });
     }
     let i = b.prevLogIndex, added = [], cut = 0, from = 0;
     for (const e of b.entries) {
