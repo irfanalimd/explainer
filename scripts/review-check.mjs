@@ -39,6 +39,7 @@ function quotesOf(r, role) {
     add("least_precise", r.least_precise_three);
     add("nuance", r.nuance_learned);
     add("number", r.numbers_checked);
+    add("citation", r.citations_checked);
   }
   return out;
 }
