@@ -80,9 +80,12 @@ export function lintSources(lesson, meta = {}, seen = []) {
         if (!x || typeof x !== "object") continue;
         for (const [dk, d] of Object.entries(x)) {
           if (!dk.startsWith("deeper") || !d || typeof d !== "object") continue;
+          // a real-world layer is cited by its own [id] or by the Source line beside it (the same story's, or the base one)
+          const sourced = (fk) => [`source${fk.slice(4)}`, "source"].some((k) => isStr(d[k]) && citesOf(d[k]).length);
           for (const [fk, text] of Object.entries(d)) {
             const field = fk.split("@")[0];
-            if ((field === "real" || field === "source") && isStr(text) && !citesOf(text).length) bare.push(`steps["${id}"].${pre}${dk}.${fk}`);
+            if (!isStr(text) || citesOf(text).length) continue;
+            if (field === "source" || (field === "real" && !sourced(fk))) bare.push(`steps["${id}"].${pre}${dk}.${fk}`);
           }
         }
       }

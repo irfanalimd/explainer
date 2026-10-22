@@ -55,3 +55,15 @@ test("citations inside inline code or escaped are not citations", () => {
   const r = lintSources({ sources: [DEAN], steps: { a: { plain: "x", deeper: { code: "`root = Inner([sep])`", source: "[dean2004]" } } } }, {});
   assert.deepEqual(rules(r), []);
 });
+
+test("a real-world layer is cited by the Source line beside it, the same story's or the base one", () => {
+  const lesson = { sources: [DEAN], steps: {
+    a: { plain: "x", deeper: { real: "Google ran it on 1,800 machines.", source: "[dean2004] §5.2" } },
+    b: { plain: "x", deeper: { "real@crash": "A worker is re-run.", "source@crash": "[dean2004] §3.3" } },
+    c: { plain: "x", deeper: { "real@crash": "A worker is re-run.", source: "[dean2004] §3.3" } },
+    d: { plain: "x", deeper: { real: "Hadoop does it too.", "source@crash": "[dean2004]" } } } };
+  const w = lintSources(lesson, {}, new Set(["a", "b", "c", "d"])).warnings.find((x) => /real-world/.test(x.message));
+  assert.ok(w, "d's base real has no base Source");
+  assert.match(w.message, /steps\["d"\]\.deeper\.real/);
+  assert.doesNotMatch(w.message, /steps\["[abc]"\]/);
+});
