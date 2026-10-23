@@ -87,7 +87,7 @@ export function createRenderer(canvas, opts = {}) {
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
       const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, t.indices, gl.STATIC_DRAW);
       gl.bindVertexArray(null);
-      return { vao, count: t.indices.length, solid: t.solidCount, type: t.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
+      return { vao, count: t.indices.length, type: t.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
     };
     R.small = mkTemplate({ corner: 7, bevel: 6, lip: 3 });
     R.large = mkTemplate({ corner: 18, bevel: 9, lip: 4 });
@@ -295,13 +295,13 @@ export function createRenderer(canvas, opts = {}) {
 
   function drawSlabs(p, fr, ranges) {
     let calls = 0;
-    for (const [tpl, base, count, indices = tpl.count] of ranges) {
+    for (const [tpl, base, count] of ranges) {
       if (!count) continue;
       gl.bindVertexArray(tpl.vao);
       gl.uniform1i(p.u.uBase, base);
-      gl.drawElementsInstanced(gl.TRIANGLES, indices, tpl.type, 0, count);
+      gl.drawElementsInstanced(gl.TRIANGLES, tpl.count, tpl.type, 0, count);
       calls++;
-      stats.triangles += indices / 3 * count;
+      stats.triangles += tpl.count / 3 * count;
     }
     return calls;
   }
@@ -360,11 +360,7 @@ export function createRenderer(canvas, opts = {}) {
     R.bounceBuf.upload(packer.bounce.a, packer.bounce.n);
 
     const b = fr.bounds;
-    // [template, first instance, instances, indices] (pack.mjs LOD classes, the tiny one on the small template): slabs
-    // without a well draw only the template's solid prefix, as on WebGPU (the rest is empty triangles for them)
-    const S = R.small, L = R.large, nTi = fr.nTiny, tS = fr.nTinySolid, sS = fr.nSmallSolid, nS = fr.nSmall, sL = fr.nLargeSolid, nL = fr.nLarge;
-    const opaque = [[S, 0, tS, S.solid], [S, tS, nTi - tS], [S, nTi, sS, S.solid], [S, nTi + sS, nS - nTi - sS], [L, nS, sL, L.solid], [L, nS + sL, nL - sL]];
-    const ranges = [...opaque, [L, nS + nL, fr.nTrans]];
+    const ranges = [[R.small, 0, fr.nSmall], [R.large, fr.nSmall, fr.nLarge], [R.large, fr.nSmall + fr.nLarge, fr.nTrans]];
     const pxU = 1 / Math.max(1e-4, cam.pxPerUnit(camera.target) * dpr);
 
     // 1. shadow map
@@ -512,7 +508,7 @@ export function createRenderer(canvas, opts = {}) {
       for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
       gl.uniform4fv(p.u.uMat, m);
       gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
-      stats.drawCalls += drawSlabs(p, fr, opaque);
+      stats.drawCalls += drawSlabs(p, fr, ranges.slice(0, 2));
       gl.disable(gl.CULL_FACE);
       // raised ink (index numbers on plates, labels on tops): depth-tested decals pulled a hair toward the eye
       if (fr.nInkRaised) {
@@ -525,7 +521,7 @@ export function createRenderer(canvas, opts = {}) {
       gl.enable(gl.CULL_FACE);
       if (fr.nTrans) {
         gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
-        stats.drawCalls += drawSlabs(p, fr, ranges.slice(-1));
+        stats.drawCalls += drawSlabs(p, fr, ranges.slice(2));
         gl.disable(gl.BLEND); gl.depthMask(true);
       }
       gl.disable(gl.CULL_FACE);
@@ -632,8 +628,7 @@ export function createRenderer(canvas, opts = {}) {
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, R.instTex);
     gl.uniformMatrix4fv(R.pick.u.uViewProj, false, vp);
     gl.enable(gl.CULL_FACE); gl.frontFace(gl.CW);
-    drawSlabs(R.pick, fr, [[R.small, 0, fr.nTinySolid, R.small.solid], [R.small, fr.nTinySolid, fr.nTiny - fr.nTinySolid], [R.small, fr.nTiny, fr.nSmallSolid, R.small.solid],
-      [R.small, fr.nTiny + fr.nSmallSolid, fr.nSmall - fr.nTiny - fr.nSmallSolid], [R.large, fr.nSmall, fr.nLargeSolid, R.large.solid], [R.large, fr.nSmall + fr.nLargeSolid, fr.nLarge - fr.nLargeSolid + fr.nTrans]]);
+    drawSlabs(R.pick, fr, [[R.small, 0, fr.nSmall], [R.large, fr.nSmall, fr.nLarge + fr.nTrans]]);
     gl.disable(gl.CULL_FACE);
     const out = new Uint8Array(4);
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, out);
