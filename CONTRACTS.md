@@ -66,14 +66,13 @@ import { createRenderer } from "./engine/gfx/renderer.mjs";
 const r = createRenderer(canvas, { theme: "light", quality: "high" /* | "medium" | "low" */, gfx /* "webgpu" | "webgl2" */, timing });
 r.resize(cssWidth, cssHeight, devicePixelRatio);
 r.setTheme("dark"); r.setQuality("medium");
-r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture, draft });
+r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture });
 r.pick(cssX, cssY)            // -> entity id string | null (slabs only)
 r.project([x, y, z])          // -> [cssX, cssY, depth, onScreen]
 r.unproject(cssX, cssY, z=0)  // -> [x, y] on the horizontal plane at height z
 r.pxPerUnit(at = [x, y, z])   // -> CSS px per world unit at that point (for LOD and tag sizing)
-r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", draft, gpuMs? }
+r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", gpuMs? }
 r.busy                        // true while the last frame had something still fading out: draw another
-r.drafted                     // true when the last frame was drawn as a draft: draw the frame that comes to rest again without `draft`
 r.size                        // { cssW, cssH, dpr, W, H, scale } (scale: WebGPU's adaptive resolution, 1 on WebGL2)
 r.profile(opts)               // -> Promise of per-pass GPU timings (WebGPU), or null
 r.backend                     // "webgpu" | "webgl2" | null before ready
@@ -91,13 +90,6 @@ long (a second of frames over the GPU budget that miss their vsync), the scene p
 the device pixel ratio (1, 0.92, 0.84, 0.75) and the composite still fills the canvas; it steps back up only when the
 span at the higher scale would sit well inside the budget, never sooner than `ADAPT.hold`. Captured frames
 (`capture: true`) always draw at full scale.
-
-**Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
-and while the camera or the HUD's insets still move. On a software rasterizer (SwiftShader, llvmpipe and the like:
-`look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
-tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps and no MSAA or
-tilt-shift, WebGPU at three quarters of its scene scale. When the camera comes to rest on a draft (`r.drafted`) the
-runtime draws that frame again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
 
 **The DrawList** carries `dl.fields`: the scale fields' packed machines (`[{ n, version, slabs, memo }]`, one per `field`
 pose; `null` when none), which the packer caches by each machine's version.
