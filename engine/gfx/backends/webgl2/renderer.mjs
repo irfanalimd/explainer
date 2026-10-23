@@ -14,18 +14,16 @@ import { Packer, themeColors, SLAB_TEXELS, INK_FLOATS, SEG_FLOATS, CONTACT_FLOAT
 import { TextAtlas } from "../../text.mjs";
 import { cameraState, lightState, norm3 } from "../../math.mjs";
 import { linear, srgba } from "../../color.mjs";
-import { QUALITY, DRAFT, SOFTWARE, themeLight, dofBand } from "../../look.mjs";
+import { QUALITY, themeLight, dofBand } from "../../look.mjs";
 
 const PER_ROW = 64, ROW_TEXELS = PER_ROW * SLAB_TEXELS;
 
 export function createRenderer(canvas, opts = {}) {
   let theme = opts.theme === "light" ? "light" : "dark";
-  // Q: the quality preset; A: the one allocated now (Q, or the draft tier over it while frames move on a software
-  // rasterizer, look.mjs DRAFT)
-  let Q = QUALITY[opts.quality] ?? QUALITY.high, A = Q, soft = false, drafted = false;
+  let Q = QUALITY[opts.quality] ?? QUALITY.high;
   const maxDpr = opts.maxDpr ?? 2;
   let cssW = Math.max(1, canvas.clientWidth || canvas.width || 1), cssH = Math.max(1, canvas.clientHeight || canvas.height || 1);
-  let dpr = 1, W = 1, H = 1, deviceDpr = 1;
+  let dpr = 1, W = 1, H = 1;
   let colors = themeColors(theme), TL = themeLight(theme);
   const atlas = new TextAtlas();
   const packer = new Packer();
@@ -46,7 +44,6 @@ export function createRenderer(canvas, opts = {}) {
     get theme() { return theme; },
     get size() { return { cssW, cssH, dpr, W, H }; },
     get busy() { return !!packer.fading; },     // the last frame had something still fading out
-    get drafted() { return drafted; },          // the last frame was drawn in the draft tier: draw the resting one again
     atlas,
   };
 
@@ -57,8 +54,6 @@ export function createRenderer(canvas, opts = {}) {
     });
     if (!gl) throw new Error("[gfx] WebGL2 unavailable");
     if (!gl.getExtension("EXT_color_buffer_float")) throw new Error("[gfx] EXT_color_buffer_float unavailable");
-    const info = gl.getExtension("WEBGL_debug_renderer_info");
-    soft = SOFTWARE.test(String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER)));
     gl.getExtension("OES_texture_float_linear");
     const P = (name, vs, fs, samplers = {}) => {
       const p = compileProgram(gl, name, vs, fs);
@@ -92,7 +87,7 @@ export function createRenderer(canvas, opts = {}) {
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
       const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, t.indices, gl.STATIC_DRAW);
       gl.bindVertexArray(null);
-      return { vao, count: t.indices.length, solid: t.solidCount, type: t.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
+      return { vao, count: t.indices.length, type: t.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT };
     };
     R.small = mkTemplate({ corner: 7, bevel: 6, lip: 3 });
     R.large = mkTemplate({ corner: 18, bevel: 9, lip: 4 });
@@ -155,7 +150,7 @@ export function createRenderer(canvas, opts = {}) {
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
       gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, w, h, gl.RED, gl.UNSIGNED_BYTE, bytes);
     });
-    R.samples = Math.min(A.samples, gl.getParameter(gl.MAX_SAMPLES));
+    R.samples = Math.min(Q.samples, gl.getParameter(gl.MAX_SAMPLES));
     allocSize();
   }
 
@@ -165,17 +160,17 @@ export function createRenderer(canvas, opts = {}) {
       gl.deleteTexture(R.shadowMinTex); gl.deleteFramebuffer(R.shadowMinFbo);
       gl.deleteTexture(R.bounceTex); gl.deleteFramebuffer(R.bounceFbo);
     }
-    R.shadowSize = A.shadow;
-    R.shadowTex = texture2D(gl, A.shadow, A.shadow, gl.DEPTH_COMPONENT24, { filter: gl.NEAREST });
+    R.shadowSize = Q.shadow;
+    R.shadowTex = texture2D(gl, Q.shadow, Q.shadow, gl.DEPTH_COMPONENT24, { filter: gl.NEAREST });
     R.shadowFbo = framebuffer(gl, [], R.shadowTex);
-    R.shadowMinSize = A.shadow / 16;
+    R.shadowMinSize = Q.shadow / 16;
     R.shadowMinTex = texture2D(gl, R.shadowMinSize, R.shadowMinSize, gl.R32F, { filter: gl.NEAREST });
     R.shadowMinFbo = framebuffer(gl, [R.shadowMinTex], null);
-    R.contactSize = A.contact;
-    R.contactTex = texture2D(gl, A.contact, A.contact, gl.RGBA16F, { filter: gl.LINEAR });
+    R.contactSize = Q.contact;
+    R.contactTex = texture2D(gl, Q.contact, Q.contact, gl.RGBA16F, { filter: gl.LINEAR });
     R.contactFbo = framebuffer(gl, [R.contactTex], null);
-    R.bounceSize = A.bounce;
-    R.bounceTex = texture2D(gl, A.bounce, A.bounce, gl.RGBA16F, { filter: gl.LINEAR });
+    R.bounceSize = Q.bounce;
+    R.bounceTex = texture2D(gl, Q.bounce, Q.bounce, gl.RGBA16F, { filter: gl.LINEAR });
     R.bounceFbo = framebuffer(gl, [R.bounceTex], null);
   }
 
@@ -208,7 +203,7 @@ export function createRenderer(canvas, opts = {}) {
     R.resolveEmisFbo = FB([R.emisTex], null);
     R.down = []; R.up = [];
     let w = W, h = H;
-    for (let i = 0; i < A.bloom; i++) {
+    for (let i = 0; i < Q.bloom; i++) {
       w = Math.max(1, w >> 1); h = Math.max(1, h >> 1);
       const d = T(w, h, gl.R11F_G11F_B10F); const u = T(w, h, gl.R11F_G11F_B10F);
       R.down.push({ tex: d, fbo: FB([d], null), w, h });
@@ -216,7 +211,7 @@ export function createRenderer(canvas, opts = {}) {
     }
     // tilt-shift: half- and quarter-resolution copies of the resolved colour
     R.dofHalf = null; R.dofQuarter = null;
-    if (A.dof) {
+    if (Q.dof) {
       const hw = Math.max(1, W >> 1), hh = Math.max(1, H >> 1), qw = Math.max(1, W >> 2), qh = Math.max(1, H >> 2);
       const a = T(hw, hh, gl.R11F_G11F_B10F), b = T(qw, qh, gl.R11F_G11F_B10F);
       R.dofHalf = { tex: a, fbo: FB([a], null), w: hw, h: hh };
@@ -227,8 +222,7 @@ export function createRenderer(canvas, opts = {}) {
 
   function resize(w, h, devicePixelRatio = 1) {
     cssW = Math.max(1, w); cssH = Math.max(1, h);
-    deviceDpr = devicePixelRatio || 1;
-    dpr = Math.min(deviceDpr, maxDpr, Q.dpr) * (drafted ? DRAFT.scale : 1);
+    dpr = Math.min(devicePixelRatio || 1, maxDpr, Q.dpr);
     const nW = Math.max(1, Math.round(cssW * dpr)), nH = Math.max(1, Math.round(cssH * dpr));
     if (nW === W && nH === H && canvas.width === nW) return;
     W = nW; H = nH;
@@ -240,17 +234,9 @@ export function createRenderer(canvas, opts = {}) {
 
   function setQuality(q) {
     Q = QUALITY[q] ?? Q;
-    tier(drafted, true);
+    if (gl && R) { R.samples = Math.min(Q.samples, gl.getParameter(gl.MAX_SAMPLES)); allocQuality(); resize(cssW, cssH, dpr); allocSize(); }
   }
   api.setQuality = setQuality;
-  // the targets for the full tier or the draft one (fewer, smaller maps, no MSAA or tilt-shift, the scene at
-  // DRAFT.scale of the pixel ratio: the canvas is smaller and the page scales it up)
-  function tier(draft, force = false) {
-    if (draft === drafted && !force) return;
-    drafted = draft;
-    A = draft ? { ...Q, ...DRAFT } : Q;
-    if (gl && R) { R.samples = Math.min(A.samples, gl.getParameter(gl.MAX_SAMPLES)); allocQuality(); resize(cssW, cssH, deviceDpr); allocSize(); }
-  }
 
   function ensureInstTex(nSlabs) {
     const rows = Math.max(1, Math.ceil(nSlabs / PER_ROW));
@@ -309,13 +295,13 @@ export function createRenderer(canvas, opts = {}) {
 
   function drawSlabs(p, fr, ranges) {
     let calls = 0;
-    for (const [tpl, base, count, indices = tpl.count] of ranges) {
+    for (const [tpl, base, count] of ranges) {
       if (!count) continue;
       gl.bindVertexArray(tpl.vao);
       gl.uniform1i(p.u.uBase, base);
-      gl.drawElementsInstanced(gl.TRIANGLES, indices, tpl.type, 0, count);
+      gl.drawElementsInstanced(gl.TRIANGLES, tpl.count, tpl.type, 0, count);
       calls++;
-      stats.triangles += indices / 3 * count;
+      stats.triangles += tpl.count / 3 * count;
     }
     return calls;
   }
@@ -323,14 +309,12 @@ export function createRenderer(canvas, opts = {}) {
   /**
    * @param {import("../contracts.mjs").DrawList} dl
    * @param {import("../contracts.mjs").Camera} camera
-   * @param {{ time?: number, clock?: number, reducedMotion?: boolean, capture?: boolean, draft?: boolean }} o  time: the
-   *   shimmer clock (grain, flowing dashes); clock (default: time): the one fading memories run on (pack.mjs); draft: a
-   *   frame the next one replaces at once, drawn in the draft tier on a software rasterizer (never when captured)
+   * @param {{ time?: number, clock?: number, reducedMotion?: boolean, capture?: boolean }} o  time: the shimmer clock
+   *   (grain, flowing dashes); clock (default: time): the one fading memories run on (pack.mjs)
    */
   function render(dl, camera, o = {}) {
     if (!gl || !R || api.lost) return;
     const t0 = performance.now();
-    tier(!!o.draft && soft && !o.capture && api.debug.draft !== false);
     const time = o.time ?? 0;
     frameNo++;
     camera = { ...defaultCamera, ...camera };
@@ -376,11 +360,7 @@ export function createRenderer(canvas, opts = {}) {
     R.bounceBuf.upload(packer.bounce.a, packer.bounce.n);
 
     const b = fr.bounds;
-    // [template, first instance, instances, indices] (pack.mjs LOD classes, the tiny one on the small template): slabs
-    // without a well draw only the template's solid prefix, as on WebGPU (the rest is empty triangles for them)
-    const S = R.small, L = R.large, nTi = fr.nTiny, tS = fr.nTinySolid, sS = fr.nSmallSolid, nS = fr.nSmall, sL = fr.nLargeSolid, nL = fr.nLarge;
-    const opaque = [[S, 0, tS, S.solid], [S, tS, nTi - tS], [S, nTi, sS, S.solid], [S, nTi + sS, nS - nTi - sS], [L, nS, sL, L.solid], [L, nS + sL, nL - sL]];
-    const ranges = [...opaque, [L, nS + nL, fr.nTrans]];
+    const ranges = [[R.small, 0, fr.nSmall], [R.large, fr.nSmall, fr.nLarge], [R.large, fr.nSmall + fr.nLarge, fr.nTrans]];
     const pxU = 1 / Math.max(1e-4, cam.pxPerUnit(camera.target) * dpr);
 
     // 1. shadow map
@@ -528,7 +508,7 @@ export function createRenderer(canvas, opts = {}) {
       for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
       gl.uniform4fv(p.u.uMat, m);
       gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
-      stats.drawCalls += drawSlabs(p, fr, opaque);
+      stats.drawCalls += drawSlabs(p, fr, ranges.slice(0, 2));
       gl.disable(gl.CULL_FACE);
       // raised ink (index numbers on plates, labels on tops): depth-tested decals pulled a hair toward the eye
       if (fr.nInkRaised) {
@@ -541,7 +521,7 @@ export function createRenderer(canvas, opts = {}) {
       gl.enable(gl.CULL_FACE);
       if (fr.nTrans) {
         gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
-        stats.drawCalls += drawSlabs(p, fr, ranges.slice(-1));
+        stats.drawCalls += drawSlabs(p, fr, ranges.slice(2));
         gl.disable(gl.BLEND); gl.depthMask(true);
       }
       gl.disable(gl.CULL_FACE);
@@ -624,7 +604,6 @@ export function createRenderer(canvas, opts = {}) {
     stats.ms = performance.now() - t0;
     stats.gpuMs = R.gpuMs;
     stats.instances = fr.nSlabs + fr.nInk + fr.nInkTop + fr.nSeg + fr.nContact;
-    stats.draft = drafted;
     stats.slabs = fr.nSlabs; stats.lights = fr.nLights; stats.raisedInk = fr.nInkRaised; stats.strings = atlas.entries.size; stats.textMissed = atlas.missed;
   }
 
@@ -649,8 +628,7 @@ export function createRenderer(canvas, opts = {}) {
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, R.instTex);
     gl.uniformMatrix4fv(R.pick.u.uViewProj, false, vp);
     gl.enable(gl.CULL_FACE); gl.frontFace(gl.CW);
-    drawSlabs(R.pick, fr, [[R.small, 0, fr.nTinySolid, R.small.solid], [R.small, fr.nTinySolid, fr.nTiny - fr.nTinySolid], [R.small, fr.nTiny, fr.nSmallSolid, R.small.solid],
-      [R.small, fr.nTiny + fr.nSmallSolid, fr.nSmall - fr.nTiny - fr.nSmallSolid], [R.large, fr.nSmall, fr.nLargeSolid, R.large.solid], [R.large, fr.nSmall + fr.nLargeSolid, fr.nLarge - fr.nLargeSolid + fr.nTrans]]);
+    drawSlabs(R.pick, fr, [[R.small, 0, fr.nSmall], [R.large, fr.nSmall, fr.nLarge + fr.nTrans]]);
     gl.disable(gl.CULL_FACE);
     const out = new Uint8Array(4);
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, out);

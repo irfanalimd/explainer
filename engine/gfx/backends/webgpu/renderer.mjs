@@ -14,7 +14,7 @@ import { Packer, themeColors, SLAB_FLOATS, GROOVE_TEXELS } from "../../pack.mjs"
 import { TextAtlas } from "../../text.mjs";
 import { cameraState, lightState, norm3 } from "../../math.mjs";
 import { srgba, linear } from "../../color.mjs";
-import { QUALITY, DRAFT, themeLight, dofBand } from "../../look.mjs";
+import { QUALITY, themeLight, dofBand } from "../../look.mjs";
 import { pickSlab } from "../../pick.mjs";
 import { createParticles } from "./particles.mjs";
 import { Governor } from "./adapt.mjs";
@@ -74,7 +74,7 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
   const lostFns = [];
   const stats = { ms: 0, drawCalls: 0, instances: 0, lights: 0, slabs: 0, strings: 0, backend: "webgpu" };
   const defaultCamera = { target: [0, 0, 0], distance: 1200, yaw: CAMERA.yaw, pitch: CAMERA.pitch, fov: CAMERA.fov };
-  let last = null, lastFrame = null, lastArgs = null, disposed = false, benching = false, drafted = false;
+  let last = null, lastFrame = null, lastArgs = null, disposed = false, benching = false;
 
   // fixed resources
   const atlasTex = device.createTexture({ label: "atlas", size: [atlas.size, atlas.size], format: "r8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
@@ -115,8 +115,7 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
     onLost: (fn) => { lostFns.push(fn); },
     dispose,
     get theme() { return theme; },
-    get size() { return { cssW, cssH, dpr, W, H, scale: scale() }; },
-    get drafted() { return drafted; },          // the last frame was drawn as a draft: draw the resting one again
+    get size() { return { cssW, cssH, dpr, W, H, scale: governor.scale }; },
     // the last frame had something still fading out, or a settled picture is still gathering its supersamples
     get busy() { return !!packer.fading || temporal.converging; },
     atlas,
@@ -135,14 +134,12 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
     governor.reset();
     fit();
   }
-  // the scene's scale: the governor's, and no more than DRAFT.scale for a draft on a software adapter
-  const scale = () => (drafted ? Math.min(governor.scale, DRAFT.scale) : governor.scale);
-  // the canvas at the full device size, the scene's targets at that scale of it
+  // the canvas at the full device size, the scene's targets at the governor's scale of it
   function fit() {
     const full = Math.min(deviceDpr, maxDpr, Q.dpr);
     const cW = Math.max(1, Math.round(cssW * full)), cH = Math.max(1, Math.round(cssH * full));
     if (canvas.width !== cW || canvas.height !== cH) { canvas.width = cW; canvas.height = cH; }
-    dpr = full * scale();
+    dpr = full * governor.scale;
     const nW = Math.max(1, Math.round(cssW * dpr)), nH = Math.max(1, Math.round(cssH * dpr));
     if (T && nW === W && nH === H) return;
     W = nW; H = nH;
@@ -243,9 +240,8 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
   /**
    * @param {import("../../../contracts.mjs").DrawList} dl
    * @param {import("../../../contracts.mjs").Camera} camera
-   * @param {{ time?: number, clock?: number, reducedMotion?: boolean, capture?: boolean, draft?: boolean }} o  time: the
-   *   shimmer clock (grain, flowing dashes); clock (default: time): the one fading memories run on (pack.mjs); draft: a
-   *   frame the next one replaces at once, drawn at DRAFT.scale on a software adapter (never when captured)
+   * @param {{ time?: number, clock?: number, reducedMotion?: boolean, capture?: boolean }} o  time: the shimmer clock
+   *   (grain, flowing dashes); clock (default: time): the one fading memories run on (pack.mjs)
    */
   function render(dl, camera, o = {}) {
     if (api.lost || disposed || !T) return;
@@ -254,8 +250,6 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
     const time = o.time ?? 0;
     const capture = o.capture ?? document.documentElement.classList.contains("ix-capture");
     // adaptive resolution: captured frames at full scale, live ones at what the last second of frames could afford
-    const draft = !!o.draft && !!gpu.software && !capture && api.debug.draft !== false;
-    if (draft !== drafted) { drafted = draft; fit(); }
     if (capture) { if (governor.level > 0) { governor.reset(); fit(); } }
     else if (timer && !benching && governor.frame(t0, timer.frameMs)) fit();
     camera = { ...defaultCamera, ...camera };
@@ -375,7 +369,6 @@ export async function createWebGPURenderer(canvas, gpu, opts = {}) {
 
     stats.ms = performance.now() - t0;
     stats.instances = fr.nSlabs + fr.nInk + fr.nInkTop + fr.nSeg + fr.nContact;
-    stats.draft = drafted;
     stats.slabs = fr.nSlabs; stats.lights = fr.nLights; stats.strings = atlas.entries.size; stats.textMissed = atlas.missed;
     stats.samples = samples;
     stats.taa = plan ? (plan.share === 0 ? "moving" : plan.held ? "held" : `still ${plan.k + 1}/${temporal.samples}`) : "off";
