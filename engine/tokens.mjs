@@ -47,10 +47,8 @@ export const PALETTE = {
     idle: "#4C5570",
     off: "#23262C",
 
-    // identity: one hue per key, partition, thread or node. Same order in every figure. The order keeps the first
-    // five keys apart for red-green colour-blind readers too (CIELAB ΔE ≥ 24 under simulated deuteranopia and
-    // protanopia; blue then violet, the old 1st and 4th, was ΔE 3): blue, orange, pink, cyan, amber, green, violet, lime
-    keys: ["#4F8CFF", "#FF7A5C", "#FF5FA2", "#38C8F2", "#FFC34D", "#2FD3A0", "#A47BFF", "#9BE15D"],
+    // identity: one hue per key, partition, thread or node. Same order in every figure.
+    keys: ["#4F8CFF", "#FF7A5C", "#2FD3A0", "#A47BFF", "#FFC34D", "#FF5FA2", "#38C8F2", "#9BE15D"],
     keyInk: "#0B0C0F",             // label ink on a keyed tile
 
     // attention
@@ -100,7 +98,7 @@ export const PALETTE = {
     idle: "#BEC1C7",
     off: "#DCDBD6",
 
-    keys: ["#3B7BF7", "#FF6A4A", "#F04B92", "#1DB2E0", "#F2AE1F", "#14B98A", "#8F63F5", "#7CC63C"],   // the dark order
+    keys: ["#3B7BF7", "#FF6A4A", "#14B98A", "#8F63F5", "#F2AE1F", "#F04B92", "#1DB2E0", "#7CC63C"],
     keyInk: "#0B0C0F",
 
     lit: "#17181C",                // in light, attention is ink plus elevation, not white light
