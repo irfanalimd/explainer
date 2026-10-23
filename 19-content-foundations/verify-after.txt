@@ -2,39 +2,39 @@
         note   lesson.steps names 1 step id(s) no run here reaches: "split.signpost" (a typo, a step the figure no longer makes, or one only untried knob values reach)
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 6 chapters, 9 questions, 5 defined words, 1582 words, reading grade 4.7
-summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  2.6 s
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  2.5 s
 == consistent-hashing
   ok    lesson    lesson.mjs over every run and branch: 19 step ids, 8 chapters, 3 asks, 0 picks, 0 checks
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 6 chapters, 4 questions, 4 defined words, 1178 words, reading grade 4.5
-summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.3 s
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.5 s
 == event-loop
   ok    lesson    lesson.mjs over every run and branch: 37 step ids, 7 chapters, 5 asks, 0 picks, 0 checks
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 4 chapters, 5 questions, 9 defined words, 1668 words, reading grade 5.8
-summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  3.5 s
+summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  6.2 s
 == linked-list
   ok    lesson    lesson.mjs over every run and branch: 27 step ids, 7 chapters, 3 asks, 0 picks, 0 checks
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level intro, 5 chapters, 3 questions, 5 defined words, 968 words, reading grade 3.9
-summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  1.6 s
+summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  2.3 s
 == mapreduce
         note   lesson.steps names 2 step id(s) no run here reaches: "map.empty", "reduce.sum-all" (a typo, a step the figure no longer makes, or one only untried knob values reach)
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 5 chapters, 5 questions, 8 defined words, 2147 words, reading grade 5.9
-summary  34 run(s), 0 failing, 0 error(s), 0 warning(s)  5.1 s
+summary  34 run(s), 0 failing, 0 error(s), 0 warning(s)  5.9 s
 == quicksort
         note   lesson.steps names 1 step id(s) no run here reaches: "repeat.copy" (a typo, a step the figure no longer makes, or one only untried knob values reach)
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 5 chapters, 4 questions, 3 defined words, 1997 words, reading grade 5.4
-summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.0 s
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.2 s
 == raft
   WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         warn   caption: at other settings: 5 captions over 18 words (longest 31, crash · phone · all max, step 88: "s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refus…")
         info   level core, 6 chapters, 6 questions, 9 defined words, 1748 words, reading grade 5.8
-summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  6.9 s
+summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  6.1 s
 == virtual-memory
   ok    lesson    lesson.mjs over every run and branch: 35 step ids, 8 chapters, 4 asks, 0 picks, 0 checks
   ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
         info   level core, 6 chapters, 4 questions, 12 defined words, 1092 words, reading grade 5.7
-summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.8 s
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  3.3 s

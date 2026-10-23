@@ -154,7 +154,14 @@
     CAN NOW   o-shift, o-order, o-cost
  
  ━━ Story 2 of 3 · Find the 5th item  (find)  14 steps, 70 s at 1x
-@@ -285,8 +279,7 @@
+@@ -279,14 +273,13 @@
+      so far    You know arrays: a row of values in order, like a[4].
+      now       Find the 5th item.
+      done when We know its address without looking at any other item.
+-   0  5 numbers side by side from `0x7f3a_1000`. Where is the 5th item?   ‹jump.where›
++   0  5 numbers side by side from `0x7f3a_1000`. We want the 5th item.   ‹jump.where›
+         why       An address is a number, so we can do arithmetic with it.
+         look      arr
          · how     Each int takes 4 bytes, so every slot's address is the start plus a multiple of 4.
          · edge    This only works if every item has the same size. A Python list of mixed objects
                    still qualifies: it stores an 8-byte pointer per item, not the objects themselves.
@@ -224,12 +231,16 @@
  
     ▸ Chapter 4 of 4 · Trade-off
       about     Each is quick at something. An array jumps to any position with one sum. A linked
-@@ -418,8 +409,7 @@
+@@ -416,10 +407,9 @@
+         why       Finding by position is the list's weak spot, and it grows with the position.
+         look      arr, n4
          · cost    Array: one sum and one load. List: 4 loads, each waiting on the one before.
-         · real    Need fast inserts and fast lookups? Skip lists add express lanes over a linked
-                   list, so a search skips most nodes (Pugh 1990).
+-        · real    Need fast inserts and fast lookups? Skip lists add express lanes over a linked
+-                  list, so a search skips most nodes (Pugh 1990).
 -        · source  W. Pugh, Skip Lists: A Probabilistic Alternative to Balanced Trees, CACM 33(6),
 -                  1990, https://doi.org/10.1145/78973.78977
++        · real    For fast inserts and fast lookups together, skip lists add express lanes over a
++                  linked list, so a search skips most nodes (Pugh 1990).
 +        · source  [pugh1990]
  
     RECAP

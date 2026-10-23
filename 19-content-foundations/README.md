@@ -29,7 +29,7 @@
 - **One finding goes the other way.** Round 4 flagged "a repaint is a task" as contrary to the HTML standard. It
   is not: since whatwg/html #10007 (31 January 2024) the standard queues rendering as a task. The lesson now says so,
   with the date.
-- Branch **`content/examples-foundations`**, 6 commits on `polish/round-4`. Text only: no simulation or picture
+- Branch **`content/examples-foundations`**, 7 commits on `polish/round-4`. Text only: no simulation or picture
   changes. verify 0 failing and 0 warnings on all 8 examples; unit tests 342 / 342.
 
 ## Before and after
@@ -43,7 +43,7 @@
 | Banned words and softeners in reader-facing text (code comments excluded) | 48 | 0 |
 | verify, all 8 examples | 211 runs, 0 failing | 211 runs, 0 failing, 0 warnings in these four |
 | Unit tests | 342 / 342 | 342 / 342 |
-| Printed lesson lines changed (`lesson.mjs --all --full`) | — | Event loop 135, Quicksort 161, Virtual memory 150, Linked list 150 ([diffs](lesson-diffs/)) |
+| Printed lesson lines changed (`lesson.mjs --all --full`) | — | Event loop 135, Quicksort 161, Virtual memory 166, Linked list 156 ([diffs](lesson-diffs/)) |
 
 ---
 
@@ -171,6 +171,10 @@ them.
 - `verify.mjs` on all 8 examples: 211 runs, 0 failing; the four changed examples have 0 warnings
   ([log](verify-after.txt)).
 - Unit tests: 342 / 342 ([log](tests-after.txt)).
+- The writing lint (`lesson.mjs --style`, from this round's writing branch): 0 hits in all four examples
+  ([log](style-after.txt)). Its first run found 6: two questions in captions and one in a note, a vague "many", and
+  two deeper sentences repeated between the room and retry steps. They are fixed in `0c26e84`, and the retry steps
+  now say what differs there: the room is the one the kernel filled, and this is the note the first try could not write.
 - Sources: a script over the four lessons checked three things. Every cited `[id]` is listed; every listed source
   is cited; every entry has id, title, by, year, url and supports.
 - **Read at the source:**

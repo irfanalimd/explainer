@@ -117,8 +117,14 @@
    14  Room `0x189f3`, then offset `0xe49`: physical address `0x189f_3e49`, no directory opened.   ‹again.address›
          look      pa
    15  The byte at `0x189f_3e49` is `0x61`. Two reads so far: 962 cycles.   ‹again.byte›
-@@ -282,14 +266,13 @@
-                   a walk each time. Code that hops across a huge array feels this.
+@@ -278,18 +262,17 @@
+         look      tlb
+         · cost    961 cycles for the first read, then 1 for each of the rest: 1 400 cycles over 440
+                   reads.
+-        · edge    Reading one byte from each of many pages instead would miss on every page and pay
+-                  a walk each time. Code that hops across a huge array feels this.
++        · edge    Reading one byte from each of 4,096 different pages instead would miss 4,096 times
++                  and pay a walk for each. Code that hops across a huge array feels this.
          · real    A 2 MiB huge page lets one note cover 512 small pages, and its walk stops at the
                    third table. Linux uses them for large memory areas.
 -        · source  Linux kernel docs, Transparent Hugepage Support,
@@ -221,6 +227,17 @@
  
     ▸ Chapter 3 of 3 · The real room
       about     The note already had the room, so the CPU puts the offset after it to get the real
+@@ -451,8 +430,8 @@
+         why       The note gave the room, so not one directory line was read.
+         look      pa
+         picture   the real room = a frame of physical memory
+-        · how     The frame number fills bits 38–12 of the physical address and the offset bits
+-                  11–0: frame × 4,096 + offset.
++        · how     The same sum as after a walk, frame × 4,096 + offset; only the frame number came
++                  from the note.
+         · code    `return pfn << 12 | off;` (line 5)
+    5  The byte at physical address `0x189f_3e48` is `0x37`, after 1 cycle.   ‹room.byte›
+         look      page.b1
 @@ -464,8 +443,7 @@
          · how     A first-level TLB hit costs about nothing: the CPU's first cache starts looking
                    with the 12 offset bits, which need no translating, while the notes translate the
@@ -360,7 +377,7 @@
    13  The same 4 lines again, now from the cache: 56 cycles in all. [cache: Small, fast memory
        beside the CPU that keeps copies of recently read memory, so reading again is cheap.]   ‹retry.walk›
          why       The first walk left these lines in fast memory beside the CPU, so each read is
-@@ -672,8 +634,7 @@
+@@ -672,19 +634,18 @@
          · cost    56 cycles for 4 reads, against 240 each from main memory.
          · how     The cache here models the CPU's second-level cache: about 14 cycles a read. The
                    kernel's own write of the last line left that line there too.
@@ -370,6 +387,21 @@
    14  Room `0x88e85`, then offset `0xe48`: the physical address, `0x88e8_5e48`.   ‹retry.address›
          why       The offset copies over unchanged; only the room number came from the directory.
          look      pa
+         picture   the real room = a frame of physical memory
+-        · how     The frame number fills bits 38–12 of the physical address and the offset bits
+-                  11–0: frame × 4,096 + offset.
++        · how     The sum is the usual frame × 4,096 + offset; the frame is the room the kernel
++                  filled from disk.
+         · code    `return table | off;` (line 15)
+   15  A sticky note now maps page `0x7f3a2c108` to room `0x88e85`, replacing `0x7f3a2c3e6`'s note.   ‹retry.fill›
+         look      tlb.v0, tlb.p0
+-        · how     With every note in use, the one used longest ago makes room: least recently used,
+-                  LRU.
++        · how     This is the note the first try could not write: its walk found “not present”, so
++                  only the retry, ending in a room, leaves one.
+   16  The byte at physical address `0x88e8_5e48` is `0x37`: 64 018 cycles for one byte.   ‹retry.byte›
+         look      page.b1
+   17  ★ A hit costs 1 cycle and a walk up to 961; this read cost 64 018.   ‹retry.cost›
 @@ -695,8 +656,7 @@
          · edge    The disk share is waiting, not CPU work: the program sleeps through it while
                    others run. A machine short of memory that faults constantly does little but wait,

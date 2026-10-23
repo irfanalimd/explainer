@@ -1,0 +1,21 @@
+1090:SOURCES  (lesson.sources: 2)
+1091-  [dean2004]  Dean & Ghemawat 2004
+1092-    ref       Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large
+1093-              Clusters. OSDI, 2004.
+1094-    url       https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf
+1095-    supports  the word-count example (§2.1); re-executing a dead worker's tasks (§3.3); backup tasks
+1096-              for stragglers (§3.6); the 2,000-machine job (§3.5)
+1097-  [hadoop-tutorial]  Hadoop docs
+1098-    ref       The Apache Software Foundation. MapReduce Tutorial. Apache Hadoop, n.d.
+1099-    url       https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html
+1100-    supports  WordCount, the program Hadoop teaches first
+1101-
+        look      input
+        · cost    Alone: 11 reads, one after another. Shared 3 ways, the reading takes as long as
+                  the biggest piece: 4 reads.
+        · real    The paper cuts real input into pieces of 16 to 64 MB, and it often ran jobs of M =
+                  200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1,
+                  §3.5).
+        · source  Dean & Ghemawat 2004, §3.2
+   1  ★ The master hands out the text in 3 pieces of about 4 words, one per machine.   ‹split.cut›
+        why       The pieces are split 0 “the quick brown fox”, split 1 “jumps over the lazy” and

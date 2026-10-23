@@ -1,0 +1,4 @@
+0 writing hit(s)  examples/event-loop/figure.mjs
+0 writing hit(s)  examples/quicksort/figure.mjs
+0 writing hit(s)  examples/virtual-memory/figure.mjs
+0 writing hit(s)  examples/linked-list/figure.mjs

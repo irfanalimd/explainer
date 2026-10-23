@@ -1,9 +1,9 @@
- examples/event-loop/figure.mjs     |   4 +-
- examples/event-loop/lesson.mjs     | 100 ++++++++++++++++++++++++++-------
+ examples/event-loop/figure.mjs     |   6 +-
+ examples/event-loop/lesson.mjs     | 100 +++++++++++++++++++++++++-------
  examples/linked-list/figure.mjs    |   6 +-
- examples/linked-list/lesson.mjs    | 112 +++++++++++++++++++++++++++++--------
+ examples/linked-list/lesson.mjs    | 116 +++++++++++++++++++++++++++++--------
  examples/quicksort/figure.mjs      |  20 +++----
- examples/quicksort/lesson.mjs      | 105 ++++++++++++++++++++++++----------
+ examples/quicksort/lesson.mjs      | 105 ++++++++++++++++++++++++---------
  examples/virtual-memory/figure.mjs |   6 +-
- examples/virtual-memory/lesson.mjs | 106 ++++++++++++++++++++++++++---------
- 8 files changed, 342 insertions(+), 117 deletions(-)
+ examples/virtual-memory/lesson.mjs | 114 ++++++++++++++++++++++++++----------
+ 8 files changed, 349 insertions(+), 124 deletions(-)

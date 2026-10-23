@@ -66,7 +66,7 @@ screenshot of it.
 - **etcd's timers:** they are sized by the round trip between servers, the timeout at least 10 times it, not by
   "the disk's write time".
 
-The Pre-Vote line, at step 38 of "The network splits in two" with the expert layers open:
+The Pre-Vote line, at step 39 of 87 in "The network splits in two", with the expert layers open:
 
 | Before | After |
 |---|---|

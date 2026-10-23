@@ -1,0 +1,89 @@
+[
+  {
+    "theme": "light",
+    "where": "panel",
+    "step": 0,
+    "dom": [
+      {
+        "text": "Dean & Ghemawat 2004, §3.2",
+        "tag": "A",
+        "href": "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+        "tip": "Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004.",
+        "label": "Dean & Ghemawat 2004, §3.2: Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004. (opens in a new tab)",
+        "inPanel": true
+      }
+    ],
+    "title": {
+      "href": "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+      "label": "MapReduce — read the paper: Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004."
+    },
+    "hovered": true,
+    "tip": "",
+    "a11y": []
+  },
+  {
+    "theme": "light",
+    "where": "handout",
+    "ho": {
+      "items": [
+        "Dean & Ghemawat 2004. Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004. https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+        "Hadoop docs. The Apache Software Foundation. MapReduce Tutorial. Apache Hadoop, n.d. https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html"
+      ],
+      "foot": "Made by the page from its own run: every number above comes from the simulation. Source: Dean & Ghemawat 2004.",
+      "cites": []
+    }
+  },
+  {
+    "theme": "light",
+    "where": "presenter",
+    "pv": [
+      {
+        "text": "Dean & Ghemawat 2004, §3.2",
+        "href": "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf"
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "errors": []
+  },
+  {
+    "theme": "dark",
+    "where": "panel",
+    "step": 0,
+    "dom": [],
+    "title": {
+      "href": "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+      "label": "MapReduce — read the paper: Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004."
+    },
+    "hovered": false,
+    "tip": "",
+    "a11y": []
+  },
+  {
+    "theme": "dark",
+    "where": "handout",
+    "ho": {
+      "items": [
+        "Dean & Ghemawat 2004. Jeffrey Dean, Sanjay Ghemawat. MapReduce: Simplified Data Processing on Large Clusters. OSDI, 2004. https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+        "Hadoop docs. The Apache Software Foundation. MapReduce Tutorial. Apache Hadoop, n.d. https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/MapReduceTutorial.html"
+      ],
+      "foot": "Made by the page from its own run: every number above comes from the simulation. Source: Dean & Ghemawat 2004.",
+      "cites": []
+    }
+  },
+  {
+    "theme": "dark",
+    "where": "presenter",
+    "pv": [
+      {
+        "text": "Dean & Ghemawat 2004, §3.2",
+        "href": "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf"
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "errors": []
+  }
+]
