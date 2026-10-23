@@ -57,9 +57,9 @@ export const meta = {
   terms: {
     index: "a sorted guide that says where each row is, like the tabs of a phone book",
     page: "a fixed-size block that the disk reads in one go; here it holds a few ids",
-    root: "the top block of the tree, where every search starts",
-    leaf: "a block at the bottom of the tree, holding the ids themselves",
-    separator: "an id in an upper block that says which way to go: smaller ids go left",
+    root: "the top page of the tree, where every search starts",
+    leaf: "a page at the bottom of the tree, holding the ids themselves",
+    separator: "an id in an upper page that says which way to go: smaller ids go left",
   },
   recap: [
     "Without an index, finding one id meant checking them one by one.",
