@@ -30,7 +30,7 @@ export const meta = {
   kicker: "Distributed systems",
   fig: 1,
   level: "core",
-  cite: { text: "Dean & Ghemawat, OSDI 2004", url: "https://research.google/pubs/pub62/" },
+  cite: "[dean2004]",
   theme: "light",
   hook: "Each machine reads only part of the text. How do they still count every word exactly, none missed or counted twice?",
   terms: {

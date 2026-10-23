@@ -97,7 +97,7 @@ export const meta = {
   subtitle: "How servers that can crash keep one shared log",
   kicker: "Distributed systems",
   fig: 3,
-  cite: { text: "Ongaro & Ousterhout, “In Search of an Understandable Consensus Algorithm”, USENIX ATC 2014", url: "https://raft.github.io/raft.pdf" },
+  cite: "[ongaro2014]",
   theme: "light",
   level: "core",
   hook: "A few servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
