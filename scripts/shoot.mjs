@@ -106,9 +106,6 @@ const TEACH_WAIT = 4;     // --teach: how much longer than the nominal timeouts 
 // a story's shared opening is shot once per theme and size, not again for every story that repeats it.
 async function teachShots(browser, url, size, o) {
   const fp = await openFigure(browser, url, { ...size, dpr: o.dpr ?? 1 });
-  // the cards are screenshots of live play, often mid-fade: a fading frame is drawn in full (no draft fades, CONTRACTS.md
-  // 3.1), so a card is the picture a reader stopped on, and comes out as it did before fades drafted
-  await fp.page.evaluate("(globalThis.__gfx && (__gfx.debug.draftFades = false), true)");
   // no call may hang the run: a page that stops answering is an error, not a stuck job holding a Chrome
   const ev = (js) => fp.page.evaluate(js, { timeout: 45000 * TEACH_WAIT });
   const say = (msg) => o.progress?.(`teach ${size.width}x${size.height} ${msg}`);

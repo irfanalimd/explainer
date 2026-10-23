@@ -319,9 +319,7 @@ there is one instance per module); everything else is served byte for byte.
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
   Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
   is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
-  on a loaded machine) 1× play would crawl and time out. The cards are screenshots of live play, often taken while an
-  afterglow fades, so the pass turns fade drafts off for its page (`__gfx.debug.draftFades = false`): a fading frame
-  is drawn in full, the camera gets the frames it got before fades drafted, and the cards come out as they did.
+  on a loaded machine) 1× play would crawl and time out.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error, and
   a page that stops answering ends that story's live play with an error instead of hanging the run. Progress goes to
   stderr, one line per group (`--quiet` turns it off). Live play takes a few seconds a card on a machine with a GPU;
@@ -454,12 +452,6 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
-Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion and
-frames where an afterglow or ping is still fading are drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the
-low preset's maps, no MSAA or tilt-shift, a lighter shadow filter, and the frame the picture comes to rest on (the
-camera still, nothing fading) is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures,
-Save image) never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
-
 On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
 `--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader
 --disable-vulkan-surface` does start the WebGPU tier on SwiftShader (`?gfx=webgpu`, the self-test passes), but its canvas
@@ -569,10 +561,9 @@ back).
   On a page that draws at 20 fps or better the pass keeps its old speeds and waits. Changing the speed only when the
   run starts or stops would save two frames a card, but the camera moves only when a frame is drawn, so a card shot
   right after another (the end check, You can now, the caption, the end card; a pick's wrong branch) was framed
-  differently: the pass keeps them. Drafts (Rendering backends) raised live MapReduce on that machine (SwiftShader,
-  WebGL2) from 0.9 to 2.2 frames a second at 1440x900 and from 2.2 to 7.0 at 390x844 (half the pixel ratio gave 4.2
-  and 11.3, but the world's names could not be read while it played); a full frame still takes about 1.5 s at
-  1440x900, and the closing scale shot (6008 slabs) about 10 s.
+  differently: the pass keeps them. Live MapReduce on that machine (SwiftShader,
+  WebGL2) draws about 0.9 frames a second at 1440x900 and 2.2 at 390x844; a full frame takes about 1.5 s at 1440x900,
+  and the closing scale shot (6008 slabs) about 10 s. Every frame is drawn in full, with or without a GPU.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the

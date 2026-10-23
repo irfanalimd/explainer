@@ -185,9 +185,7 @@ float shadowVis(vec3 wp, vec3 n, float ndl) {
   mat2 rot = mat2(ca, sa, -sa, ca);
   float search = 7.0 / uShadowP.y;
   float sum = 0.0, cnt = 0.0;
-  // a draft (uShadowP.w 2: a frame the next one replaces) takes every third search tap and every fourth filter tap
-  int stride = uShadowP.w > 1.5 ? 3 : 1;
-  for (int i = 0; i < 12; i += stride) {
+  for (int i = 0; i < 12; i++) {
     float d = textureLod(uShadowRaw, s.xy + rot * PD[i] * search, 0.0).r;
     if (d < zr) { sum += d; cnt += 1.0; }
   }
@@ -196,9 +194,8 @@ float shadowVis(vec3 wp, vec3 n, float ndl) {
   float pen = clamp(0.35 + gap * uLightSize, 0.45, 9.0) / uShadowP.y;
   pen = max(pen, 1.2 * uShadowP.x);
   float v = 0.0;
-  stride = uShadowP.w > 1.5 ? 4 : 1;
-  for (int i = 0; i < 16; i += stride) v += texture(uShadowCmp, vec3(s.xy + rot * PD[i] * pen, zr));
-  return v / (16.0 / float(stride));
+  for (int i = 0; i < 16; i++) v += texture(uShadowCmp, vec3(s.xy + rot * PD[i] * pen, zr));
+  return v / 16.0;
 }
 
 vec3 contactAt(vec2 p) {

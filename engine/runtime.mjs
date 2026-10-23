@@ -57,9 +57,8 @@ export async function mount(root, figure, options = {}) {
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
   let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false, covered = false;
-  // render on demand: something changed the picture (dirty), or the last frame was still moving (settling: its camera
-  // or the HUD's insets moved; drafting: the frame being drawn is one in motion); the two clocks
-  let dirty = true, moving = false, settling = false, drafting = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
+  // render on demand: something changed the picture (dirty), or the last frame was still moving; the two clocks
+  let dirty = true, moving = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
   // the start card is open; step mode (each Next plays one step); a guided pause at a chapter's end or the run's end
   let intro = false, stepMode = false, held = null, guided = true;
   let viewport = { width: 1, height: 1, dpr: 1 };
@@ -582,7 +581,7 @@ export async function mount(root, figure, options = {}) {
     director.keep(keyFocus ? boundsOfIds([keyFocus]) : null, { as: "focus" });   // the keyboard's thing stays in view
     const camera = settle ? director.update(frame, viewport, dt, { settle: true }) : director.update(frame, viewport, dt);
     if (renderer && !renderer.lost) {
-      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping, draft: drafting });
+      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping });
       renders++;
       pxPerUnit = renderer.pxPerUnit(camera.target) || pxPerUnit;
       const tags = [];
@@ -661,17 +660,10 @@ export async function mount(root, figure, options = {}) {
       dirty = false;
       if (live) shimmer += dt;
       clock += dt;
-      // a frame the next one replaces at once (still playing, the camera still easing, or an afterglow or ping still
-      // fading in the last frame) is a draft: without a GPU the renderer draws it cheaper (CONTRACTS.md 3.1)
-      drafting = playing || settling || !!renderer?.fading;
       const camera = renderFrame(dt, shimmer, clock, false);
-      drafting = false;
       // keep drawing while the picture is still settling: the camera easing, the HUD's insets changed while it drew
       // (the director eases to the new framing from the next frame), an afterglow or ping fading out
-      settling = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets);
-      // the picture comes to rest on a draft: draw that frame again in full
-      if (!(playing || dirty || settling || renderer?.fading) && renderer?.drafted) renderFrame(0, shimmer, clock, false);
-      moving = settling || !!renderer?.busy;
+      moving = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets) || !!renderer?.busy;
     }
     if (playing || dirty || moving) schedule(); else rest();
   }
