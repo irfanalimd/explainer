@@ -314,9 +314,7 @@ there is one instance per module); everything else is served byte for byte.
     where the caption carries the takeaway, `…-end-caption.png` first, then the Explain card opened from it.
   Live play runs at 16× between cards (the questions, picks and pauses still stop it at their own step) and every wait
   is four times its nominal length: the runtime caps a frame's step at 1/20 s, so with slow frames (software rendering
-  on a loaded machine) 1× play would crawl and time out. The cards are screenshots of live play, often taken while an
-  afterglow fades, so the pass turns fade drafts off for its page (`__gfx.debug.draftFades = false`): a fading frame
-  is drawn in full, the camera gets the frames it got before fades drafted, and the cards come out as they did.
+  on a loaded machine) 1× play would crawl and time out.
   The shots join the contact sheet; a question or pick that never opens or reveals is reported as a page error, and
   a page that stops answering ends that story's live play with an error instead of hanging the run. Progress goes to
   stderr, one line per group (`--quiet` turns it off). Live play takes a few seconds a card on a machine with a GPU;
@@ -449,11 +447,10 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
-Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion and
-frames where an afterglow or ping is still fading are drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the
-low preset's maps, no MSAA or tilt-shift, a lighter shadow filter, and the frame the picture comes to rest on (the
-camera still, nothing fading) is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures,
-Save image) never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
+Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
+drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
+comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
+never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
 
 On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
 `--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader

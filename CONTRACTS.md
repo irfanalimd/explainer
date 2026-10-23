@@ -73,7 +73,6 @@ r.unproject(cssX, cssY, z=0)  // -> [x, y] on the horizontal plane at height z
 r.pxPerUnit(at = [x, y, z])   // -> CSS px per world unit at that point (for LOD and tag sizing)
 r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", draft, gpuMs? }
 r.busy                        // true while the last frame had something still fading out: draw another
-r.fading                      // the same, for fades only (WebGPU's busy also covers a resting picture still gathering samples)
 r.drafted                     // true when the last frame was drawn as a draft: draw the frame that comes to rest again without `draft`
 r.size                        // { cssW, cssH, dpr, W, H, scale } (scale: WebGPU's adaptive resolution, 1 on WebGL2)
 r.profile(opts)               // -> Promise of per-pass GPU timings (WebGPU), or null
@@ -94,15 +93,11 @@ span at the higher scale would sit well inside the budget, never sooner than `AD
 (`capture: true`) always draw at full scale.
 
 **Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
-while the camera or the HUD's insets still move, and while the last frame still had an afterglow or ping fading
-(`r.fading`; `r.debug.draftFades = false` draws fading frames in full, as `shoot --teach` does for its live
-cards). On a software rasterizer (SwiftShader, llvmpipe and the like:
+and while the camera or the HUD's insets still move. On a software rasterizer (SwiftShader, llvmpipe and the like:
 `look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
-tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps, no MSAA or
-tilt-shift and a lighter shadow filter (4 search and 4 filter taps for 12 and 16), WebGPU at three quarters of its
-scene scale. When the picture comes to rest on a draft (`r.drafted`, nothing fading) the runtime draws that frame
-again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames
-(`capture: true`) never do.
+tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps and no MSAA or
+tilt-shift, WebGPU at three quarters of its scene scale. When the camera comes to rest on a draft (`r.drafted`) the
+runtime draws that frame again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
 
 **The DrawList** carries `dl.fields`: the scale fields' packed machines (`[{ n, version, slabs, memo }]`, one per `field`
 pose; `null` when none), which the packer caches by each machine's version.

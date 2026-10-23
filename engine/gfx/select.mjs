@@ -25,7 +25,6 @@ export function createRenderer(canvas, opts = {}) {
     get backend() { return impl?.stats().backend ?? null; },
     get theme() { return impl?.theme ?? theme; },
     get busy() { return !!impl?.busy; },
-    get fading() { return !!impl?.fading; },
     get drafted() { return !!impl?.drafted; },
     get size() { return impl?.size; },
     get atlas() { return impl?.atlas; },

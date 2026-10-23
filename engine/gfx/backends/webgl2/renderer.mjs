@@ -2,11 +2,10 @@
 // shadowed, bloomed little world. Passes per frame:
 //   1 shadow map (key light, PCSS-filtered when sampled)      2 contact map (plan-space blurred footprints)
 //   3 floor layer (zones, grooves with nearest-segment union, text, ticks; sRGB premultiplied)
-//   4 main MSAA pass into colour + emission (opaque slabs, the floor plane behind them, sorted transparent slabs)
+//   4 main MSAA pass into colour + emission (floor plane, opaque slabs, sorted transparent slabs)
 //   2b colour-bounce map (plan-space, wide blurred footprints of saturated bodies, in their colour)
 //   5 resolve, dual-filter bloom from emission only, tilt-shift DOF (high quality), composite (tonemap
 //     shoulder, vignette, grain, dither)
-// 1, 2 and 2b do not depend on the camera: a frame whose slabs and bounds are those the map was last drawn from keeps it.
 import { LIGHT, POST, MATERIAL, CAMERA } from "../../../tokens.mjs";
 import { compileProgram, texture2D, framebuffer, renderbuffer, DynBuffer } from "./glutil.mjs";
 import * as SH from "./shaders.mjs";
@@ -16,11 +15,8 @@ import { TextAtlas } from "../../text.mjs";
 import { cameraState, lightState, norm3 } from "../../math.mjs";
 import { linear, srgba } from "../../color.mjs";
 import { QUALITY, DRAFT, SOFTWARE, themeLight, dofBand } from "../../look.mjs";
-import { MapKey } from "./mapkey.mjs";
 
 const PER_ROW = 64, ROW_TEXELS = PER_ROW * SLAB_TEXELS;
-// the slab texels the shadow pass reads (SLAB_VERTEX: placement, size, rotation; 5.w the no-shadow bit)
-const SHADOW_TEXELS = [0, 1, 2, 6, 7];
 
 export function createRenderer(canvas, opts = {}) {
   let theme = opts.theme === "light" ? "light" : "dark";
@@ -50,9 +46,6 @@ export function createRenderer(canvas, opts = {}) {
     get theme() { return theme; },
     get size() { return { cssW, cssH, dpr, W, H }; },
     get busy() { return !!packer.fading; },     // the last frame had something still fading out
-    // the same: an afterglow or ping still fading, so the next frame replaces this one and it may be a draft
-    // (debug.draftFades false: such frames are full ones, as before fades drafted; shoot --teach's live cards)
-    get fading() { return !!packer.fading && api.debug.draftFades !== false; },
     get drafted() { return drafted; },          // the last frame was drawn in the draft tier: draw the resting one again
     atlas,
   };
@@ -166,37 +159,24 @@ export function createRenderer(canvas, opts = {}) {
     allocSize();
   }
 
-  // the shadow, contact and bounce maps of a tier: the full one and the draft one keep a set each, with the inputs each
-  // map was last drawn from, so a change of tier neither reallocates them nor throws them away
-  const MAP_FIELDS = ["shadowSize", "shadowTex", "shadowFbo", "shadowMinSize", "shadowMinTex", "shadowMinFbo",
-    "contactSize", "contactTex", "contactFbo", "bounceSize", "bounceTex", "bounceFbo"];
   function allocQuality() {
-    R.maps ??= {};
-    const name = drafted ? "draft" : "full";
-    let M = R.maps[name];
-    if (M && (M.shadowSize !== A.shadow || M.contactSize !== A.contact || M.bounceSize !== A.bounce)) {
-      gl.deleteTexture(M.shadowTex); gl.deleteFramebuffer(M.shadowFbo); gl.deleteTexture(M.contactTex); gl.deleteFramebuffer(M.contactFbo);
-      gl.deleteTexture(M.shadowMinTex); gl.deleteFramebuffer(M.shadowMinFbo);
-      gl.deleteTexture(M.bounceTex); gl.deleteFramebuffer(M.bounceFbo);
-      M = null;
+    if (R.shadowTex) {
+      gl.deleteTexture(R.shadowTex); gl.deleteFramebuffer(R.shadowFbo); gl.deleteTexture(R.contactTex); gl.deleteFramebuffer(R.contactFbo);
+      gl.deleteTexture(R.shadowMinTex); gl.deleteFramebuffer(R.shadowMinFbo);
+      gl.deleteTexture(R.bounceTex); gl.deleteFramebuffer(R.bounceFbo);
     }
-    if (!M) {
-      M = R.maps[name] = { keys: { shadow: new MapKey(), contact: new MapKey(), bounce: new MapKey() } };
-      M.shadowSize = A.shadow;
-      M.shadowTex = texture2D(gl, A.shadow, A.shadow, gl.DEPTH_COMPONENT24, { filter: gl.NEAREST });
-      M.shadowFbo = framebuffer(gl, [], M.shadowTex);
-      M.shadowMinSize = A.shadow / 16;
-      M.shadowMinTex = texture2D(gl, M.shadowMinSize, M.shadowMinSize, gl.R32F, { filter: gl.NEAREST });
-      M.shadowMinFbo = framebuffer(gl, [M.shadowMinTex], null);
-      M.contactSize = A.contact;
-      M.contactTex = texture2D(gl, A.contact, A.contact, gl.RGBA16F, { filter: gl.LINEAR });
-      M.contactFbo = framebuffer(gl, [M.contactTex], null);
-      M.bounceSize = A.bounce;
-      M.bounceTex = texture2D(gl, A.bounce, A.bounce, gl.RGBA16F, { filter: gl.LINEAR });
-      M.bounceFbo = framebuffer(gl, [M.bounceTex], null);
-    }
-    R.M = M;
-    for (const k of MAP_FIELDS) R[k] = M[k];
+    R.shadowSize = A.shadow;
+    R.shadowTex = texture2D(gl, A.shadow, A.shadow, gl.DEPTH_COMPONENT24, { filter: gl.NEAREST });
+    R.shadowFbo = framebuffer(gl, [], R.shadowTex);
+    R.shadowMinSize = A.shadow / 16;
+    R.shadowMinTex = texture2D(gl, R.shadowMinSize, R.shadowMinSize, gl.R32F, { filter: gl.NEAREST });
+    R.shadowMinFbo = framebuffer(gl, [R.shadowMinTex], null);
+    R.contactSize = A.contact;
+    R.contactTex = texture2D(gl, A.contact, A.contact, gl.RGBA16F, { filter: gl.LINEAR });
+    R.contactFbo = framebuffer(gl, [R.contactTex], null);
+    R.bounceSize = A.bounce;
+    R.bounceTex = texture2D(gl, A.bounce, A.bounce, gl.RGBA16F, { filter: gl.LINEAR });
+    R.bounceFbo = framebuffer(gl, [R.bounceTex], null);
   }
 
   function freeSize() {
@@ -301,8 +281,7 @@ export function createRenderer(canvas, opts = {}) {
     gl.uniform1i(u.uNumLights, fr.nLights);
     gl.uniform4fv(u.uLP, fr.lightsPos); gl.uniform4fv(u.uLC, fr.lightsCol);
     gl.uniformMatrix4fv(u.uLightVP, false, sh.viewProj);
-    // w: 0 no shadows, 1 the full filter, 2 a draft's few taps
-    gl.uniform4f(u.uShadowP, 1 / R.shadowSize, sh.extent, sh.depthRange, api.debug.shadow === false ? 0 : drafted ? 2 : 1);
+    gl.uniform4f(u.uShadowP, 1 / R.shadowSize, sh.extent, sh.depthRange, api.debug.shadow === false ? 0 : 1);
     gl.uniform1f(u.uLightSize, TL.lightSize);
     gl.uniform4fv(u.uContactRect, R.contactRect);
     gl.uniform3fv(u.uEnvGain, TL.env); gl.uniform3fv(u.uEnvTint, TL.envTint);
@@ -404,18 +383,8 @@ export function createRenderer(canvas, opts = {}) {
     const ranges = [...opaque, [L, nS + nL, fr.nTrans]];
     const pxU = 1 / Math.max(1e-4, cam.pxPerUnit(camera.target) * dpr);
 
-    // 1. shadow map, kept when the slabs it draws and the light's box are the ones it was last drawn from
+    // 1. shadow map
     const sh = lightState(LIGHT.key.dir, [b.minX - 10, b.minY - 10, 0], [b.maxX + 10, b.maxY + 10, b.maxZ + 4], R.shadowSize);
-    const keep = api.debug.mapCache !== false;
-    const kS = R.M.keys.shadow.begin().push(R.shadowSize, b.minX, b.minY, b.maxX, b.maxY, b.maxZ, tS, nTi, sS, nS, sL, nL, fr.nTrans);
-    for (let i = 0, slab = packer.slab.a; i < fr.nSlabs; i++) {
-      const at = i * SLAB_TEXELS * 4;
-      for (const k of SHADOW_TEXELS) kS.range(slab, at + k * 4, 4);
-      kS.push(slab[at + 23]);
-    }
-    const keptShadow = kS.same() && keep;
-    stats.mapsKept = keptShadow ? 1 : 0;
-    if (!keptShadow) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, R.shadowFbo);
     gl.viewport(0, 0, R.shadowSize, R.shadowSize);
     gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS); gl.depthMask(true);
@@ -436,15 +405,10 @@ export function createRenderer(canvas, opts = {}) {
     gl.bindVertexArray(R.fsqVao);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); stats.drawCalls++;
     gl.bindSampler(0, null);
-    }
 
-    // 2. contact map, kept likewise (the footprints and the plan rect)
+    // 2. contact map
     const pad = 40;
     R.contactRect = [b.minX - pad, b.minY - pad, 1 / (b.maxX - b.minX + 2 * pad), 1 / (b.maxY - b.minY + 2 * pad)];
-    gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
-    const keptContact = R.M.keys.contact.begin().push(R.contactSize, ...R.contactRect, fr.nContact).range(packer.contact.a, 0, packer.contact.n).same() && keep;
-    if (keptContact) stats.mapsKept++;
-    else {
     gl.bindFramebuffer(gl.FRAMEBUFFER, R.contactFbo);
     gl.viewport(0, 0, R.contactSize, R.contactSize);
     gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
@@ -458,11 +422,7 @@ export function createRenderer(canvas, opts = {}) {
       stats.drawCalls++;
       gl.blendEquation(gl.FUNC_ADD);
     }
-    }
-    // 2b. colour bounce map (same plan rect, low resolution, additive), kept likewise
-    const keptBounce = R.M.keys.bounce.begin().push(R.bounceSize, ...R.contactRect, fr.nBounce).range(packer.bounce.a, 0, packer.bounce.n).same() && keep;
-    if (keptBounce) stats.mapsKept++;
-    else {
+    // 2b. colour bounce map (same plan rect, low resolution, additive)
     gl.bindFramebuffer(gl.FRAMEBUFFER, R.bounceFbo);
     gl.viewport(0, 0, R.bounceSize, R.bounceSize);
     gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
@@ -473,7 +433,6 @@ export function createRenderer(canvas, opts = {}) {
       gl.bindVertexArray(R.bounceVao);
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, fr.nBounce);
       stats.drawCalls++;
-    }
     }
 
     // 3. floor layer
@@ -535,27 +494,8 @@ export function createRenderer(canvas, opts = {}) {
     gl.clearBufferfv(gl.COLOR, 1, [0, 0, 0, 1]);
     gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1, 0);
     bindLightTextures();
-    // opaque slabs first, then the floor behind them: the depth test spares the floor's shading where a slab covers it
-    // (most of the frame's cost without a GPU). The floor passes ties (LEQUAL), as it did when drawn first and a slab
-    // failed them (LESS), so every sample comes out the same.
-    const sp = R.slab;
-    if (!api.debug.skipSlabs) {
-      gl.useProgram(sp.program);
-      setLightUniforms(sp, fr, cam, sh);
-      gl.uniformMatrix4fv(sp.u.uViewProj, false, cam.viewProj);
-      gl.uniform1f(sp.u.uAtlasSize, atlas.size); gl.uniform1f(sp.u.uSpreadPx, atlas.spread);
-      gl.uniform3fv(sp.u.uLit, colors.lin.lit.slice(0, 3));
-      gl.uniform1f(sp.u.uTime, time);
-      const m = [];
-      for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
-      gl.uniform4fv(sp.u.uMat, m);
-      gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
-      stats.drawCalls += drawSlabs(sp, fr, opaque);
-      gl.disable(gl.CULL_FACE);
-    }
     // floor plane
     if (!api.debug.skipFloor) {
-      gl.depthFunc(gl.LEQUAL);
       const p = R.floor; gl.useProgram(p.program);
       setLightUniforms(p, fr, cam, sh);
       gl.uniformMatrix4fv(p.u.uViewProj, false, cam.viewProj);
@@ -575,11 +515,21 @@ export function createRenderer(canvas, opts = {}) {
       gl.bindVertexArray(R.fsqVao);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       stats.drawCalls++;
-      gl.depthFunc(gl.LESS);
     }
-    // raised ink and transparent slabs, over both
+    // slabs
     if (!api.debug.skipSlabs) {
-      const p = sp; gl.useProgram(p.program);
+      const p = R.slab; gl.useProgram(p.program);
+      setLightUniforms(p, fr, cam, sh);
+      gl.uniformMatrix4fv(p.u.uViewProj, false, cam.viewProj);
+      gl.uniform1f(p.u.uAtlasSize, atlas.size); gl.uniform1f(p.u.uSpreadPx, atlas.spread);
+      gl.uniform3fv(p.u.uLit, colors.lin.lit.slice(0, 3));
+      gl.uniform1f(p.u.uTime, time);
+      const m = [];
+      for (const k of ["matte", "ceramic", "glass", "metal"]) { const M = MATERIAL[k]; m.push(M.rough, M.spec, M.rim, k === "metal" ? 1 : 0); }
+      gl.uniform4fv(p.u.uMat, m);
+      gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
+      stats.drawCalls += drawSlabs(p, fr, opaque);
+      gl.disable(gl.CULL_FACE);
       // raised ink (index numbers on plates, labels on tops): depth-tested decals pulled a hair toward the eye
       if (fr.nInkRaised) {
         gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.depthFunc(gl.LEQUAL);
