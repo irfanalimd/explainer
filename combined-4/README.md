@@ -1,3 +1,9 @@
+> **Update (23 October):** frame cost (#15) is no longer in this PR. The published pages looked worse than the
+> original builds, so #20 removes the draft tier it builds on and brings back the original tile look; this branch now
+> reverts #15's merge and merges #20. Merge #20 first. The frame-cost rows in the table below no longer apply: live play
+> without a GPU is about 0.9 fps at 1440×900 again, with every frame drawn in full. Unit tests 339 / 339, verify 211
+> runs, 0 failing.
+
 > **Draft, for review only. Don't merge yet.** Screenshots and logs are on the [`review` branch](https://github.com/irfanalimd/explainer/tree/review). Each change is explained, with before and after screenshots, in its own PR: #14 framing check, #15 frame cost, #16 phone sheets, #17 code panel and landscape accessibility, #18 lesson words.
 
 Combines #14–#18 on top of `main` (`1f93977`, which has round 3). Like round 3, this round adds no features: it works
