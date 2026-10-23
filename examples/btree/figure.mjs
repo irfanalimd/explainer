@@ -51,7 +51,7 @@ export const meta = {
   kicker: "Databases",
   fig: 7,
   level: "core",
-  cite: { text: "D. Comer, “The Ubiquitous B-Tree”, ACM Computing Surveys, 1979", url: "https://doi.org/10.1145/356770.356776" },
+  cite: "[comer1979]",
   theme: "light",
   hook: "A table of a million orders. How does a database find one order in three or four reads, instead of checking every row?",
   terms: {

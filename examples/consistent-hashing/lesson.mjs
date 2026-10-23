@@ -241,11 +241,11 @@ export const lesson = {
       first: {
         when: (v) => v.seats === 1,
         plain: "{extra} joins at {hash}, inside {pred}'s arc. It waits, empty.",
-        why: "Which keys now meet {extra} first on their clockwise walk?",
+        why: "Watch which keys now meet {extra} first on their clockwise walk.",
         look: ["{tokenId}", "{predTokenId}"],
       },
       plain: "{extra} joins with {seats} seats, landing in {seats} arcs. It waits, empty.",
-      why: "Which keys now meet one of {extra}'s seats first on their clockwise walk?",
+      why: "Watch which keys now meet one of {extra}'s seats first on their clockwise walk.",
       look: ["{tokenId}"], picture: "chair",
       deeper: {
         how: "A real server copies its keys first and starts answering for them after, so nothing is lost while they move.",
@@ -356,7 +356,7 @@ export const lesson = {
       look: ["{heavyId}"],
       deeper: {
         how: "The remainder way would switch to {rule} and re-divide every key; the ring moved only the leaver's keys.",
-        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reason real stores give each server many seats.",
+        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reason Dynamo gives each server more than one seat on the ring, its virtual nodes.",
         source: "[dynamo2007] §4.2",
       },
     },

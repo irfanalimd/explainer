@@ -313,7 +313,7 @@ export const lesson = {
         deeper: {
           how: "Votes count with the candidate's own. Two majorities of {N} share at least one server, and it votes only once per term, so no term ever has two leaders (§5.2).",
           code: "`if len(self.votes) > N // 2: self.become_leader()` (line 15)",
-          edge: "Why the blank `nop`? A new leader learns which older entries are final only once an entry of its own term is stored on a majority. A blank one gets there at once (§8).",
+          edge: "The blank `nop` is there because a new leader learns which older entries are final only once an entry of its own term is stored on a majority. A blank one gets there at once (§8).",
           source: "[ongaro2014] §5.2, §8",
         },
       },
@@ -448,7 +448,7 @@ export const lesson = {
       first: {
         why: "The others learn of a commit only from the leader's next message, so their entries light up later.",
         deeper: {
-          how: "Every update carries the leader's commit index. A follower takes the smaller of that and the index of the last entry this update gave it.",
+          how: "A follower takes the smaller of the leader's commit index and the index of the last entry this update gave it.",
           code: "`self.commit = max(self.commit, min(m.leader_commit, m.prev_index + len(m.entries)))` (line 26)",
           edge: "Not the follower's last log index: entries past this update may be stale ones from an old leader, not yet checked against this one. Taking the last index is a common student bug (Gjengset).",
           source: "[ongaro2014] Figure 2; [gjengset]",
