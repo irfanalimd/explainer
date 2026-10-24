@@ -1,7 +1,7 @@
 // node --test engine/hud/guide.test.mjs   (the next thing to do: which control the ring is on, and how it calls)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cueOf, createGuide, CALLS, RECALL_MS } from "./guide.mjs";
+import { cueOf, createGuide, cueStyle, CALLS, RECALL_MS } from "./guide.mjs";
 
 const base = { on: true, step: 0, phase: 0 };
 const id = (s) => cueOf({ ...base, ...s })?.id ?? null;
@@ -52,19 +52,35 @@ const clock = () => {
   return { setTimeout: (fn, ms) => (T.set(++n, { fn, ms }), n), clearTimeout: (i) => T.delete(i), run: () => { const t = [...T.values()]; T.clear(); t.forEach((x) => x.fn()); }, T };
 };
 
-test("the ring goes on the cue's control, calls on the first few cues of a kind, then only rests", () => {
+test("quiet: the ring goes on the cue's control, calls on the first few cues of a kind, then only rests", () => {
   const play = el(), next = el(), win = clock();
-  const g = createGuide({ win, reduced: () => false, target: (k) => (k === "next" ? next : play) });
+  const g = createGuide({ win, reduced: () => false, style: "quiet", target: (k) => (k === "next" ? next : play) });
   g.set(cueOf({ ...base, atStart: true }));
   assert.ok(play.c.has("ix-cue") && play.c.has("ix-cue-call"));
   g.set(cueOf({ ...base, playing: true }));
   assert.equal(play.c.size, 0, "acting clears it");
-  for (let i = 1; i <= CALLS + 1; i++) {
+  for (let i = 1; i <= CALLS.quiet + 1; i++) {
     g.set(cueOf({ ...base, stepMode: true, step: i }));
     assert.ok(next.c.has("ix-cue"));
-    assert.equal(next.c.has("ix-cue-call"), i <= CALLS, `step ${i}`);
+    assert.equal(next.c.has("ix-cue-call"), i <= CALLS.quiet, `step ${i}`);
   }
   assert.ok(!play.c.has("ix-cue"), "one control at a time");
+});
+
+test("clear (the default) calls on every new cue", () => {
+  const next = el(), g = createGuide({ win: clock(), reduced: () => false, target: () => next });
+  for (let i = 1; i <= 8; i++) {
+    g.set(cueOf({ ...base, stepMode: true, step: i }));
+    assert.ok(next.c.has("ix-cue-call"), `step ${i}`);
+  }
+});
+
+test("the look comes from ?cue=, then the figure's option, else clear", () => {
+  assert.equal(cueStyle("", undefined), "clear");
+  assert.equal(cueStyle("?cue=quiet", undefined), "quiet");
+  assert.equal(cueStyle("", "quiet"), "quiet");
+  assert.equal(cueStyle("?cue=loud", "quiet"), "clear");
+  assert.equal(cueStyle("?gfx=webgl2", undefined), "clear");
 });
 
 test("a cue still waiting calls once more; reduced motion only rests", () => {

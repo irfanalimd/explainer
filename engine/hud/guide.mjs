@@ -1,11 +1,14 @@
 // The next thing to do: one cue at a time on the control that moves the reader on, so nobody has to search the
 // screen for it. cueOf() decides which control from the HUD's state (pure, tested); createGuide() puts the cue on
-// it: a soft ink ring that calls a few times and then rests on the control until the reader acts (reduced motion:
-// the resting ring alone). Chrome is never coloured (DESIGN.md), so the ring is the ink's, like the pauses' call.
+// it: an ink ring that calls (ripples out) and then rests on the control until the reader acts (reduced motion: the
+// resting ring alone). Chrome is never coloured (DESIGN.md), so the ring is the ink's. Two looks (STYLES): "clear",
+// the default, a strong ring with a soft halo that calls on every new cue; "quiet", a faint ring that calls only on
+// the first few cues of a kind.
 // Nothing here is announced: each moment already says its way on to screen readers (the pause's line, the card).
 // Capture, presenting and the start card show no cue, so a frame never depends on it.
 
-export const CALLS = 3;          // a control calls on its first few cues of a kind; after that it only rests, ringed
+export const STYLES = ["clear", "quiet"];
+export const CALLS = { clear: Infinity, quiet: 3 };   // how many cues of a kind call; after that the ring only rests
 export const RECALL_MS = 12000;  // a cue still waiting after this long calls once more
 
 /**
@@ -34,11 +37,19 @@ export function cueOf(s = {}) {
   return null;
 }
 
+/** The look a page asks for (?cue=quiet, or the figure's option), else the default. */
+export function cueStyle(search, option) {
+  let v = option;
+  try { v = new URLSearchParams(search ?? "").get("cue") ?? option; } catch { /* none */ }
+  return STYLES.includes(v) ? v : STYLES[0];
+}
+
 /**
- * ctx: { win, root, target(id) -> Element | Element[] | null, reduced() -> bool }.
+ * ctx: { win, target(id) -> Element | Element[] | null, reduced() -> bool, style: "clear" | "quiet" }.
  * set(cue) moves the ring to cue's control (or clears it on null); call it whenever the HUD's state may have changed.
  */
-export function createGuide({ win, target, reduced }) {
+export function createGuide({ win, target, reduced, style = STYLES[0] }) {
+  const calls = CALLS[style] ?? CALLS.clear;
   const seen = new Map();   // id -> how many cues of that kind have called
   let key = "", els = [], timer = 0;
   const clear = () => {
@@ -66,7 +77,7 @@ export function createGuide({ win, target, reduced }) {
       if (!fresh || reduced()) return;
       const n = (seen.get(cue.id) ?? 0) + 1;
       seen.set(cue.id, n);
-      if (n <= CALLS) call();
+      if (n <= calls) call();
       // still waiting a while later: one more call, the reader may have lost the thread
       timer = win.setTimeout(() => { timer = 0; if (key === next && !reduced()) call(); }, RECALL_MS);
     },

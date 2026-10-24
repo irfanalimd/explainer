@@ -25,7 +25,7 @@ import { createNudge, beliefBlock } from "./nudge.mjs";
 import { createPresenter, presentQuery } from "./presenter.mjs";
 import { createShare } from "./share.mjs";
 import { composeStill, stillName } from "./still.mjs";
-import { createGuide, cueOf } from "./guide.mjs";
+import { createGuide, cueOf, cueStyle } from "./guide.mjs";
 
 export { applyTheme, parseHash, formatHash };
 
@@ -1671,7 +1671,10 @@ export function createHud(root, opts = {}, cb = {}) {
     if (opts && !predict.classList.contains("ix-locked") && opts.querySelector(".ix-opt:not([aria-disabled])")) return opts;
     return predict.querySelector(".ix-turn-picks:has(button.ix-turn-pick)");
   };
-  const guide = createGuide({ win, reduced: () => still(),
+  // the ring's look: clear (the default) or quiet (?cue=quiet, or opts.cue), on the root for hud.css
+  const cueLook = cueStyle(win.location.search, opts.cue);
+  root.dataset.cue = cueLook;
+  const guide = createGuide({ win, reduced: () => still(), style: cueLook,
     target: (id) => (id === "next" ? fwdBtn : id === "answer" || id === "check" ? answerEls() : playBtn) });
   function syncCue() {
     if (!cueReady || destroyed) return;
