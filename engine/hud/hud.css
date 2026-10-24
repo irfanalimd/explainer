@@ -1689,6 +1689,9 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
   transition: background-color var(--ix-dur-fast) var(--ix-ease);
 }
 .ix-params-toggle:hover { background: var(--ix-hover); }
+/* folded, the card is a way in, not a heading: it reads like the toolbar's words, so the chapter's name leads the column */
+.ix-params-folded .ix-params-toggle { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; letter-spacing: 0; color: var(--ix-ink-muted); }
+.ix-params-folded .ix-params-toggle:hover { color: var(--ix-ink); }
 .ix-params-chev { color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
 .ix-params-folded .ix-params-chev { transform: rotate(-90deg); }
 .ix-params-folded .ix-params-body { display: none; }
