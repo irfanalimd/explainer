@@ -507,7 +507,7 @@ window.__results = (async () => {
     && !againEl.hidden && getComputedStyle(againEl).display !== "none");
   check("the panel's current step becomes the chapter's recap, with the chapter named once", panelEl.querySelector(".ix-ex-recap .ix-ex-done")?.textContent === "Map complete"
     && panelEl.querySelector(".ix-ex-recap .ix-l-plain")?.textContent.startsWith("Step 9") && panelEl.querySelector(".ix-ex-title").textContent === "Map"
-    && panelEl.querySelector(".ix-map-pos").textContent === "1 of 2" && !/chapter \d of/i.test(root.querySelector(".ix-hud").innerText));
+    && panelEl.querySelector(".ix-map-pos").textContent === "Chapter 1 of 2");
   check("the pause never moves the world", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
   check("the recap ends with the chapter up next and how to go on", /^Up next: Reduce\. (Press Continue or Enter|Tap Continue)\.$/.test(panelEl.querySelector(".ix-ex-recap .ix-onward")?.textContent ?? ""),
     panelEl.querySelector(".ix-onward")?.textContent);
@@ -624,7 +624,7 @@ window.__results = (async () => {
     const panel = root.querySelector(".ix-explain"), capEl = root.querySelector(".ix-caption");
     check("explain docks on a wide screen and frames the world beside it", root.classList.contains("ix-ex-docked") && getComputedStyle(panel).display === "flex"
       && hud.insets.right === root.clientWidth - panel.offsetLeft && hud.insets.right >= 320, hud.insets);
-    check("explain names the chapter once and says what it is for", !panel.querySelector(".ix-ex-kicker") && panel.querySelector(".ix-map-pos").textContent === "1 of 2" && panel.querySelector(".ix-ex-title")?.textContent === "Map"
+    check("explain names the chapter once and says what it is for", !panel.querySelector(".ix-ex-kicker") && panel.querySelector(".ix-map-pos").textContent === "Chapter 1 of 2" && panel.querySelector(".ix-ex-title")?.textContent === "Map"
       && panel.querySelector(".ix-ex-about")?.textContent === "Each mapper reads its own split.");
     check("explain shows the current step with its markup", panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "4" && panel.querySelector(".ix-ex-now .ix-l-plain .ix-key")?.textContent === "fox"
       && panel.querySelector(".ix-ex-now .ix-l-plain .ix-ref")?.textContent === "mapper 0");
@@ -652,7 +652,7 @@ window.__results = (async () => {
     mo.disconnect();
     check("explain touches the DOM only on a step change", same === 0 && moved > 0 && panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "5", { same, moved });
     hud.update(frame(10.5), { time: 10.5, playing: true, speed: 1 });
-    check("a new chapter resets the list and drops a missing about", panel.querySelector(".ix-map-pos").textContent === "2 of 2" && panel.querySelector(".ix-ex-title").textContent === "Reduce"
+    check("a new chapter resets the list and drops a missing about", panel.querySelector(".ix-map-pos").textContent === "Chapter 2 of 2" && panel.querySelector(".ix-ex-title").textContent === "Reduce"
       && !panel.querySelector(".ix-ex-about") && panel.querySelector(".ix-ex-earlier").hidden === true);
     reset();
     panel.querySelector(".ix-ex-now .ix-l-plain .ix-ref").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));

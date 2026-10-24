@@ -3,7 +3,7 @@
 // words ("Chapter 4 of 5 · Insert").
 
 // While a wrong pick's branch plays (turn.mjs detourOf) the map keeps the main run's chapters and marks the current one
-// as a detour: its ring turns dashed and the position reads "Detour · 3 of 5".
+// as a detour: its ring turns dashed and the position reads "Detour · Chapter 3 of 5".
 
 /** ctx: { h, onJump(phaseIndex) }. Returns { el, set(phases, current, { goal, compact, detour }) }. */
 export function createProgress({ h, onJump }) {
@@ -20,7 +20,7 @@ export function createProgress({ h, onJump }) {
     el.hidden = n < 2;
     el.classList.toggle("ix-progress-detour", detour);
     words.textContent = n > 1 ? `Chapter ${current + 1} of ${n} · ${name(current)}${detour ? " · detour" : ""}` : "";
-    pos.textContent = n > 1 ? `${detour ? "Detour · " : ""}${current + 1} of ${n}` : "";
+    pos.textContent = n > 1 ? `${detour ? "Detour · " : ""}Chapter ${current + 1} of ${n}` : "";
     const next = `${phases.map((p) => p.name).join("\u0000")}|${current}|${goal}|${detour}`;
     if (next === sig) return;
     sig = next;

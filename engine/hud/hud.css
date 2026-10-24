@@ -779,6 +779,7 @@
 
 .ix-count { grid-area: count; display: flex; align-items: baseline; gap: 4px; font-size: var(--ix-fs-sm); font-weight: 500; color: var(--ix-ink-faint); white-space: nowrap; }
 .ix-count-cur { color: var(--ix-ink); text-align: right; }
+.ix-count-word { margin-right: 2px; }
 .ix-count-tag { align-self: center; margin-right: 4px; padding: 0 7px; border: 1px dashed var(--ix-ink-muted); border-radius: 999px; font-size: var(--ix-fs-xs); line-height: 18px; color: var(--ix-ink-muted); }
 /* speed leads the dock, with its name, and a hairline sets it apart from Back / Play / Next */
 .ix-speed-wrap { grid-area: speed; position: relative; display: flex; align-items: center; }

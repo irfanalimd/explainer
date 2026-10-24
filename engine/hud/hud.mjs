@@ -1009,7 +1009,8 @@ export function createHud(root, opts = {}, cb = {}) {
   const countCur = h("span", { class: "ix-count-cur", text: "0" });
   const countTot = h("span", { class: "ix-count-tot", text: "0" });
   const countTag = h("span", { class: "ix-count-tag", text: "Detour", hidden: true });
-  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, countCur, h("span", { class: "ix-count-sep", text: "/" }), countTot);
+  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, h("span", { class: "ix-count-word", text: "Step" }), countCur,
+    h("span", { class: "ix-count-sep", text: "of" }), countTot);
   // the speed is always visible, with its name; the menu says what each value means
   const speedVal = h("span", { class: "ix-speed-val", text: "1×" });
   const speedBtn = h("button", { class: "ix-speed", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Speed, 1×",
