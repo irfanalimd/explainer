@@ -5,7 +5,7 @@
 //
 // Lesson plan (references/teaching.md)
 //   Reader      knows arrays and loops; has never met a pivot, a partition or recursion.
-//   Level       core, kept light: 5 chapters, one number in the dock, two knobs.
+//   Level       core, kept light: 5 chapters, one number in the recaps, two knobs.
 //   Hook        comparing every pair is slow: how does quicksort skip most pairs, and when can't it?
 //   Picture     a line of people ordered by height around one chosen person: shorter ones step left, taller ones
 //               right, and the chosen person now stands exactly where they belong. Then the same in each group.

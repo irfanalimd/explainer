@@ -162,7 +162,7 @@ time at 1×.
 | Chapters | 3–5, slow | 4–6 | 5–8 |
 | Stories | 1–3 | 2–4 | 3–6 |
 | Knobs (besides seed) | 0–2 | at most 5 | at most 8 |
-| Numbers in the dock | 1–2 | at most 3 | at most 3 |
+| Numbers in a pause's recap | 1–2 | at most 3 | at most 3 |
 | Predict questions | 1–2 | 1–3 | 2–4 |
 | Captions | ≤ 18 words | ≤ 18 words | ≤ 22 words |
 
@@ -483,7 +483,7 @@ before it, and fix it. Then check:
 - [ ] At least one question made me guess before I saw, right before the surprising step, and it said why.
 - [ ] The misconception I would have brought is named and disproved by the run.
 - [ ] The failure story is one I would ask about, and its name is in my words.
-- [ ] The numbers in the dock are few and I know what each one means.
+- [ ] The numbers in a pause's recap are few and I know what each one means.
 - [ ] Nothing on screen is there that the lesson does not use (knobs, numbers, code panel).
 - [ ] The recap says back what I saw, in order; the takeaway is one sentence I could repeat tomorrow.
 - [ ] Whatever option I picked, its feedback spoke to what I believed, with the run's values.

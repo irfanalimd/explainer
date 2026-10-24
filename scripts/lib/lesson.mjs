@@ -208,7 +208,7 @@ export function formatLesson(L, opts = {}) {
   const termLine = (n) => (H ? `${H.terms[n].lead ? `(${H.terms[n].lead}) ` : ""}${H.terms[n].def}` : L.terms[n]);
   if (names.length) { out.push("WORDS"); for (const n of names) out.push(`  ${n}: ${wrap(termLine(n), W - n.length - 4, " ".repeat(n.length + 4))}`); }
   const prim = L.counters.filter((c) => c.primary);
-  if (L.counters.length) out.push(`NUMBERS   ${L.counters.map((c) => `${c.label}${c.primary ? " *" : ""}`).join(" · ")}${prim.length ? "   (* in the dock)" : ""}`);
+  if (L.counters.length) out.push(`NUMBERS   ${L.counters.map((c) => `${c.label}${c.primary ? " *" : ""}`).join(" · ")}${prim.length ? "   (* in each pause's recap)" : ""}`);
   for (const story of L.stories) {
     out.push("");
     out.push(`━━ Story ${story.index + 1} of ${L.scenarioCount} · ${story.label}${story.id ? `  (${story.id})` : ""}  ${story.steps} steps, ${story.duration.toFixed(0)} s at 1x`);
