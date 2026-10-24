@@ -616,6 +616,13 @@ window.__results = (async () => {
     const items = [...panel.querySelectorAll(".ix-ex-item")];
     check("earlier steps of the chapter, newest first, with their chips (quiet ones)", items.length === 3 && items[0].querySelector(".ix-ex-t .ix-key") && !items[0].querySelector('[role="button"]') && items.map((b) => b.querySelector(".ix-ex-n").textContent).join() === "3,2,1"
       && items[0].querySelector(".ix-ex-t").textContent === "Step 2 moves fox to mapper 2", items.map((b) => b.textContent));
+    const eBtn = panel.querySelector(".ix-ex-earlier-btn"), eList = panel.querySelector(".ix-ex-list");
+    check("docked, the earlier steps fold to one line that counts them", eBtn && getComputedStyle(eBtn).display !== "none" && eList.hidden && eBtn.getAttribute("aria-expanded") === "false"
+      && eBtn.getAttribute("aria-controls") === eList.id && eBtn.textContent.includes("3 steps"), eBtn?.textContent);
+    eBtn.click();
+    check("the line opens them and remembers", !eList.hidden && eBtn.getAttribute("aria-expanded") === "true" && getComputedStyle(eList).display !== "none" && localStorage.getItem("ix:earlier") === "1");
+    eBtn.click();
+    check("and folds them again", eList.hidden && localStorage.getItem("ix:earlier") === "0");
     check("the bottom caption steps aside while the panel is open", getComputedStyle(capEl).display === "none");
     reset();
     items[1].click();
@@ -670,6 +677,7 @@ window.__results = (async () => {
     const capB = root4.querySelector(".ix-caption").getBoundingClientRect().top, bar4 = root4.querySelector(".ix-bar").getBoundingClientRect().top, pr = p4.getBoundingClientRect();
     check("the button opens the chapter and its earlier steps above the dock, never the current step a second time", getComputedStyle(p4).display === "flex" && btn4.getAttribute("aria-expanded") === "true"
       && p4.querySelector(".ix-ex-now").hidden && p4.querySelectorAll(".ix-ex-item").length === 2 && p4.querySelector(".ix-ex-title").textContent === "Map"
+      && !p4.querySelector(".ix-ex-list").hidden && getComputedStyle(p4.querySelector(".ix-ex-earlier-btn")).display === "none"
       && pr.bottom <= bar4 && hud4.insets.right === 0, { pr: [pr.top, pr.bottom], bar4, capB });
     p4.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     check("Esc closes the card", getComputedStyle(p4).display === "none" && btn4.getAttribute("aria-expanded") === "false");

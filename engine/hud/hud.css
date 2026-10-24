@@ -1559,6 +1559,20 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
 .ix-ex-earlier { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--ix-line); }
 .ix-ex-label { margin: 0 0 4px 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
 .ix-ex-list { list-style: none; margin: 0 -8px; padding: 0; }
+.ix-ex-list[hidden] { display: none; }
+/* docked, the earlier steps fold to one line, so the current step is the one thing in the panel to read */
+.ix-ex-earlier-btn {
+  display: flex; align-items: center; gap: 8px; width: calc(100% + 16px); margin: -6px -8px 0; padding: 6px 8px;
+  border-radius: var(--ix-r-sm); text-align: left; transition: background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-earlier-btn .ix-ex-label { margin: 0; }
+.ix-ex-earlier-count { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+.ix-ex-earlier-chev { display: inline-grid; margin-left: auto; color: var(--ix-ink-faint); transform: rotate(-90deg); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-earlier-open .ix-ex-earlier-chev { transform: none; }
+.ix-ex-earlier-open .ix-ex-earlier-btn { margin-bottom: 4px; }
+.ix-ex-earlier-btn:hover { background: var(--ix-hover); }
+.ix-ex-earlier-btn:hover :is(.ix-ex-label, .ix-ex-earlier-chev) { color: var(--ix-ink); }
+.ix:not(.ix-ex-docked) .ix-ex-earlier-btn, .ix.ix-ex-docked .ix-ex-earlier-k { display: none; }
 .ix-ex-item {
   display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; width: 100%;
   padding: 6px 8px; border-radius: var(--ix-r-sm); text-align: left;
