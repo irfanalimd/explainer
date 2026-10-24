@@ -2242,11 +2242,14 @@ export function createHud(root, opts = {}, cb = {}) {
     if (!statEls.length || stripShown()) return null;
     const on = primaryOn();
     const val = (c) => formatText(c.target, c.def.format ?? "int", c.def);
-    const items = statEls.filter((_, i) => on[i]).map((e) => {
+    // a number still at zero (or unset) says nothing yet: it waits for the pause after the run first moves it
+    const said = (c) => c && c.target != null && c.target !== 0;
+    const items = statEls.filter((e, i) => on[i] && (e._row ? e._row.cells.some(said) : said(e._m))).map((e) => {
       const label = e._row ? e._row.label : e._m.def.label ?? e._m.name;
       const v = e._row ? e._row.cells.map((c) => (c ? val(c) : "—")).join(" / ") : val(e._m);
       return h("span", { class: "ix-tally-item" }, h("span", { class: "ix-tally-name", text: label }), " ", h("span", { class: "ix-tally-val", text: v }));
     });
+    if (!items.length) return null;
     const list = items.flatMap((x, i) => (i ? [h("span", { class: "ix-tally-sep", "aria-hidden": "true", text: "·" }), x] : [x]));
     const b = h("button", { class: "ix-tally", type: "button", "aria-expanded": "false", "aria-controls": meterBox.id,
       onclick: () => toggleReadout(readoutOpen === "pinned" && readoutAnchor === b ? false : "pinned", b) },
