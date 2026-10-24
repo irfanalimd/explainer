@@ -2013,11 +2013,13 @@ export function createHud(root, opts = {}, cb = {}) {
     fire("onRefSelect", r.dataset.ref, { x: b.left - rr.left + b.width / 2, y: b.top - rr.top });
   };
   on(caption, "click", (e) => { const r = e.target.closest?.(".ix-ref"); if (r) refPick(r); });
-  on(caption, "keydown", (e) => {
+  const refKey = (e) => {
     const r = e.target.closest?.(".ix-ref");
     if (r && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); refPick(r); }
-  });
-  on(caption, "focusout", () => { if (refHovered) { refHovered = null; fire("onRefHover", null); } });
+  };
+  const refOut = () => { if (refHovered) { refHovered = null; fire("onRefHover", null); } };
+  on(caption, "keydown", refKey);
+  on(caption, "focusout", refOut);
 
   // ---------- explain panel (explain.mjs): what is happening and why, beside the world or in a card ----------
   const explain = createExplain({ root, doc, h, parent: hud, caption, bar, store, markupOpts, markup: md, level,
@@ -2037,8 +2039,12 @@ export function createHud(root, opts = {}, cb = {}) {
     onLayout: () => { obstaclesDirty = true; updateInsets(); } });
   const fold = createFold({ root, doc, h, caption, panel: explain.panel, scrub, docked: () => explain.mode === "docked" && explain.open,
     onRewind: () => fire("onSeek", 0, { scrubbing: false }) });
+  // the panel's chips as the caption's: pointer or keyboard focus marks the thing in the world, Enter pins it
   on(explain.panel, "pointerover", refOver);
-  on(explain.panel, "pointerleave", () => { if (refHovered) { refHovered = null; fire("onRefHover", null); } });
+  on(explain.panel, "pointerleave", refOut);
+  on(explain.panel, "focusin", refOver);
+  on(explain.panel, "focusout", refOut);
+  on(explain.panel, "keydown", refKey);
   on(explain.panel, "click", (e) => { const r = e.target.closest?.(".ix-ref"); if (r) refPick(r); });
 
   // ---------- meters ----------

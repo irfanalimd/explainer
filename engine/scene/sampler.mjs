@@ -1,7 +1,7 @@
 // The sampler: Timeline x time -> Frame (engine/contracts.mjs), poses per CONTRACTS.md 4.6.
 // Pure and stable: every value is a function of (time, view) only, so scrubbing backward is exact.
 // Work per frame is proportional to what is alive in the current step; scratch state is reused.
-import { MOTION, SIZE } from "../tokens.mjs";
+import { MOTION, SIZE, SPOT } from "../tokens.mjs";
 import { T, evalSeg, anchor, flightProgress, ease, easeInOut } from "./transitions.mjs";
 import { clamp01, smoothstep, lastLEn } from "./util.mjs";
 import { emitScale } from "./scale.mjs";
@@ -11,13 +11,16 @@ const TAG_EDGE = 4;           // u above a housing's top, at its back edge
 const TAG_BLEND = 36;         // u outside a housing over which a tile's tag anchor moves from the edge to the tile
 const TAG_CROWD = 30;         // u: a housing closer than this behind another leaves no room for that one's chip
 const TAG_INSET = 0.42;       // share of the tray's depth below the header where a crowded housing's chip points
+// kinds that are the world's structure, not things in it: the spotlight never recedes them (timeline.mjs counts the rest)
+export const SPOT_STRUCTURE = new Set(["zone", "group", "spacer", "text", "lanes", "mark", "trace", "bus", "choose", "turns"]);
 const STATUS = new Set(["ok", "busy", "warn", "fail", "idle", "ghost", "neutral", "key"]);
 
 export function createSampler(tl) {
   const X = tl._;
-  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, steps, beatStates, laneGeo, markLevel } = X;
+  const { incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, spotByStep, refsByStep, scaleByStep, counterEvents, startCounters, steps, beatStates, laneGeo, markLevel } = X;
   const n = incs.length;
   const stamp = new Float64Array(n).fill(NaN);
+  const spots = new Map();              // step -> { keep, memo }: the spotlight (recedeIn)
   const kin = incs.map(() => ({ x: 0, y: 0, z: 0, w: 0, d: 0, h: 0, opacity: 1, scale: 1, pitch: 0, bank: 0, yaw: 0, s: -1, zl: 0, ok: false, seg: null }));
   const cevT = Float64Array.from(counterEvents.map((e) => e.t));
   const tmp = [0, 0, 0];
@@ -225,6 +228,18 @@ export function createSampler(tl) {
     const sc = st ? scaleByStep[i] : null;
     const scale = sc ? { step: i, ...emitScale(sc, t - st.t0, poses, !!view.reducedMotion), bounds: sc.box1 } : null;
 
+    // the spotlight: what the step is about keeps its look, the rest recedes (pose.recede, 0..1; the skin draws it),
+    // crossfading from the step before; the things its words name wear the chip-hover ring as it begins
+    if (st && view.spot !== false && !scale) {
+      const w = i > 0 ? smoothstep((t - st.t0) / SPOT.ease) : 1;
+      const ring = t - st.t0 < SPOT.ring ? refsByStep[i] : null;
+      for (const p of poses) {
+        const r = recedeIn(i, p);
+        p.recede = w < 1 ? r * w + recedeIn(i - 1, p) * (1 - w) : r;
+        if (ring?.includes(p.id)) p.hover = true;
+      }
+    }
+
     // tags
     const tags = out?.tags ?? [];
     tags.length = 0;
@@ -326,6 +341,31 @@ export function createSampler(tl) {
       tone: toneOf(rec), key: rec.keyIndex ?? null,
       text: null, sub: null, textOut: null, roll: 0, title: null, led: null, meter: null, tray: null,
     };
+  }
+
+  // 1 when pose p is outside step j's spotlight, 0 inside it or when the step has none. A label or part of a thing
+  // (id#label, id@mark1) goes with the thing; a connection stays while it touches a kept thing or carries this step's
+  // traffic. Per step and owner, memoised (spots).
+  function recedeIn(j, p) {
+    let sp = spots.get(j);
+    if (!sp) {
+      const keep = spotByStep[j] ? new Set(spotByStep[j]) : null;
+      if (keep) for (const f of flightsByStep[j] ?? []) if (f.route && f.start >= steps[j].t0 - 1e-9) keep.add(f.route.id);
+      spots.set(j, sp = { keep, memo: new Map() });
+    }
+    if (!sp.keep || typeof p.id !== "string") return 0;
+    const cut = X.incsById.has(p.id) ? -1 : p.id.search(/[#@]/);   // an id may hold # itself (timeout#1)
+    const owner = cut < 0 ? p.id : p.id.slice(0, cut);
+    let r = sp.memo.get(owner);
+    if (r === undefined) {
+      const inc = incs[X.incsById.get(owner)?.[0]];
+      const rec = inc?.recs[0].rec;
+      if (!inc || sp.keep.has(owner)) r = 0;
+      else if (inc.kind === "trace" || inc.kind === "bus") r = [].concat(rec.from, rec.to).some((x) => sp.keep.has(x)) ? 0 : 1;
+      else r = SPOT_STRUCTURE.has(inc.kind) ? 0 : 1;
+      sp.memo.set(owner, r);
+    }
+    return r;
   }
 
   function currentParent(inc, t) {

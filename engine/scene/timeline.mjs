@@ -1,7 +1,7 @@
 // Compile: Script -> Timeline. Lays out every beat-state, routes traces, times steps and beats (beat k after
 // k-1, siblings staggered), and turns every op and every layout change into motion segments on entity
 // "incarnations". The sampler (sampler.mjs) evaluates them for any instant.
-import { MOTION, SIZE } from "../tokens.mjs";
+import { MOTION, SIZE, SPOT } from "../tokens.mjs";
 import { ROOT } from "./builder.mjs";
 import { computeLayout, scanCapacities, tileSize, gridPositions } from "./layout.mjs";
 import { routeAll, busRoute } from "./routing.mjs";
@@ -9,7 +9,7 @@ import { Path } from "./path.mjs";
 import { T, hopHeight, travelTime, flightPath, evalSeg } from "./transitions.mjs";
 import { growBounds, canonical, hashString, lastLEn, monoWidth } from "./util.mjs";
 import { mentions, plain } from "./narrate.mjs";
-import { createSampler } from "./sampler.mjs";
+import { createSampler, SPOT_STRUCTURE } from "./sampler.mjs";
 import { SCALE, planScale } from "./scale.mjs";
 
 const LAYOUT_SET_PROPS = new Set(["variant", "label", "size"]);
@@ -253,6 +253,8 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
   const heldOpen = new Map();           // packet id -> { seg, msg, sendStep }
   const simLatencies = [];              // sim ms of delivered held messages (to place lost ones)
   const focusByStep = [];
+  const spotByStep = [];                // step -> Set of ids that stay at full strength, or null (no spotlight)
+  const refsByStep = [];                // step -> ids the step's words name (they wear a ring as it begins)
   const beatStates = [];
   let t = 0;
   let prevState = script.S0;
@@ -366,6 +368,9 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     }
     if (!focus) for (const b of touched.values()) focus = growBounds(focus, b.minX, b.minY, b.maxX, b.maxY, b.minZ, b.maxZ);
     focusByStep.push(focus);
+    const N = plans[plans.length - 1].N;
+    spotByStep.push(i ? spotOf(st, touched, plans[0].P, N) : null);   // the opening step shows the whole world
+    refsByStep.push([...new Set(stepRefs(st))].filter((id) => N.has(id)));
 
     beatStates.push(plans.map((p) => p.N));
     stepOut.push({
@@ -551,11 +556,44 @@ export function buildTimeline(script, { figure = {}, values = {}, scenario = nul
     timeOf(step, u = 0) { const s = stepOut[Math.max(0, Math.min(nSteps - 1, step))]; return s ? s.t0 + u * s.dur : 0; },
     sim,
     // internals for the sampler and tests
-    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, scaleByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo, markLevel },
+    _: { incsById, incs, alive, flightsByStep, messagesByStep, printsByStep, tagsByStep, focusByStep, spotByStep, refsByStep, scaleByStep, counterEvents, startCounters, layoutOf, routesOf, live, steps: stepOut, beatStates, laneGeo, markLevel },
   };
   const stepT0 = Float64Array.from(stepOut.map((s) => s.t0));
   tl.sample = createSampler(tl);
   return tl;
+
+  // the ids a step's words name, in the caption and its why
+  function stepRefs(st) {
+    const out = [];
+    for (const src of [st.caption, st.layers?.why]) if (typeof src === "string") out.push(...mentions(src).refs);
+    return out;
+  }
+
+  // What a step is about: what it touches, its focus and look ids and what its words name, with what holds each of
+  // them (a slip's machine) and what each of them holds (a machine's slips). null when that is most of the world.
+  function spotOf(st, touched, P, N) {
+    const seed = new Set();
+    const add = (id) => {
+      const r = N.get(id) ?? P.get(id);
+      if (!r) return;
+      if (r.kind === "zone") { for (const m of r.around ?? []) seed.add(m); return; }
+      seed.add(id);
+    };
+    for (const k of touched.keys()) add(k.endsWith(">") ? k.slice(0, -1) : k);
+    for (const id of st.focus ?? []) add(id);
+    for (const id of st.layers?.look ?? []) add(id);
+    for (const id of stepRefs(st)) add(id);
+    if (!seed.size) return null;
+    const keep = new Set(seed);
+    for (const pl of [placesOf.get(P), placesOf.get(N)]) {
+      if (!pl) continue;
+      for (const id of seed) for (let q = pl.get(id); q?.pid && !keep.has(q.pid); q = pl.get(q.pid)) keep.add(q.pid);
+      for (const [id, q0] of pl) for (let q = q0; q?.pid; q = pl.get(q.pid)) if (seed.has(q.pid)) { keep.add(id); break; }
+    }
+    let things = 0, kept = 0;
+    for (const [id, r] of N) if (!SPOT_STRUCTURE.has(r.kind)) { things++; if (keep.has(id)) kept++; }
+    return things > 2 && kept <= SPOT.cover * things ? keep : null;
+  }
 
   // =====================================================================================================
   // op planning: geometry + natural duration (before the beat's timing is known)
