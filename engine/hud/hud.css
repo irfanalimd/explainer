@@ -264,6 +264,15 @@
 .ix-tool[aria-pressed="true"] { background: var(--ix-press); color: var(--ix-ink); }
 .ix-tools-sep { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--ix-line-strong); }
 .ix-tools-sep:last-child, .ix-tools-sep:has(+ [hidden]:last-child) { display: none; }
+/* while the story plays, the chrome around it steps back a shade so the world and the step lead: never below ink-faint
+   (the faintest text ink), never a move or a new size; pointing at a control or tabbing to it brings it back, and so
+   does every pause */
+.ix.ix-playing .ix-tool:not(:hover, :focus-visible, [aria-pressed="true"]),
+.ix.ix-playing .ix-legend-btn:not(:hover, :focus-visible, [aria-expanded="true"]) { color: var(--ix-ink-faint); }
+.ix.ix-playing .ix-stories-tab[aria-checked="true"]:not(:hover, :focus-visible),
+.ix.ix-playing .ix-story:not(:hover, :focus-visible, [aria-expanded="true"]),
+.ix.ix-playing .ix-speed:not(:hover, :focus-visible, [aria-expanded="true"]) .ix-speed-val { color: var(--ix-ink-muted); }
+.ix-speed-val, .ix-story { transition: color var(--ix-dur-slow) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease); }
 
 /* help: a quiet circle in the bottom-left corner, just above the dock */
 .ix-help-fab {
@@ -770,6 +779,7 @@
 
 .ix-count { grid-area: count; display: flex; align-items: baseline; gap: 4px; font-size: var(--ix-fs-sm); font-weight: 500; color: var(--ix-ink-faint); white-space: nowrap; }
 .ix-count-cur { color: var(--ix-ink); text-align: right; }
+.ix-count-word { margin-right: 2px; }
 .ix-count-tag { align-self: center; margin-right: 4px; padding: 0 7px; border: 1px dashed var(--ix-ink-muted); border-radius: 999px; font-size: var(--ix-fs-xs); line-height: 18px; color: var(--ix-ink-muted); }
 /* speed leads the dock, with its name, and a hairline sets it apart from Back / Play / Next */
 .ix-speed-wrap { grid-area: speed; position: relative; display: flex; align-items: center; }
@@ -1067,16 +1077,12 @@
 
 /* ---------- pauses: the transport says what comes next (no card over the world) ----------
    At a chapter's end the primary pill reads "Continue to Shuffle  Enter", at the run's end "Replay"; Next steps
-   aside, so there is one way on. It must not be missed: a touch larger than Play, in the reading size, and a soft
-   ring calls three times and then rests (reduced motion: no ring). */
+   aside, so there is one way on. It must not be missed: a touch larger than Play, in the reading size, and the
+   guide's ring calls on it (below). */
 .ix-play.ix-continue { position: relative; min-width: 0; height: 44px; padding: 0 8px 0 20px; font-size: var(--ix-fs-md); letter-spacing: var(--ix-tr-md); }
 .ix-play.ix-continue .ix-tp-icon { display: none; }
 .ix-play.ix-continue .ix-tp-more { margin-left: 0.28em; }
 .ix-play.ix-continue:has(.ix-tp-kbd[hidden]), .ix:not([data-size="desktop"]) .ix-play.ix-continue { padding-right: 20px; }
-.ix-play.ix-continue::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  animation: ix-continue-call 1.8s var(--ix-ease) 200ms 3;
-}
 .ix-play.ix-continue .ix-tp-label { display: inline-flex; align-items: center; max-width: 30ch; overflow: hidden; }
 .ix-play.ix-continue .ix-tp-more { overflow: hidden; text-overflow: ellipsis; }
 .ix-play.ix-continue .ix-tp-more.ix-tp-story { margin-left: 0; }   /* "Next story: One machine crashes" */
@@ -1086,14 +1092,9 @@
   background: rgb(var(--ix-on-primary-rgb) / 0.14);
 }
 .ix:not([data-size="desktop"]) .ix-tp-kbd { display: none; }
-@keyframes ix-continue-call {
-  0% { box-shadow: 0 0 0 0 rgb(var(--ix-ink-rgb) / 0.35); }
-  70%, 100% { box-shadow: 0 0 0 12px rgb(var(--ix-ink-rgb) / 0); }
-}
 /* while the end check asks, the pill after it waits in a quiet form (one way on: the check's own Next question);
    it turns solid, and calls, once the check says "You can now…" */
 .ix-play.ix-held-btn.ix-quiet-held { background: var(--ix-raised); color: var(--ix-ink-muted); box-shadow: inset 0 0 0 1px var(--ix-line); }
-.ix-play.ix-quiet-held::after { animation: none; }
 .ix-play.ix-quiet-held .ix-tp-kbd { color: var(--ix-ink-faint); background: rgb(var(--ix-ink-rgb) / 0.06); }
 .ix[data-size="phone"] .ix-play.ix-held-btn { width: auto; min-width: 0; padding: 0 20px; }
 .ix[data-size="phone"] .ix-play.ix-held-btn .ix-tp-label { display: inline; }
@@ -1170,6 +1171,50 @@
 .ix-drawer > .ix-panel-head + .ix-panel-foot[hidden] + .ix-prefs { border-top: 0; }
 
 /* ---------- motion: 150–250 ms, ease-out, opacity and a few px of travel; never a bounce ---------- */
+/* ---------- the next thing to do (guide.mjs) ----------
+   One control at a time carries an ink ring: Play before anything has played, Continue at a pause, the options of
+   an open question, Next when stepping. Ink, not a hue: chrome is never coloured. A keyboard focus ring wins over it;
+   reduced motion keeps the resting ring alone; capture never shows it. Two looks (root data-cue):
+   clear, the default, a 4 px ring at 62 % with a soft halo that calls for as long as it waits: every 1.4 s a ripple
+   leaves the control and the control swells to 1.05 and back (scale only, so nothing around it moves; a group of
+   options keeps its size). Settings → Hints stops it. Quiet (?cue=quiet), a 2 px ring at 26 % that calls three
+   times, and only on the first three cues of a kind. --ix-cue-base keeps a control's own hairline. */
+.ix-cue {
+  --ix-cue-o: 3px; --ix-cue-grow: 12px; --ix-cue-base: 0 0 #0000; --ix-cue-halo: 0 0 24px 8px; --ix-cue-scale: 1.05;
+  outline: 4px solid rgb(var(--ix-ink-rgb) / 0.62); outline-offset: var(--ix-cue-o);
+  box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.18);
+}
+.ix-cue.ix-cue-call { animation: ix-cue-call 1.4s cubic-bezier(0.45, 0, 0.55, 1) 150ms infinite; }
+.ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
+.ix-pill.ix-cue { --ix-cue-base: inset 0 0 0 1px var(--ix-line-strong); }
+/* a wide pill (Continue to …, Next story) swells by about as many pixels as Play, so it stays clear of Back and Replay */
+.ix-continue.ix-cue, .ix-pill.ix-cue { --ix-cue-scale: 1.035; }
+/* a phone's dock is tight: the ripple travels less, so it stays off the screen's edge and the next control */
+.ix[data-size="phone"] .ix-cue { --ix-cue-grow: 8px; }
+/* a group of options: further off, a smaller ripple and halo, so both stay inside the panel's padding, and no swell */
+.ix-opts.ix-cue, .ix-turn-picks.ix-cue { --ix-cue-o: 6px; --ix-cue-grow: 8px; --ix-cue-halo: 0 0 12px 2px; --ix-cue-scale: 1; border-radius: calc(var(--ix-r-md) + 2px); }
+.ix[data-cue="quiet"] .ix-cue { --ix-cue-grow: 11px; outline: 2px solid rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base); }
+.ix[data-cue="quiet"] .ix-cue.ix-cue-call { animation: ix-cue-call-quiet 1.6s var(--ix-ease) 150ms 3; }
+.ix[data-cue="quiet"] :is(.ix-opts, .ix-turn-picks).ix-cue { --ix-cue-grow: 8px; }
+.ix[data-cue] .ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
+.ix-capture .ix-cue, .ix.ix-capture .ix-cue, .ix-capture .ix[data-cue] .ix-cue { outline: none; box-shadow: var(--ix-cue-base); animation: none; }
+@media (prefers-reduced-motion: reduce) { .ix-cue.ix-cue-call, .ix[data-cue] .ix-cue.ix-cue-call { animation: none; } }
+/* a pause's way on, under its recap in the panel (the pill that continues is in the dock) */
+.ix-onward { margin: 12px 0 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); }
+.ix-onward strong { font-weight: 500; color: var(--ix-ink); }
+@keyframes ix-cue-call {
+  0% { scale: 1; outline-color: rgb(var(--ix-ink-rgb) / 0.85); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.3); }
+  30% { scale: var(--ix-cue-scale); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.32); }
+  70% { scale: 1; outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: calc(var(--ix-cue-o) + var(--ix-cue-grow)); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.18); }
+  71% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: var(--ix-cue-o); }
+  100% { scale: 1; outline-color: rgb(var(--ix-ink-rgb) / 0.62); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.18); }
+}
+@keyframes ix-cue-call-quiet {
+  0% { outline-color: rgb(var(--ix-ink-rgb) / 0.5); outline-offset: var(--ix-cue-o); }
+  70% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: calc(var(--ix-cue-o) + var(--ix-cue-grow)); }
+  71% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: var(--ix-cue-o); }
+  100% { outline-color: rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); }
+}
 @keyframes ix-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ix-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes ix-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgb(var(--ix-ink-rgb) / 0.14); } 50% { box-shadow: 0 0 0 5px rgb(var(--ix-ink-rgb) / 0.04); } }
@@ -1205,10 +1250,16 @@
 .ix.ix-tiered .ix-stats { max-width: none; margin: 8px 0 0 8px; padding-left: 12px; }
 .ix.ix-tiered .ix-stats::before { content: none; }
 .ix.ix-tiered .ix-legend-btn { margin: 8px 8px 0 12px; }
-.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn::before { content: none; }
+.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) > .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn::before { content: none; }
 .ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden]), > .ix-legend-btn:not([hidden])) .ix-transport { margin-top: 4px; box-shadow: inset 0 1px 0 var(--ix-line); }
+/* without the numbers (a reader's dock) the legend joins the transport's row instead of a row of its own, its dots
+   alone (as on phones) so the timeline keeps its width */
+.ix.ix-legend-in-tp .ix-transport { grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-areas: "speed btns scrub count legend"; }
+.ix.ix-legend-in-tp .ix-legend-btn { grid-area: legend; margin: 0; }
+.ix.ix-legend-in-tp .ix-legend-btn::before { content: none; }
+.ix.ix-legend-in-tp .ix-legend-count { display: none; }
 
 /* ---------- phone ---------- */
 .ix[data-size="phone"] { --ix-pad: 16px; --ix-pad-t: max(12px, env(safe-area-inset-top, 0px)); --ix-pad-b: max(12px, env(safe-area-inset-bottom, 0px)); }
@@ -1264,6 +1315,8 @@
   height: auto; padding: 0 12px 12px 12px; column-gap: 8px; row-gap: 0;
 }
 .ix[data-size="phone"] .ix-tp-btns { justify-self: end; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-transport { grid-template-areas: "scrub scrub count" "speed legend btns"; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-legend-btn { justify-self: center; margin: 0; }
 .ix[data-size="phone"] .ix-speed-wrap::after { content: none; }
 .ix[data-size="phone"] .ix-scrub-wrap { padding: 0 4px 0 4px; }
 .ix[data-size="phone"] .ix-scrub { height: 48px; }
@@ -1374,7 +1427,33 @@
 .ix-ex-title { min-width: 0; padding-right: 8px; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); font-weight: 600; letter-spacing: var(--ix-tr-lg); color: var(--ix-ink); text-wrap: balance; }
 .ix-ex-goal { padding-right: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 .ix-ex-goal-k { margin-right: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ink-faint); }
-.ix-ex-level { margin: 12px 8px 0 0; }
+.ix-ex-level { margin: 8px 8px 0 0; }
+/* the level as one quiet line (the start card asked it); it opens the switch under it */
+.ix-ex-level-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 28px; margin-left: -8px; padding: 0 8px; border-radius: var(--ix-r-sm);
+  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-muted); white-space: nowrap;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-level-k { color: var(--ix-ink-faint); }
+.ix-ex-level-chev { display: inline-grid; margin-left: -4px; color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
+.ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-ex-level-box { margin-top: 4px; }
+/* a pause's numbers, under its recap: one quiet line that opens the readout (the dock no longer shows them) */
+.ix-tally {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; max-width: calc(100% + 16px); margin: 12px 0 0 -8px; padding: 4px 8px;
+  border-radius: var(--ix-r-sm); font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-muted); text-align: left;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-tally:hover, .ix-tally[aria-expanded="true"] { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-tally-k { font-weight: 500; color: var(--ix-ink-faint); }
+.ix-tally-list { display: contents; }
+.ix-tally-item { white-space: nowrap; }
+.ix-tally-val { font-weight: 500; color: var(--ix-ink); font-variant-numeric: tabular-nums; }
+.ix-tally-sep { color: var(--ix-ink-faint); }
+.ix-tally-icon { display: inline-grid; align-self: center; color: var(--ix-ink-faint); }
+.ix-tally-icon svg { width: 14px; height: 14px; }
+.ix-ex-level-box[hidden] { display: none; }
 .ix-ex-levels { width: 100%; }
 .ix-ex-levels .ix-seg-opt { padding: 0 8px; }
 
@@ -1404,6 +1483,9 @@
 .ix-ex-about { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 /* an about line that would answer a prediction waits for the reveal */
 .ix-ex-about.ix-ex-withheld { color: var(--ix-ink-faint); }
+/* past the chapter's first step the about has been read: a shade back (ink-faint, still body-text contrast) */
+.ix-ex-about { transition: color var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-head.ix-ex-past .ix-ex-about { color: var(--ix-ink-faint); }
 .ix-ex-head:empty, .ix-ex-head.ix-ex-quiet { display: none; }
 .ix-ex-entry:empty, .ix-ex-extra:empty { display: none; }
 /* sections of the body are set apart by space and one hairline, never boxes inside boxes */
@@ -1559,6 +1641,20 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
 .ix-ex-earlier { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--ix-line); }
 .ix-ex-label { margin: 0 0 4px 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
 .ix-ex-list { list-style: none; margin: 0 -8px; padding: 0; }
+.ix-ex-list[hidden] { display: none; }
+/* docked, the earlier steps fold to one line, so the current step is the one thing in the panel to read */
+.ix-ex-earlier-btn {
+  display: flex; align-items: center; gap: 8px; width: calc(100% + 16px); margin: -6px -8px 0; padding: 6px 8px;
+  border-radius: var(--ix-r-sm); text-align: left; transition: background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-earlier-btn .ix-ex-label { margin: 0; }
+.ix-ex-earlier-count { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+.ix-ex-earlier-chev { display: inline-grid; margin-left: auto; color: var(--ix-ink-faint); transform: rotate(-90deg); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-earlier-open .ix-ex-earlier-chev { transform: none; }
+.ix-ex-earlier-open .ix-ex-earlier-btn { margin-bottom: 4px; }
+.ix-ex-earlier-btn:hover { background: var(--ix-hover); }
+.ix-ex-earlier-btn:hover :is(.ix-ex-label, .ix-ex-earlier-chev) { color: var(--ix-ink); }
+.ix:not(.ix-ex-docked) .ix-ex-earlier-btn, .ix.ix-ex-docked .ix-ex-earlier-k { display: none; }
 .ix-ex-item {
   display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; width: 100%;
   padding: 6px 8px; border-radius: var(--ix-r-sm); text-align: left;
@@ -1654,6 +1750,9 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
   transition: background-color var(--ix-dur-fast) var(--ix-ease);
 }
 .ix-params-toggle:hover { background: var(--ix-hover); }
+/* folded, the card is a way in, not a heading: it reads like the toolbar's words, so the chapter's name leads the column */
+.ix-params-folded .ix-params-toggle { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; letter-spacing: 0; color: var(--ix-ink-muted); }
+.ix-params-folded .ix-params-toggle:hover { color: var(--ix-ink); }
 .ix-params-chev { color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
 .ix-params-folded .ix-params-chev { transform: rotate(-90deg); }
 .ix-params-folded .ix-params-body { display: none; }

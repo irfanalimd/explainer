@@ -334,15 +334,17 @@ window.__results = (async () => {
   check("a tag at a panel's edge lifts clear of it", +te.style.opacity === 1 && ter.bottom <= mr.top + 1, { bottom: ter.bottom, top: mr.top, op: te.style.opacity });
   hud.placeTags([]);
 
-  // the dock's readout strip opens the full readout (sparklines) as a popover; the world's insets do not move
+  // a reader's dock leaves the numbers out (a pause's recap says them); the full readout (sparklines) is a popover and
+  // the world's insets do not move
   const ins0 = hud.insets;
   const statsBtn = root.querySelector(".ix-stats");
-  check("readout strip shows every counter compactly", root.querySelectorAll(".ix-stat").length === 2 && root.querySelector(".ix-stat-num").textContent === root.querySelector(".ix-meter-num").textContent);
-  statsBtn.click();
-  check("clicking the strip pins the full readout", root.querySelector(".ix-meters").classList.contains("ix-open") && statsBtn.getAttribute("aria-expanded") === "true" && root.querySelectorAll(".ix-meters .ix-spark").length === 2);
+  check("the dock leaves the numbers out", statsBtn.hidden && getComputedStyle(statsBtn).display === "none"
+    && root.querySelectorAll(".ix-stat").length === 2 && root.querySelector(".ix-stat-num").textContent === root.querySelector(".ix-meter-num").textContent);
+  hud.open("readout");
+  check("the full readout still opens", root.querySelector(".ix-meters").classList.contains("ix-open") && root.querySelectorAll(".ix-meters .ix-spark").length === 2);
   check("opening the readout leaves the insets alone", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
   key("Escape");
-  check("Esc closes the readout", !root.querySelector(".ix-meters").classList.contains("ix-open") && statsBtn.getAttribute("aria-expanded") === "false");
+  check("Esc closes the readout", !root.querySelector(".ix-meters").classList.contains("ix-open"));
   root.querySelector(".ix-legend-btn").click();
   check("the legend chip opens the key names", root.querySelector(".ix-legend").classList.contains("ix-open") && /2 keys/.test(root.querySelector(".ix-legend-btn").textContent));
   root.querySelector(".ix-legend-btn").click();
@@ -507,15 +509,39 @@ window.__results = (async () => {
     && !againEl.hidden && getComputedStyle(againEl).display !== "none");
   check("the panel's current step becomes the chapter's recap, with the chapter named once", panelEl.querySelector(".ix-ex-recap .ix-ex-done")?.textContent === "Map complete"
     && panelEl.querySelector(".ix-ex-recap .ix-l-plain")?.textContent.startsWith("Step 9") && panelEl.querySelector(".ix-ex-title").textContent === "Map"
-    && panelEl.querySelector(".ix-map-pos").textContent === "1 of 2" && !/chapter \d of/i.test(root.querySelector(".ix-hud").innerText));
+    && panelEl.querySelector(".ix-map-pos").textContent === "Chapter 1 of 2");
   check("the pause never moves the world", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
+  check("the recap ends with the chapter up next and how to go on", /^Up next: Reduce\. (Press Continue or Enter|Tap Continue)\.$/.test(panelEl.querySelector(".ix-ex-recap .ix-onward")?.textContent ?? ""),
+    panelEl.querySelector(".ix-onward")?.textContent);
+  {
+    // the numbers the dock no longer shows: one line under the recap, from the run at this moment; it opens the readout
+    const tally = panelEl.querySelector(".ix-ex-recap .ix-tally");
+    check("the recap says the run's numbers so far", tally?.querySelector(".ix-tally-k")?.textContent === "So far"
+      && [...tally.querySelectorAll(".ix-tally-item")].map((e) => e.textContent).join("|") === "shuffled 1.4 KB|tasks 2", tally?.textContent);
+    tally?.focus(); tally?.click();
+    check("the recap's numbers open the readout", root.querySelector(".ix-meters").classList.contains("ix-open") && tally?.getAttribute("aria-expanded") === "true");
+    key("Escape", {}, document.activeElement);
+    check("…and Esc closes it", !root.querySelector(".ix-meters").classList.contains("ix-open") && tally?.getAttribute("aria-expanded") === "false");
+  }
   {
     await wait(260);   // the button's colour transition settles
     const probe = document.createElement("i"); probe.style.background = "var(--ix-primary)"; root.append(probe);
     const primary = getComputedStyle(probe).backgroundColor; probe.remove();
-    const ring = getComputedStyle(playEl, "::after");
-    check("Continue is the solid primary pill (the chrome has no accent) and calls with a ring three times, then rests", getComputedStyle(playEl).backgroundColor === primary && primary !== "rgba(0, 0, 0, 0)"
-      && ring.animationName === "ix-continue-call" && ring.animationIterationCount === "3", [getComputedStyle(playEl).backgroundColor, primary, ring.animationName, ring.animationIterationCount]);
+    // the ring rests on Continue; a call (the first few cues of a kind, guide.mjs) ripples three times
+    const ring = getComputedStyle(playEl), calm = root.classList.contains("ix-reduced");
+    const callProbe = document.createElement("button"); callProbe.className = "ix-cue ix-cue-call"; root.append(callProbe);
+    const call = getComputedStyle(callProbe), callName = call.animationName, callCount = call.animationIterationCount; callProbe.remove();
+    check("Continue is the solid primary pill (the chrome has no accent) and carries the guide's ring: it calls for as long as it waits", getComputedStyle(playEl).backgroundColor === primary && primary !== "rgba(0, 0, 0, 0)"
+      && playEl.classList.contains("ix-cue") && ring.outlineStyle === "solid" && root.querySelectorAll(".ix-cue").length === 1
+      && (calm || (callName === "ix-cue-call" && callCount === "infinite")),
+      [getComputedStyle(playEl).backgroundColor, primary, ring.outlineStyle, callName, callCount, root.querySelectorAll(".ix-cue").length]);
+  }
+  {
+    const hintsSw = [...root.querySelectorAll(".ix-switch")].find((b) => root.querySelector(`label[for="${b.id}"]`)?.textContent === "Hints");
+    hintsSw?.click();
+    check("Settings' Hints switch takes the ring off", hintsSw?.getAttribute("aria-checked") === "false" && !root.querySelector(".ix-cue"));
+    hintsSw?.click();
+    check("and puts it back", hintsSw?.getAttribute("aria-checked") === "true" && playEl.classList.contains("ix-cue"));
   }
   key("Enter");
   check("Enter continues", take("onContinue").length === 1);
@@ -528,6 +554,7 @@ window.__results = (async () => {
   check("the same pause re-renders nothing", recs2.length === 0, recs2.map((r) => `${r.target.className}:${r.type}:${r.attributeName}`)); mo2.disconnect();
   hud.update(frame(10.2), { time: 10.2, playing: true, speed: 1, held: null });
   check("playback moving on restores Pause and the step", playEl.textContent === "Pause" && againEl.hidden && !panelEl.querySelector(".ix-ex-recap") && !playEl.classList.contains("ix-continue"));
+  check("playing takes the guide's ring off", !root.querySelector(".ix-cue"));
   reset();
   hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
   // a story's end with a story after it: the pill goes on to that story ("Next story: …"), and the quiet Replay is this
@@ -609,13 +636,20 @@ window.__results = (async () => {
     const panel = root.querySelector(".ix-explain"), capEl = root.querySelector(".ix-caption");
     check("explain docks on a wide screen and frames the world beside it", root.classList.contains("ix-ex-docked") && getComputedStyle(panel).display === "flex"
       && hud.insets.right === root.clientWidth - panel.offsetLeft && hud.insets.right >= 320, hud.insets);
-    check("explain names the chapter once and says what it is for", !panel.querySelector(".ix-ex-kicker") && panel.querySelector(".ix-map-pos").textContent === "1 of 2" && panel.querySelector(".ix-ex-title")?.textContent === "Map"
+    check("explain names the chapter once and says what it is for", !panel.querySelector(".ix-ex-kicker") && panel.querySelector(".ix-map-pos").textContent === "Chapter 1 of 2" && panel.querySelector(".ix-ex-title")?.textContent === "Map"
       && panel.querySelector(".ix-ex-about")?.textContent === "Each mapper reads its own split.");
     check("explain shows the current step with its markup", panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "4" && panel.querySelector(".ix-ex-now .ix-l-plain .ix-key")?.textContent === "fox"
       && panel.querySelector(".ix-ex-now .ix-l-plain .ix-ref")?.textContent === "mapper 0");
     const items = [...panel.querySelectorAll(".ix-ex-item")];
     check("earlier steps of the chapter, newest first, with their chips (quiet ones)", items.length === 3 && items[0].querySelector(".ix-ex-t .ix-key") && !items[0].querySelector('[role="button"]') && items.map((b) => b.querySelector(".ix-ex-n").textContent).join() === "3,2,1"
       && items[0].querySelector(".ix-ex-t").textContent === "Step 2 moves fox to mapper 2", items.map((b) => b.textContent));
+    const eBtn = panel.querySelector(".ix-ex-earlier-btn"), eList = panel.querySelector(".ix-ex-list");
+    check("docked, the earlier steps fold to one line that counts them", eBtn && getComputedStyle(eBtn).display !== "none" && eList.hidden && eBtn.getAttribute("aria-expanded") === "false"
+      && eBtn.getAttribute("aria-controls") === eList.id && eBtn.textContent.includes("3 steps"), eBtn?.textContent);
+    eBtn.click();
+    check("the line opens them and remembers", !eList.hidden && eBtn.getAttribute("aria-expanded") === "true" && getComputedStyle(eList).display !== "none" && localStorage.getItem("ix:earlier") === "1");
+    eBtn.click();
+    check("and folds them again", eList.hidden && localStorage.getItem("ix:earlier") === "0");
     check("the bottom caption steps aside while the panel is open", getComputedStyle(capEl).display === "none");
     reset();
     items[1].click();
@@ -630,7 +664,7 @@ window.__results = (async () => {
     mo.disconnect();
     check("explain touches the DOM only on a step change", same === 0 && moved > 0 && panel.querySelector(".ix-ex-now > .ix-ex-n").textContent === "5", { same, moved });
     hud.update(frame(10.5), { time: 10.5, playing: true, speed: 1 });
-    check("a new chapter resets the list and drops a missing about", panel.querySelector(".ix-map-pos").textContent === "2 of 2" && panel.querySelector(".ix-ex-title").textContent === "Reduce"
+    check("a new chapter resets the list and drops a missing about", panel.querySelector(".ix-map-pos").textContent === "Chapter 2 of 2" && panel.querySelector(".ix-ex-title").textContent === "Reduce"
       && !panel.querySelector(".ix-ex-about") && panel.querySelector(".ix-ex-earlier").hidden === true);
     reset();
     panel.querySelector(".ix-ex-now .ix-l-plain .ix-ref").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
@@ -670,6 +704,7 @@ window.__results = (async () => {
     const capB = root4.querySelector(".ix-caption").getBoundingClientRect().top, bar4 = root4.querySelector(".ix-bar").getBoundingClientRect().top, pr = p4.getBoundingClientRect();
     check("the button opens the chapter and its earlier steps above the dock, never the current step a second time", getComputedStyle(p4).display === "flex" && btn4.getAttribute("aria-expanded") === "true"
       && p4.querySelector(".ix-ex-now").hidden && p4.querySelectorAll(".ix-ex-item").length === 2 && p4.querySelector(".ix-ex-title").textContent === "Map"
+      && !p4.querySelector(".ix-ex-list").hidden && getComputedStyle(p4.querySelector(".ix-ex-earlier-btn")).display === "none"
       && pr.bottom <= bar4 && hud4.insets.right === 0, { pr: [pr.top, pr.bottom], bar4, capB });
     p4.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     check("Esc closes the card", getComputedStyle(p4).display === "none" && btn4.getAttribute("aria-expanded") === "false");
@@ -881,6 +916,12 @@ window.__results = (async () => {
     hP.setTimeline(tl);
     hP.update(frame(3), { time: 3, playing: false, speed: 1 });
     await frameWait(); await frameWait();
+    check("phone: with the numbers out of the dock, the legend joins the transport's row", rP.classList.contains("ix-legend-in-tp")
+      && rP.querySelector(".ix-legend-btn")?.parentElement === rP.querySelector(".ix-transport"));
+    hP.setCapture(true);
+    check("…and goes back beside the numbers in a capture", !rP.classList.contains("ix-legend-in-tp") && rP.querySelector(".ix-legend-btn")?.parentElement === rP.querySelector(".ix-bar")
+      && !rP.querySelector(".ix-stats").hidden);
+    hP.setCapture(false);
     const shown = () => getComputedStyle(rP.querySelector(".ix-bottom")).visibility === "visible";
     const play = rP.querySelector(".ix-play");
     const before = shown();
@@ -892,27 +933,32 @@ window.__results = (async () => {
     await frameWait();
     check("phone: the settings sheet hides the caption and dock it covers; closing it shows them again and focus returns to Play",
       before && under && shown() && document.activeElement === play, [before, under, shown(), document.activeElement?.className]);
-    const stats = rP.querySelector(".ix-stats");
-    stats.focus(); stats.click();
+    // the readout opens from a pause's numbers, under its recap (the dock leaves them out)
+    const pause = { time: 9.999, playing: false, speed: 1, held: { kind: "chapter", phase: 0 } };
+    hP.update(frame(9.999), pause);
     await frameWait(); await frameWait();
-    // two numbers make a short sheet that leaves the caption in view: then nothing hides and focus stays on the strip
+    let stats = rP.querySelector(".ix-tally");
+    stats?.focus(); stats?.click();
+    await frameWait(); await frameWait();
+    // two numbers make a short sheet that leaves the caption in view: then nothing hides and focus stays on the numbers
     const covers = rP.classList.contains("ix-sheet-covers");
     const open = covers ? document.activeElement === rP.querySelector(".ix-meters") && !shown() : document.activeElement === stats && shown();
     key("Escape", {}, document.activeElement);
     await frameWait();
-    check("phone: the readout sheet hides the strip only when it covers it, then takes focus and gives it back on close",
+    check("phone: the readout sheet hides what it covers only when it covers it, then takes focus and gives it back on close",
       open && shown() && document.activeElement === stats, [covers, open, shown(), document.activeElement?.className]);
     // eight numbers make it tall enough to hold the caption and the bar
     const many = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`n${i}`, { label: `number ${i}`, format: "int" }]));
     hP.setTimeline({ ...tl, counters: many });
-    hP.update(frame(3, { counters: Object.fromEntries(Object.keys(many).map((k, i) => [k, i])) }), { time: 3, playing: false, speed: 1 });
-    await frameWait();
-    stats.focus(); stats.click();
+    hP.update(frame(9.999, { counters: Object.fromEntries(Object.keys(many).map((k, i) => [k, i])) }), pause);
+    await frameWait(); await frameWait();
+    stats = rP.querySelector(".ix-tally");
+    stats?.focus(); stats?.click();
     await frameWait(); await frameWait();
     const tall = rP.classList.contains("ix-sheet-covers") && document.activeElement === rP.querySelector(".ix-meters") && !shown();
     key("Escape", {}, document.activeElement);
     await frameWait();
-    check("phone: a readout tall enough to cover its strip hides it and takes focus; closing gives focus back to the strip",
+    check("phone: a readout tall enough to cover the numbers hides them and takes focus; closing gives focus back to them",
       tall && shown() && document.activeElement === stats, [tall, shown(), document.activeElement?.className]);
     hP.destroy(); rP.remove();
   }

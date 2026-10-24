@@ -1,14 +1,16 @@
 // The explain panel: the teacher, and the one place the words live on a wide screen.
 //   Wide screens (>= 1200 px): a stationary card on the right, under the toolbar and above the dock. Its header holds
 //   the progress map (a dot per chapter, the current one ringed, each a way to jump), the chapter's name, the lesson's
-//   goal and the level switch (level.mjs). Under it: the chapter's about line, the chapter entry card on its first step
+//   goal and the level, one quiet line ("Level  I know the basics") that opens the level switch (level.mjs): the reader
+//   picked it on the start card, so it waits until they want to change it. Under it: the chapter's about line, the chapter entry card on its first step
 //   (chapter-card.mjs), the current step in layers (layers.mjs), then the chapter's earlier steps, newest first, each a
-//   way back. At a chapter pause the current step becomes the chapter's recap; at the end of the run it carries the
+//   way back, folded to one line ("Earlier: 4 steps") so the current step is the one thing to read (the reader's
+//   choice to open them is remembered). At a chapter pause the current step becomes the chapter's recap; at the end of the run it carries the
 //   payoff. A predict question sits here too, in the current step's place. It collapses to a small "Explain" tab
 //   (remembered); while open the camera frames the world beside it (inset()) and the bottom caption steps aside.
 //   Narrower screens: no side panel; the caption carries the current step, and its Explain button opens this card above
 //   the dock with the chapter, what the caption leaves out (new words, the deeper layer, the picture) and the earlier
-//   steps (never the step a second time).
+//   steps, always open there (never the step a second time).
 // The level decides what shows (level.mjs POLICY); it never changes the facts.
 // Spoilers: the HUD tells it (ctx.veil()) which step's words to hold back while a prediction is open and which
 // chapters' about lines to withhold until their predictions are revealed.
@@ -25,6 +27,7 @@ import { createLayers } from "./layers.mjs";
 import { createProgress } from "./progress.mjs";
 import { detourOf } from "./turn.mjs";
 import { chapterCard, pictureMap } from "./chapter-card.mjs";
+import { LEVELS } from "./level.mjs";
 
 const SVG = (body) => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const ICON = {
@@ -37,11 +40,12 @@ const ICON = {
 };
 export const EXPLAIN_MIN_W = 1200;   // the side panel docks at this root width and up
 const EARLIER = 5;                    // earlier steps listed before "Start of chapter"
+let uid = 0;
 export const VEIL = "…";              // what a held-back caption shows until its prediction is revealed
 // the chapter's about, withheld until its prediction is revealed: before the question opens it says one is coming (the
 // reader has not been asked anything yet); while it is open, where the summary will be
 export const WITHHELD = "A question about this chapter is coming up. Its summary appears once you have answered, so it can't give the answer away.";
-export const WITHHELD_ASK = "This chapter's summary appears once you have answered.";
+export const WITHHELD_ASK = "The summary comes after your answer.";
 
 /** The glossary terms a piece of markup uses, in order, without repeats. */
 export function termsIn(src) {
@@ -73,12 +77,15 @@ export function firstSentence(src) {
 /**
  * ctx: { root, doc, h, parent, caption, bar, store, markupOpts, markup(src) -> fragment, level (level.mjs),
  *        term(name) -> { lead, def } | null, instant(): bool, onJump(stepIndex), onLook(ids | null), onLayout(), onDock(),
- *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, recap(): Node | null, revealed(): bool }
+ *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, recap(): Node | null, revealed(): bool,
+ *        onward(held): Node | null (a chapter pause's way on, said where the reader is reading),
+ *        tally(held): Node | null (the run's numbers at a pause, which the dock no longer shows) }
  */
 export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
   const S = { tl: null, main: null, detour: null, lesson: null, steps: [], phases: [], first: new Map(), step: -1, ph: -1,
     shown: { step: -2, ph: -2, tl: null, sig: "" }, mode: "", size: "", open: store.get("explain") !== "0", sheet: false,
+    earlierOpen: store.get("earlier") === "1", levelOpen: false,
     held: null, askEl: null, capOverride: null, aboutDefs: null, aboutFirst: -1, aboutOpen: false, pictureOpen: false,
     mapOpen: null };   // the entry card's picture: null lets fit() fold it, true / false is the reader's choice
 
@@ -90,7 +97,12 @@ export function createExplain(ctx) {
 
   const titleEl = h("h2", { class: "ix-ex-title" });
   const goalEl = h("p", { class: "ix-ex-goal" });
-  const levelEl = h("div", { class: "ix-ex-level" });
+  const levelBox = h("div", { class: "ix-ex-level-box", id: `ix-ex-level-${++uid}`, hidden: true });
+  const levelV = h("span", { class: "ix-ex-level-v" });
+  const levelBtn = h("button", { class: "ix-ex-level-btn", type: "button", "aria-expanded": "false", "aria-controls": levelBox.id,
+    onclick: () => { S.levelOpen = !S.levelOpen; syncLevel(); fit(); } },
+  h("span", { class: "ix-ex-level-k", text: "Level" }), levelV, h("span", { class: "ix-ex-level-chev", html: ICON.chevron }));
+  const levelEl = h("div", { class: "ix-ex-level" }, levelBtn, levelBox);
   const headBtn = h("button", { class: "ix-btn ix-ex-hide", type: "button", onclick: () => toggle() });
   const head = h("div", { class: "ix-ex-head" });
   const entry = h("div", { class: "ix-ex-entry" });
@@ -100,8 +112,13 @@ export function createExplain(ctx) {
   const askSlot = h("div", { class: "ix-ex-ask" });
   // narrow screens: the card never repeats the current step, but carries what the caption leaves out
   const extra = h("div", { class: "ix-ex-extra" });
-  const list = h("ol", { class: "ix-ex-list" });
-  const earlier = h("div", { class: "ix-ex-earlier" }, h("div", { class: "ix-ex-label", text: "Earlier" }), list);
+  const list = h("ol", { class: "ix-ex-list", id: `ix-ex-list-${++uid}` });
+  // docked, the earlier steps fold to this one line; the sheet keeps its plain label (the reader opened it to see them)
+  const earlierCount = h("span", { class: "ix-ex-earlier-count" });
+  const earlierBtn = h("button", { class: "ix-ex-earlier-btn", type: "button", "aria-expanded": "false", "aria-controls": list.id,
+    onclick: () => { S.earlierOpen = !S.earlierOpen; store.set("earlier", S.earlierOpen ? "1" : "0"); syncEarlier(); fit(); } },
+  h("span", { class: "ix-ex-label", text: "Earlier" }), earlierCount, h("span", { class: "ix-ex-earlier-chev", html: ICON.chevron }));
+  const earlier = h("div", { class: "ix-ex-earlier" }, h("div", { class: "ix-ex-label ix-ex-earlier-k", text: "Earlier" }), earlierBtn, list);
   const body = h("div", { class: "ix-ex-body" }, head, entry, askSlot, now, extra, earlier);
   const panel = h("aside", { class: "ix-explain ix-glass", "aria-label": "What is happening" },
     h("header", { class: "ix-ex-top" }, h("div", { class: "ix-ex-bar" }, progress.el, headBtn), titleEl, goalEl, levelEl),
@@ -133,6 +150,7 @@ export function createExplain(ctx) {
     headBtn.setAttribute("aria-label", dk ? "Hide the explanation" : "Close the explanation");
     headBtn.dataset.tip = dk ? "Hide" : "Close";
     headBtn.dataset.kbd = dk ? "E" : "Esc";
+    syncEarlier();
   }
 
   // root size class from the HUD ("phone" | "compact" | "desktop") and the root size in css px
@@ -186,7 +204,7 @@ export function createExplain(ctx) {
     S.first = firstUses(S.steps, S.phases);
     S.step = -1; S.ph = -1;
     S.shown.tl = null;
-    if (S.lesson && !levelEl.firstChild) levelEl.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
+    if (S.lesson && !levelBox.firstChild) levelBox.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
     levelEl.hidden = !S.lesson;
   }
   const phaseOf = (i) => {
@@ -258,6 +276,7 @@ export function createExplain(ctx) {
       more ? h("div", { class: "ix-ex-aboutrow" }, about, more) : about, aboutDefs)] : []));
     S.aboutDefs = aboutDefs; S.aboutFirst = first; S.aboutMore = clamp ? more : null;
     syncAbout();
+    syncLevel();
   }
 
   function render(force, animate = false) {
@@ -287,6 +306,8 @@ export function createExplain(ctx) {
     entry.replaceChildren(...(showEntry ? [chapterCard(h, markup, enter, entryMode, enter.picture ? S.lesson?.picture : null, fold)] : []));
     // New: the card speaks for the chapter on its first step, so the about waits a step
     head.classList.toggle("ix-ex-quiet", showEntry && P.entry === "full" && !sheet);
+    // past the chapter's first step the about has been read: it steps back a shade, so the current step leads
+    head.classList.toggle("ix-ex-past", S.step > first && !S.askEl && !S.held);
 
     const st = S.steps[S.step];
     const held = S.held, n = S.step - first + 1;
@@ -308,7 +329,8 @@ export function createExplain(ctx) {
       nowBody.replaceChildren(h("div", { class: fresh("ix-ex-recapin", instant) },
         h("div", { class: "ix-ex-done", text: label }),
         h("p", { class: "ix-l-plain" }, markup(layersOf(st).plain)),
-        held.kind === "end" ? ctx.payoff?.() : null));
+        ctx.tally?.(held) ?? null,
+        held.kind === "end" ? ctx.payoff?.() : ctx.onward?.(held)));
     } else {
       nowN.textContent = String(n);
       nowN.setAttribute("aria-label", `Step ${n} of ${end - first} in this chapter`);
@@ -338,6 +360,10 @@ export function createExplain(ctx) {
         h("span", { class: "ix-ex-n", html: ICON.up }), h("span", { class: "ix-ex-t", text: "Start of chapter" }))));
     }
     list.replaceChildren(...items);
+    const before = S.step - first;
+    earlierCount.textContent = `${before} ${before === 1 ? "step" : "steps"}`;
+    earlierBtn.setAttribute("aria-label", `Earlier in this chapter: ${before} ${before === 1 ? "step" : "steps"}`);
+    syncEarlier();
     // an open question hides the way back: nothing below the card but the step it asks about
     earlier.hidden = !items.length || !!S.askEl;
     S.shown = { step: S.step, ph: S.ph, tl: S.tl, sig };
@@ -364,6 +390,22 @@ export function createExplain(ctx) {
     return out;
   }
 
+  // the level line names the reader's level; the switch opens under it
+  function syncLevel() {
+    const name = LEVELS.find((l) => l.id === ctx.level.value)?.label ?? "";
+    levelV.textContent = name;
+    levelBtn.setAttribute("aria-label", `Level: ${name}. ${S.levelOpen ? "Hide" : "Change"} it`);
+    levelBtn.setAttribute("aria-expanded", String(S.levelOpen));
+    levelBox.hidden = !S.levelOpen;
+    levelEl.classList.toggle("ix-ex-level-open", S.levelOpen);
+  }
+  // folded (docked, until the reader opens it) the list leaves the layout; the sheet always shows it
+  function syncEarlier() {
+    const open = S.earlierOpen || S.mode !== "docked";
+    list.hidden = !open;
+    earlier.classList.toggle("ix-ex-earlier-open", open);
+    earlierBtn.setAttribute("aria-expanded", String(open));
+  }
   // the clamped about: "More" only when the line is cut, "Less" once it is open
   function syncAbout() {
     const btn = S.aboutMore, row = btn?.parentNode;

@@ -113,7 +113,7 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
             cur.images.push(img(`${part}-ask.png`, { story: k, step: st.index, tag: "ask" }));
             cur = open(`${part}.md`, `${heading} (continued)`);
             const right = ask.options[ask.answer];
-            cur.lines.push(`**Revealed:** ${String.fromCharCode(65 + ask.answer)}) ${say(right, st.refTitle)}${ask.why ? `, because ${say(ask.why, st.refTitle)}` : ""}`);
+            cur.lines.push(`**Revealed:** ${String.fromCharCode(65 + ask.answer)}) ${say(right, st.refTitle)}${ask.why ? `. Why: ${say(ask.why, st.refTitle)}` : ""}`);
             (ask.feedback ?? []).forEach((f, n) => { if (f?.text && n !== ask.answer) cur.lines.push(`If you picked ${String.fromCharCode(65 + n)}: ${say(f.text, st.refTitle)}`); });
             cur.lines.push("");
             cur.images.push(img(`${part}-why.png`, { story: k, step: st.index, tag: "why" }));
@@ -126,7 +126,7 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
             cur.lines.push("", "Write down your pick and why, then read on.");
             const part = `${base}-${++parts}`;
             cur = open(`${part}.md`, `${heading} (continued)`);
-            cur.lines.push(`**Revealed:** ${String.fromCharCode(65 + pick.answer)}) ${pick.options[pick.answer]?.text ?? ""}${pick.whyText ? `, because ${pick.whyText}` : ""}`);
+            cur.lines.push(`**Revealed:** ${String.fromCharCode(65 + pick.answer)}) ${pick.options[pick.answer]?.text ?? ""}${pick.whyText ? `. Why: ${pick.whyText}` : ""}`);
             pick.options.forEach((o, n) => {
               if (n === pick.answer) return;
               const plays = (o.plays ?? []).filter(Boolean);

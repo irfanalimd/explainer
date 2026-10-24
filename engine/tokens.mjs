@@ -241,6 +241,14 @@ export const MOTION = {
   readIntro: 1.2,
 };
 
+// The spotlight (attention only): while a step plays, what it is about stays at full strength and the rest of the world
+// recedes: it takes `recede` of a faded thing's look (engine/gfx/skin.mjs) and moves `wash` of that toward the stage
+// colour (more in dark, where the faded look alone reads pale, not further back, but never close to the stage's
+// near-black), crossfading over `ease` s at a
+// step's start. A step about more than `cover` of the world's things has none. The things a step's words name wear the
+// chip-hover ring for its first `ring` s.
+export const SPOT = { recede: 0.4, wash: { dark: 0.8, light: 0.6 }, ease: 0.5, cover: 0.7, ring: 1.6 };
+
 export const TYPE = {
   sans: "Geist",
   mono: "Geist Mono",

@@ -402,7 +402,7 @@ order, rebuilt from scratch each round. One folder per level (`new/`, `expert/`,
 differs, and `end.md` (recap, takeaway). Steps print their layers as that level shows them (`engine/hud/level.mjs`):
 New gets the full entry card, every why and the picture lines; Expert the first sentence of each about and every
 `deeper` field. A term's definition follows its first use in `[brackets]`. A prediction ends its chunk with the
-question and options; the next chunk (`NN-<chapter>-2.md`) opens with "Revealed: … because …" and the feedback for
+question and options; the next chunk (`NN-<chapter>-2.md`) opens with "Revealed: …. Why: …" and the feedback for
 the other options. An in-world pick does the same as "Your turn": the next chunk reveals the right pick and, for each
 wrong one, what the run plays when you pick it (its real branch). Each story ends with its end check at the folder's
 level (New 3, Basics 2, Expert the transfer question), the questions in one chunk and the answers, the feedback and
