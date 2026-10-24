@@ -75,8 +75,8 @@ export const lesson = {
   objectives: [
     { id: "o-place", text: "Predict the slot a pivot lands in from how many numbers in its group are no bigger than it." },
     { id: "o-split", text: "Perform one split by hand: say which numbers swap as the scan moves along." },
-    { id: "o-skip", text: "Explain why two numbers on opposite sides of a placed pivot are never compared." },
-    { id: "o-slow", text: "Predict which inputs make this pivot rule slow, and compute their comparisons: every pair, n(n − 1)/2." },
+    { id: "o-skip", text: "Explain why two numbers on opposite sides of a placed pivot are never compared.", stories: ["random"] },
+    { id: "o-slow", text: "Predict which inputs make this pivot rule slow, and compute their comparisons: every pair, n(n − 1)/2.", stories: ["sorted", "dups"] },
   ],
 
   misconceptions: [
