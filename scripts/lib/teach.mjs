@@ -274,7 +274,7 @@ export function lintLesson(L, fig = {}) {
   const primary = Math.max(0, ...(L.stories.length ? L.stories : [{ id: undefined }]).map((st) => L.counters.filter((c) => c.primary === true || (Array.isArray(c.primary) && c.primary.includes(st.id))).length));
   if (maxChapters > lim.chapters) W("size", `${maxChapters} chapters for ${aLevel} lesson (${lim.chapters} at most): one new idea per chapter; merge or cut`);
   if (knobs > lim.knobs) W("size", `${knobs} knobs for ${aLevel} lesson (${lim.knobs} at most): keep the ones that change the lesson`);
-  if (primary > lim.primary) W("size", `${primary} numbers in the dock for ${aLevel} lesson (${lim.primary} at most)`);
+  if (primary > lim.primary) W("size", `${primary} numbers in a pause's recap for ${aLevel} lesson (${lim.primary} at most)`);
   if (L.scenarioCount > lim.stories) W("size", `${L.scenarioCount} stories for ${aLevel} lesson (${lim.stories} at most)`);
 
   // ---- words: terms, jargon, labels

@@ -45,7 +45,7 @@ export const VEIL = "…";              // what a held-back caption shows until 
 // the chapter's about, withheld until its prediction is revealed: before the question opens it says one is coming (the
 // reader has not been asked anything yet); while it is open, where the summary will be
 export const WITHHELD = "A question about this chapter is coming up. Its summary appears once you have answered, so it can't give the answer away.";
-export const WITHHELD_ASK = "This chapter's summary appears once you have answered.";
+export const WITHHELD_ASK = "The summary comes after your answer.";
 
 /** The glossary terms a piece of markup uses, in order, without repeats. */
 export function termsIn(src) {
@@ -78,7 +78,8 @@ export function firstSentence(src) {
  * ctx: { root, doc, h, parent, caption, bar, store, markupOpts, markup(src) -> fragment, level (level.mjs),
  *        term(name) -> { lead, def } | null, instant(): bool, onJump(stepIndex), onLook(ids | null), onLayout(), onDock(),
  *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, recap(): Node | null, revealed(): bool,
- *        onward(held): Node | null (a chapter pause's way on, said where the reader is reading) }
+ *        onward(held): Node | null (a chapter pause's way on, said where the reader is reading),
+ *        tally(held): Node | null (the run's numbers at a pause, which the dock no longer shows) }
  */
 export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
@@ -328,6 +329,7 @@ export function createExplain(ctx) {
       nowBody.replaceChildren(h("div", { class: fresh("ix-ex-recapin", instant) },
         h("div", { class: "ix-ex-done", text: label }),
         h("p", { class: "ix-l-plain" }, markup(layersOf(st).plain)),
+        ctx.tally?.(held) ?? null,
         held.kind === "end" ? ctx.payoff?.() : ctx.onward?.(held)));
     } else {
       nowN.textContent = String(n);

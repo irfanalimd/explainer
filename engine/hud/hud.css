@@ -779,6 +779,7 @@
 
 .ix-count { grid-area: count; display: flex; align-items: baseline; gap: 4px; font-size: var(--ix-fs-sm); font-weight: 500; color: var(--ix-ink-faint); white-space: nowrap; }
 .ix-count-cur { color: var(--ix-ink); text-align: right; }
+.ix-count-word { margin-right: 2px; }
 .ix-count-tag { align-self: center; margin-right: 4px; padding: 0 7px; border: 1px dashed var(--ix-ink-muted); border-radius: 999px; font-size: var(--ix-fs-xs); line-height: 18px; color: var(--ix-ink-muted); }
 /* speed leads the dock, with its name, and a hairline sets it apart from Back / Play / Next */
 .ix-speed-wrap { grid-area: speed; position: relative; display: flex; align-items: center; }
@@ -1249,10 +1250,16 @@
 .ix.ix-tiered .ix-stats { max-width: none; margin: 8px 0 0 8px; padding-left: 12px; }
 .ix.ix-tiered .ix-stats::before { content: none; }
 .ix.ix-tiered .ix-legend-btn { margin: 8px 8px 0 12px; }
-.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn::before { content: none; }
+.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) > .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn::before { content: none; }
 .ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden]), > .ix-legend-btn:not([hidden])) .ix-transport { margin-top: 4px; box-shadow: inset 0 1px 0 var(--ix-line); }
+/* without the numbers (a reader's dock) the legend joins the transport's row instead of a row of its own, its dots
+   alone (as on phones) so the timeline keeps its width */
+.ix.ix-legend-in-tp .ix-transport { grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-areas: "speed btns scrub count legend"; }
+.ix.ix-legend-in-tp .ix-legend-btn { grid-area: legend; margin: 0; }
+.ix.ix-legend-in-tp .ix-legend-btn::before { content: none; }
+.ix.ix-legend-in-tp .ix-legend-count { display: none; }
 
 /* ---------- phone ---------- */
 .ix[data-size="phone"] { --ix-pad: 16px; --ix-pad-t: max(12px, env(safe-area-inset-top, 0px)); --ix-pad-b: max(12px, env(safe-area-inset-bottom, 0px)); }
@@ -1308,6 +1315,8 @@
   height: auto; padding: 0 12px 12px 12px; column-gap: 8px; row-gap: 0;
 }
 .ix[data-size="phone"] .ix-tp-btns { justify-self: end; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-transport { grid-template-areas: "scrub scrub count" "speed legend btns"; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-legend-btn { justify-self: center; margin: 0; }
 .ix[data-size="phone"] .ix-speed-wrap::after { content: none; }
 .ix[data-size="phone"] .ix-scrub-wrap { padding: 0 4px 0 4px; }
 .ix[data-size="phone"] .ix-scrub { height: 48px; }
@@ -1430,6 +1439,20 @@
 .ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
 .ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-ex-level-box { margin-top: 4px; }
+/* a pause's numbers, under its recap: one quiet line that opens the readout (the dock no longer shows them) */
+.ix-tally {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; max-width: calc(100% + 16px); margin: 12px 0 0 -8px; padding: 4px 8px;
+  border-radius: var(--ix-r-sm); font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-muted); text-align: left;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-tally:hover, .ix-tally[aria-expanded="true"] { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-tally-k { font-weight: 500; color: var(--ix-ink-faint); }
+.ix-tally-list { display: contents; }
+.ix-tally-item { white-space: nowrap; }
+.ix-tally-val { font-weight: 500; color: var(--ix-ink); font-variant-numeric: tabular-nums; }
+.ix-tally-sep { color: var(--ix-ink-faint); }
+.ix-tally-icon { display: inline-grid; align-self: center; color: var(--ix-ink-faint); }
+.ix-tally-icon svg { width: 14px; height: 14px; }
 .ix-ex-level-box[hidden] { display: none; }
 .ix-ex-levels { width: 100%; }
 .ix-ex-levels .ix-seg-opt { padding: 0 8px; }

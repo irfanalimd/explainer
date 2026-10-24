@@ -61,9 +61,10 @@ export function build(s, p, scenario, env) { ... }   // env: { width, height, as
     phones and tablets.
   - `hint`: one line on what the number means, in a newcomer's words. It shows when the reader points at the number,
     and under it in the full list. verify warns when it is missing.
-  - `primary: true` puts the number in the dock; `primary: ["skew"]` only in those scenarios (the busiest reducer
-    matters in the skew story). Pick the 1–3 numbers that tell the story (verify warns above 3); the rest stay one
-    click away in the full list. A figure that marks none shows its first three.
+  - `primary: true` puts the number in each pause's recap ("So far: …", under the chapter's last step; a capture
+    without chrome shows it in the dock); `primary: ["skew"]` only in those scenarios (the busiest reducer matters in
+    the skew story). Pick the 1–3 numbers that tell the story (verify warns above 3); the rest stay one click away in
+    the full list, which the recap's line opens. A figure that marks none shows its first three.
   - `scenarios: ["starve", "yield"]` keeps a counter to those stories: the others leave it out of the dock and the
     full list, so a number one story is about does not sit at 0 in every other tab. Use it only for a number that
     means nothing elsewhere (an honest 0, such as no page faults on a TLB hit, belongs on screen); verify warns when

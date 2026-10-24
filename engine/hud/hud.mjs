@@ -9,7 +9,7 @@
 import { MOTION } from "../tokens.mjs";
 import { applyTheme, UI_MS } from "./theme.mjs";
 import { parse, toDOM, toText } from "./markup.mjs";
-import { formatCounter } from "./format.mjs";
+import { formatCounter, formatText } from "./format.mjs";
 import { highlight } from "./highlight.mjs";
 import { parseHash, formatHash, paramOverrides } from "./link.mjs";
 import { createExplain, VEIL, firstSentence } from "./explain.mjs";
@@ -88,7 +88,7 @@ const GUIDE = [
   ["cursor", "The world", "Hover anything to see its state, click to pin it. Drag to turn the camera, scroll to zoom, double-click to focus. With a keyboard, Tab into it and use the arrows."],
   ["caption", "The caption", "Narrates the current step. Words with a dot are things in the world: hover one to find it, click to inspect it."],
   ["branch", "Scenarios", "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top, or press its number."],
-  ["meter", "Numbers and parameters", "The numbers count what the run has done so far; point at one, or tap them, to see what it means. Parameters change the inputs and re-run it instantly."],
+  ["meter", "Numbers and parameters", "At each chapter's end the panel gives the run's numbers so far; click them to see every number and what it means. Parameters change the inputs and re-run it instantly."],
   ["present", "Presenter mode", "For teaching from a projector: big type, high contrast, and a clicker that steps through it. Press P, or turn it on in Settings."],
 ];
 // the same guide in touch words, for screens without a mouse: tap, pinch, drag (and no keys)
@@ -96,7 +96,7 @@ const GUIDE_TOUCH = {
   cursor: "Tap anything to see its state. Drag to turn the camera, pinch to zoom, double-tap to focus.",
   caption: "Narrates the current step. Words with a dot are things in the world: tap one to find it and see its state.",
   branch: "The same system again with a twist, like a worker crashing halfway. Pick one from the scenarios at the top.",
-  meter: "The numbers count what the run has done so far; tap them to see what each one means. Parameters change the inputs and re-run it instantly.",
+  meter: "At each chapter's end the panel gives the run's numbers so far; tap them to see every number and what it means. Parameters change the inputs and re-run it instantly.",
   present: null,
 };
 const SPEED_NAMES = { 0.5: "Slow", 1: "Normal", 2: "Fast", 4: "Fastest" };
@@ -966,9 +966,10 @@ export function createHud(root, opts = {}, cb = {}) {
     h("header", { class: "ix-meters-head" }, h("span", { class: "ix-meters-title", text: "Numbers from this run" }), meterClose), meterList);
   const statsList = h("span", { class: "ix-stats-list" });
   const statsMore = h("span", { class: "ix-stat-more", hidden: true });
-  // the dock shows only the figure's primary numbers; a click (or tap) opens every number with what it means
+  // the figure's primary numbers in a strip; a click (or tap) opens every number with what it means. A reader's dock
+  // leaves it out (a pause's recap says the numbers instead: tallyNode); a capture without chrome still shows it
   const stats = h("button", { class: "ix-stats", type: "button", "aria-expanded": "false", "aria-controls": meterBox.id,
-    "aria-describedby": uid("stats-more"), onclick: () => toggleReadout(readoutOpen !== "pinned" ? "pinned" : false) },
+    "aria-describedby": uid("stats-more"), onclick: () => toggleReadout(readoutOpen !== "pinned" ? "pinned" : false, stats) },
     h("span", { class: "ix-sr", text: "Numbers: " }), statsList, statsMore,
     h("span", { class: "ix-stats-chev", id: uid("stats-more"), "aria-label": "Show every number and what it means", html: ICON.help }));
   const legendDots = h("span", { class: "ix-legend-dots", "aria-hidden": "true" });
@@ -1008,9 +1009,12 @@ export function createHud(root, opts = {}, cb = {}) {
     labels, track, ticks, hoverLine, playhead);
   const scrubWrap = h("div", { class: "ix-scrub-wrap" }, scrub);
   const countCur = h("span", { class: "ix-count-cur", text: "0" });
+  // figure spaces (a digit's width) ahead of "Step" keep the count's width as the step number grows, with no gap in it
+  const countPad = h("span", { class: "ix-count-pad" });
   const countTot = h("span", { class: "ix-count-tot", text: "0" });
   const countTag = h("span", { class: "ix-count-tag", text: "Detour", hidden: true });
-  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, countCur, h("span", { class: "ix-count-sep", text: "/" }), countTot);
+  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, countPad, h("span", { class: "ix-count-word", text: "Step" }), countCur,
+    h("span", { class: "ix-count-sep", text: "of" }), countTot);
   // the speed is always visible, with its name; the menu says what each value means
   const speedVal = h("span", { class: "ix-speed-val", text: "1×" });
   const speedBtn = h("button", { class: "ix-speed", type: "button", "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": "Speed, 1×",
@@ -1196,20 +1200,25 @@ export function createHud(root, opts = {}, cb = {}) {
     pop.style.transform = `translate3d(${Math.round(x)}px,0,0)`;
   }
   let popTimer = 0;
-  function toggleReadout(mode = readoutOpen ? false : "pinned") {
+  // what opened the readout: a pause's numbers in the recap, or the strip; the readout sits by it and focus goes back to it
+  let readoutAnchor = null;
+  const readoutFrom = () => (readoutAnchor?.isConnected && readoutAnchor.offsetParent ? readoutAnchor : !stats.hidden ? stats : null);
+  function toggleReadout(mode = readoutOpen ? false : "pinned", anchor = null) {
     if (mode && meters.length === 0) mode = false;
+    if (mode && anchor) readoutAnchor = anchor;
     if (mode === readoutOpen) return;
     const was = readoutOpen;
     readoutOpen = mode;
     if (mode && legendOpen) toggleLegend(false);
-    if (mode) { renderSparks(true); placePop(meterBox, stats); }
+    if (mode) { renderSparks(true); placePop(meterBox, readoutFrom() ?? bar); }
     meterBox.classList.toggle("ix-open", !!mode);
     meterBox.classList.toggle("ix-pinned", mode === "pinned");
-    stats.setAttribute("aria-expanded", String(!!mode));
+    for (const b of new Set([stats, readoutAnchor])) b?.setAttribute("aria-expanded", String(!!mode));
     syncSheets();
-    // a phone's readout sheet covers the strip that opened it, so focus goes into the sheet (and comes back on close)
-    if (mode === "pinned" && root.classList.contains("ix-sheet-covers") && bottom.contains(doc.activeElement)) meterBox.focus({ preventScroll: true });
-    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) stats.focus({ preventScroll: true });
+    // a phone's readout sheet covers what opened it, so focus goes into the sheet (and comes back on close)
+    const a = doc.activeElement;
+    if (mode === "pinned" && root.classList.contains("ix-sheet-covers") && (bottom.contains(a) || explain.panel.contains(a))) meterBox.focus({ preventScroll: true });
+    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) (readoutFrom() ?? playBtn).focus({ preventScroll: true });
   }
   function toggleLegend(mode = legendOpen ? false : "pinned") {
     if (mode && !legend.childElementCount) mode = false;
@@ -1266,7 +1275,7 @@ export function createHud(root, opts = {}, cb = {}) {
     if (menuOpen && !speedWrap.contains(e.target) && !speedMenu.contains(e.target)) toggleSpeedMenu(false);
     if (storyOpen && !storyBtn.contains(e.target) && !storyMenu.contains(e.target)) toggleStoryMenu(false);
     if (aboutOpen && !about.contains(e.target) && !headRow.contains(e.target)) toggleAbout(false);
-    if (readoutOpen === "pinned" && S.size !== "phone" && !stats.contains(e.target) && !meterBox.contains(e.target)) toggleReadout(false);
+    if (readoutOpen === "pinned" && S.size !== "phone" && !stats.contains(e.target) && !readoutAnchor?.contains(e.target) && !meterBox.contains(e.target)) toggleReadout(false);
     if (legendOpen && !legendBtn.contains(e.target) && !legend.contains(e.target)) toggleLegend(false);
   }, true);
 
@@ -1850,10 +1859,11 @@ export function createHud(root, opts = {}, cb = {}) {
     // on a detour the count is the detour's own steps, from the pick, under its name
     const k = S.detour?.step ?? 0, n = S.steps.length - k;
     const digits = String(Math.max(1, n)).length;
-    countCur.style.minWidth = `${digits}ch`;
     countTot.textContent = String(n);
     countTag.hidden = !S.detour;
-    countCur.textContent = String(clamp(S.step - k, 0, n - 1) + 1);
+    const cur = String(clamp(S.step - k, 0, n - 1) + 1);
+    countPad.textContent = "\u2007".repeat(Math.max(0, digits - cur.length));
+    countCur.textContent = cur;
   }
 
   // scrubbing with the pointer
@@ -1974,6 +1984,8 @@ export function createHud(root, opts = {}, cb = {}) {
     const layered = explain.mode === "sheet" && !chapterDone && !veiled && step >= 0 && !!S.steps[step];
     const el = layered ? layeredCaption(markup, step)
       : h("div", { class: `ix-cap${end && t ? " ix-cap-takeaway" : ""}` }, note, h("p", { class: "ix-cap-text" }, toDOM(nodes, doc, markupOpts)),
+        // a pause's numbers, here when the panel is not beside the world to say them
+        chapterDone && !(explain.mode === "docked" && explain.open) ? tallyNode(S.held) : null,
         end ? payoffNode(endChipsCap, "ix-payoff-cap", false) ?? null : null);
     const instant = scrubbing || !capCur || S.captionDirty || capturing();
     S.captionDirty = false;
@@ -2076,6 +2088,7 @@ export function createHud(root, opts = {}, cb = {}) {
     revealed: () => !!(Q.q && Q.revealed),
     payoff: () => payoffNode(endChipsPanel, "ix-payoff-panel"),
     // a pause's way on, under its recap: the eyes are on the panel, the pill that continues is in the dock
+    tally: (held) => tallyNode(held),
     onward: (held) => {
       if (!hints) return null;
       const go = touch ? "Tap Continue" : "Press Continue or Enter";
@@ -2147,7 +2160,7 @@ export function createHud(root, opts = {}, cb = {}) {
       m.el = h("div", { class: "ix-meter" }, meterLabel(def, name), spark, h("span", { class: "ix-meter-val" }, m.num, m.unit));
       meterList.append(m.el);
       const st = statTip(h("span", { class: "ix-stat" }, statLabel(def, name), h("span", { class: "ix-sr", text: ": " }), statVal(m), h("span", { class: "ix-sr", text: ". " })), def, name);
-      st._defs = [def];
+      st._defs = [def]; st._m = m;
       statsList.append(st); statEls.push(st);
       meters.push(m);
       renderMeterValue(m, null);
@@ -2189,14 +2202,14 @@ export function createHud(root, opts = {}, cb = {}) {
         const st = statTip(h("span", { class: "ix-stat ix-stat-cmp" }, statLabel(row.def, row.label), h("span", { class: "ix-sr", text: ": " }),
           h("span", { class: "ix-stat-vals" }, vals), h("span", { class: "ix-sr", text: ". " })), row.def, row.label);
         if (!row.def.hint) st.title = groups.join(" / ");
-        st._defs = row.cells.filter(Boolean).map((c) => c.def);
+        st._defs = row.cells.filter(Boolean).map((c) => c.def); st._row = row;
         statsList.append(st); statEls.push(st);
       }
       meterList.append(table);
     }
     meterBox.classList.toggle("ix-has-cmp", cmpRows.length > 0);
     meterBox.classList.toggle("ix-only-cmp", cmpRows.length > 0 && meters.every((m) => m.row));
-    stats.hidden = meters.length === 0;
+    syncStrip();
     if (!meters.length) toggleReadout(false);
     root.classList.toggle("ix-has-meters", meters.length > 0);
     applyPrimary();
@@ -2204,14 +2217,54 @@ export function createHud(root, opts = {}, cb = {}) {
   // Which stats the dock shows: counters with `primary: true`, or `primary: ["skew"]` for those scenarios only.
   // A figure that marks none shows its first three. Everything stays in the readout.
   const isPrimary = (def) => def?.primary === true || (Array.isArray(def?.primary) && def.primary.includes(S.scenario));
+  function primaryOn() {
+    const marked = statEls.some((e) => e._defs.some((d) => d?.primary));
+    const on = statEls.map((e, i) => (marked ? e._defs.some(isPrimary) : i < 3));
+    return on.some(Boolean) ? on : statEls.map((_, i) => i === 0);
+  }
   function applyPrimary() {
     if (!statEls.length) return;
-    const marked = statEls.some((e) => e._defs.some((d) => d?.primary));
-    let on = statEls.map((e, i) => (marked ? e._defs.some(isPrimary) : i < 3));
-    if (!on.some(Boolean)) on = statEls.map((_, i) => i === 0);
+    let on = primaryOn();
     if (S.dockRow) { const first = on.indexOf(true); on = on.map((_, i) => i === first); }   // the one-row dock keeps one number
     statEls.forEach((e, i) => { e.hidden = !on[i]; });
     fitSoon();
+  }
+  // The strip only in a capture without chrome (record, shoot): a video can't be clicked, so it keeps the numbers in
+  // view. A reader's dock leaves them out; each pause's recap says them (tallyNode) and opens the readout.
+  const stripShown = () => root.classList.contains("ix-capture") && !root.classList.contains("ix-keep-chrome");
+  function syncStrip() {
+    stats.hidden = meters.length === 0 || !stripShown();
+    if (stats.hidden && readoutOpen && readoutFrom() === null) toggleReadout(false);
+    placeLegend();
+    fitSoon();
+  }
+  // a tiered dock (phones, narrow windows) keeps its legend over the transport only beside the numbers; alone, the
+  // legend joins the transport's row, so no row of the dock holds it by itself
+  function placeLegend() {
+    const inTp = root.classList.contains("ix-tiered") && stats.hidden;
+    if (inTp !== (legendBtn.parentNode === transport)) (inTp ? transport : bar).append(legendBtn);
+    root.classList.toggle("ix-legend-in-tp", inTp);
+  }
+  // A pause's numbers, from the run at this moment: the primary counters in one quiet line under the recap ("So far",
+  // "In all" at the end). It opens the readout, every number with what it means.
+  function tallyNode(held) {
+    if (!statEls.length || stripShown()) return null;
+    const on = primaryOn();
+    const val = (c) => formatText(c.target, c.def.format ?? "int", c.def);
+    // a number still at zero (or unset) says nothing yet: it waits for the pause after the run first moves it
+    const said = (c) => c && c.target != null && c.target !== 0;
+    const items = statEls.filter((e, i) => on[i] && (e._row ? e._row.cells.some(said) : said(e._m))).map((e) => {
+      const label = e._row ? e._row.label : e._m.def.label ?? e._m.name;
+      const v = e._row ? e._row.cells.map((c) => (c ? val(c) : "—")).join(" / ") : val(e._m);
+      return h("span", { class: "ix-tally-item" }, h("span", { class: "ix-tally-name", text: label }), " ", h("span", { class: "ix-tally-val", text: v }));
+    });
+    if (!items.length) return null;
+    const list = items.flatMap((x, i) => (i ? [h("span", { class: "ix-tally-sep", "aria-hidden": "true", text: "·" }), x] : [x]));
+    const b = h("button", { class: "ix-tally", type: "button", "aria-expanded": "false", "aria-controls": meterBox.id,
+      onclick: () => toggleReadout(readoutOpen === "pinned" && readoutAnchor === b ? false : "pinned", b) },
+      h("span", { class: "ix-tally-k", text: held?.kind === "end" ? "In all" : "So far" }), h("span", { class: "ix-tally-list" }, list),
+      h("span", { class: "ix-sr", text: ". Show every number and what it means" }), h("span", { class: "ix-tally-icon", "aria-hidden": "true", html: ICON.help }));
+    return b;
   }
   // Stats that do not fit the strip fold into "+n" (the full readout opens from it); nothing is ever cut mid-word.
   let fitRaf = 0;
@@ -3216,10 +3269,11 @@ export function createHud(root, opts = {}, cb = {}) {
     const row = (S.embedded || H < 600) && size !== "phone" && !presenter.on;
     if (row !== S.dockRow) { S.dockRow = row; root.classList.toggle("ix-dock-row", row); applyPrimary(); }
     root.classList.toggle("ix-tiered", !row && (size !== "desktop" || W < 1200));
+    placeLegend();
     root.style.setProperty("--ix-stats-max", `${Math.round(Math.min(W - 48, 1320) * 0.42)}px`);
     if (size !== "phone" && aboutOpen) toggleAbout(false);
     fitSoon();
-    if (readoutOpen) placePop(meterBox, stats);
+    if (readoutOpen) placePop(meterBox, readoutFrom() ?? bar);
     if (legendOpen) placePop(legend, legendBtn);
     fitLabels();
     preview._w = 0;
@@ -3282,6 +3336,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const step = Number.isInteger(frame.step) ? frame.step : S.steps.length ? stepAt(t) : 0;
     if (step !== S.step) onStep(step);
     explain.step(step, info.fold?.caption);
+    if (frame.counters) setMeters(frame.counters, step);   // before the pause: its recap says the numbers at this moment
     const held = turn.held(info.held ?? null, S.tl);   // a branch's end is the turn's hold (turn.mjs)
     setHeld(playing ? null : held);   // before the caption: a pause changes what the caption says
     turn.update({ tl: S.tl, step, time: t, held: info.held ?? null });
@@ -3289,7 +3344,6 @@ export function createHud(root, opts = {}, cb = {}) {
     const cap = frame.caption ?? "";
     const capKey = `${S.held ? `${S.held.kind}${S.held.phase}` : ""}|${veilStep() === step ? 1 : 0}|${explain.mode}`;
     if (cap !== S.caption || S.captionDirty || capKey !== S.capKey) { S.caption = cap; S.capKey = capKey; setCaption(cap, step); }
-    if (frame.counters) setMeters(frame.counters, step);
     if (rowsDirty) { rowsDirty = false; renderRows(true); }
     if (sparksDirty) { sparksDirty = false; renderSparks(); }
     if (codeRows.length) setLines(frame.line, frame.vars);
@@ -3381,6 +3435,7 @@ export function createHud(root, opts = {}, cb = {}) {
     setCapture(on = true, o = {}) {
       root.classList.toggle("ix-capture", !!on);
       root.classList.toggle("ix-keep-chrome", !!on && !!o.chrome);
+      syncStrip();
       if (on) { openIntro(false); setHeld(null); hideCoach(); hideTip(); hidePreview(); toggleSpeedMenu(false); toggleStoryMenu(false); hideCard(hoverCard); toggleAbout(false); if (readoutOpen === "hover") toggleReadout(false); if (legendOpen === "hover") toggleLegend(false); }
       explain.sync();
       obstaclesDirty = true;
