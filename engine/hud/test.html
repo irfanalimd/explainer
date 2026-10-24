@@ -515,11 +515,14 @@ window.__results = (async () => {
     await wait(260);   // the button's colour transition settles
     const probe = document.createElement("i"); probe.style.background = "var(--ix-primary)"; root.append(probe);
     const primary = getComputedStyle(probe).backgroundColor; probe.remove();
+    // the ring rests on Continue; a call (the first few cues of a kind, guide.mjs) ripples three times
     const ring = getComputedStyle(playEl), calm = root.classList.contains("ix-reduced");
+    const callProbe = document.createElement("button"); callProbe.className = "ix-cue ix-cue-call"; root.append(callProbe);
+    const call = getComputedStyle(callProbe), callName = call.animationName, callCount = call.animationIterationCount; callProbe.remove();
     check("Continue is the solid primary pill (the chrome has no accent) and carries the guide's ring: it calls three times, then rests", getComputedStyle(playEl).backgroundColor === primary && primary !== "rgba(0, 0, 0, 0)"
       && playEl.classList.contains("ix-cue") && ring.outlineStyle === "solid" && root.querySelectorAll(".ix-cue").length === 1
-      && (calm || (ring.animationName === "ix-cue-call" && ring.animationIterationCount === "3")),
-      [getComputedStyle(playEl).backgroundColor, primary, ring.outlineStyle, ring.animationName, ring.animationIterationCount, root.querySelectorAll(".ix-cue").length]);
+      && (calm || (callName === "ix-cue-call" && callCount === "3")),
+      [getComputedStyle(playEl).backgroundColor, primary, ring.outlineStyle, callName, callCount, root.querySelectorAll(".ix-cue").length]);
   }
   {
     const hintsSw = [...root.querySelectorAll(".ix-switch")].find((b) => root.querySelector(`label[for="${b.id}"]`)?.textContent === "Hints");
