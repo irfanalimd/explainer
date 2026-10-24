@@ -98,7 +98,7 @@ export const lesson = {
     rows: [
       { id: "cook", picture: "the one cook in the kitchen", real: "the one thread that runs JavaScript" },
       { id: "rail", picture: "the order rail, one ticket at a time", real: "the task queue: the script, timers, network replies, repaints", term: "task" },
-      { id: "notes", picture: "sticky notes marked “before the next order”", real: "the microtask queue: promise callbacks, code after await", term: "microtask" },
+      { id: "notes", picture: "sticky notes marked “before the next order”", real: "the microtask queue: code waiting on a promise, code after await", term: "microtask" },
       { id: "pan", picture: "the dish in the cook's hands", real: "the call stack: the code running now", term: "call stack" },
       { id: "rule", picture: "the rule: finish a dish, read every note, then take the next ticket", real: "the event loop", term: "event loop" },
       { id: "helpers", picture: "kitchen timers and delivery drivers", real: "the browser's timers and network, working in the background", term: "Web APIs" },
@@ -213,7 +213,7 @@ export const lesson = {
     },
     "script.set-timeout": {
       key: true,
-      plain: "`setTimeout` hands {callback} to the browser's timer and returns. Nothing prints.",
+      plain: "`setTimeout` hands {callback}, a function for later (a {term:callback}), to the browser's timer and returns. Nothing prints.",
       why: "0 ms is only the earliest it may run; the script keeps the thread until its last line.",
       look: ["{callbackId}"],
       deeper: {
@@ -302,7 +302,7 @@ export const lesson = {
     // ---- Before the next task (order) ----
     "micro.then-1": {
       key: true,
-      plain: "{fn}, a function for later (a {term:callback}), runs first and prints {printed}.",
+      plain: "{fn} runs first and prints {printed}.",
       why: "After every task, the loop runs all waiting microtasks before it takes another task.",
       look: ["{fnId}", "{lineId}"], picture: "rule",
       deeper: {
@@ -455,7 +455,7 @@ export const lesson = {
       look: ["{fnId}", "{pageId}"],
     },
     "chunk.log": {
-      plain: "It prints {printed}. The screen can't redraw, a {term:repaint}, while JavaScript runs.",
+      plain: "It prints {printed}. While JavaScript runs, the screen can't be redrawn: no {term:repaint}.",
       why: "Redrawing waits for its turn, like every other job on this thread.",
       look: ["{lineId}", "page"],
     },
@@ -567,7 +567,7 @@ export const lesson = {
           feedback: "If you thought a ready value lets `load()` carry on: even `await null` sends the rest of `load()` to the microtask queue, so the script's next line, {printed}, prints first." },
         { feedback: "Right. The rest of `load()` is a microtask, and microtasks wait until the script ends: {printed} prints first." },
         { misconception: "m-now",
-          feedback: "If you thought a queued callback runs as soon as it can: `then` is queued, but nothing cuts into running code. The script prints {printed} first." },
+          feedback: "If you thought a queued function runs as soon as it can: `then` is queued, but nothing cuts into running code. The script prints {printed} first." },
       ],
     },
     "micro.repaint": {

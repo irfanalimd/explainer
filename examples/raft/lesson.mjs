@@ -110,7 +110,7 @@ export const lesson = {
     copy: {
       about: "Like a note-taker reading out each new line, the leader writes each command into its log, after a blank `nop` of its own, and sends copies. A line counts once most servers store it, not all.",
       enter: {
-        sofar: "One server won the vote. But no command has been saved yet.",
+        sofar: "One server asked for votes, and they are on their way. No command has been saved yet.",
         now: "The winner leads: it writes each command and sends copies to the rest.",
         done: "An entry lights up on the leader once a majority holds it, before all {N} do.",
       },
@@ -324,6 +324,7 @@ export const lesson = {
       key: true,
       plain: "{leader} wins term {term} once {votes} of {N} votes arrive. Its log still has {kept}.",
       why: "Every majority includes a server holding {kept}, and that server refuses any log without it.",
+      "why@crash": "So nothing that counted has to come back from the crashed server: the new leader already holds it.",
       look: ["{leaderId}"],
       deeper: {
         how: "{kept} was on a majority. Any {majority} voters of {N} include one of them, and the vote check refused every log missing it (§5.4.1).",
@@ -513,7 +514,7 @@ export const lesson = {
       when: (v) => only("crash.down")(v) && v.leader,
       key: true,
       plain: "Leader {who} {tone:fail|crashes}. Its log is saved on disk, so it survives.",
-      why: "Every committed entry is also on a majority, so this crash loses nothing that counted.",
+      why: "Every committed entry is also on a majority, so this crash loses nothing that counted. Copies already on the wire still arrive.",
       look: ["{whoId}"],
       deeper: {
         how: "Before replying to anyone, a server writes its term, its vote and its log to disk (Figure 2). Which entries are committed it keeps only in memory.",
@@ -627,7 +628,7 @@ export const lesson = {
     "split.add": {
       when: only("split.add"),
       first: { why: "Nothing tells {leader} it is cut off, so it takes commands as before." },
-      plain: "{leader} adds {cmd} as entry {index}, but its copies can't cross the split.",
+      plain: "{leader} adds {cmd} as entry {index}; its copies reach only its own side of the split.",
       look: ["{leaderId}"],
     },
     "split.no-majority": {
@@ -707,7 +708,7 @@ export const lesson = {
     "agree.same": {
       when: (v) => v.up === v.N,
       key: true,
-      plain: "All {N} servers hold the same committed log: {log}, in the same order.",
+      plain: "All {N} servers hold the same committed commands, {log}, in the same order.",
       why: "One leader set the order, and each entry counted only once a majority held it.",
       "why@crash": "The crash cost time, not entries: the new leader already held every committed one.",
       "why@partition": "The cut-off leader's entry never counted, so it gave way without breaking the list.",
