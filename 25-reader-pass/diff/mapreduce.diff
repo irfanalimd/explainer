@@ -1,0 +1,42 @@
+diff --git a/examples/mapreduce/lesson.mjs b/examples/mapreduce/lesson.mjs
+index 8ded19f..1431f61 100644
+--- a/examples/mapreduce/lesson.mjs
++++ b/examples/mapreduce/lesson.mjs
+@@ -105,7 +105,7 @@ export const lesson = {
+       teach: { prompt: "Before it runs: if three people share the counting of one library, what could go wrong with the total?", listen: "A word counted twice, or missed, where two pieces meet. Here every word sits in exactly one piece, so neither can happen.", minutes: 3 },
+       about: "Think of counting every word in a library with a team. One person would take ages, so a coordinator, the {term:master}, gives each helper one shelf: a {term:split}, one piece of the text.",
+       "about@skew": "The same counting job on a web log. Each line is one website request, and its status code is a number saying how it went (200 OK, 404 not found). The {term:master} gives each machine one {term:split} of the log.",
+-      enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. The table names the parts; each comes back when its step plays.", done: "Every word sits in exactly one piece.", picture: true },
++      enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. “The picture” below matches each part of the library to a part of the system.", done: "Every word sits in exactly one piece.", picture: true },
+       "enter@skew": { sofar: "On one machine, a loop and a dictionary count things: each code maps to its count so far.", now: "Cut the log into pieces, one per machine.", done: "Every line sits in exactly one piece.", picture: true },
+     },
+     map: {
+@@ -452,7 +452,7 @@ export const lesson = {
+       look: ["output"],
+       deeper: {
+         cost: "The reading took as long as the biggest piece ({count:biggest|word}), not all {n}. The price: every slip crossed the network once, {shuffleBytes} bytes here.",
+-        real: "Google often ran jobs as large as M = 200,000 map tasks and R = 5,000 reduce tasks on 2,000 machines (§3.5). The average job in August 2004 was much smaller: 157 machines, 3,351 map tasks and 55 reduce tasks (Table 1).",
++        real: "At Google in August 2004 the average job ran 3,351 map tasks and 55 reduce tasks on 157 machines (Table 1), so each machine ran about 21 map tasks in turn.",
+         source: "[dean2004] §3.5, Table 1",
+       },
+     },
+@@ -625,6 +625,8 @@ export const lesson = {
+       "question@skew": "Suppose a new job with {M2} reading machines instead of {M}. How many lines does the busiest one read?",
+       why: "{n} words shared by {M2} machines: the biggest piece has {big2}.",
+       "why@skew": "{n} lines shared by {M2} machines: the biggest piece has {big2}.",
++      wrong: { feedback: "The master cuts the {n} words into {M2} pieces of nearly the same size, one per machine, so no machine reads them all and the biggest piece has {big2}." },
++      "wrong@skew": { feedback: "The master cuts the {n} lines into {M2} pieces of nearly the same size, one per machine, so no machine reads them all and the biggest piece has {big2}." },
+     },
+     "check.new-word": {
+       question: "Add the word {w}, which the text does not have yet. How many totals would the output hold?",
+@@ -640,8 +642,8 @@ export const lesson = {
+       "question@skew": "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the log. How many totals would the output hold?",
+       why: "The output holds one total per different word. One more {w} changes its count, not how many totals there are: {distinct}.",
+       "why@skew": "The output holds one total per different code. One more {w} changes its count, not how many totals there are: {distinct}.",
+-      wrong: { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new words." },
+-      "wrong@skew": { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new codes." },
++      wrong: { feedback: "{w} already has a total, so one more raises that total by 1 and adds no new one. The output holds one total per different word, not one per word read: {distinct}." },
++      "wrong@skew": { feedback: "{w} already has a total, so one more raises that total by 1 and adds no new one. The output holds one total per different code, not one per line read: {distinct}." },
+     },
+   },
+ 

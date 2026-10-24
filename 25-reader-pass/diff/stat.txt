@@ -1,0 +1,6 @@
+ examples/event-loop/figure.mjs |  2 +-
+ examples/event-loop/lesson.mjs | 10 +++++-----
+ examples/mapreduce/lesson.mjs  | 10 ++++++----
+ examples/raft/figure.mjs       |  2 +-
+ examples/raft/lesson.mjs       |  9 +++++----
+ 5 files changed, 18 insertions(+), 15 deletions(-)
