@@ -1,0 +1,7 @@
+19db9f7 List under You can now only what each B+ tree story teaches
+eab9cb6 List under You can now only what each Virtual memory story teaches, and say which costs are the model's
+38dffa8 List under You can now only what each Quicksort story teaches
+897a032 List under You can now only what each Consistent hashing story teaches
+b1cbccb Say where Quicksort's slot numbers start, and keep its sums and recap true to the run
+f95a0a9 Say in Linked list only what its stories show, and name its sources
+df2d76f Name an organisation's source by its document in four lessons

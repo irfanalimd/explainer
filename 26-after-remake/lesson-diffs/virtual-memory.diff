@@ -1,0 +1,275 @@
+--- /home/ubuntu/tmp/explainer-perf/reader2/out/virtual-memory-before.txt	2026-10-24 03:57:51.450994890 +0000
++++ /home/ubuntu/tmp/explainer-perf/reader2/out/virtual-memory-after.txt	2026-10-24 04:10:17.057901001 +0000
+@@ -9,11 +9,12 @@
+   o-split: Perform the split of an address into its page number, which is looked up, and its offset,
+            which copies straight over.
+   o-walk: Explain how four groups of 9 bits each pick one line in a chain of four tables, starting
+-          from CR3.
++          from CR3. (miss, fault)
+   o-cost: Compare a sticky-note hit with a directory walk, and compute the average cost of many
+-          reads in one page.
+-  o-apart: Explain why two programs reading the same address reach different rooms.
++          reads in one page. (miss, hit)
++  o-apart: Explain why two programs reading the same address reach different rooms. (miss)
+   o-fault: Predict what happens when a page is out on disk, in order, and which part costs the most.
++           (fault)
+ PICTURE   a building where each program has its own apartment numbers
+   number  an apartment number  =  a virtual address: the program's own number  (virtual address)
+   spot    the spot inside the apartment  =  the offset, the low 12 bits  (offset)
+@@ -85,7 +86,7 @@
+                   virtual. The CPU translates it on every read, write and instruction fetch.
+         · edge    Only 48 of the 64 bits count: bits 63–48 must copy bit 47, or the CPU refuses the
+                   address. Programs live in the lower half, below 0x8000_0000_0000.
+-        · source  Intel 2025, §3.3.7.1, canonical addressing
++        · source  Intel SDM 2025, Vol. 1, §3.3.7.1, canonical addressing
+    1  ★ The low 12 bits, `0xe48`, are the offset: the byte's place in its block. [offset: How many
+       bytes into its 4,096-byte block a byte sits, counting from the block's start.]   ‹address.offset›
+         why       They copy straight down into the real address, unchanged: nothing needs looking
+@@ -95,7 +96,7 @@
+         · how     12 bits count from 0 to 4,095: one number for each byte of a 4,096-byte block. In
+                   hex that is the last 3 digits, here `0xe48`.
+         · code    `off = va & 0xfff;` (line 3)
+-        · source  Arpaci-Dusseau & Arpaci-Dusseau 2023
++        · source  OSTEP 2023, ch. 18
+    2  ★ The upper 36 bits, `0x7f3a2c108`, name its page. Only this part is looked up. [page: A block
+       of 4,096 bytes. Memory is handed out, looked up and moved one block at a time.]   ‹address.page›
+         why       One lookup for a whole page of 4,096 bytes, not one per byte, keeps the directory
+@@ -127,7 +128,7 @@
+                   with all 8 page numbers in parallel; a match is a hit.
+         · real    Real CPUs keep two levels of notes: a first level of a few dozen, checked in
+                   parallel like these, then a bigger second level that costs a few cycles more.
+-        · source  Drepper 2007, §3.3.1 and §4.3; Arpaci-Dusseau & Arpaci-Dusseau 2023
++        · source  Drepper 2007, §3.3.1 and §4.3; OSTEP 2023, ch. 19
+ 
+    ▸ Chapter 3 of 6 · The directory
+      about     On a miss, the CPU reads this program's directory, the page table: four small tables
+@@ -146,7 +147,7 @@
+         · code    `u64 table = cr3 & ~0xfffull;` (line 6)
+         · edge    Only the operating system may write CR3. A program that tries is stopped by the
+                   CPU, so it can never point the CPU at another program's directory.
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+    5  Bits 47–39 pick line 254 of the first table, which leads to the second.   ‹walk.level›
+         why       Each line says where the next table starts, so the four reads must go one after
+                   another.
+@@ -159,7 +160,7 @@
+         · edge    Real CPUs keep recently used upper lines in small paging-structure caches, so a
+                   walk to a nearby page may read only the last table. This run keeps none: the worst
+                   case.
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+    6  Bits 38–30 pick line 232 of the second table, which leads to the third.   ‹walk.level›
+         look      t1.e1
+    7  Bits 29–21 pick line 352 of the third table, which leads to the last.   ‹walk.level›
+@@ -196,7 +197,7 @@
+                   11–0: frame × 4,096 + offset. This CPU has 39 physical address bits, a common
+                   laptop size.
+         · code    `return table | off;` (line 15)
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   10  ★ A sticky note now maps page `0x7f3a2c108` to room `0x189f3`, replacing `0x7f3a2c3e6`'s note.   ‹room.fill›
+         why       The next read in this page can skip the directory entirely.
+         look      tlb.v0, tlb.p0
+@@ -206,7 +207,7 @@
+         · code    `tlb_insert(vpn, table >> 12);` (line 14)
+         · edge    A note is written only after a walk that ends in a room. A walk that finds “not
+                   present” leaves no note behind.
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   11  The byte at `0x189f_3e48` is `0x37`. Finding its room cost 961 cycles.   ‹room.byte›
+         why       Nothing was remembered, so every directory line came from slow memory: the worst
+                   case.
+@@ -266,7 +267,7 @@
+                   and pay a walk for each. Code that hops across a huge array feels this.
+         · real    A 2 MiB huge page lets one note cover 512 small pages, and its walk stops at the
+                   third table. Linux uses them for large memory areas.
+-        · source  documentation 2026
++        · source  Linux docs, transparent hugepages
+ 
+    ▸ Chapter 6 of 6 · Another program
+      about     The operating system now runs program B, which uses the same address through its own
+@@ -289,7 +290,7 @@
+                   (TLB_NR_DYN_ASIDS) among the programs it ran most recently, and with page-table
+                   isolation each uses a pair, one for the program and one for the operating system
+                   side. ARM and RISC-V tag notes the same way (an ASID).
+-        · source  kernel 2026 TLB_NR_DYN_ASIDS
++        · source  Linux tlbflush.h TLB_NR_DYN_ASIDS
+   19  Program B reads the same address, `0x7f3a_2c10_8e48`. No note has it: a miss.   ‹other.miss›
+         look      tlb
+      PREDICT  B uses the same address as A. Whose byte will B read?
+@@ -306,7 +307,7 @@
+                    to room `0xe2b9d`. [m-unique]
+               why: Every program has its own directory. B's lines lead to a room the operating
+                    system gave B, so A's room is never reached.
+-  20  ★ B's own directory leads `0x7f3a_2c10_8e48` to room `0xe2b9d`, after 960 cycles.   ‹other.walk›
++  20  ★ B's own directory leads `0x7f3a_2c10_8e48` to room `0xe2b9d`, after a 960-cycle walk.   ‹other.walk›
+         why       B's CR3 starts a different chain of tables, so the same bits pick lines in other
+                   tables.
+         look      t0, t1, t2, t3
+@@ -316,7 +317,7 @@
+                   changed. Only the tables they index differ, because the chain starts from B's CR3.
+         · edge    Two directories may name the same room on purpose: that is how programs share
+                   library code (marked read-only) and shared memory.
+-        · source  Arpaci-Dusseau & Arpaci-Dusseau 2023
++        · source  OSTEP 2023, ch. 20
+   21  Room `0xe2b9d`, then the same offset `0xe48`: B's physical address is `0xe2b9_de48`.   ‹other.address›
+         look      pa
+   22  A sticky note now maps page `0x7f3a2c108` to room `0xe2b9d`, B's room this time.   ‹other.fill›
+@@ -343,7 +344,7 @@
+      4. Program B's same address led through its own directory to a different room.
+    TAKEAWAY  Each program's addresses go through its own directory, which only the operating system
+              can set. So a program reaches only rooms it was given, and notes keep it fast.
+-   CAN NOW   o-split, o-walk, o-cost, o-apart, o-fault
++   CAN NOW   o-split, o-walk, o-cost, o-apart
+ 
+ ━━ Story 2 of 3 · A recent address  (hit)  7 steps, 33 s at 1x
+    what if   What if… the page was used a moment ago
+@@ -381,7 +382,7 @@
+         · real    One note covers a whole page, so a program reading through 4,096 one-byte values
+                   in a row misses once and hits 4,095 times. That reuse is why so few notes are
+                   enough.
+-        · source  Arpaci-Dusseau & Arpaci-Dusseau 2023; Drepper 2007, §3.3; Gregg 2020, Table 2.2
++        · source  OSTEP 2023, ch. 19; Drepper 2007, §3.3; Gregg 2020, Table 2.2
+ 
+    ▸ Chapter 3 of 3 · The real room
+      about     The note already had the room, so the CPU puts the offset after it to get the real
+@@ -414,7 +415,7 @@
+      3. The directory was never opened.
+    TAKEAWAY  With the page already on a sticky note, finding its room takes one cycle and never
+              opens the directory.
+-   CAN NOW   o-split, o-walk, o-cost, o-apart, o-fault
++   CAN NOW   o-split, o-cost
+ 
+ ━━ Story 3 of 3 · The page isn't in memory  (fault)  18 steps, 90 s at 1x
+    what if   What if… the page was moved out to disk
+@@ -439,7 +440,7 @@
+         · real    Linux keeps the slot there too, but stored inverted (every bit flipped), so the
+                   line can never look like a real frame number to a CPU that reads it by mistake
+                   (the L1TF flaw, 2018). This run stores the slot plainly in bits 12 and up.
+-        · source  kernel 2026 __swp_entry
++        · source  Linux pgtable_64.h __swp_entry
+ 
+    ▸ Chapter 4 of 5 · Fetch from disk
+      about     The page's contents went to storage: the operating system moved them to disk to free
+@@ -453,13 +454,13 @@
+       core of the operating system: it hands out memory and fetches pages back from disk.]   ‹fault.trap›
+         why       Only the operating system knows where the page went, so the CPU must ask it.
+         look      kernel
+-        · cost    3 000 cycles, about 1 µs: saving the program's place, entering the kernel, finding
+-                  the line, and returning.
++        · cost    This model charges 3 000 cycles, about 1 µs at 3 GHz, for saving the program's
++                  place, entering the kernel, finding the line and returning.
+         · how     The CPU raises exception 14, a page fault, puts the address in register CR2 and
+                   jumps to the kernel's handler. The read is undone, so it can run again from the
+                   start.
+         · code    `raise(PAGE_FAULT, va);` (line 11)
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   10  ★ The kernel copies the page from disk slot `0x712` into free room `0x88e85`.   ‹fault.disk›
+         why       This copy is the slow part: 60 000 cycles, longer than everything else in this
+                   read together.
+@@ -482,7 +483,7 @@
+         · how     The new line holds frame `0x88e85` with P set, plus RW, US, A, D and NX, the flags
+                   of a data page.
+         · code    `*pte = frame | PRESENT | RW | USER | ACCESSED | DIRTY | NX;` (line 23)
+-        · source  Arpaci-Dusseau & Arpaci-Dusseau 2023
++        · source  OSTEP 2023, ch. 21
+ 
+    ▸ Chapter 5 of 5 · Try again
+      about     The CPU runs the same read again from the start: note check, directory, room. The
+@@ -508,7 +509,7 @@
+         · edge    Changing a line that was present is different: an old note may still hold it. The
+                   kernel must drop it with `invlpg`, and on a many-core machine interrupt every core
+                   that may hold it, a TLB shootdown.
+-        · source  Intel 2025, ch. 4, Paging
++        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   13  The same 4 lines again, now from the cache: 56 cycles in all. [cache: Small, fast memory
+       beside the CPU that keeps copies of recently read memory, so reading again is cheap.]   ‹retry.walk›
+         why       The first walk left these lines in fast memory beside the CPU, so each read is
+@@ -539,7 +540,7 @@
+         · edge    The disk share is waiting, not CPU work: the program sleeps through it while
+                   others run. A machine short of memory that faults constantly does little but wait,
+                   which is called thrashing.
+-        · source  Arpaci-Dusseau & Arpaci-Dusseau 2023
++        · source  OSTEP 2023, ch. 21
+ 
+    RECAP
+      1. The directory said the page was out on disk: a page fault.
+@@ -547,17 +548,17 @@
+      3. The read started over, walked the directory again and found the room.
+    TAKEAWAY  A page out on disk costs tens of thousands of cycles. That is why the operating system
+              keeps busy pages in memory.
+-   CAN NOW   o-split, o-walk, o-cost, o-apart, o-fault
++   CAN NOW   o-split, o-walk, o-fault
+ 
+ SOURCES  (lesson.sources: 13)
+-  [intel-sdm3a]  Intel 2025
++  [intel-sdm3a]  Intel SDM 2025, Vol. 3A
+     ref       Intel. Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A,
+               chapter 4: Paging. intel.com, 2025.
+     url       https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+     supports  4-level paging: CR3, four tables of 512 eight-byte entries, 9 index bits per level,
+               the P, RW, US, A, D and NX flags, PCIDs, the paging-structure caches, invalidation
+               (§4.10)
+-  [intel-sdm1]  Intel 2025
++  [intel-sdm1]  Intel SDM 2025, Vol. 1
+     ref       Intel. Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 1,
+               §3.3.7.1 Canonical addressing. intel.com, 2025.
+     url       https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+@@ -568,35 +569,35 @@
+     url       https://www.akkadia.org/drepper/cpumemory.pdf
+     supports  the access times Intel lists for a Pentium M (L2 about 14 cycles, main memory about
+               240), the model's latencies; a fully associative TLB holds a few dozen entries at most
+-  [ostep18]  Arpaci-Dusseau & Arpaci-Dusseau 2023
++  [ostep18]  OSTEP 2023, ch. 18
+     ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+               Pieces, ch. 18, Paging: Introduction. pages.cs.wisc.edu/~remzi/OSTEP, 2023.
+     url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf
+     supports  an address splits into a page number, which is translated, and an offset, which is not
+-  [ostep19]  Arpaci-Dusseau & Arpaci-Dusseau 2023
++  [ostep19]  OSTEP 2023, ch. 19
+     ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+               Pieces, ch. 19, Paging: Faster Translations (TLBs). pages.cs.wisc.edu/~remzi/OSTEP,
+               2023.
+     url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-tlbs.pdf
+     supports  the TLB caches translations; a hit avoids the extra memory reads; ASIDs instead of
+               flushing on a switch
+-  [ostep20]  Arpaci-Dusseau & Arpaci-Dusseau 2023
++  [ostep20]  OSTEP 2023, ch. 20
+     ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+               Pieces, ch. 20, Paging: Smaller Tables. pages.cs.wisc.edu/~remzi/OSTEP, 2023.
+     url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-smalltables.pdf
+     supports  multi-level page tables: a directory of tables, each index picking one line
+-  [ostep21]  Arpaci-Dusseau & Arpaci-Dusseau 2023
++  [ostep21]  OSTEP 2023, ch. 21
+     ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+               Pieces, ch. 21, Beyond Physical Memory: Mechanisms. pages.cs.wisc.edu/~remzi/OSTEP,
+               2023.
+     url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-beyondphys.pdf
+     supports  the present bit, the page fault, the swap slot kept in the entry, retrying the
+               instruction
+-  [linux-tlbflush]  kernel 2026
++  [linux-tlbflush]  Linux tlbflush.h
+     ref       The Linux kernel. Linux, arch/x86/include/asm/tlbflush.h. kernel source, 2026.
+     url       https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/tlbflush.h
+     supports  TLB_NR_DYN_ASIDS: each CPU recycles 6 PCID tags among recent address spaces
+-  [linux-pgtable64]  kernel 2026
++  [linux-pgtable64]  Linux pgtable_64.h
+     ref       The Linux kernel. Linux, arch/x86/include/asm/pgtable_64.h. kernel source, 2026.
+     url       https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/pgtable_64.h
+     supports  __swp_entry stores the swap offset inverted, against L1TF
+@@ -610,7 +611,7 @@
+               two-dimensional page walks for virtualized systems. ASPLOS 2008, 2008.
+     url       https://dl.acm.org/doi/10.1145/1346281.1346286
+     supports  a nested walk under a virtual machine takes up to 24 memory references
+-  [linux-thp]  documentation 2026
++  [linux-thp]  Linux docs, transparent hugepages
+     ref       The Linux kernel documentation. Transparent Hugepage Support. docs.kernel.org, 2026.
+     url       https://docs.kernel.org/admin-guide/mm/transhuge.html
+     supports  2 MiB pages for large memory areas, one TLB entry for 512 small pages
+@@ -622,4 +623,4 @@
+               rotational disk I/O 1–10 ms
+ 
+ teaching checks  examples/virtual-memory/figure.mjs
+-  info   level core, 6 chapters, 4 questions, 12 defined words, 1092 words, reading grade 5.7
++  info   level core, 6 chapters, 4 questions, 12 defined words, 1093 words, reading grade 5.7

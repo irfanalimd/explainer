@@ -1,0 +1,297 @@
+--- /home/ubuntu/tmp/explainer-perf/reader2/out/linked-list-before.txt	2026-10-24 03:57:52.429973754 +0000
++++ /home/ubuntu/tmp/explainer-perf/reader2/out/linked-list-after.txt	2026-10-24 04:10:17.587889566 +0000
+@@ -6,10 +6,11 @@
+ GOAL      Insert into the middle of a list without moving anything.
+ OBJECTIVES
+   o-shift: Explain why inserting into an array moves items and inserting into a linked list does
+-           not.
++           not. (insert, wrong)
+   o-order: Do the two pointer writes of an insert in the right order, and say why the order matters.
++           (insert, wrong)
+   o-cost: Say what a linked list pays instead: a walk from head, an extra address and an allocation
+-          per node.
++          per node. (insert, find)
+ PICTURE   a treasure hunt
+   node    a clue card  =  a node  (node)
+   value   the prize written on the card  =  its value
+@@ -65,7 +66,7 @@
+         · real    CPython's list over-allocates by about one eighth when it grows (newsize +
+                   newsize/8 + 6, rounded down to a multiple of 4), so appends are cheap on average.
+                   It never leaves a gap in the middle.
+-        · source  developers 2026 list_resize
++        · source  CPython listobject.c list_resize
+    1  ★ 23 slides one slot right, into the free slot.   ‹array.slide›
+         why       We start at the end. Starting at the front would write over a number before it had
+                   moved.
+@@ -74,7 +75,7 @@
+                   lands on a slot already emptied.
+         · code    CPython's list insert shifts the same way, last item first: `for (i = n; --i >=
+                   where; ) items[i+1] = items[i];`
+-        · source  developers 2026 list_resize
++        · source  CPython listobject.c list_resize
+    2  17 slides one slot right.   ‹array.slide›
+         look      arr
+    3  48 slides one slot right.   ‹array.slide›
+@@ -119,7 +120,7 @@
+                   room at that moment.
+         · real    glibc's malloc hands out at least a 32-byte chunk on a 64-bit machine, so a
+                   16-byte node takes 32.
+-        · source  Library 2026 “Minimum allocated size”
++        · source  glibc malloc.c “Minimum allocated size”
+    7  ★ 31's `next` holds `0x7f3a_4e80`, 12's address. A stored address is a pointer, drawn as an
+       arrow. [pointer: A value that holds a memory address, so it says where something else
+       lives.]   ‹nodes.pointer›
+@@ -140,18 +141,18 @@
+                   dummy first node (a sentinel) removes it.
+         · real    Linux's lists do exactly that: the list_head you hold is a sentinel, and the list
+                   loops back to it instead of ending.
+-        · source  Cormen et al. 2022, §10.2, sentinels; kernel 2026
++        · source  Cormen et al. 2022, §10.2, sentinels; Linux list.h
+    9  The last `next` is null: no address. The list ends here. [null: A special value meaning “no
+       address”. In next, it means nothing comes after.]   ‹nodes.null›
+         why       A walk stops when it reads null.
+         look      n4.next
+         picture   “this is the last clue” = null
+-        · how     On Linux a C null pointer is address 0, and no program may map the lowest pages,
+-                  so no node can live there.
++        · how     On Linux a C null pointer is address 0, and an ordinary program may not map the
++                  lowest pages, so no node of its own can live there.
+         · code    C writes `NULL`, Python `None`.
+         · edge    Following null is a bug: in C it is undefined behaviour, which on Linux is a
+                   segmentation fault, because that page is unmapped; in Python, an AttributeError.
+-        · source  documentation 2026
++        · source  Linux docs, mmap_min_addr
+ 
+    ▸ Chapter 3 of 5 · Walk
+      about     No node knows its own position, so every trip starts at head and follows the `next`
+@@ -174,7 +175,7 @@
+         · code    `cur = cur.next` (lines 8–9)
+         · edge    Real code also checks `cur is None` on every hop: a list shorter than k runs off
+                   the end.
+-        · source  Knuth 1997, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
++        · source  Knuth 1997, Vol. 1, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
+ 
+    ▸ Chapter 4 of 5 · Insert
+      about     To add 42 after 12, make a new node anywhere there is room, then change two arrows.
+@@ -211,7 +212,7 @@
+         · code    `new.next = prev.next` (line 14)
+         · real    Linux's lists are doubly linked. Its __list_add sets next->prev, fills in
+                   new->next and new->prev, and writes prev->next last.
+-        · source  kernel 2026 __list_add
++        · source  Linux list.h __list_add
+   14  ★ 12's `next` now points at 42. The chain runs 12 → 42 → 48.   ‹insert.link-prev›
+         why       One write, and every walk from head now passes through 42.
+         look      n1.next, n1->nx
+@@ -223,7 +224,7 @@
+         · real    With readers running at the same time, this last write is the “publish”. Linux's
+                   RCU lists set new->next and new->prev, then rcu_assign_pointer(prev->next, new).
+                   Lock-free lists do it with one compare-and-swap (Harris 2001).
+-        · source  kernel 2026 __list_add_rcu; Harris 2001
++        · source  Linux rculist.h __list_add_rcu; Harris 2001
+   15  Read from head: 31 → 12 → 42 → 48 → 17 → 23. 42 is in, and nothing moved.   ‹insert.read›
+         why       The proof: walking the arrows now meets 42 in its place.
+         look      head
+@@ -246,20 +247,20 @@
+                   list walks k − 1 arrows and splices in O(1). The list also stores an extra address
+                   in every node and makes one allocation per node.
+         · edge    Measured, the array can win anyway. Stroustrup inserted random numbers into a
+-                  sorted sequence, then removed them at random spots: a C++ vector beat a linked
+-                  list past 500,000 numbers. Finding each spot walks the list, one cache miss per
+-                  hop.
++                  sorted sequence, then removed them at random spots: a C++ vector still beat a
++                  linked list with 500,000 numbers. Finding each spot walks the list, one cache miss
++                  per hop.
+         · real    Lists earn their place when you already hold the node. CPython's lru_cache keeps a
+                   doubly linked list so a hit moves to the front with a few pointer writes, no walk.
+-        · source  Stroustrup 2012 Figure 1; developers 2026 lru_cache
++        · source  Stroustrup 2012 Figure 1; CPython functools.py lru_cache
+ 
+    RECAP
+      1. The array had to slide every later item over to make room.
+      2. A node holds a value and `next`, the address of the next node.
+      3. Inserting changed two arrows, in the right order. Nothing moved.
+      4. Reaching the spot meant following arrows from head, one at a time.
+-   TAKEAWAY  A linked list never moves its items: inserting changes two arrows. It pays with a walk
+-             from head, and more memory and slower visits per node.
++   TAKEAWAY  A linked list never moves its items: an insert changes two arrows. It pays with a walk
++             from head and an extra address in every node.
+    CAN NOW   o-shift, o-order, o-cost
+ 
+ ━━ Story 2 of 3 · Find the 5th item  (find)  14 steps, 70 s at 1x
+@@ -279,7 +280,7 @@
+         · how     Each int takes 4 bytes, so every slot's address is the start plus a multiple of 4.
+         · edge    This only works if every item has the same size. A Python list of mixed objects
+                   still qualifies: it stores an 8-byte pointer per item, not the objects themselves.
+-        · source  developers 2026 list_resize
++        · source  CPython listobject.c list_resize
+    1  ★ Start + 4 × 4 bytes = `0x7f3a_1010`. One sum, one jump: it's 23.   ‹jump.sum›
+         why       The 1st item sits at the start, so the 5th is 4 slots past it.
+         look      arr
+@@ -318,7 +319,7 @@
+                   room at that moment.
+         · real    glibc's malloc hands out at least a 32-byte chunk on a 64-bit machine, so a
+                   16-byte node takes 32.
+-        · source  Library 2026 “Minimum allocated size”
++        · source  glibc malloc.c “Minimum allocated size”
+    4  ★ 31's `next` holds `0x7f3a_4e80`, 12's address. A stored address is a pointer, drawn as an
+       arrow.   ‹nodes.pointer›
+         why       Every node does the same, so the arrows chain all 5 nodes together.
+@@ -337,17 +338,17 @@
+                   dummy first node (a sentinel) removes it.
+         · real    Linux's lists do exactly that: the list_head you hold is a sentinel, and the list
+                   loops back to it instead of ending.
+-        · source  Cormen et al. 2022, §10.2, sentinels; kernel 2026
++        · source  Cormen et al. 2022, §10.2, sentinels; Linux list.h
+    6  The last `next` is null: no address. The list ends here.   ‹nodes.null›
+         why       A walk stops when it reads null.
+         look      n4.next
+         picture   “this is the last clue” = null
+-        · how     On Linux a C null pointer is address 0, and no program may map the lowest pages,
+-                  so no node can live there.
++        · how     On Linux a C null pointer is address 0, and an ordinary program may not map the
++                  lowest pages, so no node of its own can live there.
+         · code    C writes `NULL`, Python `None`.
+         · edge    Following null is a bug: in C it is undefined behaviour, which on Linux is a
+                   segmentation fault, because that page is unmapped; in Python, an AttributeError.
+-        · source  documentation 2026
++        · source  Linux docs, mmap_min_addr
+ 
+    ▸ Chapter 3 of 4 · Walk
+      about     A node's address is written only inside the node before it, so there is no jumping
+@@ -382,7 +383,7 @@
+         · code    `cur = cur.next` (lines 8–9)
+         · edge    Real code also checks `cur is None` on every hop: a list shorter than k runs off
+                   the end.
+-        · source  Knuth 1997, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
++        · source  Knuth 1997, Vol. 1, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
+    9  Follow 12's `next`, `0x7f3a_1b20`: it's 48, the 3rd item.   ‹walk.hop›
+         look      n1->n2, cur
+   10  Follow 48's `next`, `0x7f3a_3d40`: it's 17, the 4th item.   ‹walk.hop›
+@@ -395,7 +396,7 @@
+         · cost    Array: O(1) by position. List: O(k), 4 hops here.
+         · real    CPython's deque is a linked list of blocks. Its docs say indexed access is O(1) at
+                   both ends but slows to O(n) in the middle.
+-        · source  documentation 2026
++        · source  Python docs, collections.deque
+ 
+    ▸ Chapter 4 of 4 · Trade-off
+      about     Each is quick at something. An array jumps to any position with one sum. A linked
+@@ -417,7 +418,7 @@
+      3. So the list walked from head, one arrow per item.
+    TAKEAWAY  An array finds item k with one calculation. A linked list has no shortcut: it follows k
+              − 1 arrows from head.
+-   CAN NOW   o-shift, o-order, o-cost
++   CAN NOW   o-cost
+ 
+ ━━ Story 3 of 3 · Arrows in the wrong order  (wrong)  21 steps, 105 s at 1x
+    what if   What if… the arrows change in the wrong order
+@@ -447,7 +448,7 @@
+         · code    `prev.next = new` ran before `new.next = prev.next`.
+         · edge    Python's tuple swap is safe in either order: `prev.next, new.next = new,
+                   prev.next` reads the whole right side before writing anything.
+-        · source  documentation 2026
++        · source  Python reference §7.2
+      PREDICT  Next, 42 copies 12's `next` (`new.next = prev.next`). Where will 42's `next` point?
+               A) At 48
+                  → 12's `next` stopped holding 48's address one step ago. The copy reads what is
+@@ -473,14 +474,14 @@
+                   are freed at once. Either way the data is gone.
+         · real    Valgrind calls the first lost block “definitely lost” and any behind it
+                   “indirectly lost”: pointed to only from lost blocks.
+-        · source  developers 2026
++        · source  Valgrind Memcheck manual
+   16  From head: 31 → 12 → 42 → 42 → … forever. It never reaches the end.   ‹wrong.read-loop›
+         why       A program walking this list would hang, not crash.
+         look      nx
+         · how     The walk waits for null, and the loop never reaches one. Floyd's “tortoise and
+                   hare” spots a loop with two markers: one moves 1 arrow a step, the other 2, and
+                   they meet only if there is a loop.
+-        · source  Knuth 1997, §3.1, exercise 6
++        · source  Knuth 1997, Vol. 2, §3.1, exercise 6
+ 
+    ▸ Chapter 5 of 5 · Right order
+      about     Swap the two writes. The new node copies 12's `next` first, so 48's address is saved.
+@@ -510,7 +511,7 @@
+      3. In the right order the new node saves the address first. Nothing is lost.
+    TAKEAWAY  Before you overwrite an arrow, save where it pointed: point the new node onward first,
+              then point the old one at it.
+-   CAN NOW   o-shift, o-order, o-cost
++   CAN NOW   o-shift, o-order
+ 
+ SOURCES  (lesson.sources: 17)
+   [clrs4]  Cormen et al. 2022
+@@ -519,13 +520,13 @@
+     url       https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/
+     supports  insert after a known node in constant time, search by walking from the head, and the
+               sentinel that removes the empty-list special case
+-  [knuth1]  Knuth 1997
++  [knuth1]  Knuth 1997, Vol. 1
+     ref       Donald E. Knuth. The Art of Computer Programming, Vol. 1: Fundamental Algorithms, 3rd
+               edition, §2.2.3 Linked allocation. Addison-Wesley, 1997.
+     url       https://www-cs-faculty.stanford.edu/~knuth/taocp.html
+     supports  linked against sequential allocation: insertion without moving other items, and no
+               jump to the kth item
+-  [knuth2]  Knuth 1997
++  [knuth2]  Knuth 1997, Vol. 2
+     ref       Donald E. Knuth. The Art of Computer Programming, Vol. 2: Seminumerical Algorithms,
+               3rd edition, §3.1, exercise 6. Addison-Wesley, 1997.
+     url       https://www-cs-faculty.stanford.edu/~knuth/taocp.html
+@@ -537,41 +538,41 @@
+     supports  inserting random numbers into a sorted sequence and removing them at random positions,
+               a vector beat a linked list for N “much larger than 500,000”; a list of 4-byte ints
+               takes 12 bytes per item with 4-byte links
+-  [cpython-list]  developers 2026
++  [cpython-list]  CPython listobject.c
+     ref       The Python developers. CPython, Objects/listobject.c. CPython source, 2026.
+     url       https://github.com/python/cpython/blob/main/Objects/listobject.c
+     supports  list_resize over-allocates to newsize + newsize/8 + 6, rounded down to a multiple of
+               4; a list stores one pointer per item
+-  [cpython-functools]  developers 2026
++  [cpython-functools]  CPython functools.py
+     ref       The Python developers. CPython, Lib/functools.py: lru_cache. CPython source, 2026.
+     url       https://github.com/python/cpython/blob/main/Lib/functools.py
+     supports  the LRU cache keeps a circular doubly linked list, so a hit moves a node to the front
+               with a few pointer writes
+-  [python-deque]  documentation 2026
++  [python-deque]  Python docs, collections.deque
+     ref       Python documentation. collections.deque. docs.python.org, 2026.
+     url       https://docs.python.org/3/library/collections.html#collections.deque
+     supports  indexed access is O(1) at both ends but slows to O(n) in the middle
+-  [python-assign]  documentation 2026
++  [python-assign]  Python reference §7.2
+     ref       Python documentation. The Python Language Reference, §7.2 Assignment statements.
+               docs.python.org, 2026.
+     url       https://docs.python.org/3/reference/simple_stmts.html#assignment-statements
+     supports  the right-hand side is evaluated in full before any target is assigned
+-  [linux-list]  kernel 2026
++  [linux-list]  Linux list.h
+     ref       The Linux kernel. Linux, include/linux/list.h. kernel source, 2026.
+     url       https://github.com/torvalds/linux/blob/master/include/linux/list.h
+     supports  __list_add: next->prev = new, new->next, new->prev, then WRITE_ONCE(prev->next, new);
+               a list_head is a sentinel in a circular list
+-  [linux-rculist]  kernel 2026
++  [linux-rculist]  Linux rculist.h
+     ref       The Linux kernel. Linux, include/linux/rculist.h. kernel source, 2026.
+     url       https://github.com/torvalds/linux/blob/master/include/linux/rculist.h
+     supports  __list_add_rcu fills in new->next and new->prev, then rcu_assign_pointer(prev->next,
+               new)
+-  [linux-mmap-min]  documentation 2026
++  [linux-mmap-min]  Linux docs, mmap_min_addr
+     ref       The Linux kernel documentation. Documentation for /proc/sys/vm: mmap_min_addr.
+               docs.kernel.org, 2026.
+     url       https://docs.kernel.org/admin-guide/sysctl/vm.html#mmap-min-addr
+     supports  user processes may not map the lowest pages, so a null dereference faults
+-  [glibc-malloc]  Library 2026
++  [glibc-malloc]  glibc malloc.c
+     ref       The GNU C Library. glibc, malloc/malloc.c. glibc source, 2026.
+     url       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c
+     supports  minimum allocated size with 8-byte pointers: 24/32 bytes (32 with an 8-byte size
+@@ -586,7 +587,7 @@
+               Communications of the ACM 33(6):668–676, 1990.
+     url       https://doi.org/10.1145/78973.78977
+     supports  express lanes of extra links over a sorted linked list, so a search skips most nodes
+-  [valgrind]  developers 2026
++  [valgrind]  Valgrind Memcheck manual
+     ref       The Valgrind developers. Valgrind Memcheck manual, §4.2.10 Memory leak detection.
+               valgrind.org, 2026.
+     url       https://valgrind.org/docs/manual/mc-manual.html#mc-manual.leaks

@@ -1,0 +1,140 @@
+--- /home/ubuntu/tmp/explainer-perf/reader2/out/quicksort-before.txt	2026-10-24 03:57:50.437016782 +0000
++++ /home/ubuntu/tmp/explainer-perf/reader2/out/quicksort-after.txt	2026-10-24 04:10:16.378915649 +0000
+@@ -9,9 +9,9 @@
+   o-place: Predict the slot a pivot lands in from how many numbers in its group are no bigger than
+            it.
+   o-split: Perform one split by hand: say which numbers swap as the scan moves along.
+-  o-skip: Explain why two numbers on opposite sides of a placed pivot are never compared.
++  o-skip: Explain why two numbers on opposite sides of a placed pivot are never compared. (random)
+   o-slow: Predict which inputs make this pivot rule slow, and compute their comparisons: every pair,
+-          n(n − 1)/2.
++          n(n − 1)/2. (sorted, dups)
+ PICTURE   a line of people ordered by height
+   person  one person in the line  =  one number in its slot
+   height  their height  =  the number's value
+@@ -69,8 +69,9 @@
+ 
+    ▸ Chapter 2 of 5 · Split around one
+      about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+-               it or equal to it go to its left, bigger ones to its right. [pivot: The number every
+-               other number in the group is compared with. Here it is the group's last number.]
++               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
++               0, as in the code. [pivot: The number every other number in the group is compared
++               with. Here it is the group's last number.]
+      so far    The simple way checks every pair: 36 comparisons.
+      now       Choose one number, and move each other number to its left or its right.
+      done when Every number left of `i` is no bigger than the chosen one.
+@@ -247,14 +248,14 @@
+         why       15 comparisons never happened: pairs split apart by a pivot never meet.
+         look      a
+         · cost    With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1
+-                  + 1/2 + … + 1/n: about 1.39 n log2 n, or 20.6 for 9 numbers and 32.7 for 12. This
+-                  run made 21.
++                  + 1/2 + … + 1/n: 20.6 for 9 numbers and 32.7 for 12. For large n it grows like
++                  1.39 n log2 n. This run made 21.
+         · edge    The worst case is still every pair: McIlroy showed any deterministic pivot rule
+                   has inputs that force it.
+         · real    Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort (two
+                   pivots, three groups); Rust's `sort_unstable` is ipnsort, a quicksort that falls
+                   back to heapsort so it is never quadratic.
+-        · source  McIlroy 1999; Oracle 2023; project 2026
++        · source  McIlroy 1999; Java SE 21, Arrays.sort; Rust, slice::sort_unstable
+ 
+    RECAP
+      1. Pick one number, the pivot: numbers no bigger go left, bigger ones right.
+@@ -263,7 +264,7 @@
+      4. The two sides are never compared, so even splits skip most pairs.
+    TAKEAWAY  Each split puts one number in its final place and leaves two smaller groups that never
+              need comparing with each other.
+-   CAN NOW   o-place, o-split, o-skip, o-slow
++   CAN NOW   o-place, o-split, o-skip
+ 
+ ━━ Story 2 of 3 · Already sorted input  (sorted)  36 steps, 165 s at 1x
+    what if   What if… the numbers are already in order
+@@ -294,7 +295,8 @@
+ 
+    ▸ Chapter 2 of 5 · Split around one
+      about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+-               it or equal to it go to its left, bigger ones to its right.
++               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
++               0, as in the code.
+      so far    The simple way checks every pair: 36 comparisons.
+      now       Choose one number, and move each other number to its left or its right.
+      done when Every number left of `i` is no bigger than the chosen one.
+@@ -358,7 +360,8 @@
+         · real    Libraries guard against it. GCC's `std::sort` is introsort: past 2 log2 n nested
+                   splits it switches to heapsort. Go's `sort` (since 1.19) is pattern-defeating
+                   quicksort, which sorts input already in order in one pass.
+-        · source  McIlroy 1999; Musser 1997; GCC 2026 __introsort_loop; team 2022; Peters 2021
++        · source  McIlroy 1999; Musser 1997; libstdc++ stl_algo.h __introsort_loop; Go 1.19 release
++                  notes; Peters 2021
+ 
+    ▸ Chapter 4 of 5 · Repeat on each side
+      about     Each placed number splits the line for good: a number on its left never meets one on
+@@ -447,7 +450,7 @@
+      3. Nothing was skipped: every pair was compared, the slowest this pivot rule can be.
+    TAKEAWAY  With the last number as pivot, sorted input is the slowest case: every pair gets
+              compared. A random or middle pivot avoids it.
+-   CAN NOW   o-place, o-split, o-skip, o-slow
++   CAN NOW   o-place, o-split, o-slow
+ 
+ ━━ Story 3 of 3 · Lots of repeated numbers  (dups)  36 steps, 168 s at 1x
+    what if   What if… most of the numbers are the same
+@@ -477,7 +480,8 @@
+ 
+    ▸ Chapter 2 of 5 · Split around one
+      about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+-               it or equal to it go to its left, bigger ones to its right.
++               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
++               0, as in the code.
+      so far    The simple way checks every pair, ties or not: 36 comparisons.
+      now       Choose one number, and move each other number left or right, even its copies.
+      done when Every number left of `i` is no bigger than the chosen one.
+@@ -631,10 +635,10 @@
+    RECAP
+      1. With only three values, many numbers equal the pivot.
+      2. Equal counts as small, so every copy went to the left side.
+-     3. Lopsided splits placed few numbers each, so few pairs were skipped.
++     3. Lopsided splits placed few numbers each, so few pairs, or none, were skipped.
+    TAKEAWAY  In this split, a copy of the pivot counts as small, so many repeats make lopsided, slow
+              splits. A three-way split keeps copies beside the pivot instead.
+-   CAN NOW   o-place, o-split, o-skip, o-slow
++   CAN NOW   o-place, o-split, o-slow
+ 
+ SOURCES  (lesson.sources: 13)
+   [clrs4]  Cormen et al. 2022
+@@ -682,12 +686,12 @@
+               and Experience 27(8):983–993, 1997.
+     url       https://doi.org/10.1002/(SICI)1097-024X(199708)27:8%3C983::AID-SPE117%3E3.0.CO;2-%23
+     supports  introsort: quicksort that switches to heapsort past a depth limit
+-  [libstdcxx]  GCC 2026
++  [libstdcxx]  libstdc++ stl_algo.h
+     ref       GCC. libstdc++, bits/stl_algo.h: std::sort. the GCC source tree, 2026.
+     url       https://raw.githubusercontent.com/gcc-mirror/gcc/master/libstdc++-v3/include/bits/stl_algo.h
+     supports  GCC's std::sort runs __introsort_loop with a depth limit of 2 × floor(log2 n), then
+               heapsort
+-  [go119]  team 2022
++  [go119]  Go 1.19 release notes
+     ref       The Go team. Go 1.19 release notes: sort. go.dev, 2022.
+     url       https://go.dev/doc/go1.19#sort
+     supports  Go's sort package rewritten as pattern-defeating quicksort
+@@ -695,11 +699,11 @@
+     ref       Orson R. L. Peters. Pattern-defeating Quicksort. arXiv:2106.05123, 2021.
+     url       https://arxiv.org/abs/2106.05123
+     supports  pdqsort: linear time on sorted input, heapsort fallback for a worst case of n log n
+-  [java-arrays]  Oracle 2023
++  [java-arrays]  Java SE 21, Arrays.sort
+     ref       Oracle. Java SE 21 API, Arrays.sort(int[]). docs.oracle.com, 2023.
+     url       https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(int%5B%5D)
+     supports  Dual-Pivot Quicksort by Vladimir Yaroslavskiy, Jon Bentley and Joshua Bloch
+-  [rust-sort]  project 2026
++  [rust-sort]  Rust, slice::sort_unstable
+     ref       The Rust project. Rust standard library, slice::sort_unstable. doc.rust-lang.org,
+               2026.
+     url       https://doc.rust-lang.org/std/primitive.slice.html#method.sort_unstable
+@@ -707,4 +711,4 @@
+               worst case
+ 
+ teaching checks  examples/quicksort/figure.mjs
+-  info   level core, 5 chapters, 4 questions, 3 defined words, 1997 words, reading grade 5.4
++  info   level core, 5 chapters, 4 questions, 3 defined words, 2026 words, reading grade 5.2

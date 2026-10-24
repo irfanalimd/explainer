@@ -1,0 +1,582 @@
+Consistent hashing: Adding a server moves one arc of keys, not all of them
+level core · 3 stories · 3 knobs (Servers, Keys, Seats per server)
+
+HOOK      Several servers share the keys. Add one more server: how many keys have to move?
+GOAL      Share keys among servers so that a server joining or leaving moves only the keys it must.
+OBJECTIVES
+  o-mod: Compute roughly how many keys the remainder way moves when one more server joins. (add)
+  o-owner: Perform a lookup on the ring: find the server that stores a key, wrapping past the top.
+  o-add: Predict which keys move when a server joins the ring, and which server they come from.
+         (add)
+  o-leave: Explain where a leaving server's keys go, with one seat per server and with many.
+           (remove, vnodes)
+  o-even: Explain why one seat per server shares the ring unevenly, and how more seats even it out.
+          (vnodes)
+PICTURE   guests around a round table
+  table   a round table whose seats are numbered all the way round  =  the hash ring: every number from 0 to 2^32 − 1  (ring)
+  seat    the seat a host's name points to  =  a server's position, the hash of its name  (hash)
+  guest   a guest who walks clockwise and sits with the first host  =  a key, stored on the first server clockwise
+  stretch the stretch of table a host looks after  =  a server's arc, from the seat before it to its own  (arc)
+  chair   a newcomer pulling up a chair in one stretch  =  a server joining: it takes the keys just before its seat
+  chairs  one host keeping several chairs around the table  =  virtual nodes: many seats for one server  (virtual node)
+  breaks  Real guests pick a free seat. Here nobody chooses: a hash fixes every seat, so seats can
+          bunch up and one host can get a huge stretch.
+BELIEFS
+  m-fair: “Adding a server only moves its fair share of the keys, whatever rule places them.” With
+          the remainder way, dividing by a new number changes almost every remainder, so most keys
+          move.
+  m-reshuffle: “Any change in the servers reshuffles keys everywhere, on the ring too.” On the ring,
+               only the keys in the arc that changes hands move; every other key keeps its server.
+  m-even: “When a server leaves, its keys spread evenly over the servers that are left.” Each key
+          walks on clockwise, so with one seat per server they all land on the next server.
+WORDS
+  hash: (a name's fixed number) A scrambling recipe that turns a name into a big number, the same
+        number every time.
+  ring: (the circle of numbers) Every possible number from 0 to about 4.3 billion, bent into a
+        circle that wraps back to 0.
+  arc: (a server's stretch) The stretch of the circle from one server's seat back to the seat before
+       it.
+  virtual node: (an extra seat) One of several seats a single server takes on the circle.
+NUMBERS   keys moved on the ring * · keys moved the remainder way * · busiest server's share * · servers   (* in the dock)
+
+━━ Story 1 of 3 · Add a server  (add)  16 steps, 59 s at 1x
+   what if   What if… a server joins
+   story     First the simple remainder way, then the ring: a new server takes only the keys just
+             before its seat.
+
+   ▸ Chapter 1 of 6 · The simple way
+     about     Like counting off into 4 teams. Each key's name becomes a number with a hash; divide
+               it by 4, and the remainder picks the server. [hash: A scrambling recipe that turns a
+               name into a big number, the same number every time.]
+     so far    You can look a value up by its key in a dictionary.
+     now       Spread the keys over several servers with one sum anyone can do.
+     done when Every key sits in the box its remainder names.
+   0  4 servers share 16 keys. Each key goes to server `hash(key) % 4`.   ‹simple.intro›
+        why       Any machine can work out a key's server by itself, with no table to look up.
+        look      m.db01, m.db02, m.db03, m.db04
+        · how     The servers are numbered from 0: remainder 0 is db01, 1 is db02, and so on.
+        · code    Python: `servers[hash(key) % len(servers)]` (line 19).
+   1  Each key goes to the box its remainder names. sess:a91c: `0x52a9_a630 % 4 = 0`.   ‹simple.place›
+        look      mk.sess:a91c
+        · how     The boxes hold 5, 1, 4 and 6 keys. A good hash makes every remainder equally
+                  likely, so on average the boxes fill evenly; with only 16 keys they wobble.
+
+   ▸ Chapter 2 of 6 · One more server
+     about     Now there are 5 servers, so every key's number is divided by 5 instead of 4. The
+               remainders change, and each key follows its new remainder.
+     so far    Each key sits on server `hash % 4`.
+     now       Add one server, so every key divides by one more.
+     done when The “moved, remainder” counter shows how many keys changed box.
+     PREDICT  db05 joins, so each key now goes to server hash % 5. How many of the 16 keys change
+              server?
+              A) About 3, one in 5: the new server's fair share
+                 → A fair share is what the ring moves, not the remainder way. A key stays only if
+                   its remainders by 4 and 5 match, so on average 4 in 5 move. Here 14 of 16 did.
+                   [m-fair]
+              B) About half of them
+                 → A key stays only if its remainders by 4 and 5 match: on average 1 key in 5, so
+                   about 4 in 5 move. With only 16 keys luck swings the count; here 14 of 16 did.
+              C) Most of them: about 4 in every 5   ✓
+                 → On average, yes: a key stays only if its remainders by 4 and 5 match, 1 key in 5.
+                   With only 16 keys luck swings the count; here 14 of 16 did.
+              why: A key keeps its server only when its remainders by 4 and by 5 agree: on average 1
+                   key in 5.
+   2  ★ db05 joins, so every key now uses `hash % 5`: 14 of 16 change server.   ‹more.move›
+        why       Changing the divisor changes most remainders, so the keys are dealt out again
+                  almost from scratch.
+        look      m.db05
+        · cost    On average 4 keys in every 5 move, the fraction N/(N + 1); one in 5 is all that
+                  must. Here 14 of 16 moved.
+        · how     A key keeps its server only if hash % 4 equals hash % 5. That holds for 1 number
+                  in 5, so the bigger the cluster, the worse it gets.
+        · edge    With only 16 keys, luck swings the count above or below the average; with a
+                  million keys the share moved lands within 0.1% of N/(N + 1).
+        · real    This is the problem the ring was invented for. Karger et al. wanted web caches
+                  that could come and go, and a hash that “changes minimally as the range of the
+                  function changes”. Tom White's 2007 write-up starts from this same reshuffle.
+        · source  Karger et al. 1997; White 2007
+
+   ▸ Chapter 3 of 6 · The ring
+     about     Think of a round table whose seats are every hash number, bent into a ring. Each
+               server sits where its name hashes to. [ring: Every possible number from 0 to about
+               4.3 billion, bent into a circle that wraps back to 0.]
+     so far    The remainder way re-sorted every key, but a key stayed only if both remainders
+               matched.
+     now       Bend every hash number into a circle and seat each server at its name's hash.
+     done when Each server has its seats, and the seats split the circle into arcs of different
+               sizes.
+     card      shows the picture map (guests around a round table)
+   3  Now the ring way, with the same 4 servers. 0 is at the top; numbers rise clockwise.   ‹ring.intro›
+        why       After the largest number comes 0 again, so the ring has no end and no last server.
+        look      q0, qr, q4, ql
+        picture   a round table whose seats are numbered all the way round = the hash ring: every
+                  number from 0 to 2^32 − 1
+        · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                  values in hex.
+        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                  function the same way.
+        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+   4  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%. [arc: The stretch
+      of the circle from one server's seat back to the seat before it.]   ‹ring.seats›
+        why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                  others.
+        look      t.db01, t.db03, t.db04, t.db02
+        picture   the seat a host's name points to = a server's position, the hash of its name
+        · how     A server's arc runs from the seat before it up to its own seat, and it stores
+                  every key that lands there.
+        · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                  is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+        · real    Karger et al. give each server about log N seats to fix this: then every share is
+                  within a constant factor of fair. Their work grew into the business plan for
+                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
+                  Lewin, founded it.
+        · source  Karger et al. 1997; Leighton 2002
+
+   ▸ Chapter 4 of 6 · Keys
+     about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+               key walks clockwise and sits with the first server it meets.
+     so far    Every server has a seat on the ring.
+     now       Hash each key onto the ring too, and walk clockwise to its server.
+     done when Every key takes the colour of the first server seat after it.
+   5  user:9 is hashed the same way: it lands at `0xed40_82cb`, 334° round the ring.   ‹keys.hash›
+        why       Keys and servers now live on one number circle, so we can compare their places.
+        look      k.user:9
+        · how     The angle is the hash as a fraction of the whole ring: `0xed40_82cb` out of 2^32.
+        · edge    Tiles are nudged a few degrees apart so they don't overlap; the tag shows the
+                  exact hash.
+   6  ★ Walk clockwise from user:9: the first seat is db01's, so db01 stores it.   ‹keys.walk›
+        why       user:9 sits in db01's arc. Every machine can do this same walk, so they all agree.
+        look      t.db01, k.user:9
+        picture   a guest who walks clockwise and sits with the first host = a key, stored on the
+                  first server clockwise
+        · cost    One binary search over the sorted seats: O(log S) for S seats, with no message to
+                  anyone.
+        · how     Find the first seat at or after the key's hash. Past the top, wrap round to the
+                  first seat.
+        · code    `i = bisect_left(ring, (h, ""))` then `ring[i % len(ring)]` (lines 15–16).
+        · edge    A key whose hash equals a seat's exactly belongs to that seat: bisect_left finds
+                  it, so each arc includes its own end.
+   7  db01's 1 arc: 27% of the ring, 3 keys.   ‹keys.arc›
+        why       An arc ends at its server's seat, so every key inside it walks to that server.
+        look      t.db01, k.app.css, k.post:4410
+        picture   the stretch of table a host looks after = a server's arc, from the seat before it
+                  to its own
+   8  db03's 1 arc: 49% of the ring, 8 keys.   ‹keys.arc›
+        look      t.db03, k.sess:a91c, k.user:77, k.post:87, k.user:318, k.cart:12, k.page:faq,
+                  k.sku:7731, k.cart:301
+       … 1 more like this (steps 9–9)
+  10  db02's 1 arc: 3% of the ring, 1 key.   ‹keys.arc›
+        look      t.db02, k.order:551
+  11  Keys per server: 3, 1, 8 and 4. db03 owns the most ring: 49%.   ‹keys.loads›
+        why       A bigger arc catches more keys on average, so where the seats fall sets the load.
+        look      db03
+        · how     Each key's hash is like a random point, so a server's expected keys are K times
+                  its share of the ring. With only 16 keys, counts wobble around that.
+
+   ▸ Chapter 5 of 6 · Add a server
+     about     A new server pulls up a chair inside an arc. It takes only the keys between the seat
+               before its own and its own; every other key stays put.
+     so far    Each key sits with the next server clockwise.
+     now       Seat one more server, db05, on the ring.
+     done when Only keys just before db05's new seat change colour.
+  12  db05 joins at `0xac98_d9e0`, inside db04's arc. It waits, empty.   ‹add.join›
+        why       Watch which keys now meet db05 first on their clockwise walk.
+        look      t.db05, t.db04
+        picture   a newcomer pulling up a chair in one stretch = a server joining: it takes the keys
+                  just before its seat
+        · how     A real server copies its keys first and starts answering for them after, so
+                  nothing is lost while they move.
+        · real    In Dynamo the existing nodes hand over the key ranges a new node now owns (§4.9).
+        · source  DeCandia et al. 2007, §4.9
+     PREDICT  db05 takes over part of db04's arc. Which of the 16 keys have to move?
+              A) Only the keys between db05 and the server before it   ✓
+                 → Right. A key moves only if a seat of db05's is now first on its clockwise walk:
+                   here 3 of 16.
+              B) Keys from all around the ring, like the remainder way
+                 → If you thought any change reshuffles everything: on the ring a key moves only if
+                   db05 is now first on its walk. Here 3 of 16 moved; 13 stayed put. [m-reshuffle]
+              C) All of db04's 4 keys
+                 → Only keys that now meet one of db05's seats first move, so it depends on where
+                   those seats land. Here 3 of 16 moved.
+              why: db05 splits one arc. Only keys between the server before it and db05's seat now
+                   meet db05 first.
+  13  ★ db05 takes 3 keys from db04; the other 13 stay put.   ‹add.move›
+        why       Every other key's clockwise walk still ends at the same seat, so nothing else
+                  changes.
+        look      db05, k.feed:home, k.post:12, k.sku:1182
+        · cost    On average K/(N + 1) keys move, the least any rule can: here 3 of 16.
+        · how     Karger et al. call this smoothness: a new server takes keys only from the arcs its
+                  seats split.
+        · real    Dynamo adds a node the same way; only the nodes that owned its new ranges send
+                  data (§4.9).
+        · source  Karger et al. 1997; DeCandia et al. 2007, §4.9
+
+   ▸ Chapter 6 of 6 · Result
+     about     On the ring, only the keys in the split arc moved: on average one key in 5. The
+               remainder way moves on average 4 keys in 5, and every moved key is data copied over
+               the network.
+     so far    The new server took keys only from the arc it split; every other key stayed.
+     now       Compare the keys each way moved, and check how evenly the ring is shared.
+     done when The two moved counters sit side by side: the ring's and the remainder way's.
+  14  ★ Ring: 3 of 16 moved; one in 5 is 3.2. Remainder way: 14.   ‹result.moved›
+        why       On average the ring moves 1 key in 5; the remainder way moves 4 in 5.
+        look      k.feed:home, k.post:12, k.sku:1182
+        · cost    Ring: about K/(N + 1) keys on average (3.2 here). Remainder way: about K × N/(N +
+                  1).
+        · edge    With few keys, luck can flip a single run, so compare the averages, not one count.
+        · real    Jump consistent hash (Google, 2014) also moves just 1 key in N + 1 and needs no
+                  ring in memory, but servers can only join or leave at the end of the list.
+        · source  Lamping & Veach 2014
+  15  But one seat each shares the ring unevenly: db03 now owns 49% of it.   ‹result.uneven›
+        why       db03 owns 2.5× the average share, so it stores and serves that much more.
+        look      db03
+        · how     The meter is the biggest share divided by the average share, so 1× would be
+                  perfectly even.
+
+   RECAP
+     1. The remainder way moved more keys than the ring when one more server joined.
+     2. On the ring, each key sits with the next server clockwise.
+     3. A new server took only the keys just before its new seats.
+     4. The seats share the ring unevenly: the busiest server owns more than its fair share.
+   TAKEAWAY  On a ring, a new server takes only the keys just before its seats. The remainder way
+             moves more: on average N keys in N + 1.
+   CAN NOW   o-mod, o-owner, o-add
+
+━━ Story 2 of 3 · A server leaves  (remove)  9 steps, 33 s at 1x
+   what if   What if… a server leaves
+   story     A server leaves the ring: only its own keys move, each to the next seat clockwise.
+
+   ▸ Chapter 1 of 4 · The ring
+     about     Think of a round table whose seats are every hash number, bent into a ring. Each
+               server sits where its name hashes to.
+     so far    You can look a value up by its key; here the keys live on several servers.
+     now       Bend every hash number into a circle and seat each server at its name's hash.
+     done when Each server has a seat, and the seats split the circle into arcs of different sizes.
+     card      shows the picture map (guests around a round table)
+   0  4 database servers, and a ring of every hash number. 0 is at the top.   ‹ring.intro›
+        why       After the largest number comes 0 again, so the ring has no end and no last server.
+        look      q0, qr, q4, ql
+        picture   a round table whose seats are numbered all the way round = the hash ring: every
+                  number from 0 to 2^32 − 1
+        · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                  values in hex.
+        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                  function the same way.
+        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+   1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+        why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                  others.
+        look      t.db01, t.db03, t.db04, t.db02
+        picture   the seat a host's name points to = a server's position, the hash of its name
+        · how     A server's arc runs from the seat before it up to its own seat, and it stores
+                  every key that lands there.
+        · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                  is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+        · real    Karger et al. give each server about log N seats to fix this: then every share is
+                  within a constant factor of fair. Their work grew into the business plan for
+                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
+                  Lewin, founded it.
+        · source  Karger et al. 1997; Leighton 2002
+
+   ▸ Chapter 2 of 4 · Keys
+     about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+               key walks clockwise and sits with the first server it meets.
+     so far    Every server has a seat on the ring.
+     now       Hash each key onto the ring too, and walk clockwise to its server.
+     done when Every key takes the colour of the first server seat after it.
+   2  user:9 is hashed the same way: it lands at `0xed40_82cb`, 334° round the ring.   ‹keys.hash›
+        why       Keys and servers now live on one number circle, so we can compare their places.
+        look      k.user:9
+        · how     The angle is the hash as a fraction of the whole ring: `0xed40_82cb` out of 2^32.
+        · edge    Tiles are nudged a few degrees apart so they don't overlap; the tag shows the
+                  exact hash.
+   3  ★ Walk clockwise from user:9: the first seat is db01's, so db01 stores it.   ‹keys.walk›
+        why       user:9 sits in db01's arc. Every machine can do this same walk, so they all agree.
+        look      t.db01, k.user:9
+        picture   a guest who walks clockwise and sits with the first host = a key, stored on the
+                  first server clockwise
+        · cost    One binary search over the sorted seats: O(log S) for S seats, with no message to
+                  anyone.
+        · how     Find the first seat at or after the key's hash. Past the top, wrap round to the
+                  first seat.
+        · code    `i = bisect_left(ring, (h, ""))` then `ring[i % len(ring)]` (lines 15–16).
+        · edge    A key whose hash equals a seat's exactly belongs to that seat: bisect_left finds
+                  it, so each arc includes its own end.
+   4  The other 15 keys do the same, each in the colour of its arc's server.   ‹keys.rest›
+        look      k.sess:a91c, k.user:77, k.feed:home, k.app.css, k.post:87, k.post:4410, k.post:12,
+                  k.user:318, k.cart:12, k.page:faq, k.sku:1182, k.logo.svg, k.sku:7731,
+                  k.order:551, k.cart:301
+   5  Keys per server: 3, 1, 8 and 4. db03 owns the most ring: 49%.   ‹keys.loads›
+        why       A bigger arc catches more keys on average, so where the seats fall sets the load.
+        look      db03
+        · how     Each key's hash is like a random point, so a server's expected keys are K times
+                  its share of the ring. With only 16 keys, counts wobble around that.
+
+   ▸ Chapter 3 of 4 · A server leaves
+     about     A server leaves the table. The keys it held walk on clockwise to the next seat still
+               there; no other key moves.
+     so far    Each key sits with the next server clockwise.
+     now       Take a server with the most keys, db03, off the ring.
+     done when Only db03's keys change colour; every other key keeps its own.
+   6  db03 is leaving. It holds 8 keys, 49% of the ring.   ‹leave.drain›
+        why       No server holds more keys, so this leave moves as much data as any could.
+        look      db03, k.sess:a91c, k.user:77, k.post:87, k.user:318, k.cart:12, k.page:faq,
+                  k.sku:7731, k.cart:301
+        · how     Its seats dim while it drains. They leave the ring only as its keys move, so every
+                  key always has a server.
+     PREDICT  Where do db03's 8 keys go?
+              A) All to the next server clockwise   ✓
+                 → Right. Each key walks on to the first seat still there: here 8 keys went to db04.
+              B) Spread evenly over the other servers
+                 → Nobody shares the keys out: each key walks on clockwise to the next seat still
+                   there. Here db03's 8 keys went to db04. [m-even]
+              C) Every key in the cluster is reshuffled
+                 → If you thought a leave reshuffles everything: only db03's keys move, since no
+                   other key's walk passed its seats. The rest keep their server. [m-reshuffle]
+              why: Each key walks clockwise to the first seat still there. With db03's seat gone,
+                   that is db04's for all of them.
+   7  ★ Each key walks on clockwise, so all 8 land on db04. No one else changes.   ‹leave.move›
+        why       Every one of those keys reaches the same next seat, so one server takes the whole
+                  load.
+        look      db04, k.sess:a91c, k.user:77, k.post:87, k.user:318, k.cart:12, k.page:faq,
+                  k.sku:7731, k.cart:301
+        picture   a guest who walks clockwise and sits with the first host = a key, stored on the
+                  first server clockwise
+        · how     No key that db03 did not hold moves: their walks never passed its seats.
+        · edge    Real stores keep copies: Dynamo writes each key to the next few distinct servers
+                  clockwise, so the next server already has a copy when one leaves (§4.3).
+        · real    Dynamo's paper gives this spread as the reason for many seats: a failed node's
+                  load is shared by the rest (§4.2).
+        · source  DeCandia et al. 2007, §4.2, §4.3
+
+   ▸ Chapter 4 of 4 · Result
+     about     The ring moved the leaver's keys and nothing else. The remainder way would divide
+               every key by a new number instead, and move keys on every server.
+     so far    Only the leaver's keys moved, each to the next seat clockwise.
+     now       See who carries the load now, and what the remainder way would have moved.
+     done when The busiest server's share sits beside the remainder way's moved count.
+   8  ★ db04 is now the busiest, with 70% of the ring. The remainder way would move 10.   ‹result.leave›
+        why       No key moved without cause, but the whole extra load landed on one server.
+        look      db04
+        · how     The remainder way would switch to `hash % 3` and re-divide every key; the ring
+                  moved only the leaver's keys.
+        · edge    A server that takes a leaver's whole arc can be overloaded in turn and fail too:
+                  one reason Dynamo gives each server more than one seat on the ring, its virtual
+                  nodes.
+        · source  DeCandia et al. 2007, §4.2
+
+   RECAP
+     1. Each key sits with the next server clockwise.
+     2. The leaving server's keys moved on to the next seat clockwise.
+     3. No other key moved, and one server took them all: its share grew.
+   TAKEAWAY  When a server leaves, only its keys move, each to the next seat clockwise; with one
+             seat each, all land on one neighbour.
+   CAN NOW   o-owner, o-leave
+
+━━ Story 3 of 3 · Many seats per server  (vnodes)  12 steps, 45 s at 1x
+   what if   What if… each server takes many seats
+   story     Each server takes many seats around the ring, so when one leaves, its keys spread over
+             several servers.
+
+   ▸ Chapter 1 of 5 · The ring
+     about     Think of a round table whose seats are every hash number, bent into a ring. Each
+               server sits where its name hashes to.
+     so far    You can look a value up by its key; here the keys live on several servers.
+     now       Bend every hash number into a circle and seat each server at its name's hash.
+     done when Each server has a seat, and the seats split the circle into arcs of different sizes.
+     card      shows the picture map (guests around a round table)
+   0  4 database servers, and a ring of every hash number. 0 is at the top.   ‹ring.intro›
+        why       After the largest number comes 0 again, so the ring has no end and no last server.
+        look      q0, qr, q4, ql
+        picture   a round table whose seats are numbered all the way round = the hash ring: every
+                  number from 0 to 2^32 − 1
+        · how     This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash
+                  values in hex.
+        · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                  numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                  function the same way.
+        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+   1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+        why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                  others.
+        look      t.db01, t.db03, t.db04, t.db02
+        picture   the seat a host's name points to = a server's position, the hash of its name
+        · how     A server's arc runs from the seat before it up to its own seat, and it stores
+                  every key that lands there.
+        · edge    With one random seat each, the biggest arc is not 1/N of the ring: on average it
+                  is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.
+        · real    Karger et al. give each server about log N seats to fix this: then every share is
+                  within a constant factor of fair. Their work grew into the business plan for
+                  Akamai, the content delivery network; two of the authors, Tom Leighton and Danny
+                  Lewin, founded it.
+        · source  Karger et al. 1997; Leighton 2002
+
+   ▸ Chapter 2 of 5 · Keys
+     about     Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the
+               key walks clockwise and sits with the first server it meets.
+     so far    Every server has a seat on the ring.
+     now       Hash each key onto the ring too, and walk clockwise to its server.
+     done when Every key takes the colour of the first server seat after it.
+   2  user:9 is hashed the same way: it lands at `0xed40_82cb`, 334° round the ring.   ‹keys.hash›
+        why       Keys and servers now live on one number circle, so we can compare their places.
+        look      k.user:9
+        · how     The angle is the hash as a fraction of the whole ring: `0xed40_82cb` out of 2^32.
+        · edge    Tiles are nudged a few degrees apart so they don't overlap; the tag shows the
+                  exact hash.
+   3  ★ Walk clockwise from user:9: the first seat is db01's, so db01 stores it.   ‹keys.walk›
+        why       user:9 sits in db01's arc. Every machine can do this same walk, so they all agree.
+        look      t.db01, k.user:9
+        picture   a guest who walks clockwise and sits with the first host = a key, stored on the
+                  first server clockwise
+        · cost    One binary search over the sorted seats: O(log S) for S seats, with no message to
+                  anyone.
+        · how     Find the first seat at or after the key's hash. Past the top, wrap round to the
+                  first seat.
+        · code    `i = bisect_left(ring, (h, ""))` then `ring[i % len(ring)]` (lines 15–16).
+        · edge    A key whose hash equals a seat's exactly belongs to that seat: bisect_left finds
+                  it, so each arc includes its own end.
+   4  The other 15 keys do the same, each in the colour of its arc's server.   ‹keys.rest›
+        look      k.sess:a91c, k.user:77, k.feed:home, k.app.css, k.post:87, k.post:4410, k.post:12,
+                  k.user:318, k.cart:12, k.page:faq, k.sku:1182, k.logo.svg, k.sku:7731,
+                  k.order:551, k.cart:301
+   5  Keys per server: 3, 1, 8 and 4. db03 owns the most ring: 49%.   ‹keys.loads›
+        why       A bigger arc catches more keys on average, so where the seats fall sets the load.
+        look      db03
+        · how     Each key's hash is like a random point, so a server's expected keys are K times
+                  its share of the ring. With only 16 keys, counts wobble around that.
+
+   ▸ Chapter 3 of 5 · Many seats each
+     about     Each server takes more seats around the table, called virtual nodes, so it owns many
+               small arcs. Each new seat splits an arc, so a few keys move; real servers start with
+               all their seats. [virtual node: One of several seats a single server takes on the
+               circle.]
+     so far    With one seat each, the arcs come out uneven, so one server can carry far more than
+               the rest.
+     now       Give every server more seats, doubling the count each time.
+     done when The “busiest server” meter shows the biggest share against the average; 1× is
+               perfectly even.
+   6  ★ Now 2 seats each: 7 keys moved. Busiest share 2× → 1.6×.   ‹vnodes.more›
+        why       A server's share is now a sum of many small arcs, and sums of many pieces vary
+                  less.
+        look      k.sess:a91c, k.feed:home, k.post:87, k.cart:12, k.page:faq, k.sku:1182, k.sku:7731
+        picture   one host keeping several chairs around the table = virtual nodes: many seats for
+                  one server
+        · how     Each new seat splits one arc, so only the keys just before it change server.
+        · edge    The spread shrinks slowly, about as 1/√seats: 4 times the seats only halves the
+                  unevenness, so one doubling can even make it worse.
+        · real    Karger et al. show about log N seats per server keep every share within a constant
+                  factor of fair.
+        · source  Karger et al. 1997
+   7  Now 4 seats each: 2 keys moved. Busiest share 1.6× → 1.4×.   ‹vnodes.more›
+        look      k.post:4410, k.post:12
+       … 1 more like this (steps 8–8)
+
+   ▸ Chapter 4 of 5 · A server leaves
+     about     A server leaves the table. The keys it held walk on clockwise to the next seat still
+               there; no other key moves.
+     so far    Each server now owns 8 small arcs around the ring.
+     now       Take a server with the most keys, db01, off the ring.
+     done when Only db01's keys change colour; every other key keeps its own.
+   9  db01 is leaving. It holds 4 keys, 32% of the ring.   ‹leave.drain›
+        why       No server holds more keys, so this leave moves as much data as any could.
+        look      db01, k.user:77, k.user:9, k.cart:12, k.logo.svg
+        · how     Its seats dim while it drains. They leave the ring only as its keys move, so every
+                  key always has a server.
+     PREDICT  Where do db01's 4 keys go?
+              A) To the next server clockwise of each of its 8 seats   ✓
+                 → Right. Each key walks on to the first seat still there: here 4 keys went to db03,
+                   db02 and db04.
+              B) Spread evenly over the other servers
+                 → Nobody shares the keys out: each key walks on clockwise to the next seat still
+                   there. Here db01's 4 keys went to db03, db02 and db04. [m-even]
+              C) Every key in the cluster is reshuffled
+                 → If you thought a leave reshuffles everything: only db01's keys move, since no
+                   other key's walk passed its seats. The rest keep their server. [m-reshuffle]
+              why: Each key walks clockwise to the first seat still there. db01's seats sat in
+                   different places, so the keys reach different servers.
+  10  ★ Each key walks on clockwise from its spot: 4 keys spread over db03, db02 and db04.   ‹leave.move›
+        why       db01's seats sat in different arcs, so its keys reach different next seats.
+        look      db03, db02, db04, k.user:77, k.user:9, k.cart:12, k.logo.svg
+        picture   a guest who walks clockwise and sits with the first host = a key, stored on the
+                  first server clockwise
+        · how     No key that db01 did not hold moves: their walks never passed its seats.
+        · edge    Real stores keep copies: Dynamo writes each key to the next few distinct servers
+                  clockwise, so the next server already has a copy when one leaves (§4.3).
+        · real    Dynamo's paper gives this spread as the reason for many seats: a failed node's
+                  load is shared by the rest (§4.2).
+        · source  DeCandia et al. 2007, §4.2, §4.3
+
+   ▸ Chapter 5 of 5 · Result
+     about     With many seats per server, each server owns many small arcs. A leaver's keys can
+               spread out, and on average the shares stay closer to even than with one seat each.
+     so far    Only the leaver's keys moved, each to the next seat clockwise.
+     now       See how evenly the servers that are left share the ring.
+     done when The busiest-server meter shows the share against the average.
+  11  ★ db04 is now the busiest, at 1.2× the average share. With 256 seats each: 1.1×.   ‹result.vnodes›
+        why       More seats even out the shares, but each seat is one more arc to track and copy.
+        look      db04
+        · cost    Worked out for the servers left: 1.1× with 64 seats each, 1.1× with 256. Past a
+                  few dozen seats, more buys little.
+        · edge    Random seats even out slowly. Dynamo moved to equal-size slices of the ring handed
+                  out evenly, its best-balanced strategy (§6.2).
+        · real    Cassandra 4.0 cut its default from 256 random seats per node to 16, placed by an
+                  allocator so they still spread evenly. With 256 random seats, every node shared
+                  data with so many others that losing a few nodes could make some data unavailable.
+        · source  DeCandia et al. 2007, §6.2; Cassandra docs, Dynamo; CASSANDRA-13701
+
+   RECAP
+     1. A server's share is the sum of its arcs, and more seats make more, smaller arcs.
+     2. When a server left, each of its keys walked on to the next seat clockwise.
+     3. Only the leaving server's keys moved on the leave.
+   TAKEAWAY  With many seats per server, the shares tend to even out, and a leaving server's keys
+             can spread over several neighbours.
+   CAN NOW   o-owner, o-leave, o-even
+
+SOURCES  (lesson.sources: 7)
+  [karger1997]  Karger et al. 1997
+    ref       D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin. Consistent
+              Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the
+              World Wide Web. STOC 1997, 1997.
+    url       https://doi.org/10.1145/258533.258660
+    supports  the ring, for web caches that come and go: a consistent hash “changes minimally as the
+              range of the function changes”; smoothness; about log N copies of each cache for
+              balance
+  [leighton2002]  Leighton 2002
+    ref       T. Leighton. Remarks commemorating Danny Lewin. SIGACT, the Danny Lewin Best Student
+              Paper Award, 2002.
+    url       https://www.sigact.org/prizes/student/remarks.html
+    supports  Lewin's master's thesis on consistent hashing became the business plan for Akamai
+              Technologies
+  [dynamo2007]  DeCandia et al. 2007
+    ref       G. DeCandia, et al. Dynamo: Amazon's Highly Available Key-value Store. SOSP 2007,
+              2007.
+    url       https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+    supports  MD5 to a 128-bit identifier (§4.1), the ring and virtual nodes, and why: a failed
+              node's load spreads (§4.2), replication to the next N nodes (§4.3), adding and
+              removing nodes (§4.9), equal-size partitions balance best (§6.2)
+  [cassandra-dynamo]  Cassandra docs, Dynamo
+    ref       Apache Cassandra. Dynamo. Cassandra architecture documentation, 2024.
+    url       https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html
+    supports  Cassandra's techniques come from Dynamo; 256 random tokens coupled many endpoints and
+              raised the risk of unavailability; a token allocator needs far fewer
+  [cassandra-13701]  CASSANDRA-13701
+    ref       Apache Cassandra. CASSANDRA-13701: Lower default num_tokens. Cassandra issue tracker,
+              fixed in 4.0, 2020.
+    url       https://issues.apache.org/jira/browse/CASSANDRA-13701
+    supports  num_tokens default lowered in 4.0 (to 16, per CASSANDRA-16979)
+  [jump2014]  Lamping & Veach 2014
+    ref       J. Lamping, E. Veach. A Fast, Minimal Memory, Consistent Hash Algorithm.
+              arXiv:1406.2294 (Google), 2014.
+    url       https://arxiv.org/abs/1406.2294
+    supports  jump consistent hash moves 1/(n + 1) of the keys and needs no stored ring, but buckets
+              can only be added or removed at the end
+  [white2007]  White 2007
+    ref       T. White. Consistent Hashing. blog post, 2007.
+    url       https://tom-e-white.com/2007/11/consistent-hashing.html
+    supports  the reshuffle that hash mod n causes when a cache joins or leaves; virtual nodes; from
+              Dynamo to memcached
+
+teaching checks  examples/consistent-hashing/figure.mjs
+  info   level core, 6 chapters, 4 questions, 4 defined words, 1175 words, reading grade 4.5

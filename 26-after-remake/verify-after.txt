@@ -1,0 +1,8 @@
+btree 23 run(s), 0 failing, 0 error(s), 0 warning(s)  1.9 s | 0 writing hit(s)  ex
+consistent-hashing 23 run(s), 0 failing, 0 error(s), 0 warning(s)  2.6 s | 0 writing hit(s)  ex
+event-loop 44 run(s), 0 failing, 0 error(s), 0 warning(s)  2.7 s | 0 writing hit(s)  ex
+linked-list 21 run(s), 0 failing, 0 error(s), 0 warning(s)  1.3 s | 0 writing hit(s)  ex
+mapreduce 34 run(s), 0 failing, 0 error(s), 1 warning(s)  3.8 s | 1 writing hit(s)  ex
+quicksort 18 run(s), 0 failing, 0 error(s), 0 warning(s)  1.3 s | 0 writing hit(s)  ex
+raft 30 run(s), 0 failing, 0 error(s), 3 warning(s)  4.1 s | 0 writing hit(s)  ex
+virtual-memory 18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.3 s | 0 writing hit(s)  ex

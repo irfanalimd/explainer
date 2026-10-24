@@ -1,0 +1,608 @@
+Linked list: Items that point to the next one, so inserting moves nothing
+level intro · 3 stories · 2 knobs (List length, Insert after item)
+
+HOOK      Putting a number in the middle of an array means sliding everything after it over. Can we
+          insert without moving anything?
+GOAL      Insert into the middle of a list without moving anything.
+OBJECTIVES
+  o-shift: Explain why inserting into an array moves items and inserting into a linked list does
+           not.
+  o-order: Do the two pointer writes of an insert in the right order, and say why the order matters.
+  o-cost: Say what a linked list pays instead: a walk from head, an extra address and an allocation
+          per node.
+PICTURE   a treasure hunt
+  node    a clue card  =  a node  (node)
+  value   the prize written on the card  =  its value
+  next    where the next clue is hidden  =  next, an address  (pointer)
+  head    the first clue, handed to you  =  head  (head)
+  null    “this is the last clue”  =  null  (null)
+  breaks  A hiding place here is a number. If you know it, you can jump straight there. The trouble
+          is knowing it.
+BELIEFS
+  m-prevfirst: “You point the old node at the new one first, then fill in the new node.” The old
+               node's `next` is the only copy of the next address. Overwrite it first and the rest
+               of the list is gone.
+  m-order: “The two writes don't touch each other, so either order works.” One write reads the old
+           node's `next`, the other overwrites it. The read has to come first.
+  m-jump: “A linked list is an array with arrows drawn on it, so you can jump to item 5.” A node's
+          address is written only in the node before it, so you must walk there.
+  m-count: “Reaching the 5th item takes 5 arrows, one per item.” You start standing on the 1st node,
+           so 4 arrows reach the 5th.
+  m-copy: “Copying a node's `next` copies the address it held earlier.” A copy takes what the field
+          holds right now.
+  m-empty: “Overwriting an arrow leaves it empty, so a copy of it reads null.” An overwrite puts a
+           new address in its place. Null appears only where null is written.
+WORDS
+  address: (a house number for memory) The number that says where something is stored in memory,
+           like a house number.
+  node: (a box) One item of a linked list: a value, plus the address of the next box.
+  pointer: (an arrow) A value that holds a memory address, so it says where something else lives.
+  head: (the first arrow) A variable holding the address of the first box. Every trip starts there.
+  null: (no address) A special value meaning “no address”. In next, it means nothing comes after.
+NUMBERS   items moved * · arrows followed * · arrows changed * · nodes lost *   (* in the dock)
+
+━━ Story 1 of 3 · Insert in the middle  (insert)  17 steps, 87 s at 1x
+   what if   What if… we insert in the middle
+   story     An array slides items over to make room; the linked list changes two arrows and moves
+             nothing.
+
+   ▸ Chapter 1 of 5 · Arrays shift
+     about     An array keeps its items side by side in one block of memory. Its label is the
+               block's address: where it starts, like a house number. To open a gap, every later
+               item slides over. [address: The number that says where something is stored in memory,
+               like a house number.]
+     so far    You know arrays: a row of values in order, like a[2].
+     now       Put 42 into the middle, right after 12.
+     done when 42 sits right after 12, and the counter shows how many numbers moved.
+   0  5 numbers sit side by side, then one free slot. 42 goes after 12.   ‹array.goal›
+        why       Lists change in the middle all the time: a song added mid-playlist, a line typed
+                  mid-document.
+        look      arr
+        · cost    Inserting after item k of n moves n − k items: 3 of 5 here. O(n) in the worst
+                  case.
+        · how     The free slot is spare room the array keeps at its end. When none is left, the
+                  array grows into a bigger block and copies every item over.
+        · real    CPython's list over-allocates by about one eighth when it grows (newsize +
+                  newsize/8 + 6, rounded down to a multiple of 4), so appends are cheap on average.
+                  It never leaves a gap in the middle.
+        · source  CPython listobject.c list_resize
+   1  ★ 23 slides one slot right, into the free slot.   ‹array.slide›
+        why       We start at the end. Starting at the front would write over a number before it had
+                  moved.
+        look      arr
+        · how     Each slide is one copy into the slot to the right. Going from the end, every copy
+                  lands on a slot already emptied.
+        · code    CPython's list insert shifts the same way, last item first: `for (i = n; --i >=
+                  where; ) items[i+1] = items[i];`
+        · source  CPython listobject.c list_resize
+   2  17 slides one slot right.   ‹array.slide›
+        look      arr
+   3  48 slides one slot right.   ‹array.slide›
+        look      arr
+   4  ★ 42 drops into the gap. 3 other numbers had to move.   ‹array.drop›
+        why       Every insert pays this: the more items after the gap, the more slide.
+        look      arr
+        · cost    Here 3 of 5 items moved. C code can do it as one block copy (memmove) of 3 × 4
+                  bytes: cheap per item, but it grows with the list.
+        · how     For short arrays this is fast: the bytes sit side by side, so the CPU streams
+                  them.
+        · edge    Where you insert sets the bill: at the front all 5 move, at the end none. That is
+                  why Python's `append` is cheap and `insert(0, x)` is not.
+
+   ▸ Chapter 2 of 5 · Boxes and arrows
+     about     Think of a treasure hunt: each clue says where the next clue is hidden. A linked list
+               gives each item its own node, anywhere in memory. [node: One item of a linked list: a
+               value, plus the address of the next box.]
+     so far    The array fit 42 in, but 3 numbers had to slide over first.
+     now       Give each item its own box that says where the next one is.
+     done when Every node can be reached by following arrows from head.
+     card      shows the picture map (a treasure hunt)
+   5  ★ A node holds the value 31 and `next`: the next node's address.   ‹nodes.one›
+        why       Each item carries the next one's address, so the items no longer need to sit side
+                  by side.
+        look      n0
+        picture   a clue card = a node
+        · cost    Memory per item goes up. In C on a 64-bit machine this node is 16 bytes (a 4-byte
+                  int, 4 bytes of padding, an 8-byte address), against 4 bytes per number in the
+                  array.
+        · how     The padding is there because the CPU wants an 8-byte address to start at a
+                  multiple of 8.
+        · code    C: `struct node { int value; struct node *next; };`
+        · edge    In Python each Node is a full object with its own header, and its value is another
+                  object, so it is far bigger still.
+   6  The other 4 nodes sit wherever memory had room. Each label is its address.   ‹nodes.scattered›
+        why       They are not side by side, so making room never means sliding anything.
+        look      mem
+        · cost    One allocation per node: malloc in C, Node() in Python. The array asked for its
+                  whole block once.
+        · how     Nothing keeps neighbours together: each node lands wherever the allocator found
+                  room at that moment.
+        · real    glibc's malloc hands out at least a 32-byte chunk on a 64-bit machine, so a
+                  16-byte node takes 32.
+        · source  glibc malloc.c “Minimum allocated size”
+   7  ★ 31's `next` holds `0x7f3a_4e80`, 12's address. A stored address is a pointer, drawn as an
+      arrow. [pointer: A value that holds a memory address, so it says where something else
+      lives.]   ‹nodes.pointer›
+        why       Every node does the same, so the arrows chain all 5 nodes together.
+        look      n0.next, n0->n1
+        picture   where the next clue is hidden = next, an address
+        · how     The machine stores only the number `0x7f3a_4e80`; the arrow is our drawing of it.
+                  Python hides the number, but a reference is stored the same way.
+        · code    C: `a->next = b;` copies b's 8-byte address into a.
+   8  head holds the first node's address. [head: A variable holding the address of the first box.
+      Every trip starts there.]   ‹nodes.head›
+        why       No node points at 31, so head is the only way in.
+        look      head, head->n0
+        picture   the first clue, handed to you = head
+        · how     head is not a node: it is one variable holding an address. Lose it and you lose
+                  the whole list.
+        · edge    Inserting at the front changes head itself, a special case where bugs hide. A
+                  dummy first node (a sentinel) removes it.
+        · real    Linux's lists do exactly that: the list_head you hold is a sentinel, and the list
+                  loops back to it instead of ending.
+        · source  Cormen et al. 2022, §10.2, sentinels; Linux list.h
+   9  The last `next` is null: no address. The list ends here. [null: A special value meaning “no
+      address”. In next, it means nothing comes after.]   ‹nodes.null›
+        why       A walk stops when it reads null.
+        look      n4.next
+        picture   “this is the last clue” = null
+        · how     On Linux a C null pointer is address 0, and no program may map the lowest pages,
+                  so no node can live there.
+        · code    C writes `NULL`, Python `None`.
+        · edge    Following null is a bug: in C it is undefined behaviour, which on Linux is a
+                  segmentation fault, because that page is unmapped; in Python, an AttributeError.
+        · source  Linux docs, mmap_min_addr
+
+   ▸ Chapter 3 of 5 · Walk
+     about     No node knows its own position, so every trip starts at head and follows the `next`
+               addresses, one arrow at a time. Here we need the 2nd item.
+     so far    Every node can be reached from head, but only through the arrows.
+     now       To insert after 12, first reach it.
+     done when Our marker stands on 12, the 2nd item.
+  10  Start where head points. Our marker, `cur`, is on 31, the 1st item.   ‹walk.start›
+        why       We need to stand on 12, the node 42 goes after.
+        look      head, cur
+        · how     `cur` holds a copy of head's address. Moving it changes nothing in the list.
+        · code    `cur = head` (line 7)
+  11  ★ Follow 31's `next`, `0x7f3a_4e80`: it's 12, the 2nd item.   ‹walk.hop›
+        why       One arrow, one step. There is no way to skip ahead.
+        look      n0->n1, cur
+        · cost    Reaching item k takes k − 1 hops: O(k).
+        · how     Each hop loads an address that the previous load produced, so the CPU can't start
+                  the next hop early. On scattered nodes each hop can miss the cache and wait on
+                  main memory, on the order of 100 ns.
+        · code    `cur = cur.next` (lines 8–9)
+        · edge    Real code also checks `cur is None` on every hop: a list shorter than k runs off
+                  the end.
+        · source  Knuth 1997, Vol. 1, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
+
+   ▸ Chapter 4 of 5 · Insert
+     about     To add 42 after 12, make a new node anywhere there is room, then change two arrows.
+               Nothing already in the list moves.
+     so far    Our marker stands on 12, the 2nd item; the insert code calls it `prev`.
+     now       Link 42 in after 12 by changing two arrows.
+     done when Reading from head passes 12 → 42 → 48.
+  12  Make `new`, a node for 42, wherever memory has room. Its `next` is null.   ‹insert.make›
+        why       No arrow leads to it yet, so a walk from head can't reach it.
+        look      nx
+        · how     In this run it landed at `0x7f3a_5a30`. Any free spot works; that's the point.
+        · code    `new = Node(value)` (line 13)
+        · edge    In C, malloc can fail and return NULL. Real code checks before linking the node
+                  in.
+     PREDICT  Two arrows must change. Which one do we change first?
+              A) 42's next: point it at 48   ✓
+                 → Right. Copy 48's address into 42 while 12's `next` still holds it.
+              B) 12's next: point it at 42
+                 → 12's `next` is the only place 48's address is written. Overwrite it first and
+                   nothing can reach 48 again. [m-prevfirst]
+              C) Either order works
+                 → Both writes use 12's `next`: one reads it, the other overwrites it. Read first,
+                   or 48's address is gone. [m-order]
+              why: 12's next is the only place 48's address is written. Copy it into 42 first, or it
+                   is gone.
+  13  ★ 42's `next` copies 12's. Now 42 points at 48 too.   ‹insert.save-next›
+        why       48's address is now written in two places, so changing 12 is safe.
+        look      nx.next, nx->n2
+        picture   where the next clue is hidden = next, an address
+        · cost    O(1) once you stand on 12: two writes, whatever the length. Getting to 12 was the
+                  O(k) part.
+        · how     `new.next = prev.next` must run first: until it does, 12's `next` is the only copy
+                  of 48's address.
+        · code    `new.next = prev.next` (line 14)
+        · real    Linux's lists are doubly linked. Its __list_add sets next->prev, fills in
+                  new->next and new->prev, and writes prev->next last.
+        · source  Linux list.h __list_add
+  14  ★ 12's `next` now points at 42. The chain runs 12 → 42 → 48.   ‹insert.link-prev›
+        why       One write, and every walk from head now passes through 42.
+        look      n1.next, n1->nx
+        · how     Storing one aligned address is a single write on common CPUs, so a reader sees the
+                  old list or the new one, never half of each.
+        · code    `prev.next = new` (line 15)
+        · edge    A doubly linked list needs four writes, and the same rule holds: finish the new
+                  node before anything points at it.
+        · real    With readers running at the same time, this last write is the “publish”. Linux's
+                  RCU lists set new->next and new->prev, then rcu_assign_pointer(prev->next, new).
+                  Lock-free lists do it with one compare-and-swap (Harris 2001).
+        · source  Linux rculist.h __list_add_rcu; Harris 2001
+  15  Read from head: 31 → 12 → 42 → 48 → 17 → 23. 42 is in, and nothing moved.   ‹insert.read›
+        why       The proof: walking the arrows now meets 42 in its place.
+        look      head
+        · how     Every old node still sits at the address on its label. Nothing was copied, and
+                  only 12's `next` changed.
+        · edge    Because nothing moved, any other variable still pointing at a node stays valid. An
+                  array insert can't promise that: a grow copies the block to a new address.
+
+   ▸ Chapter 5 of 5 · Trade-off
+     about     Each is quick at something. An array slides items to make room. A linked list changes
+               two arrows, but must walk from head to find the spot.
+     so far    Both now hold 42 right after 12, but each paid a different price.
+     now       Line up the two costs.
+     done when You can say what each cost grows with.
+  16  ★ Array: 3 items moved. List: none moved, 2 arrows changed, 1 arrow followed.   ‹tradeoff.insert›
+        why       Neither is free: the array pays for every item after the gap, the list for every
+                  item before it.
+        look      arr, n1
+        · cost    At position k of n: the array finds the spot in O(1) and shifts n − k items; the
+                  list walks k − 1 arrows and splices in O(1). The list also stores an extra address
+                  in every node and makes one allocation per node.
+        · edge    Measured, the array can win anyway. Stroustrup inserted random numbers into a
+                  sorted sequence, then removed them at random spots: a C++ vector beat a linked
+                  list past 500,000 numbers. Finding each spot walks the list, one cache miss per
+                  hop.
+        · real    Lists earn their place when you already hold the node. CPython's lru_cache keeps a
+                  doubly linked list so a hit moves to the front with a few pointer writes, no walk.
+        · source  Stroustrup 2012 Figure 1; CPython functools.py lru_cache
+
+   RECAP
+     1. The array had to slide every later item over to make room.
+     2. A node holds a value and `next`, the address of the next node.
+     3. Inserting changed two arrows, in the right order. Nothing moved.
+     4. Reaching the spot meant following arrows from head, one at a time.
+   TAKEAWAY  A linked list never moves its items: inserting changes two arrows. It pays with a walk
+             from head, and more memory and slower visits per node.
+   CAN NOW   o-shift, o-order, o-cost
+
+━━ Story 2 of 3 · Find the 5th item  (find)  14 steps, 70 s at 1x
+   what if   What if… we look for the 5th item
+   story     An array works out where the 5th item is; the linked list has to walk there, arrow by
+             arrow.
+
+   ▸ Chapter 1 of 4 · Arrays jump
+     about     An array keeps its items side by side, 4 bytes each (one int), from one address:
+               where the block starts, like a house number. So item k sits at start + (k − 1) × 4.
+     so far    You know arrays: a row of values in order, like a[4].
+     now       Find the 5th item.
+     done when We know its address without looking at any other item.
+   0  5 numbers side by side from `0x7f3a_1000`. We want the 5th item.   ‹jump.where›
+        why       An address is a number, so we can do arithmetic with it.
+        look      arr
+        · how     Each int takes 4 bytes, so every slot's address is the start plus a multiple of 4.
+        · edge    This only works if every item has the same size. A Python list of mixed objects
+                  still qualifies: it stores an 8-byte pointer per item, not the objects themselves.
+        · source  CPython listobject.c list_resize
+   1  ★ Start + 4 × 4 bytes = `0x7f3a_1010`. One sum, one jump: it's 23.   ‹jump.sum›
+        why       The 1st item sits at the start, so the 5th is 4 slots past it.
+        look      arr
+        · cost    O(1) for any position: the same one sum for the 2nd item or the millionth.
+        · how     This is what a[i] compiles to: base + i × size, counting i from 0, so the 1st item
+                  is base + 0.
+        · code    x86 does the sum inside the load itself: `mov eax, [rdi + rsi*4]`.
+
+   ▸ Chapter 2 of 4 · Boxes and arrows
+     about     Think of a treasure hunt: each clue says where the next clue is hidden. A linked list
+               gives each item its own node, anywhere in memory.
+     so far    The array found the 5th item with one sum, but only because its items sit side by
+               side.
+     now       Give each item its own box that says where the next one is.
+     done when Every node can be reached by following arrows from head.
+     card      shows the picture map (a treasure hunt)
+   2  ★ A node holds the value 31 and `next`: the next node's address.   ‹nodes.one›
+        why       Each item carries the next one's address, so the items no longer need to sit side
+                  by side.
+        look      n0
+        picture   a clue card = a node
+        · cost    Memory per item goes up. In C on a 64-bit machine this node is 16 bytes (a 4-byte
+                  int, 4 bytes of padding, an 8-byte address), against 4 bytes per number in the
+                  array.
+        · how     The padding is there because the CPU wants an 8-byte address to start at a
+                  multiple of 8.
+        · code    C: `struct node { int value; struct node *next; };`
+        · edge    In Python each Node is a full object with its own header, and its value is another
+                  object, so it is far bigger still.
+   3  The other 4 nodes sit wherever memory had room. Each label is its address.   ‹nodes.scattered›
+        why       They are not side by side, so making room never means sliding anything.
+        look      mem
+        · cost    One allocation per node: malloc in C, Node() in Python. The array asked for its
+                  whole block once.
+        · how     Nothing keeps neighbours together: each node lands wherever the allocator found
+                  room at that moment.
+        · real    glibc's malloc hands out at least a 32-byte chunk on a 64-bit machine, so a
+                  16-byte node takes 32.
+        · source  glibc malloc.c “Minimum allocated size”
+   4  ★ 31's `next` holds `0x7f3a_4e80`, 12's address. A stored address is a pointer, drawn as an
+      arrow.   ‹nodes.pointer›
+        why       Every node does the same, so the arrows chain all 5 nodes together.
+        look      n0.next, n0->n1
+        picture   where the next clue is hidden = next, an address
+        · how     The machine stores only the number `0x7f3a_4e80`; the arrow is our drawing of it.
+                  Python hides the number, but a reference is stored the same way.
+        · code    C: `a->next = b;` copies b's 8-byte address into a.
+   5  head holds the first node's address.   ‹nodes.head›
+        why       No node points at 31, so head is the only way in.
+        look      head, head->n0
+        picture   the first clue, handed to you = head
+        · how     head is not a node: it is one variable holding an address. Lose it and you lose
+                  the whole list.
+        · edge    Inserting at the front changes head itself, a special case where bugs hide. A
+                  dummy first node (a sentinel) removes it.
+        · real    Linux's lists do exactly that: the list_head you hold is a sentinel, and the list
+                  loops back to it instead of ending.
+        · source  Cormen et al. 2022, §10.2, sentinels; Linux list.h
+   6  The last `next` is null: no address. The list ends here.   ‹nodes.null›
+        why       A walk stops when it reads null.
+        look      n4.next
+        picture   “this is the last clue” = null
+        · how     On Linux a C null pointer is address 0, and no program may map the lowest pages,
+                  so no node can live there.
+        · code    C writes `NULL`, Python `None`.
+        · edge    Following null is a bug: in C it is undefined behaviour, which on Linux is a
+                  segmentation fault, because that page is unmapped; in Python, an AttributeError.
+        · source  Linux docs, mmap_min_addr
+
+   ▸ Chapter 3 of 4 · Walk
+     about     A node's address is written only inside the node before it, so there is no jumping
+               ahead. Start at head and follow the arrows, one by one.
+     so far    Every node can be reached from head, but only through the arrows.
+     now       Reach the 5th item.
+     done when Our marker stands on 23, and the counter shows the arrows it took.
+     PREDICT  Starting on the 1st node, how many arrows must we follow to reach the 5th?
+              A) 1: jump straight there
+                 → No sum gives 23's address: it is written only in 17's `next`. We must stand on 17
+                   first. [m-jump]
+              B) 4   ✓
+                 → Right. Each arrow moves one node along, so from the 1st node 4 arrows reach the
+                   5th.
+              C) 5
+                 → We already stand on the 1st node, 31. Each arrow adds one node, so 4 arrows reach
+                   the 5th. [m-count]
+              why: Each arrow moves you one node along. From the 1st node, 4 arrows bring you to the
+                   5th.
+   7  Start where head points. Our marker, `cur`, is on 31, the 1st item.   ‹walk.start›
+        why       We can't jump: only 31's `next` knows where the 2nd item lives.
+        look      head, cur
+        · how     `cur` holds a copy of head's address. Moving it changes nothing in the list.
+        · code    `cur = head` (line 7)
+   8  ★ Follow 31's `next`, `0x7f3a_4e80`: it's 12, the 2nd item.   ‹walk.hop›
+        why       One arrow, one step. There is no way to skip ahead.
+        look      n0->n1, cur
+        · cost    Reaching item k takes k − 1 hops: O(k).
+        · how     Each hop loads an address that the previous load produced, so the CPU can't start
+                  the next hop early. On scattered nodes each hop can miss the cache and wait on
+                  main memory, on the order of 100 ns.
+        · code    `cur = cur.next` (lines 8–9)
+        · edge    Real code also checks `cur is None` on every hop: a list shorter than k runs off
+                  the end.
+        · source  Knuth 1997, Vol. 1, §2.2.3; Drepper 2007, §3.3.2; Gregg 2020, Table 2.2
+   9  Follow 12's `next`, `0x7f3a_1b20`: it's 48, the 3rd item.   ‹walk.hop›
+        look      n1->n2, cur
+  10  Follow 48's `next`, `0x7f3a_3d40`: it's 17, the 4th item.   ‹walk.hop›
+        look      n2->n3, cur
+  11  Follow 17's `next`, `0x7f3a_6f00`: it's 23, the 5th item.   ‹walk.hop›
+        look      n3->n4, cur
+  12  ★ Found the 5th item, 23, after 4 arrows.   ‹walk.found›
+        why       Every position costs one more arrow. The 1000th would take 999.
+        look      n4
+        · cost    Array: O(1) by position. List: O(k), 4 hops here.
+        · real    CPython's deque is a linked list of blocks. Its docs say indexed access is O(1) at
+                  both ends but slows to O(n) in the middle.
+        · source  Python docs, collections.deque
+
+   ▸ Chapter 4 of 4 · Trade-off
+     about     Each is quick at something. An array jumps to any position with one sum. A linked
+               list must walk there from head, one arrow at a time.
+     so far    The array took one sum, but the list had to walk.
+     now       Line up the two costs.
+     done when You can say what each cost grows with.
+  13  ★ Array: one calculation. List: 4 arrows followed.   ‹tradeoff.find›
+        why       Finding by position is the list's weak spot, and it grows with the position.
+        look      arr, n4
+        · cost    Array: one sum and one load. List: 4 loads, each waiting on the one before.
+        · real    For fast inserts and fast lookups together, skip lists add express lanes over a
+                  linked list, so a search skips most nodes (Pugh 1990).
+        · source  Pugh 1990
+
+   RECAP
+     1. The array found the item with one sum: start + (k − 1) × 4.
+     2. A node's address is written only in the node before it.
+     3. So the list walked from head, one arrow per item.
+   TAKEAWAY  An array finds item k with one calculation. A linked list has no shortcut: it follows k
+             − 1 arrows from head.
+   CAN NOW   o-shift, o-order, o-cost
+
+━━ Story 3 of 3 · Arrows in the wrong order  (wrong)  21 steps, 105 s at 1x
+   what if   What if… the arrows change in the wrong order
+   story     The same insert with its two arrow changes swapped: the rest of the list is cut off and
+             lost.
+   (steps 0–11 repeat story 1 and are skipped here; --full shows them)
+
+   ▸ Chapter 4 of 5 · Wrong order
+     about     This time 12 is pointed at the new node first. But 12's `next` held the only copy of
+               48's address.
+     so far    Our marker stands on 12, the 2nd item; the insert code calls it `prev`.
+     now       Link 42 in after 12, but change 12's arrow first.
+     done when A read from head shows whether 48 can still be reached.
+  12  Make `new`, a node for 42, wherever memory has room. Its `next` is null.   ‹insert.make›
+        why       No arrow leads to it yet, so a walk from head can't reach it.
+        look      nx
+        · how     In this run it landed at `0x7f3a_5a30`. Any free spot works; that's the point.
+        · code    `new = Node(value)` (line 13)
+        · edge    In C, malloc can fail and return NULL. Real code checks before linking the node
+                  in.
+  13  ★ First, 12's `next` is pointed at 42.   ‹wrong.prev-first›
+        why       That was the only place 48's address was written. It's gone now.
+        look      n1.next
+        picture   where the next clue is hidden = next, an address
+        · how     Overwriting a pointer you still need is the classic linked-list bug. It's why
+                  textbooks write the two lines in a fixed order.
+        · code    `prev.next = new` ran before `new.next = prev.next`.
+        · edge    Python's tuple swap is safe in either order: `prev.next, new.next = new,
+                  prev.next` reads the whole right side before writing anything.
+        · source  Python reference §7.2
+     PREDICT  Next, 42 copies 12's `next` (`new.next = prev.next`). Where will 42's `next` point?
+              A) At 48
+                 → 12's `next` stopped holding 48's address one step ago. The copy reads what is
+                   there now: 42's own address. [m-copy]
+              B) At 42 itself   ✓
+                 → Yes: 12's `next` now holds 42's own address, so copying it makes 42 point at
+                   itself.
+              C) Nowhere: null
+                 → 12's `next` isn't empty: the overwrite put 42's own address there, `0x7f3a_5a30`.
+                   [m-empty]
+              why: 12's next now holds 42's own address, so copying it makes 42 point at itself.
+  14  ★ 42's `next` copies 12's: 42's own address. It points at itself.   ‹wrong.self-loop›
+        why       12's `next` already held 42's address, and a copy takes what is there now.
+        look      nx.next
+        · how     An assignment reads its right side at the moment it runs. Nothing remembers what
+                  12's `next` held before.
+        · code    `new.next = prev.next` (line 14): now `0x7f3a_5a30`, 42's own address.
+  15  ★ Nothing points at 48 now, so 3 nodes are lost for good: 48, 17 and 23.   ‹wrong.lost›
+        why       Each address was written only in the node before it. Nothing else remembers them.
+        look      lost
+        · how     In C, lost nodes leak: still allocated, but no pointer is left to free them with.
+                  In CPython, reference counts drop to zero when 12's `next` is overwritten, so they
+                  are freed at once. Either way the data is gone.
+        · real    Valgrind calls the first lost block “definitely lost” and any behind it
+                  “indirectly lost”: pointed to only from lost blocks.
+        · source  Valgrind Memcheck manual
+  16  From head: 31 → 12 → 42 → 42 → … forever. It never reaches the end.   ‹wrong.read-loop›
+        why       A program walking this list would hang, not crash.
+        look      nx
+        · how     The walk waits for null, and the loop never reaches one. Floyd's “tortoise and
+                  hare” spots a loop with two markers: one moves 1 arrow a step, the other 2, and
+                  they meet only if there is a loop.
+        · source  Knuth 1997, Vol. 2, §3.1, exercise 6
+
+   ▸ Chapter 5 of 5 · Right order
+     about     Swap the two writes. The new node copies 12's `next` first, so 48's address is saved.
+               Then 12 can safely point at it.
+     so far    Changing 12 first lost 3 nodes, and the walk never ends.
+     now       Rewind, and do the two writes in the other order.
+     done when 48's address is in two places before 12 changes, and nothing is lost.
+  17  Rewind to before the mistake: 12 still points at 48.   ‹right.rewind›
+        why       Same list, same new node. Only the order changes.
+        look      n1->n2
+        · how     42 is back at `0x7f3a_5a30` with `next` null, and nothing points at it yet.
+  18  ★ First, 42's `next` copies 12's. 48's address is now in two places.   ‹right.save-next›
+        why       The copy is the safety net: 12 can change without losing 48.
+        look      nx.next, nx->n2
+        · cost    Still 2 writes: the right order costs nothing extra.
+        · code    `new.next = prev.next` (line 14), before `prev.next = new`.
+  19  Then 12 points at 42. Every node can still be reached.   ‹right.link-prev›
+        look      n1->nx
+        · code    `prev.next = new` (line 15)
+  20  From head: 31 → 12 → 42 → 48 → 17 → 23. Save the old arrow before you change it.   ‹right.read›
+        look      head
+        · how     The walk ends at null again: no loop, and no node lost.
+
+   RECAP
+     1. Changing the old arrow first erased the only copy of the next address.
+     2. The new node then pointed at itself, and the rest of the list was lost.
+     3. In the right order the new node saves the address first. Nothing is lost.
+   TAKEAWAY  Before you overwrite an arrow, save where it pointed: point the new node onward first,
+             then point the old one at it.
+   CAN NOW   o-shift, o-order, o-cost
+
+SOURCES  (lesson.sources: 17)
+  [clrs4]  Cormen et al. 2022
+    ref       Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein. Introduction
+              to Algorithms, 4th edition, §10.2 Linked lists. MIT Press, 2022.
+    url       https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/
+    supports  insert after a known node in constant time, search by walking from the head, and the
+              sentinel that removes the empty-list special case
+  [knuth1]  Knuth 1997, Vol. 1
+    ref       Donald E. Knuth. The Art of Computer Programming, Vol. 1: Fundamental Algorithms, 3rd
+              edition, §2.2.3 Linked allocation. Addison-Wesley, 1997.
+    url       https://www-cs-faculty.stanford.edu/~knuth/taocp.html
+    supports  linked against sequential allocation: insertion without moving other items, and no
+              jump to the kth item
+  [knuth2]  Knuth 1997, Vol. 2
+    ref       Donald E. Knuth. The Art of Computer Programming, Vol. 2: Seminumerical Algorithms,
+              3rd edition, §3.1, exercise 6. Addison-Wesley, 1997.
+    url       https://www-cs-faculty.stanford.edu/~knuth/taocp.html
+    supports  Floyd's cycle-finding method: one marker moves one step, the other two
+  [stroustrup2012]  Stroustrup 2012
+    ref       Bjarne Stroustrup. Software Development for Infrastructure. IEEE Computer 45(1):47–58,
+              2012.
+    url       https://doi.org/10.1109/MC.2011.353
+    supports  inserting random numbers into a sorted sequence and removing them at random positions,
+              a vector beat a linked list for N “much larger than 500,000”; a list of 4-byte ints
+              takes 12 bytes per item with 4-byte links
+  [cpython-list]  CPython listobject.c
+    ref       The Python developers. CPython, Objects/listobject.c. CPython source, 2026.
+    url       https://github.com/python/cpython/blob/main/Objects/listobject.c
+    supports  list_resize over-allocates to newsize + newsize/8 + 6, rounded down to a multiple of
+              4; a list stores one pointer per item
+  [cpython-functools]  CPython functools.py
+    ref       The Python developers. CPython, Lib/functools.py: lru_cache. CPython source, 2026.
+    url       https://github.com/python/cpython/blob/main/Lib/functools.py
+    supports  the LRU cache keeps a circular doubly linked list, so a hit moves a node to the front
+              with a few pointer writes
+  [python-deque]  Python docs, collections.deque
+    ref       Python documentation. collections.deque. docs.python.org, 2026.
+    url       https://docs.python.org/3/library/collections.html#collections.deque
+    supports  indexed access is O(1) at both ends but slows to O(n) in the middle
+  [python-assign]  Python reference §7.2
+    ref       Python documentation. The Python Language Reference, §7.2 Assignment statements.
+              docs.python.org, 2026.
+    url       https://docs.python.org/3/reference/simple_stmts.html#assignment-statements
+    supports  the right-hand side is evaluated in full before any target is assigned
+  [linux-list]  Linux list.h
+    ref       The Linux kernel. Linux, include/linux/list.h. kernel source, 2026.
+    url       https://github.com/torvalds/linux/blob/master/include/linux/list.h
+    supports  __list_add: next->prev = new, new->next, new->prev, then WRITE_ONCE(prev->next, new);
+              a list_head is a sentinel in a circular list
+  [linux-rculist]  Linux rculist.h
+    ref       The Linux kernel. Linux, include/linux/rculist.h. kernel source, 2026.
+    url       https://github.com/torvalds/linux/blob/master/include/linux/rculist.h
+    supports  __list_add_rcu fills in new->next and new->prev, then rcu_assign_pointer(prev->next,
+              new)
+  [linux-mmap-min]  Linux docs, mmap_min_addr
+    ref       The Linux kernel documentation. Documentation for /proc/sys/vm: mmap_min_addr.
+              docs.kernel.org, 2026.
+    url       https://docs.kernel.org/admin-guide/sysctl/vm.html#mmap-min-addr
+    supports  user processes may not map the lowest pages, so a null dereference faults
+  [glibc-malloc]  glibc malloc.c
+    ref       The GNU C Library. glibc, malloc/malloc.c. glibc source, 2026.
+    url       https://sourceware.org/git/?p=glibc.git;a=blob;f=malloc/malloc.c
+    supports  minimum allocated size with 8-byte pointers: 24/32 bytes (32 with an 8-byte size
+              field)
+  [harris2001]  Harris 2001
+    ref       Timothy L. Harris. A pragmatic implementation of non-blocking linked-lists. DISC 2001,
+              LNCS 2180:300–314, 2001.
+    url       https://doi.org/10.1007/3-540-45414-4_21
+    supports  a lock-free list inserts with one compare-and-swap
+  [pugh1990]  Pugh 1990
+    ref       William Pugh. Skip lists: a probabilistic alternative to balanced trees.
+              Communications of the ACM 33(6):668–676, 1990.
+    url       https://doi.org/10.1145/78973.78977
+    supports  express lanes of extra links over a sorted linked list, so a search skips most nodes
+  [valgrind]  Valgrind Memcheck manual
+    ref       The Valgrind developers. Valgrind Memcheck manual, §4.2.10 Memory leak detection.
+              valgrind.org, 2026.
+    url       https://valgrind.org/docs/manual/mc-manual.html#mc-manual.leaks
+    supports  “definitely lost” blocks have no pointer to them; “indirectly lost” ones are pointed
+              to only from lost blocks
+  [gregg2020]  Gregg 2020
+    ref       Brendan Gregg. Systems Performance: Enterprise and the Cloud, 2nd edition.
+              Addison-Wesley, 2020.
+    url       https://www.brendangregg.com/systems-performance-2nd-edition-book.html
+    supports  Table 2.2, example latencies: main memory about 100 ns
+  [drepper2007]  Drepper 2007
+    ref       Ulrich Drepper. What Every Programmer Should Know About Memory. akkadia.org (Red Hat),
+              2007.
+    url       https://www.akkadia.org/drepper/cpumemory.pdf
+    supports  a dependent load that misses the cache waits on main memory; §3.3.2 measures it for
+              lists of scattered elements
+
+teaching checks  examples/linked-list/figure.mjs
+  info   level intro, 5 chapters, 3 questions, 5 defined words, 968 words, reading grade 3.9

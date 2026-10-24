@@ -1,0 +1,106 @@
+--- /home/ubuntu/tmp/explainer-perf/reader2/out/consistent-hashing-before.txt	2026-10-24 03:57:49.489037249 +0000
++++ /home/ubuntu/tmp/explainer-perf/reader2/out/consistent-hashing-after.txt	2026-10-24 04:10:15.837927321 +0000
+@@ -4,11 +4,14 @@
+ HOOK      Several servers share the keys. Add one more server: how many keys have to move?
+ GOAL      Share keys among servers so that a server joining or leaving moves only the keys it must.
+ OBJECTIVES
+-  o-mod: Compute roughly how many keys the remainder way moves when one more server joins.
++  o-mod: Compute roughly how many keys the remainder way moves when one more server joins. (add)
+   o-owner: Perform a lookup on the ring: find the server that stores a key, wrapping past the top.
+   o-add: Predict which keys move when a server joins the ring, and which server they come from.
++         (add)
+   o-leave: Explain where a leaving server's keys go, with one seat per server and with many.
++           (remove, vnodes)
+   o-even: Explain why one seat per server shares the ring unevenly, and how more seats even it out.
++          (vnodes)
+ PICTURE   guests around a round table
+   table   a round table whose seats are numbered all the way round  =  the hash ring: every number from 0 to 2^32 − 1  (ring)
+   seat    the seat a host's name points to  =  a server's position, the hash of its name  (hash)
+@@ -113,7 +116,7 @@
+         · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                   numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                   function the same way.
+-        · source  DeCandia et al. 2007, §4.1; Cassandra 2024
++        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+    4  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%. [arc: The stretch
+       of the circle from one server's seat back to the seat before it.]   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+@@ -238,7 +241,7 @@
+      4. The seats share the ring unevenly: the busiest server owns more than its fair share.
+    TAKEAWAY  On a ring, a new server takes only the keys just before its seats. The remainder way
+              moves more: on average N keys in N + 1.
+-   CAN NOW   o-mod, o-owner, o-add, o-leave, o-even
++   CAN NOW   o-mod, o-owner, o-add
+ 
+ ━━ Story 2 of 3 · A server leaves  (remove)  9 steps, 33 s at 1x
+    what if   What if… a server leaves
+@@ -261,7 +264,7 @@
+         · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                   numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                   function the same way.
+-        · source  DeCandia et al. 2007, §4.1; Cassandra 2024
++        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+    1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                   others.
+@@ -367,10 +370,10 @@
+    RECAP
+      1. Each key sits with the next server clockwise.
+      2. The leaving server's keys moved on to the next seat clockwise.
+-     3. No other key moved, but the servers that took them now own more of the ring.
++     3. No other key moved, and one server took them all: its share grew.
+    TAKEAWAY  When a server leaves, only its keys move, each to the next seat clockwise; with one
+              seat each, all land on one neighbour.
+-   CAN NOW   o-mod, o-owner, o-add, o-leave, o-even
++   CAN NOW   o-owner, o-leave
+ 
+ ━━ Story 3 of 3 · Many seats per server  (vnodes)  12 steps, 45 s at 1x
+    what if   What if… each server takes many seats
+@@ -394,7 +397,7 @@
+         · real    This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit
+                   numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash
+                   function the same way.
+-        · source  DeCandia et al. 2007, §4.1; Cassandra 2024
++        · source  DeCandia et al. 2007, §4.1; Cassandra docs, Dynamo
+    1  ★ Each server sits at its name's hash. The gaps differ: db03's arc is 49%.   ‹ring.seats›
+         why       Nobody picks the seats; the hash does, so some gaps come out far wider than
+                   others.
+@@ -521,7 +524,7 @@
+         · real    Cassandra 4.0 cut its default from 256 random seats per node to 16, placed by an
+                   allocator so they still spread evenly. With 256 random seats, every node shared
+                   data with so many others that losing a few nodes could make some data unavailable.
+-        · source  DeCandia et al. 2007, §6.2; Cassandra 2024; Cassandra 2020
++        · source  DeCandia et al. 2007, §6.2; Cassandra docs, Dynamo; CASSANDRA-13701
+ 
+    RECAP
+      1. A server's share is the sum of its arcs, and more seats make more, smaller arcs.
+@@ -529,7 +532,7 @@
+      3. Only the leaving server's keys moved on the leave.
+    TAKEAWAY  With many seats per server, the shares tend to even out, and a leaving server's keys
+              can spread over several neighbours.
+-   CAN NOW   o-mod, o-owner, o-add, o-leave, o-even
++   CAN NOW   o-owner, o-leave, o-even
+ 
+ SOURCES  (lesson.sources: 7)
+   [karger1997]  Karger et al. 1997
+@@ -553,12 +556,12 @@
+     supports  MD5 to a 128-bit identifier (§4.1), the ring and virtual nodes, and why: a failed
+               node's load spreads (§4.2), replication to the next N nodes (§4.3), adding and
+               removing nodes (§4.9), equal-size partitions balance best (§6.2)
+-  [cassandra-dynamo]  Cassandra 2024
++  [cassandra-dynamo]  Cassandra docs, Dynamo
+     ref       Apache Cassandra. Dynamo. Cassandra architecture documentation, 2024.
+     url       https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html
+     supports  Cassandra's techniques come from Dynamo; 256 random tokens coupled many endpoints and
+               raised the risk of unavailability; a token allocator needs far fewer
+-  [cassandra-13701]  Cassandra 2020
++  [cassandra-13701]  CASSANDRA-13701
+     ref       Apache Cassandra. CASSANDRA-13701: Lower default num_tokens. Cassandra issue tracker,
+               fixed in 4.0, 2020.
+     url       https://issues.apache.org/jira/browse/CASSANDRA-13701
+@@ -576,4 +579,4 @@
+               Dynamo to memcached
+ 
+ teaching checks  examples/consistent-hashing/figure.mjs
+-  info   level core, 6 chapters, 4 questions, 4 defined words, 1178 words, reading grade 4.5
++  info   level core, 6 chapters, 4 questions, 4 defined words, 1175 words, reading grade 4.5
