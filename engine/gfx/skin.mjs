@@ -722,7 +722,7 @@ export function skin(poses, dl, opts = {}) {
     if (r > num(d, 0)) p.dim = r;
     fn(p, dl, ctx);
     p.dim = d;
-    recede(dl, n0, r * SPOT.wash, PALETTE[ctx.theme].stage);
+    recede(dl, n0, r * SPOT.wash[ctx.theme], PALETTE[ctx.theme].stage);
   }
   return dl;
 }
