@@ -1,0 +1,32 @@
+== examples/btree/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 9 questions, 5 defined words, 1582 words, reading grade 4.7
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  2.1 s
+== examples/consistent-hashing/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 4 defined words, 1178 words, reading grade 4.5
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.3 s
+== examples/event-loop/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 4 chapters, 5 questions, 9 defined words, 1667 words, reading grade 5.9
+summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  2.8 s
+== examples/linked-list/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level intro, 5 chapters, 3 questions, 5 defined words, 972 words, reading grade 3.9
+summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  1.2 s
+== examples/mapreduce/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 5 questions, 8 defined words, 2147 words, reading grade 5.9
+summary  34 run(s), 0 failing, 0 error(s), 0 warning(s)  4.2 s
+== examples/quicksort/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 4 questions, 3 defined words, 1992 words, reading grade 5.4
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  1.2 s
+== examples/raft/figure.mjs
+        warn   caption: at other settings: 8 captions over 18 words (longest 38, crash · phone · all max, step 88: "s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refus…")
+        info   level core, 6 chapters, 6 questions, 9 defined words, 1747 words, reading grade 5.8
+summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  4.5 s
+== examples/virtual-memory/figure.mjs
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 12 defined words, 1093 words, reading grade 5.8
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.5 s

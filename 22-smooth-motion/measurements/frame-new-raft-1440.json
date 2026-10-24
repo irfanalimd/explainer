@@ -1,0 +1,179 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/smooth/pages/new-raft.html",
+ "size": "1440x900@2",
+ "stub": true,
+ "backend": "webgl2",
+ "step": [
+  4,
+  8,
+  0
+ ],
+ "frames": 668,
+ "secs": 10,
+ "fps": 66.8,
+ "jsMs": {
+  "median": 0.4,
+  "p95": 0.5,
+  "max": 7.2
+ },
+ "renderMs": {
+  "median": 0,
+  "p95": 0
+ },
+ "restMs": {
+  "median": 0.4,
+  "p95": 0.5,
+  "max": 7.2
+ },
+ "longFramesPer10s": 0,
+ "gapMs": {
+  "median": 16.7,
+  "p95": 16.7,
+  "max": 16.8
+ },
+ "metrics": {
+  "LayoutCount": 24,
+  "RecalcStyleCount": 349,
+  "LayoutDuration": 0.0159,
+  "RecalcStyleDuration": 0.1179,
+  "ScriptDuration": 0.2985,
+  "TaskDuration": 0.873,
+  "JSHeapUsedSize": 694372,
+  "JSHeapTotalSize": 524288,
+  "Nodes": 501
+ },
+ "layoutsPerFrame": 0.04,
+ "stylesPerFrame": 0.52,
+ "longest": [
+  {
+   "i": 626,
+   "js": 7.2,
+   "render": 0,
+   "step": 8,
+   "prevStep": 7,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 7,
+   "js": 7,
+   "render": 0,
+   "step": 5,
+   "prevStep": 4,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 317,
+   "js": 7,
+   "render": 0,
+   "step": 7,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 44,
+   "js": 6.1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 487,
+   "js": 1,
+   "render": 0,
+   "step": 7,
+   "prevStep": 7,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 82,
+   "js": 0.9,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 39,
+   "js": 0.8,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 31,
+   "js": 0.7,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 0,
+   "js": 0.6,
+   "render": 0,
+   "step": 4,
+   "prevStep": null,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 9,
+   "js": 0.6,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 46,
+   "js": 0.6,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 48,
+   "js": 0.6,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  }
+ ],
+ "raster": {
+  "n": 0,
+  "totalMs": 0,
+  "median": null,
+  "p95": null,
+  "max": null,
+  "texels": null
+ },
+ "loaf": [],
+ "errors": []
+}

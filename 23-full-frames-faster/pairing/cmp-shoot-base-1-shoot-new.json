@@ -1,0 +1,988 @@
+[
+ {
+  "f": "contact.png",
+  "r": {
+   "same": false,
+   "pixels": 4,
+   "share": 2.504508114606291e-7,
+   "big": 0,
+   "max": 2,
+   "box": [
+    192,
+    7215,
+    282,
+    7220
+   ]
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-1440x900-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-dark-390x844-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-1440x900-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "crash-light-390x844-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-011-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-016-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-019-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-020-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-023-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-1440x900-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-001-end.png",
+  "r": {
+   "same": false,
+   "pixels": 23,
+   "share": 0.00006987483290800826,
+   "big": 0,
+   "max": 8,
+   "box": [
+    33,
+    787,
+    323,
+    806
+   ]
+  }
+ },
+ {
+  "f": "happy-dark-390x844-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-011-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-016-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-019-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-020-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-023-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-dark-390x844-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-011-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-016-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-019-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-020-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-023-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-1440x900-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-011-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-016-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-019-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-020-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-023-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "happy-light-390x844-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-001-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-013-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-027-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-1440x900-029-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-001-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-013-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-027-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-dark-390x844-029-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-001-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-013-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-027-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-1440x900-029-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-001-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-004-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-005-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-013-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-024-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-027-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "skew-light-390x844-029-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-1440x900-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-dark-390x844-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-1440x900-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-000-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-001-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-005-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-008-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-014-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-019-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-022-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-023-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-025-mid.png",
+  "r": {
+   "same": "bytes"
+  }
+ },
+ {
+  "f": "straggler-light-390x844-026-end.png",
+  "r": {
+   "same": "bytes"
+  }
+ }
+]

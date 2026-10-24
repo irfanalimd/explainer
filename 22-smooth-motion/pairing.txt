@@ -1,0 +1,24 @@
+Frames unchanged: #20's build (fix/render-original-look, a1f1f8c) against this branch (perf/smooth-motion), shot with
+this branch's shoot.mjs on this machine (WebGL2 on SwiftShader). pngcmp.mjs: decoded RGBA compared.
+
+MapReduce, every story, both themes, 1440x900 and 390x844 (shoot --scenario all)
+  phase: 160 paired, 159 byte-identical, 1 differ
+    happy-dark-390x844-000-mid.png  23 px (0.01 %), max 8/255, in the dock's text (y 787-806)
+  The one: re-shot both builds' happy story at 390x844 dark.
+    #20 second run vs this branch (both runs): 10 / 10 byte-identical
+    #20 second run vs #20 first run: that same shot differs by the same 23 px
+  -> #20's first run was the odd one (the first frame's known flakiness, as in rounds 3 and 4). 160 / 160.
+
+Raft, first story, both themes, both sizes
+  phase: 24 paired, 24 byte-identical
+
+Live camera at fixed timestamps (renderAt from 0.28 to 0.39 of the run in 10 steps, the director easing between them),
+pointer resting over the world, 1440x900
+  10 paired, 10 byte-identical; the hover pick's answers the same in both: [null, r0, r0, null, r0, r0, r0, r0, r0, r0]
+
+Prepick against the synchronous pick (pickcheck.mjs), 3 frozen frames x 300 points at quarter-pixel positions
+  900 / 900 the same id; 886 answered through the prepick; 127 points over a slab
+  a moved point falls back: yes; a new frame falls back: yes
+
+Distance field (edtbench.mjs, 4 string sizes): checksum 3057099134 before and after; the gfx test compares every
+double with the strided transform as first written, on 6 sizes with flat lines and reused scratch.

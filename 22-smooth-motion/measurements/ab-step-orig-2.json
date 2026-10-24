@@ -1,0 +1,268 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/render/pages/r0-9c8b16d.html",
+ "size": "1440x900@2",
+ "steps": 25,
+ "changes": 74,
+ "stepChangeMs": {
+  "median": 6.8,
+  "p95": 10,
+  "max": 11.2,
+  "mean": 7.02
+ },
+ "perChange": {
+  "layouts": 4.72,
+  "layoutMs": 3.12,
+  "styles": 6.55,
+  "styleMs": 6.22,
+  "scriptMs": 4.47
+ },
+ "otherFrameMs": {
+  "median": 0.1,
+  "p95": 2.1
+ },
+ "gcMsPerChange": 0.33,
+ "selfMsPerChange": [
+  [
+   3.89,
+   "fit [data:text/javascript;bas]"
+  ],
+  [
+   1.15,
+   "getBoundingClientRect []"
+  ],
+  [
+   0.41,
+   "placeTags [data:text/javascript;bas]"
+  ],
+  [
+   0.4,
+   "fitLabels [data:text/javascript;bas]"
+  ],
+  [
+   0.3,
+   "grouped [data:text/javascript;bas]"
+  ],
+  [
+   0.22,
+   "(anon) []"
+  ],
+  [
+   0.19,
+   "replaceChildren []"
+  ],
+  [
+   0.18,
+   "renderFrame [data:text/javascript;bas]"
+  ],
+  [
+   0.17,
+   "sample [data:text/javascript;bas]"
+  ],
+  [
+   0.15,
+   "h [data:text/javascript;bas]"
+  ],
+  [
+   0.15,
+   "fitStats [data:text/javascript;bas]"
+  ],
+  [
+   0.14,
+   "build [data:text/javascript;bas]"
+  ],
+  [
+   0.1,
+   "renderMeterValue [data:text/javascript;bas]"
+  ],
+  [
+   0.09,
+   "skin [data:text/javascript;bas]"
+  ],
+  [
+   0.09,
+   "requestAnimationFrame []"
+  ],
+  [
+   0.09,
+   "update [data:text/javascript;bas]"
+  ],
+  [
+   0.09,
+   "setAttribute []"
+  ],
+  [
+   0.09,
+   "over [data:text/javascript;bas]"
+  ],
+  [
+   0.07,
+   "createElement []"
+  ],
+  [
+   0.07,
+   "append []"
+  ],
+  [
+   0.07,
+   "render [data:text/javascript;bas]"
+  ],
+  [
+   0.06,
+   "node [data:text/javascript;bas]"
+  ],
+  [
+   0.06,
+   "tileLike [data:text/javascript;bas]"
+  ],
+  [
+   0.06,
+   "housing [data:text/javascript;bas]"
+  ],
+  [
+   0.06,
+   "renderSparks [data:text/javascript;bas]"
+  ],
+  [
+   0.05,
+   "basePose [data:text/javascript;bas]"
+  ],
+  [
+   0.05,
+   "at [data:text/javascript;bas]"
+  ],
+  [
+   0.05,
+   "(anon) [data:text/javascript;bas]"
+  ],
+  [
+   0.05,
+   "placeThumb [data:text/javascript;bas]"
+  ],
+  [
+   0.05,
+   "bus [data:text/javascript;bas]"
+  ]
+ ],
+ "totalMsPerChange": [
+  [
+   9.53,
+   "(anon) []"
+  ],
+  [
+   8.68,
+   "tick [data:text/javascript;bas]"
+  ],
+  [
+   8.65,
+   "renderFrame [data:text/javascript;bas]"
+  ],
+  [
+   5.98,
+   "update [data:text/javascript;bas]"
+  ],
+  [
+   4.82,
+   "render [data:text/javascript;bas]"
+  ],
+  [
+   4.51,
+   "step [data:text/javascript;bas]"
+  ],
+  [
+   4,
+   "fit [data:text/javascript;bas]"
+  ],
+  [
+   1.56,
+   "placeTags [data:text/javascript;bas]"
+  ],
+  [
+   1.15,
+   "getBoundingClientRect []"
+  ],
+  [
+   1.13,
+   "readObstacles [data:text/javascript;bas]"
+  ],
+  [
+   0.89,
+   "(anon) [data:text/javascript;bas]"
+  ],
+  [
+   0.55,
+   "build [data:text/javascript;bas]"
+  ],
+  [
+   0.51,
+   "onResize [data:text/javascript;bas]"
+  ],
+  [
+   0.51,
+   "skin [data:text/javascript;bas]"
+  ],
+  [
+   0.48,
+   "onStep [data:text/javascript;bas]"
+  ],
+  [
+   0.44,
+   "fitLabels [data:text/javascript;bas]"
+  ],
+  [
+   0.43,
+   "countLoop [data:text/javascript;bas]"
+  ],
+  [
+   0.36,
+   "resize [data:text/javascript;bas]"
+  ],
+  [
+   0.33,
+   "sample [data:text/javascript;bas]"
+  ],
+  [
+   0.32,
+   "formatCounter [data:text/javascript;bas]"
+  ],
+  [
+   0.32,
+   "renderMeterValue [data:text/javascript;bas]"
+  ],
+  [
+   0.3,
+   "grouped [data:text/javascript;bas]"
+  ],
+  [
+   0.28,
+   "h [data:text/javascript;bas]"
+  ],
+  [
+   0.19,
+   "replaceChildren []"
+  ],
+  [
+   0.17,
+   "toDOM [data:text/javascript;bas]"
+  ],
+  [
+   0.16,
+   "renderSummary [data:text/javascript;bas]"
+  ],
+  [
+   0.15,
+   "fitStats [data:text/javascript;bas]"
+  ],
+  [
+   0.15,
+   "appendAll [data:text/javascript;bas]"
+  ],
+  [
+   0.15,
+   "housing [data:text/javascript;bas]"
+  ],
+  [
+   0.14,
+   "setCaption [data:text/javascript;bas]"
+  ]
+ ]
+}

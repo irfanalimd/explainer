@@ -1,0 +1,179 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/smooth/pages/new-mapreduce.html",
+ "size": "1440x900@2",
+ "stub": true,
+ "backend": "webgl2",
+ "step": [
+  5,
+  7,
+  1
+ ],
+ "frames": 698,
+ "secs": 10,
+ "fps": 69.8,
+ "jsMs": {
+  "median": 0.5,
+  "p95": 0.7,
+  "max": 18.8
+ },
+ "renderMs": {
+  "median": 0,
+  "p95": 0
+ },
+ "restMs": {
+  "median": 0.5,
+  "p95": 0.7,
+  "max": 18.8
+ },
+ "longFramesPer10s": 1,
+ "gapMs": {
+  "median": 16.7,
+  "p95": 16.7,
+  "max": 16.8
+ },
+ "metrics": {
+  "LayoutCount": 43,
+  "RecalcStyleCount": 470,
+  "LayoutDuration": 0.0236,
+  "RecalcStyleDuration": 0.1805,
+  "ScriptDuration": 0.3769,
+  "TaskDuration": 1.0395,
+  "JSHeapUsedSize": 964012,
+  "JSHeapTotalSize": 1572864,
+  "Nodes": 911
+ },
+ "layoutsPerFrame": 0.06,
+ "stylesPerFrame": 0.67,
+ "longest": [
+  {
+   "i": 96,
+   "js": 18.8,
+   "render": 0,
+   "step": 6,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 477,
+   "js": 11.1,
+   "render": 0,
+   "step": 7,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 85,
+   "js": 9.9,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "chapter",
+   "gapBefore": 0
+  },
+  {
+   "i": 19,
+   "js": 3.1,
+   "render": 0.1,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 98,
+   "js": 2.6,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 15,
+   "js": 2.1,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 339,
+   "js": 1.6,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 21,
+   "js": 1.2,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 107,
+   "js": 1.1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 169,
+   "js": 1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 204,
+   "js": 1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 17,
+   "js": 0.8,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  }
+ ],
+ "raster": {
+  "n": 0,
+  "totalMs": 0,
+  "median": null,
+  "p95": null,
+  "max": null,
+  "texels": null
+ },
+ "loaf": [],
+ "errors": []
+}

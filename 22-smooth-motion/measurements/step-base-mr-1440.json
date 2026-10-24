@@ -1,0 +1,268 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/smooth/pages/base-mapreduce.html",
+ "size": "1440x900@2",
+ "steps": 25,
+ "changes": 74,
+ "stepChangeMs": {
+  "median": 11.7,
+  "p95": 26.6,
+  "max": 35.3,
+  "mean": 13.02
+ },
+ "perChange": {
+  "layouts": 4.18,
+  "layoutMs": 4.92,
+  "styles": 5.55,
+  "styleMs": 11.73,
+  "scriptMs": 7.45
+ },
+ "otherFrameMs": {
+  "median": 0,
+  "p95": 2.5
+ },
+ "gcMsPerChange": 0.54,
+ "selfMsPerChange": [
+  [
+   7.87,
+   "fit [data:text/javascript,imp]"
+  ],
+  [
+   1.34,
+   "getBoundingClientRect []"
+  ],
+  [
+   0.86,
+   "fitLabels [data:text/javascript,imp]"
+  ],
+  [
+   0.62,
+   "placeTags [data:text/javascript,imp]"
+  ],
+  [
+   0.47,
+   "grouped [countsFromZero]"
+  ],
+  [
+   0.42,
+   "(anon) []"
+  ],
+  [
+   0.27,
+   "replaceChildren []"
+  ],
+  [
+   0.25,
+   "skin [bezier]"
+  ],
+  [
+   0.24,
+   "renderMeterValue [data:text/javascript,imp]"
+  ],
+  [
+   0.23,
+   "build [createScene]"
+  ],
+  [
+   0.19,
+   "h [data:text/javascript,imp]"
+  ],
+  [
+   0.19,
+   "fitStats [data:text/javascript,imp]"
+  ],
+  [
+   0.18,
+   "setAttribute []"
+  ],
+  [
+   0.17,
+   "tick [data:text/javascript,imp]"
+  ],
+  [
+   0.16,
+   "update [data:text/javascript,imp]"
+  ],
+  [
+   0.16,
+   "field [bezier]"
+  ],
+  [
+   0.14,
+   "requestAnimationFrame []"
+  ],
+  [
+   0.14,
+   "setItem []"
+  ],
+  [
+   0.13,
+   "renderFrame [data:text/javascript,imp]"
+  ],
+  [
+   0.12,
+   "rect [data:text/javascript,imp]"
+  ],
+  [
+   0.12,
+   "(anon) [data:text/javascript,imp]"
+  ],
+  [
+   0.12,
+   "render [data:text/javascript,imp]"
+  ],
+  [
+   0.12,
+   "sample [createSampler]"
+  ],
+  [
+   0.11,
+   "setHeld [data:text/javascript,imp]"
+  ],
+  [
+   0.11,
+   "placeThumb [data:text/javascript,imp]"
+  ],
+  [
+   0.1,
+   "renderSparks [data:text/javascript,imp]"
+  ],
+  [
+   0.1,
+   "append []"
+  ],
+  [
+   0.1,
+   "housing [bezier]"
+  ],
+  [
+   0.09,
+   "remove []"
+  ],
+  [
+   0.09,
+   "clearTimeout []"
+  ]
+ ],
+ "totalMsPerChange": [
+  [
+   16.65,
+   "(anon) []"
+  ],
+  [
+   15.32,
+   "tick [data:text/javascript,imp]"
+  ],
+  [
+   15.14,
+   "renderFrame [data:text/javascript,imp]"
+  ],
+  [
+   10.76,
+   "update [data:text/javascript,imp]"
+  ],
+  [
+   9.19,
+   "render [data:text/javascript,imp]"
+  ],
+  [
+   8.74,
+   "step [data:text/javascript,imp]"
+  ],
+  [
+   8.02,
+   "fit [data:text/javascript,imp]"
+  ],
+  [
+   2.03,
+   "placeTags [data:text/javascript,imp]"
+  ],
+  [
+   1.34,
+   "readObstacles [data:text/javascript,imp]"
+  ],
+  [
+   1.34,
+   "getBoundingClientRect []"
+  ],
+  [
+   1.15,
+   "(anon) [data:text/javascript,imp]"
+  ],
+  [
+   0.99,
+   "update [createScene]"
+  ],
+  [
+   0.96,
+   "onStep [data:text/javascript,imp]"
+  ],
+  [
+   0.89,
+   "fitLabels [data:text/javascript,imp]"
+  ],
+  [
+   0.83,
+   "skin [bezier]"
+  ],
+  [
+   0.81,
+   "onResize [data:text/javascript,imp]"
+  ],
+  [
+   0.59,
+   "countLoop [data:text/javascript,imp]"
+  ],
+  [
+   0.58,
+   "resize [data:text/javascript,imp]"
+  ],
+  [
+   0.55,
+   "build [createScene]"
+  ],
+  [
+   0.51,
+   "renderMeterValue [data:text/javascript,imp]"
+  ],
+  [
+   0.48,
+   "formatCounter [countsFromZero]"
+  ],
+  [
+   0.47,
+   "grouped [countsFromZero]"
+  ],
+  [
+   0.32,
+   "build [createLayers]"
+  ],
+  [
+   0.31,
+   "renderSummary [createScene]"
+  ],
+  [
+   0.3,
+   "h [data:text/javascript,imp]"
+  ],
+  [
+   0.27,
+   "replaceChildren []"
+  ],
+  [
+   0.25,
+   "renderSparks [data:text/javascript,imp]"
+  ],
+  [
+   0.25,
+   "(anon) [createScene]"
+  ],
+  [
+   0.24,
+   "setCaption [data:text/javascript,imp]"
+  ],
+  [
+   0.23,
+   "rect [data:text/javascript,imp]"
+  ]
+ ]
+}

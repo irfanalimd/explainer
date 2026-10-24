@@ -1,0 +1,139 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/smooth/pages/base-mapreduce.html",
+ "size": "1440x900@2",
+ "changes": 50,
+ "perChange": {
+  "styleMs": 3.64,
+  "styles": 1.62,
+  "layoutMs": 2.06,
+  "layouts": 1.3
+ },
+ "rows": [
+  {
+   "k": "UpdateLayoutTree: fit < render < step",
+   "perChange": 1.06,
+   "n": 0.32,
+   "elements": 143
+  },
+  {
+   "k": "Layout: fit < render < step",
+   "perChange": 0.95,
+   "n": 0.32,
+   "elements": 122
+  },
+  {
+   "k": "UpdateLayoutTree: (frame end: not forced)",
+   "perChange": 0.82,
+   "n": 0.56,
+   "elements": 68
+  },
+  {
+   "k": "UpdateLayoutTree: placeTags < renderFrame < tick",
+   "perChange": 0.67,
+   "n": 0.24,
+   "elements": 43
+  },
+  {
+   "k": "Layout: placeTags < renderFrame < tick",
+   "perChange": 0.38,
+   "n": 0.24,
+   "elements": 19
+  },
+  {
+   "k": "UpdateLayoutTree: readObstacles < placeTags < renderFrame",
+   "perChange": 0.37,
+   "n": 0.18,
+   "elements": 31
+  },
+  {
+   "k": "Layout: (frame end: not forced)",
+   "perChange": 0.37,
+   "n": 0.48,
+   "elements": 54
+  },
+  {
+   "k": "UpdateLayoutTree: placeStories < updateInsets < onResize",
+   "perChange": 0.21,
+   "n": 0.08,
+   "elements": 8
+  },
+  {
+   "k": "UpdateLayoutTree: fitStats < (anon)",
+   "perChange": 0.14,
+   "n": 0.1,
+   "elements": 17
+  },
+  {
+   "k": "UpdateLayoutTree: fitLabels < onStep < update",
+   "perChange": 0.13,
+   "n": 0.04,
+   "elements": 58
+  },
+  {
+   "k": "Layout: placeStories < updateInsets < onResize",
+   "perChange": 0.11,
+   "n": 0.08,
+   "elements": 11
+  },
+  {
+   "k": "UpdateLayoutTree: fit < render < resize",
+   "perChange": 0.1,
+   "n": 0.04,
+   "elements": 98
+  },
+  {
+   "k": "UpdateLayoutTree: placeThumb < placeStories < updateInsets",
+   "perChange": 0.08,
+   "n": 0.02,
+   "elements": 22
+  },
+  {
+   "k": "Layout: fitLabels < onStep < update",
+   "perChange": 0.07,
+   "n": 0.04,
+   "elements": 13
+  },
+  {
+   "k": "Layout: readObstacles < placeTags < renderFrame",
+   "perChange": 0.07,
+   "n": 0.04,
+   "elements": 16
+  },
+  {
+   "k": "Layout: fit < render < resize",
+   "perChange": 0.06,
+   "n": 0.04,
+   "elements": 80
+  },
+  {
+   "k": "UpdateLayoutTree: resize < onResize < (anon)",
+   "perChange": 0.03,
+   "n": 0.02,
+   "elements": 10
+  },
+  {
+   "k": "Layout: placeThumb < placeStories < updateInsets",
+   "perChange": 0.03,
+   "n": 0.02,
+   "elements": 19
+  },
+  {
+   "k": "UpdateLayoutTree: over < fit < render",
+   "perChange": 0.02,
+   "n": 0.02,
+   "elements": 1
+  },
+  {
+   "k": "Layout: resize < onResize < (anon)",
+   "perChange": 0.01,
+   "n": 0.02,
+   "elements": 10
+  },
+  {
+   "k": "Layout: over < fit < render",
+   "perChange": 0.01,
+   "n": 0.02,
+   "elements": 7
+  }
+ ]
+}

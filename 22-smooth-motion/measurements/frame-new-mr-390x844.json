@@ -1,0 +1,209 @@
+{
+ "page": "/home/ubuntu/tmp/explainer-perf/smooth/pages/new-mapreduce.html",
+ "size": "390x844@2",
+ "stub": true,
+ "backend": "webgl2",
+ "step": [
+  5,
+  7,
+  1
+ ],
+ "frames": 677,
+ "secs": 10,
+ "fps": 67.7,
+ "jsMs": {
+  "median": 0.5,
+  "p95": 0.7,
+  "max": 9.1
+ },
+ "renderMs": {
+  "median": 0,
+  "p95": 0
+ },
+ "restMs": {
+  "median": 0.5,
+  "p95": 0.7,
+  "max": 9.1
+ },
+ "longFramesPer10s": 0,
+ "gapMs": {
+  "median": 16.7,
+  "p95": 16.7,
+  "max": 50
+ },
+ "metrics": {
+  "LayoutCount": 37,
+  "RecalcStyleCount": 384,
+  "LayoutDuration": 0.0144,
+  "RecalcStyleDuration": 0.1946,
+  "ScriptDuration": 0.3709,
+  "TaskDuration": 0.9887,
+  "JSHeapUsedSize": 1708596,
+  "JSHeapTotalSize": 786432,
+  "Nodes": 329
+ },
+ "layoutsPerFrame": 0.05,
+ "stylesPerFrame": 0.57,
+ "longest": [
+  {
+   "i": 60,
+   "js": 9.1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 58,
+   "js": 6.4,
+   "render": 0,
+   "step": 6,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 53,
+   "js": 4.4,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "chapter",
+   "gapBefore": 0
+  },
+  {
+   "i": 457,
+   "js": 4.1,
+   "render": 0,
+   "step": 7,
+   "prevStep": 7,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  },
+  {
+   "i": 437,
+   "js": 3.5,
+   "render": 0,
+   "step": 7,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 39,
+   "js": 1.8,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 51,
+   "js": 1.2,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "chapter",
+   "gapBefore": 0
+  },
+  {
+   "i": 25,
+   "js": 1.1,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 1,
+   "js": 1,
+   "render": 0,
+   "step": 5,
+   "prevStep": 5,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 65,
+   "js": 1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 0
+  },
+  {
+   "i": 134,
+   "js": 1,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.6
+  },
+  {
+   "i": 135,
+   "js": 0.9,
+   "render": 0,
+   "step": 6,
+   "prevStep": 6,
+   "card": 0,
+   "held": "",
+   "gapBefore": 16.7
+  }
+ ],
+ "raster": {
+  "n": 0,
+  "totalMs": 0,
+  "median": null,
+  "p95": null,
+  "max": null,
+  "texels": null
+ },
+ "loaf": [
+  {
+   "d": 58.200000047683716,
+   "b": 0,
+   "style": 41.800000071525574,
+   "scripts": [
+    [
+     "ResizeObserverCallback",
+     19,
+     18
+    ]
+   ]
+  },
+  {
+   "d": 65.10000002384186,
+   "b": 0.3,
+   "style": 43.5,
+   "scripts": [
+    [
+     "FrameRequestCallback",
+     6,
+     3.4
+    ],
+    [
+     "ResizeObserverCallback",
+     19,
+     18.6
+    ]
+   ]
+  }
+ ],
+ "errors": []
+}
