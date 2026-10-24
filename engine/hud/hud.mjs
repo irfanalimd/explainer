@@ -25,6 +25,7 @@ import { createNudge, beliefBlock } from "./nudge.mjs";
 import { createPresenter, presentQuery } from "./presenter.mjs";
 import { createShare } from "./share.mjs";
 import { composeStill, stillName } from "./still.mjs";
+import { createGuide, cueOf } from "./guide.mjs";
 
 export { applyTheme, parseHash, formatHash };
 
@@ -229,6 +230,7 @@ export function createHud(root, opts = {}, cb = {}) {
   let guided = store.get("guided") !== "0";
   let folding = store.get("fold") !== "0";   // "Speed through repeats" (fold.mjs, engine/playback.mjs)
   let charKeys = store.get("keys") !== "0";  // single-character shortcuts (WCAG 2.1.4: a viewer can turn them off)
+  let hints = store.get("hints") !== "0";    // the ring on what to do next (guide.mjs) and the one-time coach hints
   // the reader's level (level.mjs): what the explain panel, the caption and the predict card show
   const level = createLevel({ store, key: figKey(), meta: S.meta, onChange: (v) => {
     explain.refresh(true);
@@ -570,7 +572,12 @@ export function createHud(root, opts = {}, cb = {}) {
     "aria-describedby": uid("fold-help"), onclick: () => setFolding(!folding) });
   const keysSw = h("button", { class: "ix-switch", id: uid("keys"), type: "button", role: "switch", "aria-checked": String(charKeys),
     "aria-describedby": uid("keys-help"), onclick: () => setCharKeys(!charKeys) });
+  const hintsSw = h("button", { class: "ix-switch", id: uid("hints"), type: "button", role: "switch", "aria-checked": String(hints),
+    "aria-describedby": uid("hints-help"), onclick: () => setHints(!hints) });
   prefs.append(
+    h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
+      h("label", { class: "ix-knob-label", for: hintsSw.id, text: "Hints" }), hintsSw)),
+    h("p", { class: "ix-knob-help", id: uid("hints-help"), text: "A soft ring shows what to do next: Play, Continue or an answer to pick." }),
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: foldSw.id, text: "Speed through repeats" }), foldSw)),
     h("p", { class: "ix-knob-help", id: uid("fold-help"), text: "Once a step has played twice, its repeats play faster." }),
@@ -590,6 +597,13 @@ export function createHud(root, opts = {}, cb = {}) {
       h("label", { class: "ix-knob-label", for: presentSw.id, text: "Presenter mode" }), presentSw)),
     h("p", { class: "ix-knob-help", id: uid("present-help"), text: "Big type and high contrast for a projector. A clicker steps through it: → or Page Down goes on, ← or Page Up goes back. P turns it on and off." }),
     h("div", { class: "ix-present-actions" }, presentView, presentHandout));
+  function setHints(on) {
+    hints = !!on;
+    hintsSw.setAttribute("aria-checked", String(hints));
+    store.set("hints", hints ? "1" : "0");
+    if (!hints) hideCoach();
+    syncCue();
+  }
   function setCharKeys(on) {
     charKeys = !!on;
     keysSw.setAttribute("aria-checked", String(charKeys));
@@ -1074,6 +1088,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function setOpen(el, open) {
     el.classList.toggle("ix-open", open);
     if (open) el.removeAttribute("inert"); else el.setAttribute("inert", "");
+    syncCue();
   }
   function syncSheets() {
     obstaclesDirty = true;
@@ -1521,7 +1536,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // ---------- coach hints: small one-time pointers, each shown once and remembered ----------
   let coachName = null, coachTimer = 0;
   function hint(name, text, at, o = {}) {
-    if (coachName || introOpen || helpOpen || S.held || Q.q || capturing() || destroyed || store.get(`hint:${name}`)) return false;
+    if (!hints || coachName || introOpen || helpOpen || S.held || Q.q || capturing() || destroyed || store.get(`hint:${name}`)) return false;
     const pt = typeof at === "function" ? at() : at;
     if (!pt) return false;
     store.set(`hint:${name}`, "1");
@@ -1610,6 +1625,7 @@ export function createHud(root, opts = {}, cb = {}) {
   // an open question is the one way on: the transport says so rather than offer a Play that would only stop again
   // (syncAsk keeps this in step with the predict card and the pick)
   let askingNow = false, checkingNow = false;
+  let played = false, cueReady = false;   // the guide's: anything played yet this visit; the HUD fully built
   function renderPlay() {
     const hv = S.playing ? null : S.held;
     const after = hv?.kind === "end" ? storyAfter() : null, ask = !hv && !S.playing && askingNow;
@@ -1640,6 +1656,32 @@ export function createHud(root, opts = {}, cb = {}) {
     // a pause has one way on: Continue (or Replay at the end), so Next steps aside rather than say it twice
     fwdBtn.hidden = !!hv || ask;
     root.classList.toggle("ix-playing", S.playing);
+    if (S.playing) played = true;
+    syncCue();
+  }
+
+  // ---------- the next thing to do: one ring on the control that moves the reader on (guide.mjs) ----------
+  // the way on inside the question card: the check's Next question or its Predict button, else the options still
+  // open (ringed as one group), else the in-world picks' list
+  const answerEls = () => {
+    if (!predict.classList.contains("ix-open")) return null;
+    const on = predict.querySelector(".ix-check-actions .ix-pill") ?? predict.querySelector(".ix-predict-ponder .ix-pill");
+    if (on) return on;
+    const opts = predict.querySelector(".ix-opts:not([hidden])");
+    if (opts && !predict.classList.contains("ix-locked") && opts.querySelector(".ix-opt:not([aria-disabled])")) return opts;
+    return predict.querySelector(".ix-turn-picks:has(button.ix-turn-pick)");
+  };
+  const guide = createGuide({ win, reduced: () => still(),
+    target: (id) => (id === "next" ? fwdBtn : id === "answer" || id === "check" ? answerEls() : playBtn) });
+  function syncCue() {
+    if (!cueReady || destroyed) return;
+    const q = predict.querySelector(".ix-predict-q")?.textContent ?? "";
+    guide.set(cueOf({
+      on: hints, capture: capturing(), presenting: presenter.on, intro: introOpen, scrubbing,
+      overlay: helpOpen || drawerOpen || shareOpen || menuOpen || storyOpen || handout.isOpen,
+      playing: S.playing, held: S.held, after: !!storyAfter(), asking: askingNow, checking: checkingNow,
+      stepMode: S.stepMode, atStart: !played && S.time <= 0.001, step: `${S.step}${q ? `:${q}` : ""}`, phase: S.held?.phase ?? -1,
+    }));
   }
   function togglePlay() {
     if (S.held?.kind === "turn" && !S.playing) { heldAction(); return; }
@@ -2396,6 +2438,7 @@ export function createHud(root, opts = {}, cb = {}) {
     root.classList.toggle("ix-ask-docked", docked);
     obstaclesDirty = true;
     updateInsets();
+    syncCue();
   }
   let keyboardMode = false;
   on(win, "keydown", (e) => {
@@ -3248,6 +3291,7 @@ export function createHud(root, opts = {}, cb = {}) {
     fold.update({ fold: info.fold ?? null, skipped: info.skipped ?? null, duration: S.detour ? S.span : info.duration ?? S.duration });
     if (moved && (playing || scrubbing)) scheduleHash(false);
     presenter.update();
+    syncCue();
     // embedding marks the root after the HUD exists (engine/embed): the dock takes its one-row form then
     if (root.classList.contains("ix-embed") !== S.embedded) onResize();
   }
@@ -3258,6 +3302,7 @@ export function createHud(root, opts = {}, cb = {}) {
   buildKnobs();
   buildCode();
   buildMeters();
+  cueReady = true;
   renderPlay();
   renderSpeed();
   setTheme(S.theme);
