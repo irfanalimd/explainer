@@ -732,6 +732,9 @@ export async function mount(root, figure, options = {}) {
   // A link to a moment opens on that step, and the start card says so, even for a reader who has seen it before.
   let query = null;
   try { query = new URLSearchParams(location.search); } catch { /* no location */ }
+  // ?spot=off|subtle|clear (or a strength from 0 to 1) sets the spotlight, for comparing looks
+  const sq = query?.get("spot");
+  if (options.spotlight == null && sq != null) spotlight = { off: 0, subtle: SPOT.recede, clear: 0.85 }[sq] ?? Math.max(0, Math.min(1, Number(sq) || 0));
   const q = query?.get("autoplay");
   const autoplay = options.autoplay ?? (q != null ? !/^(0|false|no)$/i.test(q) : false);
   if (autoplay) { playing = true; if (arrival.notes.length) hud.notice?.(arrival.notes.join(" ")); }
