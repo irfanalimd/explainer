@@ -1186,6 +1186,8 @@
 .ix-cue.ix-cue-call { animation: ix-cue-call 1.4s cubic-bezier(0.45, 0, 0.55, 1) 150ms infinite; }
 .ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
 .ix-pill.ix-cue { --ix-cue-base: inset 0 0 0 1px var(--ix-line-strong); }
+/* a wide pill (Continue to …, Next story) swells by about as many pixels as Play, so it stays clear of Back and Replay */
+.ix-continue.ix-cue, .ix-pill.ix-cue { --ix-cue-scale: 1.035; }
 /* a group of options: further off, a smaller ripple and halo, so both stay inside the panel's padding, and no swell */
 .ix-opts.ix-cue, .ix-turn-picks.ix-cue { --ix-cue-o: 6px; --ix-cue-grow: 8px; --ix-cue-halo: 0 0 12px 2px; --ix-cue-scale: 1; border-radius: calc(var(--ix-r-md) + 2px); }
 .ix[data-cue="quiet"] .ix-cue { --ix-cue-grow: 11px; outline: 2px solid rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base); }
