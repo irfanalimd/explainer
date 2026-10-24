@@ -1424,6 +1424,20 @@
 .ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
 .ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-ex-level-box { margin-top: 4px; }
+/* a pause's numbers, under its recap: one quiet line that opens the readout (the dock no longer shows them) */
+.ix-tally {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; max-width: calc(100% + 16px); margin: 12px 0 0 -8px; padding: 4px 8px;
+  border-radius: var(--ix-r-sm); font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-muted); text-align: left;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-tally:hover, .ix-tally[aria-expanded="true"] { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-tally-k { font-weight: 500; color: var(--ix-ink-faint); }
+.ix-tally-list { display: contents; }
+.ix-tally-item { white-space: nowrap; }
+.ix-tally-val { font-weight: 500; color: var(--ix-ink); font-variant-numeric: tabular-nums; }
+.ix-tally-sep { color: var(--ix-ink-faint); }
+.ix-tally-icon { display: inline-grid; align-self: center; color: var(--ix-ink-faint); }
+.ix-tally-icon svg { width: 14px; height: 14px; }
 .ix-ex-level-box[hidden] { display: none; }
 .ix-ex-levels { width: 100%; }
 .ix-ex-levels .ix-seg-opt { padding: 0 8px; }

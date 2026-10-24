@@ -78,7 +78,8 @@ export function firstSentence(src) {
  * ctx: { root, doc, h, parent, caption, bar, store, markupOpts, markup(src) -> fragment, level (level.mjs),
  *        term(name) -> { lead, def } | null, instant(): bool, onJump(stepIndex), onLook(ids | null), onLayout(), onDock(),
  *        veil(): { step, about(phaseIndex) -> bool (withhold) }, payoff(): Node | null, recap(): Node | null, revealed(): bool,
- *        onward(held): Node | null (a chapter pause's way on, said where the reader is reading) }
+ *        onward(held): Node | null (a chapter pause's way on, said where the reader is reading),
+ *        tally(held): Node | null (the run's numbers at a pause, which the dock no longer shows) }
  */
 export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
@@ -328,6 +329,7 @@ export function createExplain(ctx) {
       nowBody.replaceChildren(h("div", { class: fresh("ix-ex-recapin", instant) },
         h("div", { class: "ix-ex-done", text: label }),
         h("p", { class: "ix-l-plain" }, markup(layersOf(st).plain)),
+        ctx.tally?.(held) ?? null,
         held.kind === "end" ? ctx.payoff?.() : ctx.onward?.(held)));
     } else {
       nowN.textContent = String(n);
