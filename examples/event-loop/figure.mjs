@@ -109,7 +109,7 @@ export const params = {
 
 export const scenarios = [
   { id: "order", label: "Which runs first?", whatIf: "a promise and a timer both wait",
-    description: "A log, a 0 ms timer, promises and a network request: watch the order their callbacks print in." },
+    description: "A log, a 0 ms timer, promises and a network request: watch the order they print in." },
   { id: "await", label: "Code after await", whatIf: "a function uses await",
     description: "An async function pauses at each await, and the code after it runs later, once the script has finished.",
     takeaway: "Code after an `await` never runs on the spot: it resumes later as a microtask, after the code that called it has finished.",
