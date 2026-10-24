@@ -289,7 +289,9 @@ export function createSampler(tl) {
       const d = Math.hypot(dx, dy);
       if (d < bd) { bd = d; best = h; }
     }
-    if (!best || bd >= TAG_BLEND || crowded(best)) return [k.x, k.y, top];
+    // a tile's chip points at the tile, so it may sit at its housing's back edge even in a column of machines; just
+    // above a tile in the tray's first row it would cover the housing's header
+    if (!best || bd >= TAG_BLEND) return [k.x, k.y, top];
     const w = smoothstep(bd / TAG_BLEND);
     const ey = edgeY(k.x, best.y - best.d / 2), ez = best.z + best.h + TAG_EDGE;
     return [k.x, ey + (k.y - ey) * w, ez + (top - ez) * w];
