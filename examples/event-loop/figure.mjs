@@ -73,31 +73,31 @@ import * as fmt from "../../sim/fmt.mjs";
 
 export const meta = {
   title: "The event loop",
-  subtitle: "One thread, a task queue and a microtask queue: why a promise callback beats setTimeout(0)",
+  subtitle: "One thread, a task queue and a microtask queue, and why a promise callback beats setTimeout(0)",
   kicker: "Web platform",
   fig: 5,
   cite: "[whatwg-loop] §8.1.7",
   theme: "light",
   level: "core",
-  hook: "JavaScript does one thing at a time, yet timers and clicks keep coming. Why doesn't the page freeze? Why doesn't setTimeout(fn, 0) run now?",
+  hook: "JavaScript does one thing at a time, yet timers and clicks keep arriving. So why doesn't the page freeze, and why does setTimeout(fn, 0) wait?",
   terms: {
-    task: "One job waiting its turn on the main to-do line: the script, a timer's callback, a network reply.",
-    microtask: "A small job that must run as soon as the current code ends, before any new task.",
-    "event loop": "The rule the thread follows forever: run one task, then every waiting microtask, then repeat.",
-    "call stack": "The functions running right now, piled up. The loop can start new work only when it is empty.",
-    callback: "A function you hand over, to be called later when something happens.",
-    "Web APIs": "The browser's own helpers, like timers and the network, which work in the background.",
-    promise: "An object standing for a result that is not ready yet. Code can wait for it.",
-    repaint: "The browser redrawing the screen so it shows the page's latest changes.",
-    await: "Inside an `async` function, it pauses the function until a promise is ready; the rest of the function runs later.",
+    task: "A job waiting its turn in line, such as the script itself, a timer's callback or a network reply.",
+    microtask: "A small job that runs as soon as the current code finishes, before anything else gets a turn.",
+    "event loop": "The rule the thread follows forever. It runs one task, then every waiting microtask, and repeats.",
+    "call stack": "The functions running right now, each on top of its caller. New work waits until it's empty.",
+    callback: "A function you hand to someone else, such as a timer, to be called later when something happens.",
+    "Web APIs": "Helpers built into the browser, like timers and the network, that work in the background while JavaScript runs.",
+    promise: "An object standing for a result that isn't ready yet. Code can wait for it.",
+    repaint: "The browser redrawing the screen so that it shows the page's latest changes.",
+    await: "Inside an `async` function, it pauses the function until a promise is ready. The rest runs later.",
   },
   recap: [
-    "The script runs to the end first; setTimeout only hands its callback to a timer.",
-    "Then the loop runs every microtask, even ones added along the way.",
-    "Only then does it take one task, like the 0 ms timer.",
-    "A network reply arrives as a task; its promise callback runs right after.",
+    "The script ran to the end first, and `setTimeout` only handed its callback to a timer.",
+    "Then the loop ran every microtask, including the ones added along the way.",
+    "Only after that did it take a task, the 0 ms timer.",
+    "The network reply arrived as a task, and its promise callback ran straight after it.",
   ],
-  takeaway: "Plain code runs first, then every waiting microtask, then one task at a time: a 0 ms timer waits behind every promise callback already queued.",
+  takeaway: "Plain code runs first, then every waiting microtask, then one task at a time. That's why a 0 ms timer waits behind every promise callback that's already queued.",
 };
 
 export const params = {
@@ -109,30 +109,30 @@ export const params = {
 
 export const scenarios = [
   { id: "order", label: "Which runs first?", whatIf: "a promise and a timer both wait",
-    description: "A log, a 0 ms timer, promises and a network request: watch the order they print in." },
+    description: "A script with a log, a 0 ms timer, some promises and a network request. Watch the order in which they print." },
   { id: "await", label: "Code after await", whatIf: "a function uses await",
     description: "An async function pauses at each await, and the code after it runs later, once the script has finished.",
-    takeaway: "Code after an `await` never runs on the spot: it resumes later as a microtask, after the code that called it has finished.",
+    takeaway: "Code after an `await` never runs on the spot. It resumes later as a microtask, after the code that called it has finished.",
     recap: [
-      "`load()` ran at once, like any function, up to its first `await`.",
-      "The rest of it waited as a microtask until the script finished.",
-      "After the network reply, it resumed again as a microtask.",
+      "`load()` ran straight away, like any function, up to its first `await`.",
+      "The rest of it waited as a microtask until the script had finished.",
+      "When the network reply came, it resumed as a microtask again.",
     ] },
   { id: "starve", label: "Promises that never stop", whatIf: "promise jobs keep adding more",
-    description: "Long work where each piece queues the next as a promise job: the timer and every repaint wait until it all ends.",
-    takeaway: "Microtasks run until their queue is empty, so a chain of them holds back timers and repaints: the user sees no progress until it ends.",
+    description: "A long job where each piece queues the next one as a promise job. Watch what happens to the timer and to the progress bar.",
+    takeaway: "Microtasks run until their queue is empty, so a chain of them holds back timers and repaints. The user sees no progress until it ends.",
     recap: [
       "Each chunk added the next chunk to the microtask queue.",
-      "The loop never left that queue, so the timer and the repaint waited.",
+      "The loop never left that queue, so the timer and the repaint had to wait.",
       "The screen jumped straight from nothing to done.",
     ] },
   { id: "yield", label: "Taking turns with setTimeout", whatIf: "the work takes turns with setTimeout",
-    description: "The same work, but each piece goes back in the task queue, so the screen can repaint in between.",
-    takeaway: "Chunks in the task queue let timers and repaints run in between; past five nested timers, each chunk waits at least 4 ms.",
+    description: "The same job, but each piece goes back into the task queue. Watch whether the screen can repaint in between.",
+    takeaway: "When the chunks go through the task queue, timers and repaints can run in between. Past five nested timers, though, each chunk waits at least 4 ms.",
     recap: [
-      "Each chunk went back to the task queue with a 0 ms timer.",
-      "Between chunks, the loop was free to run other tasks: the timer and repaints.",
-      "So the page never froze for the whole job.",
+      "Each chunk went back into the task queue with a 0 ms timer.",
+      "Between chunks, the loop was free to run other tasks, like the timer and the repaints.",
+      "So the page never froze for the length of the whole job.",
     ] },
 ];
 
@@ -717,7 +717,7 @@ function machine(s, cfg, sc, view = {}) {
       if (sc === "yield" && !paints.length && dom < cfg.chunks) {
         s.ask(`The bar changed after chunk ${dom}. Can the screen show it before the next chunk runs?`,
           [`Only by pausing chunk ${dom + 1} partway through`, `No: the screen waits until all ${cfg.chunks} chunks are done`, `Yes: the render task runs before chunk ${dom + 1}`], 2,
-          { id: "turns.repaint", why: `A repaint is a task, like each chunk. The loop takes one task at a time, and the render task is next, so the screen updates before chunk ${dom + 1}.` });
+          { id: "turns.repaint", why: `A repaint is a task, just like each chunk. The loop takes one task at a time, and the render task is next, so the screen updates before chunk ${dom + 1}.` });
       }
       phase(tasksPhase());
       s.remove(task.tile, { to: "stack" });
@@ -807,13 +807,13 @@ function machine(s, cfg, sc, view = {}) {
     fetched.lead = () => `After that task, the loop runs the microtasks: ${K("fetched")}`;
     then1.ask = () => s.ask("The script is done and the stack is empty. Which callback runs next?",
       ["timeout: it was queued first, at 0 ms", "then 1: microtasks go before tasks", "fetched: its request started earlier"], 1,
-      { id: "micro.next", why: "After every task the loop runs all waiting microtasks first. timeout is a task, so it waits; fetched has no reply yet." });
+      { id: "micro.next", why: "After every task, the loop runs all the waiting microtasks first. The callback `timeout` is a task, so it waits, and `fetched` has no reply yet." });
     return fn("script", [
       { id: "script.log", line: ["o.log1"], run: (fr) => { log(fr, "script"); return said(`${C('console.log("script")')} prints right away: plain code runs line by line`, { printed: { code: "script" }, lineId: `log${nlines}` }); } },
       { id: "script.set-timeout", line: ["o.timeout"],
         ask: () => s.ask(`${C("setTimeout")} asks to run its {term:callback} after 0 ms. Does \`timeout\` print now?`,
           ["Yes: 0 ms means right away", "No: it waits until the script is done"], 1,
-          { id: "script.zero", why: "setTimeout only hands the callback to the browser's timer. Then it must wait its turn in the task queue." }),
+          { id: "script.zero", why: "setTimeout only hands the callback to the browser's timer, and after that it waits its turn in the task queue." }),
         run: (fr) => { const tm = setTimer(fr, timeout, 0); timeoutQueued = tm.at; return said(`${C("setTimeout")} hands ${K("timeout")} to the browser's timer and returns. Nothing prints`, { callback: K("timeout"), callbackId: tm.tile, delay: ms(0) }); } },
       { id: "script.promise", line: ["o.p", "o.then2"], run: (fr) => {
         const p1 = then(fr, promise("p0", "fulfilled"), then1);
@@ -849,8 +849,8 @@ function machine(s, cfg, sc, view = {}) {
       { id: "script.log", line: ["a.script"], run: (fr) => { log(fr, "script"); return said(`${C('console.log("script")')} prints right away`, { printed: { code: "script" }, lineId: `log${nlines}` }); } },
       { line: ["a.call"], call: load, say: () => `${C("load()")} goes on top of the script on the stack` },
       { id: "script.queue-then", line: ["a.then"], run: (fr) => { then(fr, promise("p0", "fulfilled"), thenFn); return said(`${C("load()")} returned early. The next line, ${C("Promise.resolve().then(…)")}, queues ${K("then")} behind the rest of ${K("load")}`, { callback: K("then"), callbackId: `then#${uid}`, behind: K("load") }); } },
-      { id: "script.done", line: ["a.done"], ask: () => s.ask("load() hit `await null` and the script went on. What prints next?", ["load 2: the awaited value is ready", "done: the rest of load() is a microtask", "then: it is in the microtask queue"], 1,
-        { id: "script.after-await", why: "Code after await runs as a microtask, and microtasks wait until the script has finished. done is the script's next line." }),
+      { id: "script.done", line: ["a.done"], ask: () => s.ask("`load()` reached `await null`, and the script carried on. What prints next?", ["load 2: the awaited value is ready", "done: the rest of load() is a microtask", "then: it is in the microtask queue"], 1,
+        { id: "script.after-await", why: "Code after await runs as a microtask, and microtasks wait until the script has finished. The script's next line is `done`." }),
         run: (fr) => { log(fr, "done"); return said(`${C('console.log("done")')} prints before anything after the first ${C("await")}`, { printed: { code: "done" }, lineId: `log${nlines}` }); } },
     ], { key: "script" });
   }
@@ -914,8 +914,8 @@ function machine(s, cfg, sc, view = {}) {
         : `Chunk 1 changed the bar, and chunk 2 waits in the microtask queue. Can the screen show the change before the last chunk ends?`,
         ["Yes: a due frame interrupts JavaScript", "No: a repaint waits until the microtask queue is empty", "Yes, between two chunk microtasks"], 1,
         { id: "micro.repaint", why: during
-          ? "A repaint is a task, and no task starts while microtasks wait. Each chunk keeps adding another microtask."
-          : `A repaint is a task, and no task starts while microtasks wait. Here the whole job even ends before the first frame, at ${ms(vsync)}.` });
+          ? "A repaint is a task, and no task starts while microtasks are waiting. Each chunk keeps adding another microtask."
+          : `A repaint is a task, and no task starts while microtasks are waiting. Here the whole job even ends before the first frame, at ${ms(vsync)}.` });
     };
     return fn("script", [
       { id: "script.set-timeout", line: ["c.timeout"], run: (fr) => { const tm = setTimer(fr, timeout, 0); return said(`${C("setTimeout")} asks for ${K("timeout")} in 0 ms`, { callback: K("timeout"), callbackId: tm.tile, delay: ms(0) }); } },

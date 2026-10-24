@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { lintSource, lintRepeats, proseStrings, styleFindings, formatHit } from "./style.mjs";
+import { lintSource, lintRepeats, lintChipStarts, proseStrings, styleFindings, formatHit } from "./style.mjs";
 
 const rules = (src) => lintSource(src, "lesson.mjs").map((h) => `${h.rule}:${h.match.toLowerCase()}`);
 
@@ -97,4 +97,15 @@ test("styleFindings groups the hits as one warning per rule", () => {
   assert.equal(hits.length, 1);
   assert.deepEqual(warnings.map((w) => [w.kind, w.rule]), [["teaching", "writing"]]);
   assert.match(warnings[0].message, /^1 repeated words \(references\/writing\.md\): lesson "why" → the why restates the step/);
+});
+
+test("chipstart: a sentence that opens on a lowercase word chip, not on an id or a chip inside the sentence", () => {
+  const step = (index, id, plain, why) => Object.defineProperty({ index, id, caption: plain }, "raw", { value: { layers: { plain, why } } });
+  const L = { stories: [{ chapters: [{ id: "c", about: "Each slip goes to one counter. {ref:m0|map 0} reads first.", steps: [
+    step(0, "a", "{key:the} goes to {ref:r0|reduce 0}."),
+    step(1, "b", "The word {key:the} goes to {ref:r0|reduce 0}.", "It waits. {ref:r0|reduce 0} adds them."),
+    step(2, "c", "{ref:p1|p1} splits, and {key:user:9} is hashed."),
+    step(3, "d", "{ref:s1} wins the vote."),
+  ] }] }] };
+  assert.deepEqual(lintChipStarts(L).map((h) => [h.field, h.match]), [["about", "map 0"], ["plain", "the"], ["why", "reduce 0"]]);
 });

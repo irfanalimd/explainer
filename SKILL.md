@@ -242,7 +242,7 @@ Never fix it with styling hacks. The design language (`DESIGN.md`):
 Before delivering, all of these must be true:
 - `node scripts/check.mjs figure.mjs --full` ends "Ready for review" (or "Ready to ship" once the blind review has passed): both themes, every teaching card and the audit over every step. Its `check/report.md` is the evidence; mention it in the delivery note.
 - verify ends `0 failing`, with no warnings you can't justify (lesson and teaching warnings included)
-- `node scripts/lesson.mjs figure.mjs --style` lists no writing hits (`references/writing.md`): every sentence says what happens, with the run's numbers, and every claim about real systems names its source
+- `node scripts/lesson.mjs figure.mjs --style` lists no writing hits (`references/writing.md`): every sentence says what happens, with the run's numbers, and every claim about real systems names its source; and read aloud as a teacher, each chapter sounds like a person talking (`references/writing.md` section 2), not a list of claims
 - you read `node scripts/lesson.mjs figure.mjs` top to bottom **as a beginner** and passed the cold-read rubric (`references/teaching.md` section 8): every word defined before it is needed, the problem before the solution, one idea per chapter, a prediction with its why, a recap you could say back
 - audit ends clean at 1440×900 and 390×844
 - you read `contact.png` and the key frames in both themes:
@@ -258,7 +258,7 @@ Before delivering, all of these must be true:
 - `DESIGN.md`: the art direction (the look, motion, HUD and anti-patterns).
 - `CONTRACTS.md`: the engine architecture; section 10 is the `lesson.mjs` format.
 - `references/teaching.md`: the teaching standard: the reader, the lesson plan, words and jargon, sizing by level, the lesson file and its writing rules, a worked linked-list plan, a before/after MapReduce rewrite, the cold-read rubric and what verify checks.
-- `references/writing.md`: the writing standard for every sentence a figure shows: concrete, sourced, no inflating words, stock phrases, softeners or rhetorical questions, with before/after rewrites from the examples and the writing lint verify runs.
+- `references/writing.md`: the writing standard for every sentence a figure shows: concrete, sourced, no inflating words, stock phrases, softeners or rhetorical questions, with before/after rewrites from the examples and the writing lint verify runs. Its section 2, "Sound like a person", is how lesson text should sound: connected sentences, varied whys, one name per role, feedback that answers the mistake made.
 - `references/builder.md`: the full builder API: groups, housings, containers, tiles, traces, buses, lanes, zones, step ops, pacing, held messages, narration markup, pitfalls.
 - `references/sim.md`: the runtimes: `rng`, `fmt`, `tracked`, `actors`, `lockstep`, `machine`.
 - `references/tooling.md`: every script and flag: doctor, check, verify, lesson, build, serve, shoot, audit, record, new, review-packet, review-check, and the `?gfx=` switch.
