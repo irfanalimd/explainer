@@ -1171,6 +1171,9 @@
 .ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
 .ix-opts.ix-cue, .ix-turn-picks.ix-cue { --ix-cue-o: 6px; --ix-cue-grow: 8px; border-radius: calc(var(--ix-r-md) + 2px); }
 .ix-capture .ix-cue, .ix.ix-capture .ix-cue { outline: none; animation: none; }
+/* a pause's way on, under its recap in the panel (the pill that continues is in the dock) */
+.ix-onward { margin: 12px 0 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); }
+.ix-onward strong { font-weight: 500; color: var(--ix-ink); }
 @keyframes ix-cue-call {
   0% { outline-color: rgb(var(--ix-ink-rgb) / 0.5); outline-offset: var(--ix-cue-o); }
   70% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: calc(var(--ix-cue-o) + var(--ix-cue-grow)); }

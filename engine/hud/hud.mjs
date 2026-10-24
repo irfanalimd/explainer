@@ -2069,6 +2069,14 @@ export function createHud(root, opts = {}, cb = {}) {
     veil: () => ({ step: veilStep(), about: aboutWithheld }),
     revealed: () => !!(Q.q && Q.revealed),
     payoff: () => payoffNode(endChipsPanel, "ix-payoff-panel"),
+    // a pause's way on, under its recap: the eyes are on the panel, the pill that continues is in the dock
+    onward: (held) => {
+      if (!hints) return null;
+      const go = touch ? "Tap Continue" : "Press Continue or Enter";
+      return h("p", { class: "ix-onward" }, held.kind === "chapter"
+        ? ["Up next: ", h("strong", { text: nextChapter() }), `. ${go}.`]
+        : `${go} to go on.`);
+    },
     // narrow screens: the end's card (it hides the caption while open) carries the recap and the takeaway
     recap: () => {
       const r = recapNode(), t = takeaway(), a = afterNode();
