@@ -34,7 +34,7 @@ test("the list's shape: ids, required fields and urls are errors; a missing wher
 });
 
 test("an uncited source, a real-world layer with no citation and a plain meta.cite are warnings", () => {
-  const lesson = { sources: [DEAN, { ...DEAN, id: "tut", title: "Tutorial" }], steps: { a: { plain: "x", deeper: { real: "Hadoop does it too.", "source@crash": "the paper" }, first: { deeper: { real: "[dean2004]" } } } } };
+  const lesson = { sources: [DEAN, { ...DEAN, id: "tut", title: "Tutorial", by: "A. Writer" }], steps: { a: { plain: "x", deeper: { real: "Hadoop does it too.", "source@crash": "the paper" }, first: { deeper: { real: "[dean2004]" } } } } };
   const r = lintSources(lesson, { cite: { text: "Dean & Ghemawat, OSDI 2004" } });
   assert.deepEqual(rules(r).sort(), ["W:claim", "W:claim", "W:uncited"]);
   assert.match(r.warnings.find((x) => x.rule === "uncited").message, /\[tut\]/);
@@ -66,4 +66,13 @@ test("a real-world layer is cited by the Source line beside it, the same story's
   assert.ok(w, "d's base real has no base Source");
   assert.match(w.message, /steps\["d"\]\.deeper\.real/);
   assert.doesNotMatch(w.message, /steps\["[abc]"\]/);
+});
+
+test("two sources that would show under one label are a warning; a short tells them apart", () => {
+  const pg = (id, title) => ({ id, title, by: "PostgreSQL Global Development Group", year: 2024, where: "PostgreSQL documentation", supports: ["x"] });
+  const lesson = { sources: [pg("pg-a", "Database Page Layout"), pg("pg-b", "CREATE INDEX")], steps: { a: { plain: "x", deeper: { real: "y [pg-a] [pg-b]" } } } };
+  const w = lintSources(lesson, {}, new Set(["a"])).warnings.find((x) => x.rule === "label");
+  assert.ok(w); assert.match(w.message, /\[pg-a\] and \[pg-b\]|\[pg-a\], \[pg-b\]/);
+  lesson.sources[1].short = "PostgreSQL CREATE INDEX";
+  assert.equal(lintSources(lesson, {}, new Set(["a"])).warnings.find((x) => x.rule === "label"), undefined);
 });

@@ -3,7 +3,7 @@
 // meta.cite) name their source. Node only; verify runs it once per figure, over the lesson file and every run.
 //   lintSources(lesson, meta, seen) -> { errors, warnings, info: { sources, cites, uncited } }
 //   seen: [{ where, text }] texts from the compiled runs (captions, layers, the scale shot's lines)
-import { ID } from "../../engine/scene/sources.mjs";
+import { ID, shortOf } from "../../engine/scene/sources.mjs";
 import { tokens } from "../../engine/scene/narrate.mjs";
 
 /** The citations in caption markup, as the page reads them: not inside inline code, not escaped. */
@@ -51,6 +51,10 @@ export function lintSources(lesson, meta = {}, seen = []) {
     const sup = Array.isArray(s.supports) ? s.supports.filter(isStr) : isStr(s.supports) ? [s.supports] : [];
     if (!sup.length) W("fields", `source ${name} says nothing it supports: supports: ["its example", "a number", "a claim"] tells the expert reader what to check against it`);
   });
+  // two sources the reader would see under one label ("PostgreSQL 2024" for six documents): give each a short
+  const labels = new Map();
+  for (const s of list) if (s && typeof s === "object" && typeof s.id === "string" && isStr(s.title)) { const k = shortOf(s); labels.set(k, [...(labels.get(k) ?? []), s.id]); }
+  for (const [k, same] of labels) if (same.length > 1) W("label", `${listOf(same.map((x) => `[${x}]`))} all show as "${k}": give each a short naming its document ("PostgreSQL nbtree README", "Intel SDM 2025, Vol. 3A")`);
 
   // ---- every citation, in the lesson file, the figure's meta and the runs
   const cites = [];   // { id, where }
