@@ -508,7 +508,7 @@ export const lesson = {
     "scale.cluster": {
       key: true,
       plain: "At Google, a large job ran {paperM} map tasks and {paperR} reduce tasks on {machines} machines.",
-      why: "A task is one piece of reading or counting work, and each machine works through many of them in turn. The picture is a simplified sketch of such a cluster, and every word still meets a single counting machine.",
+      why: "A task is one piece of reading or counting work, and each machine works through many of them in turn. Even at this size, every word still meets a single counting machine.",
       look: ["output"],
       deeper: {
         real: "Google often ran jobs with M = 200,000 and R = 5,000 on 2,000 worker machines (§3.5). With far more tasks than machines, each machine runs many small tasks, which balances the load (§3.5). When a machine dies, its finished map tasks can be spread over all the others (§3.5).",
