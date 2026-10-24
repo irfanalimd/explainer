@@ -264,6 +264,15 @@
 .ix-tool[aria-pressed="true"] { background: var(--ix-press); color: var(--ix-ink); }
 .ix-tools-sep { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--ix-line-strong); }
 .ix-tools-sep:last-child, .ix-tools-sep:has(+ [hidden]:last-child) { display: none; }
+/* while the story plays, the chrome around it steps back a shade so the world and the step lead: never below ink-faint
+   (the faintest text ink), never a move or a new size; pointing at a control or tabbing to it brings it back, and so
+   does every pause */
+.ix.ix-playing .ix-tool:not(:hover, :focus-visible, [aria-pressed="true"]),
+.ix.ix-playing .ix-legend-btn:not(:hover, :focus-visible, [aria-expanded="true"]) { color: var(--ix-ink-faint); }
+.ix.ix-playing .ix-stories-tab[aria-checked="true"]:not(:hover, :focus-visible),
+.ix.ix-playing .ix-story:not(:hover, :focus-visible, [aria-expanded="true"]),
+.ix.ix-playing .ix-speed:not(:hover, :focus-visible, [aria-expanded="true"]) .ix-speed-val { color: var(--ix-ink-muted); }
+.ix-speed-val, .ix-story { transition: color var(--ix-dur-slow) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease); }
 
 /* help: a quiet circle in the bottom-left corner, just above the dock */
 .ix-help-fab {
