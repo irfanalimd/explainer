@@ -120,6 +120,7 @@ export async function mount(root, figure, options = {}) {
     onPickArea: (ids) => keepPick(ids),
     onBranch: (o) => { if (o?.choices) embed?.answered(o.step, Object.values(o.choices)[0]); branch(o); },
     onLevel: () => { pace = paceOf(); kick(); },
+    onHints: () => kick(),
     onGesture: (g) => {
       holdCamera();
       if (g.type === "focus") {
@@ -228,7 +229,9 @@ export async function mount(root, figure, options = {}) {
     kick();
   }
 
-  const view = () => ({ pxPerUnit, hover: refHover ?? keyFocus ?? hoverId, selected: selectedId, reducedMotion: reduced(), spot: spotlight > 0 });
+  // Settings → Hints off turns the spotlight off too, with the ring
+  const spotNow = () => (hud.hints === false ? 0 : spotlight);
+  const view = () => ({ pxPerUnit, hover: refHover ?? keyFocus ?? hoverId, selected: selectedId, reducedMotion: reduced(), spot: spotNow() > 0 });
 
   function stepIndexAt(t) {
     const steps = tl.steps;
@@ -575,7 +578,7 @@ export async function mount(root, figure, options = {}) {
     // the studio light and the shadows cover the world; during a scale shot they widen with the reveal, a step behind
     // it, so the field's far edge stays in the studio's falloff
     if (frame.world) draw.bounds = frame.scale ? boundsUnion(frame.world, shrinkBox(frame.scale.box, SCALE_LIGHT)) : frame.world;
-    skin(frame.poses, draw, { theme, time: shimmerT, pxPerUnit, spot: spotlight });
+    skin(frame.poses, draw, { theme, time: shimmerT, pxPerUnit, spot: spotNow() });
     motionFx(tl, frame, draw, { theme, reducedMotion: reduced() });
     viewport.insets = hud.insets;
     viewport.presenting = !!hud.presenting;   // a projector frames closer (the director's clearPanel)

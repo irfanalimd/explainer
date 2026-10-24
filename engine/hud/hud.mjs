@@ -577,7 +577,7 @@ export function createHud(root, opts = {}, cb = {}) {
   prefs.append(
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: hintsSw.id, text: "Hints" }), hintsSw)),
-    h("p", { class: "ix-knob-help", id: uid("hints-help"), text: "A soft ring shows what to do next: Play, Continue or an answer to pick." }),
+    h("p", { class: "ix-knob-help", id: uid("hints-help"), text: "A ring shows what to do next: Play, Continue or an answer to pick. The picture fades what each step is not about." }),
     h("div", { class: "ix-knob ix-knob-bool" }, h("div", { class: "ix-knob-head" },
       h("label", { class: "ix-knob-label", for: foldSw.id, text: "Speed through repeats" }), foldSw)),
     h("p", { class: "ix-knob-help", id: uid("fold-help"), text: "Once a step has played twice, its repeats play faster." }),
@@ -603,6 +603,7 @@ export function createHud(root, opts = {}, cb = {}) {
     store.set("hints", hints ? "1" : "0");
     if (!hints) hideCoach();
     syncCue();
+    fire("onHints", hints);
   }
   function setCharKeys(on) {
     charKeys = !!on;
@@ -3358,6 +3359,8 @@ export function createHud(root, opts = {}, cb = {}) {
     /** True once this viewer has dismissed this figure's start card (localStorage). */
     get introSeen() { return store.get(`intro:${figKey()}`) === "1"; },
     get introOpen() { return introOpen; },
+    /** Settings → Hints: the ring on what to do next, the coach hints and the world's spotlight. */
+    get hints() { return hints; },
     /** True when this viewer has a place to pick up (journey.mjs) and no deep link says where to start instead. */
     get resumable() { return !!resumeOffer(); },
     /** The stories this viewer has finished (journey.mjs). */
