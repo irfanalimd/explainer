@@ -264,6 +264,15 @@
 .ix-tool[aria-pressed="true"] { background: var(--ix-press); color: var(--ix-ink); }
 .ix-tools-sep { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--ix-line-strong); }
 .ix-tools-sep:last-child, .ix-tools-sep:has(+ [hidden]:last-child) { display: none; }
+/* while the story plays, the chrome around it steps back a shade so the world and the step lead: never below ink-faint
+   (the faintest text ink), never a move or a new size; pointing at a control or tabbing to it brings it back, and so
+   does every pause */
+.ix.ix-playing .ix-tool:not(:hover, :focus-visible, [aria-pressed="true"]),
+.ix.ix-playing .ix-legend-btn:not(:hover, :focus-visible, [aria-expanded="true"]) { color: var(--ix-ink-faint); }
+.ix.ix-playing .ix-stories-tab[aria-checked="true"]:not(:hover, :focus-visible),
+.ix.ix-playing .ix-story:not(:hover, :focus-visible, [aria-expanded="true"]),
+.ix.ix-playing .ix-speed:not(:hover, :focus-visible, [aria-expanded="true"]) .ix-speed-val { color: var(--ix-ink-muted); }
+.ix-speed-val, .ix-story { transition: color var(--ix-dur-slow) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease); }
 
 /* help: a quiet circle in the bottom-left corner, just above the dock */
 .ix-help-fab {
@@ -1374,7 +1383,19 @@
 .ix-ex-title { min-width: 0; padding-right: 8px; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); font-weight: 600; letter-spacing: var(--ix-tr-lg); color: var(--ix-ink); text-wrap: balance; }
 .ix-ex-goal { padding-right: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 .ix-ex-goal-k { margin-right: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ink-faint); }
-.ix-ex-level { margin: 12px 8px 0 0; }
+.ix-ex-level { margin: 8px 8px 0 0; }
+/* the level as one quiet line (the start card asked it); it opens the switch under it */
+.ix-ex-level-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 28px; margin-left: -8px; padding: 0 8px; border-radius: var(--ix-r-sm);
+  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-muted); white-space: nowrap;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-level-k { color: var(--ix-ink-faint); }
+.ix-ex-level-chev { display: inline-grid; margin-left: -4px; color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
+.ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-ex-level-box { margin-top: 4px; }
+.ix-ex-level-box[hidden] { display: none; }
 .ix-ex-levels { width: 100%; }
 .ix-ex-levels .ix-seg-opt { padding: 0 8px; }
 
@@ -1404,6 +1425,9 @@
 .ix-ex-about { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 /* an about line that would answer a prediction waits for the reveal */
 .ix-ex-about.ix-ex-withheld { color: var(--ix-ink-faint); }
+/* past the chapter's first step the about has been read: a shade back (ink-faint, still body-text contrast) */
+.ix-ex-about { transition: color var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-head.ix-ex-past .ix-ex-about { color: var(--ix-ink-faint); }
 .ix-ex-head:empty, .ix-ex-head.ix-ex-quiet { display: none; }
 .ix-ex-entry:empty, .ix-ex-extra:empty { display: none; }
 /* sections of the body are set apart by space and one hairline, never boxes inside boxes */
@@ -1559,6 +1583,20 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
 .ix-ex-earlier { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--ix-line); }
 .ix-ex-label { margin: 0 0 4px 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
 .ix-ex-list { list-style: none; margin: 0 -8px; padding: 0; }
+.ix-ex-list[hidden] { display: none; }
+/* docked, the earlier steps fold to one line, so the current step is the one thing in the panel to read */
+.ix-ex-earlier-btn {
+  display: flex; align-items: center; gap: 8px; width: calc(100% + 16px); margin: -6px -8px 0; padding: 6px 8px;
+  border-radius: var(--ix-r-sm); text-align: left; transition: background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-earlier-btn .ix-ex-label { margin: 0; }
+.ix-ex-earlier-count { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+.ix-ex-earlier-chev { display: inline-grid; margin-left: auto; color: var(--ix-ink-faint); transform: rotate(-90deg); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-earlier-open .ix-ex-earlier-chev { transform: none; }
+.ix-ex-earlier-open .ix-ex-earlier-btn { margin-bottom: 4px; }
+.ix-ex-earlier-btn:hover { background: var(--ix-hover); }
+.ix-ex-earlier-btn:hover :is(.ix-ex-label, .ix-ex-earlier-chev) { color: var(--ix-ink); }
+.ix:not(.ix-ex-docked) .ix-ex-earlier-btn, .ix.ix-ex-docked .ix-ex-earlier-k { display: none; }
 .ix-ex-item {
   display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; width: 100%;
   padding: 6px 8px; border-radius: var(--ix-r-sm); text-align: left;
@@ -1654,6 +1692,9 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
   transition: background-color var(--ix-dur-fast) var(--ix-ease);
 }
 .ix-params-toggle:hover { background: var(--ix-hover); }
+/* folded, the card is a way in, not a heading: it reads like the toolbar's words, so the chapter's name leads the column */
+.ix-params-folded .ix-params-toggle { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; letter-spacing: 0; color: var(--ix-ink-muted); }
+.ix-params-folded .ix-params-toggle:hover { color: var(--ix-ink); }
 .ix-params-chev { color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
 .ix-params-folded .ix-params-chev { transform: rotate(-90deg); }
 .ix-params-folded .ix-params-body { display: none; }
