@@ -21,7 +21,7 @@ import { formatHash, paramOverrides } from "./hud/link.mjs";
 import { foldPlan, rateAt, captionHead, forkOf, foldedDuration } from "./playback.mjs";
 import { rng } from "../sim/rng.mjs";
 import { DrawList } from "./contracts.mjs";
-import { SIZE, TYPE } from "./tokens.mjs";
+import { SIZE, TYPE, SPOT } from "./tokens.mjs";
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const SCALE_LIGHT = 0.3;    // share of a scale shot's reveal box the studio light pool covers
@@ -54,6 +54,7 @@ export async function mount(root, figure, options = {}) {
   let frame = null, hoverAt = null, hoverId = null, refHover = null, selectedId = null, pendingAsk = -1, answered = new Set();
   // the step's look chip lights these entities; the reader's level sets the reading pace and the holds (level.mjs)
   let looking = null, pace = 1, dwell = 0;
+  let spotlight = options.spotlight ?? SPOT.recede;   // how far the step's spotlight fades the rest of the world (0: off)
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
   let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false, covered = false;
@@ -227,7 +228,7 @@ export async function mount(root, figure, options = {}) {
     kick();
   }
 
-  const view = () => ({ pxPerUnit, hover: refHover ?? keyFocus ?? hoverId, selected: selectedId, reducedMotion: reduced() });
+  const view = () => ({ pxPerUnit, hover: refHover ?? keyFocus ?? hoverId, selected: selectedId, reducedMotion: reduced(), spot: spotlight > 0 });
 
   function stepIndexAt(t) {
     const steps = tl.steps;
@@ -574,7 +575,7 @@ export async function mount(root, figure, options = {}) {
     // the studio light and the shadows cover the world; during a scale shot they widen with the reveal, a step behind
     // it, so the field's far edge stays in the studio's falloff
     if (frame.world) draw.bounds = frame.scale ? boundsUnion(frame.world, shrinkBox(frame.scale.box, SCALE_LIGHT)) : frame.world;
-    skin(frame.poses, draw, { theme, time: shimmerT, pxPerUnit });
+    skin(frame.poses, draw, { theme, time: shimmerT, pxPerUnit, spot: spotlight });
     motionFx(tl, frame, draw, { theme, reducedMotion: reduced() });
     viewport.insets = hud.insets;
     viewport.presenting = !!hud.presenting;   // a projector frames closer (the director's clearPanel)
@@ -827,6 +828,8 @@ export async function mount(root, figure, options = {}) {
         }
         return { step: frame.step, u: frame.u, phase: frame.phase, caption: frame.caption };
       },
+      // the spotlight's strength (SPOT.recede; 0 turns it off), for comparing looks
+      get spotlight() { return spotlight; }, set spotlight(k) { spotlight = Math.max(0, Math.min(1, Number(k) || 0)); kick(); },
       audit: () => auditNow(),
       // what the camera frames around: the HUD's insets (css px) and the director's shot
       get insets() { return hud.insets; },

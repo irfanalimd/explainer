@@ -287,7 +287,7 @@ Implement every transition in `DESIGN.md` section 8: move along traces (lift, po
 { id, kind, variant,                      // kind: "housing" | "container" | "tile" | "record" | "bit" | "page" | "packet" | "pointer"
                                           //       | "trace" | "bus" | "lane" | "mark" | "zone" | "text" | "bracket" | "playhead" | "field"
   x, y, z, w, d, h, yaw, pitch, roll, scale,
-  opacity, lit /* 0..1 */, flash /* 0..1 */, dim /* 0..1 */, hover, selected,
+  opacity, lit /* 0..1 */, flash /* 0..1 */, dim /* 0..1 */, recede /* 0..1, outside the step's spotlight */, hover, selected,
   tone /* "neutral" | "key" | "ok" | "busy" | "warn" | "fail" | "idle" | "ghost" */, key /* index | null */,
   text, sub, textOut, roll /* 0..1 */,
   title, led, meter, tray /* {x, y, w, d} local to the housing centre */,
