@@ -304,6 +304,8 @@ export function createExplain(ctx) {
     entry.replaceChildren(...(showEntry ? [chapterCard(h, markup, enter, entryMode, enter.picture ? S.lesson?.picture : null, fold)] : []));
     // New: the card speaks for the chapter on its first step, so the about waits a step
     head.classList.toggle("ix-ex-quiet", showEntry && P.entry === "full" && !sheet);
+    // past the chapter's first step the about has been read: it steps back a shade, so the current step leads
+    head.classList.toggle("ix-ex-past", S.step > first && !S.askEl && !S.held);
 
     const st = S.steps[S.step];
     const held = S.held, n = S.step - first + 1;

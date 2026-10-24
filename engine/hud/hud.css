@@ -1425,6 +1425,9 @@
 .ix-ex-about { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 /* an about line that would answer a prediction waits for the reveal */
 .ix-ex-about.ix-ex-withheld { color: var(--ix-ink-faint); }
+/* past the chapter's first step the about has been read: a shade back (ink-faint, still body-text contrast) */
+.ix-ex-about { transition: color var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-head.ix-ex-past .ix-ex-about { color: var(--ix-ink-faint); }
 .ix-ex-head:empty, .ix-ex-head.ix-ex-quiet { display: none; }
 .ix-ex-entry:empty, .ix-ex-extra:empty { display: none; }
 /* sections of the body are set apart by space and one hairline, never boxes inside boxes */
