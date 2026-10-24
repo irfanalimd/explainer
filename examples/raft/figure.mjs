@@ -307,7 +307,7 @@ function payoff(s, net, p) {
   s.focus("board");   // the cluster and its client: the payoff shot frames them large, nothing cut under the dock
   s.lit(...up);
   s.step(same && cmds.length
-    ? `${up.length === N ? `All ${N}` : `${up.length} of ${N}`} servers hold the same committed log: ${cmds.map((c) => fmt.code(c)).join(", ")}, in the same order.`
+    ? `${up.length === N ? `All ${N}` : `${up.length} of ${N}`} servers hold the same committed commands, ${cmds.map((c) => fmt.code(c)).join(", ")}, in the same order.`
     : `${fmt.plural(st.commitIndex, "entry", "entries")} committed on ${fmt.ref(up[0] ?? ids[0])}.`,
     { t: net.now, id: same && cmds.length ? "agree.same" : "agree.where",
       vars: same && cmds.length ? { N, upIds: up, up: up.length, log: cmds.map((c) => ({ code: c })) } : { N, committed: st.commitIndex, whoId: up[0] ?? ids[0] } });
