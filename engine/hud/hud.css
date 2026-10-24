@@ -1076,16 +1076,12 @@
 
 /* ---------- pauses: the transport says what comes next (no card over the world) ----------
    At a chapter's end the primary pill reads "Continue to Shuffle  Enter", at the run's end "Replay"; Next steps
-   aside, so there is one way on. It must not be missed: a touch larger than Play, in the reading size, and a soft
-   ring calls three times and then rests (reduced motion: no ring). */
+   aside, so there is one way on. It must not be missed: a touch larger than Play, in the reading size, and the
+   guide's ring calls on it (below). */
 .ix-play.ix-continue { position: relative; min-width: 0; height: 44px; padding: 0 8px 0 20px; font-size: var(--ix-fs-md); letter-spacing: var(--ix-tr-md); }
 .ix-play.ix-continue .ix-tp-icon { display: none; }
 .ix-play.ix-continue .ix-tp-more { margin-left: 0.28em; }
 .ix-play.ix-continue:has(.ix-tp-kbd[hidden]), .ix:not([data-size="desktop"]) .ix-play.ix-continue { padding-right: 20px; }
-.ix-play.ix-continue::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  animation: ix-continue-call 1.8s var(--ix-ease) 200ms 3;
-}
 .ix-play.ix-continue .ix-tp-label { display: inline-flex; align-items: center; max-width: 30ch; overflow: hidden; }
 .ix-play.ix-continue .ix-tp-more { overflow: hidden; text-overflow: ellipsis; }
 .ix-play.ix-continue .ix-tp-more.ix-tp-story { margin-left: 0; }   /* "Next story: One machine crashes" */
@@ -1095,14 +1091,9 @@
   background: rgb(var(--ix-on-primary-rgb) / 0.14);
 }
 .ix:not([data-size="desktop"]) .ix-tp-kbd { display: none; }
-@keyframes ix-continue-call {
-  0% { box-shadow: 0 0 0 0 rgb(var(--ix-ink-rgb) / 0.35); }
-  70%, 100% { box-shadow: 0 0 0 12px rgb(var(--ix-ink-rgb) / 0); }
-}
 /* while the end check asks, the pill after it waits in a quiet form (one way on: the check's own Next question);
    it turns solid, and calls, once the check says "You can now…" */
 .ix-play.ix-held-btn.ix-quiet-held { background: var(--ix-raised); color: var(--ix-ink-muted); box-shadow: inset 0 0 0 1px var(--ix-line); }
-.ix-play.ix-quiet-held::after { animation: none; }
 .ix-play.ix-quiet-held .ix-tp-kbd { color: var(--ix-ink-faint); background: rgb(var(--ix-ink-rgb) / 0.06); }
 .ix[data-size="phone"] .ix-play.ix-held-btn { width: auto; min-width: 0; padding: 0 20px; }
 .ix[data-size="phone"] .ix-play.ix-held-btn .ix-tp-label { display: inline; }
@@ -1179,6 +1170,43 @@
 .ix-drawer > .ix-panel-head + .ix-panel-foot[hidden] + .ix-prefs { border-top: 0; }
 
 /* ---------- motion: 150–250 ms, ease-out, opacity and a few px of travel; never a bounce ---------- */
+/* ---------- the next thing to do (guide.mjs) ----------
+   One control at a time carries an ink ring: Play before anything has played, Continue at a pause, the options of
+   an open question, Next when stepping. It calls (a ripple out from the control, under one a second, three times),
+   then rests on the control until the reader acts. Ink, not a hue: chrome is never coloured. A keyboard focus ring
+   wins over it; reduced motion keeps the resting ring alone; capture never shows it. Two looks (root data-cue):
+   clear, the default, a 3 px ring at 60 % with a soft halo that calls on every new cue; quiet (?cue=quiet), a 2 px
+   ring at 26 % that calls only on the first three cues of a kind. --ix-cue-base keeps a control's own hairline. */
+.ix-cue {
+  --ix-cue-o: 3px; --ix-cue-grow: 12px; --ix-cue-base: 0 0 #0000; --ix-cue-halo: 0 0 20px 6px;
+  outline: 3px solid rgb(var(--ix-ink-rgb) / 0.6); outline-offset: var(--ix-cue-o);
+  box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.16);
+}
+.ix-cue.ix-cue-call { animation: ix-cue-call 1.6s var(--ix-ease) 150ms 3; }
+.ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
+.ix-pill.ix-cue { --ix-cue-base: inset 0 0 0 1px var(--ix-line-strong); }
+/* a group of options: further off, a smaller ripple and halo, so both stay inside the panel's padding */
+.ix-opts.ix-cue, .ix-turn-picks.ix-cue { --ix-cue-o: 6px; --ix-cue-grow: 8px; --ix-cue-halo: 0 0 12px 2px; border-radius: calc(var(--ix-r-md) + 2px); }
+.ix[data-cue="quiet"] .ix-cue { --ix-cue-grow: 11px; outline: 2px solid rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base); }
+.ix[data-cue="quiet"] .ix-cue.ix-cue-call { animation-name: ix-cue-call-quiet; }
+.ix[data-cue="quiet"] :is(.ix-opts, .ix-turn-picks).ix-cue { --ix-cue-grow: 8px; }
+.ix[data-cue] .ix-cue:focus-visible { outline: var(--ix-ring); outline-offset: 2px; animation: none; }
+.ix-capture .ix-cue, .ix.ix-capture .ix-cue, .ix-capture .ix[data-cue] .ix-cue { outline: none; box-shadow: var(--ix-cue-base); animation: none; }
+/* a pause's way on, under its recap in the panel (the pill that continues is in the dock) */
+.ix-onward { margin: 12px 0 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); }
+.ix-onward strong { font-weight: 500; color: var(--ix-ink); }
+@keyframes ix-cue-call {
+  0% { outline-color: rgb(var(--ix-ink-rgb) / 0.85); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.3); }
+  70% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: calc(var(--ix-cue-o) + var(--ix-cue-grow)); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.16); }
+  71% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: var(--ix-cue-o); }
+  100% { outline-color: rgb(var(--ix-ink-rgb) / 0.6); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.16); }
+}
+@keyframes ix-cue-call-quiet {
+  0% { outline-color: rgb(var(--ix-ink-rgb) / 0.5); outline-offset: var(--ix-cue-o); }
+  70% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: calc(var(--ix-cue-o) + var(--ix-cue-grow)); }
+  71% { outline-color: rgb(var(--ix-ink-rgb) / 0); outline-offset: var(--ix-cue-o); }
+  100% { outline-color: rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); }
+}
 @keyframes ix-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ix-rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes ix-pulse { 0%, 100% { box-shadow: 0 0 0 3px rgb(var(--ix-ink-rgb) / 0.14); } 50% { box-shadow: 0 0 0 5px rgb(var(--ix-ink-rgb) / 0.04); } }

@@ -509,13 +509,27 @@ window.__results = (async () => {
     && panelEl.querySelector(".ix-ex-recap .ix-l-plain")?.textContent.startsWith("Step 9") && panelEl.querySelector(".ix-ex-title").textContent === "Map"
     && panelEl.querySelector(".ix-map-pos").textContent === "1 of 2" && !/chapter \d of/i.test(root.querySelector(".ix-hud").innerText));
   check("the pause never moves the world", JSON.stringify(hud.insets) === JSON.stringify(ins0), [ins0, hud.insets]);
+  check("the recap ends with the chapter up next and how to go on", /^Up next: Reduce\. (Press Continue or Enter|Tap Continue)\.$/.test(panelEl.querySelector(".ix-ex-recap .ix-onward")?.textContent ?? ""),
+    panelEl.querySelector(".ix-onward")?.textContent);
   {
     await wait(260);   // the button's colour transition settles
     const probe = document.createElement("i"); probe.style.background = "var(--ix-primary)"; root.append(probe);
     const primary = getComputedStyle(probe).backgroundColor; probe.remove();
-    const ring = getComputedStyle(playEl, "::after");
-    check("Continue is the solid primary pill (the chrome has no accent) and calls with a ring three times, then rests", getComputedStyle(playEl).backgroundColor === primary && primary !== "rgba(0, 0, 0, 0)"
-      && ring.animationName === "ix-continue-call" && ring.animationIterationCount === "3", [getComputedStyle(playEl).backgroundColor, primary, ring.animationName, ring.animationIterationCount]);
+    // the ring rests on Continue; a call (the first few cues of a kind, guide.mjs) ripples three times
+    const ring = getComputedStyle(playEl), calm = root.classList.contains("ix-reduced");
+    const callProbe = document.createElement("button"); callProbe.className = "ix-cue ix-cue-call"; root.append(callProbe);
+    const call = getComputedStyle(callProbe), callName = call.animationName, callCount = call.animationIterationCount; callProbe.remove();
+    check("Continue is the solid primary pill (the chrome has no accent) and carries the guide's ring: it calls three times, then rests", getComputedStyle(playEl).backgroundColor === primary && primary !== "rgba(0, 0, 0, 0)"
+      && playEl.classList.contains("ix-cue") && ring.outlineStyle === "solid" && root.querySelectorAll(".ix-cue").length === 1
+      && (calm || (callName === "ix-cue-call" && callCount === "3")),
+      [getComputedStyle(playEl).backgroundColor, primary, ring.outlineStyle, callName, callCount, root.querySelectorAll(".ix-cue").length]);
+  }
+  {
+    const hintsSw = [...root.querySelectorAll(".ix-switch")].find((b) => root.querySelector(`label[for="${b.id}"]`)?.textContent === "Hints");
+    hintsSw?.click();
+    check("Settings' Hints switch takes the ring off", hintsSw?.getAttribute("aria-checked") === "false" && !root.querySelector(".ix-cue"));
+    hintsSw?.click();
+    check("and puts it back", hintsSw?.getAttribute("aria-checked") === "true" && playEl.classList.contains("ix-cue"));
   }
   key("Enter");
   check("Enter continues", take("onContinue").length === 1);
@@ -528,6 +542,7 @@ window.__results = (async () => {
   check("the same pause re-renders nothing", recs2.length === 0, recs2.map((r) => `${r.target.className}:${r.type}:${r.attributeName}`)); mo2.disconnect();
   hud.update(frame(10.2), { time: 10.2, playing: true, speed: 1, held: null });
   check("playback moving on restores Pause and the step", playEl.textContent === "Pause" && againEl.hidden && !panelEl.querySelector(".ix-ex-recap") && !playEl.classList.contains("ix-continue"));
+  check("playing takes the guide's ring off", !root.querySelector(".ix-cue"));
   reset();
   hud.update(frame(19.99), { time: 20, playing: false, speed: 1, held: { kind: "end", phase: 1 } });
   // a story's end with a story after it: the pill goes on to that story ("Next story: …"), and the quiet Replay is this
