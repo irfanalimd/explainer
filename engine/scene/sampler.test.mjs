@@ -69,7 +69,7 @@ test("performance: <= 2 ms per sample with ~300 entities", () => {
 const spotFig = {
   build(s) {
     for (const h of ["h1", "h2", "h3"]) s.housing(h, { title: h, tray: { cols: 2 } });
-    s.tile("a", { in: "h1" }); s.tile("b", { in: "h2" }); s.tile("c", { in: "h3" });
+    s.tile("a", { in: "h1" }); s.tile("b", { in: "h2" }); s.tile("c", { in: "h3" }); s.tile("w#2", { in: "h1" });
     s.trace("t12", "h1", "h2"); s.trace("t23", "h2", "h3"); s.trace("t13", "h1", "h3");
     s.step("opening");
     s.move("b", "h3");
@@ -77,7 +77,7 @@ const spotFig = {
     s.step("{ref:h1} waits");
   },
 };
-const recedeOf = (f) => Object.fromEntries(f.poses.filter((p) => p.recede !== undefined && !p.id.includes("#")).map((p) => [p.id, p.recede]));
+const recedeOf = (f) => Object.fromEntries(f.poses.filter((p) => p.recede !== undefined && !p.id.includes("#label")).map((p) => [p.id, p.recede]));
 
 test("spotlight: what a step is about keeps its look, the rest recedes; the opening step has none", () => {
   const tl = compile(spotFig);
@@ -86,11 +86,11 @@ test("spotlight: what a step is about keeps its look, the rest recedes; the open
   // b moves: b, the machine it leaves, the machine it reaches (h3, named, so its slip c too) and their wires stay
   const r1 = recedeOf(tl.sample(s1.t1 - 0.01));
   for (const id of ["b", "c", "h2", "h3", "t12", "t23", "t13"]) assert.equal(r1[id], 0, id);
-  for (const id of ["h1", "a"]) assert.equal(r1[id], 1, id);
+  for (const id of ["h1", "a", "w#2"]) assert.equal(r1[id], 1, id);   // an id may hold # itself
   // step 2 names only h1: the spotlight moves there, crossfading from step 1 over SPOT.ease; the wire step 1's move
   // took recedes once its trail is gone, as it touches neither h1 nor carries step 2's traffic
   const r2 = recedeOf(tl.sample(s2.t1 - 0.01));
-  for (const id of ["h1", "a", "t12", "t13"]) assert.equal(r2[id], 0, id);
+  for (const id of ["h1", "a", "w#2", "t12", "t13"]) assert.equal(r2[id], 0, id);
   for (const id of ["h2", "h3", "b", "c", "t23"]) assert.equal(r2[id], 1, id);
   assert.equal(recedeOf(tl.sample(s2.t0)).h1, 1, "at the boundary the step before still holds");
   const mid = recedeOf(tl.sample(s2.t0 + SPOT.ease / 2)).h1;

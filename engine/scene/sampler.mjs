@@ -354,7 +354,7 @@ export function createSampler(tl) {
       spots.set(j, sp = { keep, memo: new Map() });
     }
     if (!sp.keep || typeof p.id !== "string") return 0;
-    const cut = p.id.search(/[#@]/);
+    const cut = X.incsById.has(p.id) ? -1 : p.id.search(/[#@]/);   // an id may hold # itself (timeout#1)
     const owner = cut < 0 ? p.id : p.id.slice(0, cut);
     let r = sp.memo.get(owner);
     if (r === undefined) {
