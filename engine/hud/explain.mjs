@@ -45,7 +45,7 @@ export const VEIL = "…";              // what a held-back caption shows until 
 // the chapter's about, withheld until its prediction is revealed: before the question opens it says one is coming (the
 // reader has not been asked anything yet); while it is open, where the summary will be
 export const WITHHELD = "A question about this chapter is coming up. Its summary appears once you have answered, so it can't give the answer away.";
-export const WITHHELD_ASK = "This chapter's summary appears once you have answered.";
+export const WITHHELD_ASK = "The summary comes after your answer.";
 
 /** The glossary terms a piece of markup uses, in order, without repeats. */
 export function termsIn(src) {
