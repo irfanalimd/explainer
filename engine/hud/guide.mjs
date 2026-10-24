@@ -1,15 +1,17 @@
 // The next thing to do: one cue at a time on the control that moves the reader on, so nobody has to search the
 // screen for it. cueOf() decides which control from the HUD's state (pure, tested); createGuide() puts the cue on
-// it: an ink ring that calls (ripples out) and then rests on the control until the reader acts (reduced motion: the
-// resting ring alone). Chrome is never coloured (DESIGN.md), so the ring is the ink's. Two looks (STYLES): "clear",
-// the default, a strong ring with a soft halo that calls on every new cue; "quiet", a faint ring that calls only on
-// the first few cues of a kind.
+// it: an ink ring that calls (ripples out) on the control until the reader acts (reduced motion: the resting ring
+// alone). Chrome is never coloured (DESIGN.md), so the ring is the ink's. Two looks (STYLES): "clear", the default, a
+// strong ring with a soft halo that keeps calling, the control swelling a little each time, for as long as the cue
+// waits (Settings → Hints stops it); "quiet", a faint ring that calls three times, only on the first few cues of a
+// kind, then once more after RECALL_MS.
 // Nothing here is announced: each moment already says its way on to screen readers (the pause's line, the card).
 // Capture, presenting and the start card show no cue, so a frame never depends on it.
 
 export const STYLES = ["clear", "quiet"];
 export const CALLS = { clear: Infinity, quiet: 3 };   // how many cues of a kind call; after that the ring only rests
-export const RECALL_MS = 12000;  // a cue still waiting after this long calls once more
+export const LOOPS = { clear: true, quiet: false };   // a call that repeats until the cue moves on (hud.css), or one burst
+export const RECALL_MS = 12000;  // a quiet cue still waiting after this long calls once more
 
 /**
  * The one cue for this moment, or null.
@@ -49,7 +51,7 @@ export function cueStyle(search, option) {
  * set(cue) moves the ring to cue's control (or clears it on null); call it whenever the HUD's state may have changed.
  */
 export function createGuide({ win, target, reduced, style = STYLES[0] }) {
-  const calls = CALLS[style] ?? CALLS.clear;
+  const calls = CALLS[style] ?? CALLS.clear, loops = LOOPS[style] ?? LOOPS.clear;
   const seen = new Map();   // id -> how many cues of that kind have called
   let key = "", els = [], timer = 0;
   const clear = () => {
@@ -74,7 +76,10 @@ export function createGuide({ win, target, reduced, style = STYLES[0] }) {
       if (!cue || !want.length) return;
       els = want;
       for (const el of els) el.classList.add("ix-cue");
-      if (!fresh || reduced()) return;
+      if (reduced()) return;
+      // a call that repeats goes on until the cue moves on, on a rebuilt control too: the reader still has to act
+      if (loops) { call(); return; }
+      if (!fresh) return;
       const n = (seen.get(cue.id) ?? 0) + 1;
       seen.set(cue.id, n);
       if (n <= calls) call();
