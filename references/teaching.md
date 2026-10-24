@@ -119,7 +119,8 @@ The word may well appear: define it first. Also avoid:
 - **Acronyms without their meaning**, and code names (`AppendEntries`) in prose: say what the message does.
 - **Words that inflate or pad**: crucial, seamlessly, robust, plays a key role, it's worth noting, basically, really,
   a question the next sentence answers. `references/writing.md` is the writing standard for every sentence, with the
-  full list, its rewrites and examples.
+  full list, its rewrites and examples; its section 2, "Sound like a person", says how the words should sound read
+  aloud.
 
 ### Captions: what happened, and why
 
@@ -516,7 +517,7 @@ With a lesson file, the captions it checks are the lesson's `plain` lines, the a
 the defined words are `meta.terms` merged with `lesson.terms`. It does not read the other layers (`why`, `deeper`,
 entry cards) for these rules: section 5's limits on those are for the writer, `lesson.mjs`'s printout and the blind
 readers. The writing lint does read them all, from the source of `figure.mjs` and `lesson.mjs` (rule `writing`
-below, `references/writing.md` section 4).
+below, `references/writing.md` section 5).
 
 **Errors** (clear defects; verify fails):
 
@@ -546,7 +547,7 @@ below, `references/writing.md` section 4).
 | `tone` | obviously, clearly, simply, trivially, of course, note that, as we can see |
 | `sentences` | sentences over 25 words in abouts, the hook, why, recap or takeaway |
 | `grade` | the explaining prose (abouts, hook, why, recap, takeaway, descriptions) reads above grade 8 (intro), 10 (core) or 12 (deep), Flesch-Kincaid; a rough guide |
-| `writing` | the writing standard (`references/writing.md`), one warning per kind: inflating words and stock phrases, empty openers, softeners, "not just X but Y", praise tricolons, fluff, em dashes, exclamation marks and emoji, rhetorical questions in an explanation, vague amounts in a claim about real systems, a `why` that restates its step, a sentence said twice. Each names the file and line and a rewrite; `lesson.mjs --style` lists them all |
+| `writing` | the writing standard (`references/writing.md`), one warning per kind: inflating words and stock phrases, empty openers, softeners, "not just X but Y", praise tricolons, fluff, em dashes, exclamation marks and emoji, rhetorical questions in an explanation, vague amounts in a claim about real systems, a `why` that restates its step, a sentence said twice, a sentence that opens on a lowercase word chip. Each names the file and line and a rewrite; `lesson.mjs --style` lists them all |
 
 The lint is a floor, not the bar: a lesson can pass it and still not teach. The rubric (section 8) is the bar.
 
