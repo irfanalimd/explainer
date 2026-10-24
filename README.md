@@ -84,7 +84,7 @@ Then it teaches the run the way a good teacher would. It starts with a picture y
 
 Also on every page:
 
-- **Scenarios.** You get the normal run, then what breaks: a machine crashes, the network splits, one word is very common, the input is already sorted. Switching jumps to the step where the stories split.
+- **Scenarios.** You get the normal run, then what breaks: a machine crashes, the network splits, one word is everywhere, the input is already sorted. Switching jumps to the step where the stories split.
 - **Directed camera.** Each chapter gets its own shots: establish, push in, a close detail on the key step, then pull back. Drag to orbit whenever you like.
 - **Exact rewind.** Drag the timeline anywhere, forwards or back. It jumps straight to that moment instead of replaying from the start.
 - **Parameters.** Change the number of machines, the input or the seed. The simulation reruns at once.
@@ -100,7 +100,7 @@ Every image is a frame of an example in [`examples/`](examples). Click one to op
   <tr>
     <td width="50%" valign="top">
       <a href="https://sites.irfanali.me/p/learning/mapreduce-cluster.html"><img src=".github/assets/mapreduce.jpg" alt="MapReduce at the start of the shuffle, at the 'New to this' level: three reading machines hold coloured word slips, and 'the' has gone to reduce 0, tagged hash(the) % 2 = 0. The panel's entry card reads 'Now: Send each slip to one of the 2 counting machines.'"></a>
-      <p><b>MapReduce</b><br><sub>A team counts the words of a library. Everything works, one machine crashes, one machine is slow, one word is very common.</sub></p>
+      <p><b>MapReduce</b><br><sub>A team counts the words of a library. Everything works, one machine crashes, one machine is slow, one word is everywhere.</sub></p>
     </td>
     <td width="50%" valign="top">
       <a href="https://sites.irfanali.me/p/learning/raft-consensus.html"><img src=".github/assets/raft.jpg" alt="Raft after the leader crashes, in the Re-election chapter: S1, the old leader, is greyed out in term 1. S5 has won term 2, and the panel says S5 hears its new entry is on 3 of 5 servers, a majority, so it commits it and the older y←7 too."></a>
