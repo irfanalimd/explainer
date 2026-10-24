@@ -29,10 +29,10 @@ export const lesson = {
     { id: "dynamo2007", title: "Dynamo: Amazon's Highly Available Key-value Store", by: "G. DeCandia et al.", year: 2007, where: "SOSP 2007",
       url: "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
       supports: "MD5 to a 128-bit identifier (§4.1), the ring and virtual nodes, and why: a failed node's load spreads (§4.2), replication to the next N nodes (§4.3), adding and removing nodes (§4.9), equal-size partitions balance best (§6.2)" },
-    { id: "cassandra-dynamo", title: "Dynamo", by: "Apache Cassandra", year: 2024, where: "Cassandra architecture documentation",
+    { id: "cassandra-dynamo", short: "Cassandra docs, Dynamo", title: "Dynamo", by: "Apache Cassandra", year: 2024, where: "Cassandra architecture documentation",
       url: "https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html",
       supports: "Cassandra's techniques come from Dynamo; 256 random tokens coupled many endpoints and raised the risk of unavailability; a token allocator needs far fewer" },
-    { id: "cassandra-13701", title: "CASSANDRA-13701: Lower default num_tokens", by: "Apache Cassandra", year: 2020, where: "Cassandra issue tracker, fixed in 4.0",
+    { id: "cassandra-13701", short: "CASSANDRA-13701", title: "CASSANDRA-13701: Lower default num_tokens", by: "Apache Cassandra", year: 2020, where: "Cassandra issue tracker, fixed in 4.0",
       url: "https://issues.apache.org/jira/browse/CASSANDRA-13701",
       supports: "num_tokens default lowered in 4.0 (to 16, per CASSANDRA-16979)" },
     { id: "jump2014", title: "A Fast, Minimal Memory, Consistent Hash Algorithm", by: "J. Lamping, E. Veach", year: 2014, where: "arXiv:1406.2294 (Google)",
@@ -46,11 +46,11 @@ export const lesson = {
   goal: "Share keys among servers so that a server joining or leaving moves only the keys it must.",
 
   objectives: [
-    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins." },
+    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins.", stories: ["add"] },
     { id: "o-owner", text: "Perform a lookup on the ring: find the server that stores a key, wrapping past the top." },
-    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from." },
-    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many." },
-    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out." },
+    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from.", stories: ["add"] },
+    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many.", stories: ["remove", "vnodes"] },
+    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out.", stories: ["vnodes"] },
   ],
 
   misconceptions: [
