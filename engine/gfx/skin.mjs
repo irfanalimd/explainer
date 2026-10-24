@@ -1,12 +1,13 @@
 // Skin: semantic poses (CONTRACTS.md 4.6) -> styled primitives (contracts.mjs DrawList), per DESIGN.md
 // section 5. The only place that knows how each kind of thing looks. Pure and DOM-free (runs in Node).
 //
-//   skin(poses, drawList, { theme, time, pxPerUnit }) -> drawList
+//   skin(poses, drawList, { theme, time, pxPerUnit, spot }) -> drawList   (spot: how far pose.recede fades, SPOT.recede)
 //
 // The scene decides where things are and what state they are in; the skin adds the purely visual
 // offsets: z += MOTION.litRise * lit, emission from flash, rim from lit, LED blinking from time, key index
 // to colour, tone to colour.
-import { PALETTE, SIZE, MOTION, ACCENT, GLOW, WORLD_TYPE, keyColor, worldCase } from "../tokens.mjs";
+import { PALETTE, SIZE, MOTION, ACCENT, GLOW, SPOT, WORLD_TYPE, keyColor, worldCase } from "../tokens.mjs";
+import { srgba } from "./color.mjs";
 
 const num = (v, d) => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
@@ -689,13 +690,39 @@ const KINDS = {
  * @param {import("../contracts.mjs").DrawList} dl
  * @param {{ theme?: "dark"|"light", time?: number, pxPerUnit?: number }} opts
  */
+// what one receded pose just drew moves toward the stage by w: bodies, wells and channels take its colour, printed
+// text fades, light dims, so it reads as background and keeps its shape and hue
+const toward = (c, to, w) => { if (c == null) return c; const a = srgba(c); return [a[0] + (to[0] - a[0]) * w, a[1] + (to[1] - a[1]) * w, a[2] + (to[2] - a[2]) * w, a[3]]; };
+function recede(dl, [s0, g0, t0], w, stage) {
+  const to = srgba(stage), fade = 1 - 0.6 * w;
+  for (let i = s0; i < dl.slabs.length; i++) {
+    const s = dl.slabs[i];
+    s.color = toward(s.color, to, w);
+    if (s.emissive) s.emissive *= 1 - w;
+    if (s.well?.color) s.well = { ...s.well, color: toward(s.well.color, to, w) };
+    for (const k of ["label", "label2", "label3"]) if (s[k]) s[k] = { ...s[k], opacity: num(s[k].opacity, 1) * fade };
+  }
+  for (let i = g0; i < dl.grooves.length; i++) { const g = dl.grooves[i]; g.opacity = num(g.opacity, 1) * fade; if (g.glow) g.glow *= 1 - w; }
+  for (let i = t0; i < dl.texts.length; i++) { const t = dl.texts[i]; t.opacity = num(t.opacity, 1) * fade; }
+}
+
 export function skin(poses, dl, opts = {}) {
   const ctx = { theme: opts.theme === "light" ? "light" : "dark", time: num(opts.time, 0), pxPerUnit: num(opts.pxPerUnit, 1) };
   dl.fields = null;
+  const spot = num(opts.spot, SPOT.recede);
   for (const p of poses ?? []) {
     if (!p || num(p.opacity, 1) <= 0) continue;
     const fn = KINDS[p.kind];
-    if (fn) fn(p, dl, ctx);
+    if (!fn) continue;
+    // outside the step's spotlight a thing is drawn faded by `spot` (the dimmed look, lighter); what the reader
+    // points at, picks or is asked to watch (lit, flashing) keeps its look
+    const r = p.hover || p.selected ? 0 : spot * clamp(num(p.recede, 0), 0, 1) * (1 - clamp(num(p.lit, 0), 0, 1)) * (1 - clamp(num(p.flash, 0), 0, 1));
+    if (!(r > 0.001)) { fn(p, dl, ctx); continue; }
+    const d = p.dim, n0 = [dl.slabs.length, dl.grooves.length, dl.texts.length];
+    if (r > num(d, 0)) p.dim = r;
+    fn(p, dl, ctx);
+    p.dim = d;
+    recede(dl, n0, r * SPOT.wash, PALETTE[ctx.theme].stage);
   }
   return dl;
 }

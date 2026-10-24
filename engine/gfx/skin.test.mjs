@@ -5,6 +5,7 @@ import { skin, SKIN_KINDS, toneColors, bezier, inkOn, chevron } from "./skin.mjs
 import { DrawList } from "../contracts.mjs";
 import { PALETTE, SIZE, MOTION, ACCENT, GLOW, WORLD_TYPE, keyColor, worldCase } from "../tokens.mjs";
 import { galleryScene } from "./gallery-scene.mjs";
+import { srgba } from "./color.mjs";
 
 const run = (poses, o = {}) => skin(poses, new DrawList(), { theme: "dark", time: 0, ...o });
 const P = PALETTE.dark;
@@ -365,4 +366,22 @@ test("trace arrows: an inlaid chevron at the receiving port, in the trace's own 
   // direction follows the last stretch of a rounded path
   const up = chevron([[0, 100], [0, 20], [2, 6], [8, 1], [20, 0], [60, 0]], 1);
   assert.ok(up.dir[0] > 0.99);
+});
+
+test("spotlight: a receded thing moves toward the stage and fades its ink; kept, hovered or lit ones keep their look", () => {
+  const tile = (o) => ({ id: "w", kind: "tile", x: 0, y: 0, w: 30, d: 14, text: "the", key: 0, tone: "key", ...o });
+  const slab = (dl) => dl.slabs.find((s) => s.id === "w");
+  const plainLook = run([tile({})]);
+  assert.deepEqual(run([tile({ recede: 0 })]), plainLook);
+  assert.deepEqual(run([tile({ recede: 1, hover: true })]), run([tile({ hover: true })]));
+  assert.deepEqual(run([tile({ recede: 1 })], { spot: 0 }), plainLook);
+  const back = slab(run([tile({ recede: 1 })]));
+  const was = srgba(slab(plainLook).color), now = srgba(back.color), stage = srgba(P.stage);
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  assert.ok(dist(now, stage) < dist(was, stage), "closer to the stage");
+  assert.ok(back.desaturate > 0);
+  assert.ok(back.label.opacity < 1);
+  // a lit thing (the one to watch) keeps its look however far it would recede
+  const lit = run([tile({ lit: 1, recede: 1 })]);
+  assert.deepEqual(lit, run([tile({ lit: 1 })]));
 });
