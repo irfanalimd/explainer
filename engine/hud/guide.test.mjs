@@ -83,9 +83,9 @@ test("the look comes from ?cue=, then the figure's option, else clear", () => {
   assert.equal(cueStyle("?gfx=webgl2", undefined), "clear");
 });
 
-test("a cue still waiting calls once more; reduced motion only rests", () => {
+test("a quiet cue still waiting calls once more; reduced motion only rests", () => {
   const play = el(), win = clock();
-  const g = createGuide({ win, reduced: () => false, target: () => play });
+  const g = createGuide({ win, reduced: () => false, target: () => play, style: "quiet" });
   g.set(cueOf({ ...base, stepMode: true, step: 1 }));
   assert.equal([...win.T.values()][0].ms, RECALL_MS);
   play.classList.remove("ix-cue-call");
@@ -96,9 +96,26 @@ test("a cue still waiting calls once more; reduced motion only rests", () => {
   assert.ok(calm.c.has("ix-cue") && !calm.c.has("ix-cue-call"));
 });
 
-test("the same cue set again is left alone; a rebuilt control takes the ring without calling again", () => {
+test("the clear cue calls until it moves on, with no timer, and a rebuilt control goes on calling", () => {
+  let play = el();
+  const win = clock(), g = createGuide({ win, reduced: () => false, target: () => play });
+  const start = cueOf({ ...base, atStart: true });
+  g.set(start);
+  assert.ok(play.c.has("ix-cue-call"));
+  assert.equal(win.T.size, 0);
+  const old = play; play = el();
+  g.set(start);
+  assert.ok(!old.c.has("ix-cue") && play.c.has("ix-cue-call"));
+  g.set(null);
+  assert.ok(!play.c.has("ix-cue") && !play.c.has("ix-cue-call"));
+  const calm = el(), g2 = createGuide({ win: clock(), reduced: () => true, target: () => calm });
+  g2.set(start);
+  assert.ok(calm.c.has("ix-cue") && !calm.c.has("ix-cue-call"));
+});
+
+test("the same quiet cue set again is left alone; a rebuilt control takes the ring without calling again", () => {
   let opts = el();
-  const win = clock(), g = createGuide({ win, reduced: () => false, target: () => opts });
+  const win = clock(), g = createGuide({ win, reduced: () => false, target: () => opts, style: "quiet" });
   const ask = cueOf({ ...base, asking: true, step: "18:How many?" });
   g.set(ask);
   opts.classList.remove("ix-cue-call");
