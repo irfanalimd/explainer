@@ -1,0 +1,254 @@
+diff --git a/engine/hud/explain.mjs b/engine/hud/explain.mjs
+index 30a080c..6b8a7df 100644
+--- a/engine/hud/explain.mjs
++++ b/engine/hud/explain.mjs
+@@ -1,14 +1,16 @@
+ // The explain panel: the teacher, and the one place the words live on a wide screen.
+ //   Wide screens (>= 1200 px): a stationary card on the right, under the toolbar and above the dock. Its header holds
+ //   the progress map (a dot per chapter, the current one ringed, each a way to jump), the chapter's name, the lesson's
+-//   goal and the level switch (level.mjs). Under it: the chapter's about line, the chapter entry card on its first step
++//   goal and the level, one quiet line ("Level  I know the basics") that opens the level switch (level.mjs): the reader
++//   picked it on the start card, so it waits until they want to change it. Under it: the chapter's about line, the chapter entry card on its first step
+ //   (chapter-card.mjs), the current step in layers (layers.mjs), then the chapter's earlier steps, newest first, each a
+-//   way back. At a chapter pause the current step becomes the chapter's recap; at the end of the run it carries the
++//   way back, folded to one line ("Earlier: 4 steps") so the current step is the one thing to read (the reader's
++//   choice to open them is remembered). At a chapter pause the current step becomes the chapter's recap; at the end of the run it carries the
+ //   payoff. A predict question sits here too, in the current step's place. It collapses to a small "Explain" tab
+ //   (remembered); while open the camera frames the world beside it (inset()) and the bottom caption steps aside.
+ //   Narrower screens: no side panel; the caption carries the current step, and its Explain button opens this card above
+ //   the dock with the chapter, what the caption leaves out (new words, the deeper layer, the picture) and the earlier
+-//   steps (never the step a second time).
++//   steps, always open there (never the step a second time).
+ // The level decides what shows (level.mjs POLICY); it never changes the facts.
+ // Spoilers: the HUD tells it (ctx.veil()) which step's words to hold back while a prediction is open and which
+ // chapters' about lines to withhold until their predictions are revealed.
+@@ -25,6 +27,7 @@ import { createLayers } from "./layers.mjs";
+ import { createProgress } from "./progress.mjs";
+ import { detourOf } from "./turn.mjs";
+ import { chapterCard, pictureMap } from "./chapter-card.mjs";
++import { LEVELS } from "./level.mjs";
+ 
+ const SVG = (body) => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+ const ICON = {
+@@ -37,6 +40,7 @@ const ICON = {
+ };
+ export const EXPLAIN_MIN_W = 1200;   // the side panel docks at this root width and up
+ const EARLIER = 5;                    // earlier steps listed before "Start of chapter"
++let uid = 0;
+ export const VEIL = "…";              // what a held-back caption shows until its prediction is revealed
+ // the chapter's about, withheld until its prediction is revealed: before the question opens it says one is coming (the
+ // reader has not been asked anything yet); while it is open, where the summary will be
+@@ -79,6 +83,7 @@ export function createExplain(ctx) {
+   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
+   const S = { tl: null, main: null, detour: null, lesson: null, steps: [], phases: [], first: new Map(), step: -1, ph: -1,
+     shown: { step: -2, ph: -2, tl: null, sig: "" }, mode: "", size: "", open: store.get("explain") !== "0", sheet: false,
++    earlierOpen: store.get("earlier") === "1", levelOpen: false,
+     held: null, askEl: null, capOverride: null, aboutDefs: null, aboutFirst: -1, aboutOpen: false, pictureOpen: false,
+     mapOpen: null };   // the entry card's picture: null lets fit() fold it, true / false is the reader's choice
+ 
+@@ -90,7 +95,12 @@ export function createExplain(ctx) {
+ 
+   const titleEl = h("h2", { class: "ix-ex-title" });
+   const goalEl = h("p", { class: "ix-ex-goal" });
+-  const levelEl = h("div", { class: "ix-ex-level" });
++  const levelBox = h("div", { class: "ix-ex-level-box", id: `ix-ex-level-${++uid}`, hidden: true });
++  const levelV = h("span", { class: "ix-ex-level-v" });
++  const levelBtn = h("button", { class: "ix-ex-level-btn", type: "button", "aria-expanded": "false", "aria-controls": levelBox.id,
++    onclick: () => { S.levelOpen = !S.levelOpen; syncLevel(); fit(); } },
++  h("span", { class: "ix-ex-level-k", text: "Level" }), levelV, h("span", { class: "ix-ex-level-chev", html: ICON.chevron }));
++  const levelEl = h("div", { class: "ix-ex-level" }, levelBtn, levelBox);
+   const headBtn = h("button", { class: "ix-btn ix-ex-hide", type: "button", onclick: () => toggle() });
+   const head = h("div", { class: "ix-ex-head" });
+   const entry = h("div", { class: "ix-ex-entry" });
+@@ -100,8 +110,13 @@ export function createExplain(ctx) {
+   const askSlot = h("div", { class: "ix-ex-ask" });
+   // narrow screens: the card never repeats the current step, but carries what the caption leaves out
+   const extra = h("div", { class: "ix-ex-extra" });
+-  const list = h("ol", { class: "ix-ex-list" });
+-  const earlier = h("div", { class: "ix-ex-earlier" }, h("div", { class: "ix-ex-label", text: "Earlier" }), list);
++  const list = h("ol", { class: "ix-ex-list", id: `ix-ex-list-${++uid}` });
++  // docked, the earlier steps fold to this one line; the sheet keeps its plain label (the reader opened it to see them)
++  const earlierCount = h("span", { class: "ix-ex-earlier-count" });
++  const earlierBtn = h("button", { class: "ix-ex-earlier-btn", type: "button", "aria-expanded": "false", "aria-controls": list.id,
++    onclick: () => { S.earlierOpen = !S.earlierOpen; store.set("earlier", S.earlierOpen ? "1" : "0"); syncEarlier(); fit(); } },
++  h("span", { class: "ix-ex-label", text: "Earlier" }), earlierCount, h("span", { class: "ix-ex-earlier-chev", html: ICON.chevron }));
++  const earlier = h("div", { class: "ix-ex-earlier" }, h("div", { class: "ix-ex-label ix-ex-earlier-k", text: "Earlier" }), earlierBtn, list);
+   const body = h("div", { class: "ix-ex-body" }, head, entry, askSlot, now, extra, earlier);
+   const panel = h("aside", { class: "ix-explain ix-glass", "aria-label": "What is happening" },
+     h("header", { class: "ix-ex-top" }, h("div", { class: "ix-ex-bar" }, progress.el, headBtn), titleEl, goalEl, levelEl),
+@@ -133,6 +148,7 @@ export function createExplain(ctx) {
+     headBtn.setAttribute("aria-label", dk ? "Hide the explanation" : "Close the explanation");
+     headBtn.dataset.tip = dk ? "Hide" : "Close";
+     headBtn.dataset.kbd = dk ? "E" : "Esc";
++    syncEarlier();
+   }
+ 
+   // root size class from the HUD ("phone" | "compact" | "desktop") and the root size in css px
+@@ -186,7 +202,7 @@ export function createExplain(ctx) {
+     S.first = firstUses(S.steps, S.phases);
+     S.step = -1; S.ph = -1;
+     S.shown.tl = null;
+-    if (S.lesson && !levelEl.firstChild) levelEl.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
++    if (S.lesson && !levelBox.firstChild) levelBox.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
+     levelEl.hidden = !S.lesson;
+   }
+   const phaseOf = (i) => {
+@@ -258,6 +274,7 @@ export function createExplain(ctx) {
+       more ? h("div", { class: "ix-ex-aboutrow" }, about, more) : about, aboutDefs)] : []));
+     S.aboutDefs = aboutDefs; S.aboutFirst = first; S.aboutMore = clamp ? more : null;
+     syncAbout();
++    syncLevel();
+   }
+ 
+   function render(force, animate = false) {
+@@ -287,6 +304,8 @@ export function createExplain(ctx) {
+     entry.replaceChildren(...(showEntry ? [chapterCard(h, markup, enter, entryMode, enter.picture ? S.lesson?.picture : null, fold)] : []));
+     // New: the card speaks for the chapter on its first step, so the about waits a step
+     head.classList.toggle("ix-ex-quiet", showEntry && P.entry === "full" && !sheet);
++    // past the chapter's first step the about has been read: it steps back a shade, so the current step leads
++    head.classList.toggle("ix-ex-past", S.step > first && !S.askEl && !S.held);
+ 
+     const st = S.steps[S.step];
+     const held = S.held, n = S.step - first + 1;
+@@ -338,6 +357,10 @@ export function createExplain(ctx) {
+         h("span", { class: "ix-ex-n", html: ICON.up }), h("span", { class: "ix-ex-t", text: "Start of chapter" }))));
+     }
+     list.replaceChildren(...items);
++    const before = S.step - first;
++    earlierCount.textContent = `${before} ${before === 1 ? "step" : "steps"}`;
++    earlierBtn.setAttribute("aria-label", `Earlier in this chapter: ${before} ${before === 1 ? "step" : "steps"}`);
++    syncEarlier();
+     // an open question hides the way back: nothing below the card but the step it asks about
+     earlier.hidden = !items.length || !!S.askEl;
+     S.shown = { step: S.step, ph: S.ph, tl: S.tl, sig };
+@@ -364,6 +387,22 @@ export function createExplain(ctx) {
+     return out;
+   }
+ 
++  // the level line names the reader's level; the switch opens under it
++  function syncLevel() {
++    const name = LEVELS.find((l) => l.id === ctx.level.value)?.label ?? "";
++    levelV.textContent = name;
++    levelBtn.setAttribute("aria-label", `Level: ${name}. ${S.levelOpen ? "Hide" : "Change"} it`);
++    levelBtn.setAttribute("aria-expanded", String(S.levelOpen));
++    levelBox.hidden = !S.levelOpen;
++    levelEl.classList.toggle("ix-ex-level-open", S.levelOpen);
++  }
++  // folded (docked, until the reader opens it) the list leaves the layout; the sheet always shows it
++  function syncEarlier() {
++    const open = S.earlierOpen || S.mode !== "docked";
++    list.hidden = !open;
++    earlier.classList.toggle("ix-ex-earlier-open", open);
++    earlierBtn.setAttribute("aria-expanded", String(open));
++  }
+   // the clamped about: "More" only when the line is cut, "Less" once it is open
+   function syncAbout() {
+     const btn = S.aboutMore, row = btn?.parentNode;
+diff --git a/engine/hud/hud.css b/engine/hud/hud.css
+index 9a49708..8ed79ad 100644
+--- a/engine/hud/hud.css
++++ b/engine/hud/hud.css
+@@ -264,6 +264,15 @@
+ .ix-tool[aria-pressed="true"] { background: var(--ix-press); color: var(--ix-ink); }
+ .ix-tools-sep { flex: none; width: 1px; height: 16px; margin: 0 4px; background: var(--ix-line-strong); }
+ .ix-tools-sep:last-child, .ix-tools-sep:has(+ [hidden]:last-child) { display: none; }
++/* while the story plays, the chrome around it steps back a shade so the world and the step lead: never below ink-faint
++   (the faintest text ink), never a move or a new size; pointing at a control or tabbing to it brings it back, and so
++   does every pause */
++.ix.ix-playing .ix-tool:not(:hover, :focus-visible, [aria-pressed="true"]),
++.ix.ix-playing .ix-legend-btn:not(:hover, :focus-visible, [aria-expanded="true"]) { color: var(--ix-ink-faint); }
++.ix.ix-playing .ix-stories-tab[aria-checked="true"]:not(:hover, :focus-visible),
++.ix.ix-playing .ix-story:not(:hover, :focus-visible, [aria-expanded="true"]),
++.ix.ix-playing .ix-speed:not(:hover, :focus-visible, [aria-expanded="true"]) .ix-speed-val { color: var(--ix-ink-muted); }
++.ix-speed-val, .ix-story { transition: color var(--ix-dur-slow) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease); }
+ 
+ /* help: a quiet circle in the bottom-left corner, just above the dock */
+ .ix-help-fab {
+@@ -1374,7 +1383,19 @@
+ .ix-ex-title { min-width: 0; padding-right: 8px; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); font-weight: 600; letter-spacing: var(--ix-tr-lg); color: var(--ix-ink); text-wrap: balance; }
+ .ix-ex-goal { padding-right: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
+ .ix-ex-goal-k { margin-right: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ink-faint); }
+-.ix-ex-level { margin: 12px 8px 0 0; }
++.ix-ex-level { margin: 8px 8px 0 0; }
++/* the level as one quiet line (the start card asked it); it opens the switch under it */
++.ix-ex-level-btn {
++  display: inline-flex; align-items: center; gap: 8px; height: 28px; margin-left: -8px; padding: 0 8px; border-radius: var(--ix-r-sm);
++  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-muted); white-space: nowrap;
++  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
++}
++.ix-ex-level-k { color: var(--ix-ink-faint); }
++.ix-ex-level-chev { display: inline-grid; margin-left: -4px; color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
++.ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
++.ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
++.ix-ex-level-box { margin-top: 4px; }
++.ix-ex-level-box[hidden] { display: none; }
+ .ix-ex-levels { width: 100%; }
+ .ix-ex-levels .ix-seg-opt { padding: 0 8px; }
+ 
+@@ -1404,6 +1425,9 @@
+ .ix-ex-about { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
+ /* an about line that would answer a prediction waits for the reveal */
+ .ix-ex-about.ix-ex-withheld { color: var(--ix-ink-faint); }
++/* past the chapter's first step the about has been read: a shade back (ink-faint, still body-text contrast) */
++.ix-ex-about { transition: color var(--ix-dur-slow) var(--ix-ease); }
++.ix-ex-head.ix-ex-past .ix-ex-about { color: var(--ix-ink-faint); }
+ .ix-ex-head:empty, .ix-ex-head.ix-ex-quiet { display: none; }
+ .ix-ex-entry:empty, .ix-ex-extra:empty { display: none; }
+ /* sections of the body are set apart by space and one hairline, never boxes inside boxes */
+@@ -1559,6 +1583,20 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
+ .ix-ex-earlier { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--ix-line); }
+ .ix-ex-label { margin: 0 0 4px 0; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-faint); }
+ .ix-ex-list { list-style: none; margin: 0 -8px; padding: 0; }
++.ix-ex-list[hidden] { display: none; }
++/* docked, the earlier steps fold to one line, so the current step is the one thing in the panel to read */
++.ix-ex-earlier-btn {
++  display: flex; align-items: center; gap: 8px; width: calc(100% + 16px); margin: -6px -8px 0; padding: 6px 8px;
++  border-radius: var(--ix-r-sm); text-align: left; transition: background-color var(--ix-dur-fast) var(--ix-ease);
++}
++.ix-ex-earlier-btn .ix-ex-label { margin: 0; }
++.ix-ex-earlier-count { font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
++.ix-ex-earlier-chev { display: inline-grid; margin-left: auto; color: var(--ix-ink-faint); transform: rotate(-90deg); transition: transform var(--ix-dur-slow) var(--ix-ease); }
++.ix-ex-earlier-open .ix-ex-earlier-chev { transform: none; }
++.ix-ex-earlier-open .ix-ex-earlier-btn { margin-bottom: 4px; }
++.ix-ex-earlier-btn:hover { background: var(--ix-hover); }
++.ix-ex-earlier-btn:hover :is(.ix-ex-label, .ix-ex-earlier-chev) { color: var(--ix-ink); }
++.ix:not(.ix-ex-docked) .ix-ex-earlier-btn, .ix.ix-ex-docked .ix-ex-earlier-k { display: none; }
+ .ix-ex-item {
+   display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; width: 100%;
+   padding: 6px 8px; border-radius: var(--ix-r-sm); text-align: left;
+@@ -1654,6 +1692,9 @@ span.ix-cite { text-decoration-style: dotted; cursor: help; }
+   transition: background-color var(--ix-dur-fast) var(--ix-ease);
+ }
+ .ix-params-toggle:hover { background: var(--ix-hover); }
++/* folded, the card is a way in, not a heading: it reads like the toolbar's words, so the chapter's name leads the column */
++.ix-params-folded .ix-params-toggle { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); font-weight: 500; letter-spacing: 0; color: var(--ix-ink-muted); }
++.ix-params-folded .ix-params-toggle:hover { color: var(--ix-ink); }
+ .ix-params-chev { color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+ .ix-params-folded .ix-params-chev { transform: rotate(-90deg); }
+ .ix-params-folded .ix-params-body { display: none; }
+diff --git a/engine/hud/test.html b/engine/hud/test.html
+index 7c2f9a3..e492af0 100644
+--- a/engine/hud/test.html
++++ b/engine/hud/test.html
+@@ -616,6 +616,13 @@ window.__results = (async () => {
+     const items = [...panel.querySelectorAll(".ix-ex-item")];
+     check("earlier steps of the chapter, newest first, with their chips (quiet ones)", items.length === 3 && items[0].querySelector(".ix-ex-t .ix-key") && !items[0].querySelector('[role="button"]') && items.map((b) => b.querySelector(".ix-ex-n").textContent).join() === "3,2,1"
+       && items[0].querySelector(".ix-ex-t").textContent === "Step 2 moves fox to mapper 2", items.map((b) => b.textContent));
++    const eBtn = panel.querySelector(".ix-ex-earlier-btn"), eList = panel.querySelector(".ix-ex-list");
++    check("docked, the earlier steps fold to one line that counts them", eBtn && getComputedStyle(eBtn).display !== "none" && eList.hidden && eBtn.getAttribute("aria-expanded") === "false"
++      && eBtn.getAttribute("aria-controls") === eList.id && eBtn.textContent.includes("3 steps"), eBtn?.textContent);
++    eBtn.click();
++    check("the line opens them and remembers", !eList.hidden && eBtn.getAttribute("aria-expanded") === "true" && getComputedStyle(eList).display !== "none" && localStorage.getItem("ix:earlier") === "1");
++    eBtn.click();
++    check("and folds them again", eList.hidden && localStorage.getItem("ix:earlier") === "0");
+     check("the bottom caption steps aside while the panel is open", getComputedStyle(capEl).display === "none");
+     reset();
+     items[1].click();
+@@ -670,6 +677,7 @@ window.__results = (async () => {
+     const capB = root4.querySelector(".ix-caption").getBoundingClientRect().top, bar4 = root4.querySelector(".ix-bar").getBoundingClientRect().top, pr = p4.getBoundingClientRect();
+     check("the button opens the chapter and its earlier steps above the dock, never the current step a second time", getComputedStyle(p4).display === "flex" && btn4.getAttribute("aria-expanded") === "true"
+       && p4.querySelector(".ix-ex-now").hidden && p4.querySelectorAll(".ix-ex-item").length === 2 && p4.querySelector(".ix-ex-title").textContent === "Map"
++      && !p4.querySelector(".ix-ex-list").hidden && getComputedStyle(p4.querySelector(".ix-ex-earlier-btn")).display === "none"
+       && pr.bottom <= bar4 && hud4.insets.right === 0, { pr: [pr.top, pr.bottom], bar4, capB });
+     p4.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+     check("Esc closes the card", getComputedStyle(p4).display === "none" && btn4.getAttribute("aria-expanded") === "false");

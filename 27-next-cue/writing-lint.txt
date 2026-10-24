@@ -1,0 +1,1 @@
+writing lint (scripts/lib/style.mjs lintSource) over the 4 new HUD strings, as text fields: 0 hits (control: the same with "crucial" added: 1 hit)

@@ -9,7 +9,9 @@ make what exists faster, more accurate, leaner and more polished.
 | 1 | [#4](https://github.com/irfanalimd/explainer/pull/4) | learner journey, active learning, world storytelling (#1–#3) | **merged** |
 | 2 | [#8](https://github.com/irfanalimd/explainer/pull/8) | author pipeline, share & teach, interface & access (#5–#7) | **merged** |
 | 3 | [#13](https://github.com/irfanalimd/explainer/pull/13) | accuracy, HUD and design, page speed, tooling speed (#9–#12) | **merged** |
-| 4 | [#19](https://github.com/irfanalimd/explainer/pull/19) | framing check, frame cost, phone sheets, code panel and landscape accessibility, lesson words (#14–#18) | **draft: merge this one** |
+| 4 | [#19](https://github.com/irfanalimd/explainer/pull/19) | framing check, phone sheets, code panel and landscape accessibility, lesson words (#14, #16–#18) | **merged** (via #34) |
+| 5 | [#34](https://github.com/irfanalimd/explainer/pull/34) | the original tile look (#20), sources, writing and example rewrites (#21–#25), smooth motion and faster full frames (#26, #27), reader passes and the visual defect pass (#28–#30): what the live site is built from | **merged** |
+| 6 | [#35](https://github.com/irfanalimd/explainer/pull/35) | guiding the reader's eye: a ring on the next thing to do, the world's focus on the step, a calmer screen (#31–#33). [Unlisted previews](combined-6/) | **draft: trying it on the previews** |
 
 | | Branch | What changes | Pull request |
 |---|---|---|---|
@@ -27,7 +29,14 @@ make what exists faster, more accurate, leaner and more polished.
 | 12 | Frame cost | Faster live play without a GPU (phone 7.1 → 10.3 fps), a paused page at rest about 3× sooner, captures unchanged. | [#15](https://github.com/irfanalimd/explainer/pull/15) |
 | 13 | Phone sheets | The caption and dock hide under a sheet that covers them; Raft's busy steps say each thing once. | [#16](https://github.com/irfanalimd/explainer/pull/16) |
 | 14 | Code panel and landscape | Readable code lines (56 contrast findings → 0), usable panels on a landscape phone, an audit that opens them. | [#17](https://github.com/irfanalimd/explainer/pull/17) |
-| 15 | Lesson words | A Raft leader bug behind a contradiction, counts that follow the run, every unreached lesson entry explained. | [#18](https://github.com/irfanalimd/explainer/pull/18) |
+| 15 | Lesson words | A Raft leader bug behind a contradiction, counts that follow the run, every unreached lesson entry explained. | [#18](https://github.com/irfanalimd/explainer/pull/18) (merged via #34) |
+| 16–19 | Content | Every figure cites its sources, a writing standard and lint, all eight examples rewritten against their sources. | [#21](https://github.com/irfanalimd/explainer/pull/21)–[#25](https://github.com/irfanalimd/explainer/pull/25) (merged via #34) |
+| 21 | Original look | The original tile look, every frame drawn in full. | [#20](https://github.com/irfanalimd/explainer/pull/20) (merged via #34) |
+| 22–23 | Smooth motion, full frames | The hover pick no longer waits on the GPU; faster full frames, every pixel the same. | [#26](https://github.com/irfanalimd/explainer/pull/26), [#27](https://github.com/irfanalimd/explainer/pull/27) (merged via #34) |
+| 24–26 | Visual defects, reader passes | The shuffle chip off reduce 1's header; reader passes on all eight lessons; citation labels that name the document. | [#28](https://github.com/irfanalimd/explainer/pull/28)–[#30](https://github.com/irfanalimd/explainer/pull/30) (merged via #34) |
+| 27 | Next cue | One clear ring on the next thing to do, with an "Up next" line and a Hints switch. | [#32](https://github.com/irfanalimd/explainer/pull/32) |
+| 28 | World focus | What the step is about keeps its look and the rest recedes; the words a step names are ringed in the world. | [#33](https://github.com/irfanalimd/explainer/pull/33) |
+| 29 | Calm screen | Earlier steps fold, the level is one line, the chrome steps back while the story plays. | [#31](https://github.com/irfanalimd/explainer/pull/31) |
 
 ## How to review one
 

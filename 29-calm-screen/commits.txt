@@ -1,0 +1,5 @@
+1082ef9 Let the chapter's introduction step back once its first step has played
+2e2bbcb Make the folded Parameters card read as a way in, not a heading
+30e36e9 Let the toolbar, scenario and speed step back a shade while the story plays
+202483b Name the reader's level in one line in the panel, the switch a click away
+0691a92 Fold the panel's earlier steps to one line, so the current step is the one thing to read

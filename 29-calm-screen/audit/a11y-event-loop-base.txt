@@ -1,0 +1,2 @@
+audit event-loop: order/light/1440x900 10 frames, order/dark/1440x900 10 frames, await/light/1440x900 6 frames, await/dark/1440x900 6 frames, starve/light/1440x900 6 frames, starve/dark/1440x900 6 frames, yield/light/1440x900 6 frames, yield/dark/1440x900 6 frames, order/light/390x844 10 frames, order/dark/390x844 10 frames, await/light/390x844 6 frames, await/dark/390x844 6 frames, starve/light/390x844 6 frames, starve/dark/390x844 6 frames, yield/light/390x844 6 frames, yield/dark/390x844 6 frames
+ok: no problems

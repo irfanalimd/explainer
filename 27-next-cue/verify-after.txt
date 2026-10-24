@@ -1,0 +1,276 @@
+verify examples/btree/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    random                          20 steps   95.9 s  5 phases  118 ms
+  ok    random · phone                  20 steps   95.9 s  5 phases   29 ms
+  ok    random · order=5                17 steps   82.7 s  5 phases   32 ms
+  ok    random · n=4                    11 steps   55.7 s  4 phases   28 ms
+  ok    random · n=14                   28 steps  136.9 s  6 phases   76 ms
+  ok    random · scan=false             16 steps   76.3 s  4 phases   32 ms
+  ok    random · phone · all min         8 steps   41.9 s  3 phases   12 ms
+  ok    random · phone · all max        23 steps  110.2 s  5 phases   45 ms
+  ok    sequential                      23 steps  108.3 s  6 phases   35 ms
+  ok    sequential · phone              23 steps  108.2 s  6 phases   48 ms
+  ok    sequential · order=5            18 steps   87.6 s  5 phases   23 ms
+  ok    sequential · n=4                11 steps   55.7 s  4 phases   12 ms
+  ok    sequential · n=14               28 steps  137.7 s  6 phases  134 ms
+  ok    sequential · scan=false         18 steps   83.8 s  5 phases   59 ms
+  ok    sequential · phone · all min     8 steps   41.9 s  3 phases   40 ms
+  ok    sequential · phone · all max    24 steps  113.3 s  5 phases   43 ms
+  ok    rootsplit                       24 steps  116.8 s  6 phases   91 ms
+  ok    rootsplit · phone               24 steps  116.6 s  6 phases   66 ms
+  ok    rootsplit · n=4                 24 steps  116.8 s  6 phases   67 ms
+  ok    rootsplit · n=14                24 steps  116.8 s  6 phases   54 ms
+  ok    rootsplit · scan=false          20 steps   96.6 s  5 phases   56 ms
+  ok    rootsplit · phone · all min     20 steps   96.4 s  5 phases   42 ms
+  ok    rootsplit · phone · all max     24 steps  116.6 s  6 phases   85 ms
+  ok    lesson    lesson.mjs over every run and branch: 13 step ids, 6 chapters, 4 asks, 0 picks, 0 checks
+        note   lesson.steps names 1 step id(s) no run here reaches: "split.signpost" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+  ok    sources   lesson.sources: 10 source(s), 20 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 9 questions, 5 defined words, 1582 words, reading grade 4.7
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  3.7 s
+verify examples/consistent-hashing/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    add                         16 steps   59.2 s  6 phases  236 ms
+  ok    add · phone                 16 steps   59.2 s  6 phases  219 ms
+  ok    add · servers=6             18 steps   67.0 s  6 phases   80 ms
+  ok    add · keys=6                16 steps   59.3 s  6 phases   30 ms
+  ok    add · keys=24               16 steps   59.2 s  6 phases  113 ms
+  ok    add · vnodes=8              16 steps   55.5 s  6 phases  183 ms
+  ok    add · phone · all min       16 steps   59.3 s  6 phases   59 ms
+  ok    add · phone · all max       18 steps   62.4 s  6 phases  214 ms
+  ok    remove                       9 steps   33.5 s  4 phases   93 ms
+  ok    remove · phone               9 steps   33.5 s  4 phases   58 ms
+  ok    remove · servers=6           9 steps   33.8 s  4 phases   47 ms
+  ok    remove · keys=6              9 steps   33.8 s  4 phases   40 ms
+  ok    remove · keys=24             9 steps   33.5 s  4 phases   76 ms
+  ok    remove · vnodes=8            9 steps   31.2 s  4 phases   62 ms
+  ok    remove · phone · all min     9 steps   33.8 s  4 phases   36 ms
+  ok    remove · phone · all max     9 steps   31.5 s  4 phases   94 ms
+  ok    vnodes                      12 steps   45.4 s  5 phases   89 ms
+  ok    vnodes · phone              12 steps   45.4 s  5 phases  118 ms
+  ok    vnodes · servers=6          12 steps   45.2 s  5 phases  108 ms
+  ok    vnodes · keys=6             12 steps   45.2 s  5 phases  114 ms
+  ok    vnodes · keys=24            12 steps   45.4 s  5 phases   73 ms
+  ok    vnodes · phone · all min    12 steps   45.2 s  5 phases   27 ms
+  ok    vnodes · phone · all max    12 steps   45.2 s  5 phases   79 ms
+  ok    lesson    lesson.mjs over every run and branch: 19 step ids, 8 chapters, 3 asks, 0 picks, 0 checks
+  ok    sources   lesson.sources: 7 source(s), 20 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 4 defined words, 1175 words, reading grade 4.5
+summary  23 run(s), 0 failing, 0 error(s), 0 warning(s)  7.5 s
+verify examples/event-loop/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    order                       19 steps   96.1 s  4 phases  459 ms
+  ok    order · phone               19 steps   96.1 s  4 phases   90 ms
+  ok    order · latency=5           19 steps   96.1 s  4 phases   54 ms
+  ok    order · latency=120         19 steps   96.1 s  4 phases   31 ms
+  ok    order · chunks=3            19 steps   96.1 s  4 phases   30 ms
+  ok    order · chunks=10           19 steps   96.1 s  4 phases   27 ms
+  ok    order · work=1              19 steps   96.1 s  4 phases   29 ms
+  ok    order · work=8              19 steps   96.1 s  4 phases   28 ms
+  ok    order · hz=120              19 steps   96.1 s  4 phases   62 ms
+  ok    order · phone · all min     19 steps   96.1 s  4 phases   65 ms
+  ok    order · phone · all max     19 steps   96.1 s  4 phases   47 ms
+  ok    await                       15 steps   74.1 s  3 phases   35 ms
+  ok    await · phone               15 steps   74.1 s  3 phases   23 ms
+  ok    await · latency=5           15 steps   74.1 s  3 phases   19 ms
+  ok    await · latency=120         15 steps   74.1 s  3 phases   19 ms
+  ok    await · chunks=3            15 steps   74.1 s  3 phases   35 ms
+  ok    await · chunks=10           15 steps   74.1 s  3 phases   20 ms
+  ok    await · work=1              15 steps   74.1 s  3 phases   13 ms
+  ok    await · work=8              15 steps   74.1 s  3 phases   36 ms
+  ok    await · hz=120              15 steps   74.1 s  3 phases   44 ms
+  ok    await · phone · all min     15 steps   74.1 s  3 phases   31 ms
+  ok    await · phone · all max     15 steps   74.1 s  3 phases   54 ms
+  ok    starve                      19 steps   95.5 s  3 phases   95 ms
+  ok    starve · phone              19 steps   93.7 s  3 phases   78 ms
+  ok    starve · latency=5          19 steps   95.5 s  3 phases   28 ms
+  ok    starve · latency=120        19 steps   95.5 s  3 phases   45 ms
+  ok    starve · chunks=3           14 steps   69.4 s  3 phases   18 ms
+  ok    starve · chunks=10          21 steps  106.4 s  3 phases   46 ms
+  ok    starve · work=1             19 steps   95.5 s  3 phases   52 ms
+  ok    starve · work=8             19 steps   95.5 s  3 phases   22 ms
+  ok    starve · hz=120             19 steps   95.5 s  3 phases   61 ms
+  ok    starve · phone · all min    14 steps   69.2 s  3 phases   15 ms
+  ok    starve · phone · all max    21 steps  103.5 s  3 phases   66 ms
+  ok    yield                       23 steps  120.4 s  3 phases   45 ms
+  ok    yield · phone               23 steps  116.0 s  3 phases   31 ms
+  ok    yield · latency=5           23 steps  120.4 s  3 phases   21 ms
+  ok    yield · latency=120         23 steps  120.4 s  3 phases   19 ms
+  ok    yield · chunks=3            15 steps   74.9 s  2 phases   14 ms
+  ok    yield · chunks=10           29 steps  152.8 s  3 phases   23 ms
+  ok    yield · work=1              21 steps  111.8 s  3 phases   24 ms
+  ok    yield · work=8              27 steps  137.6 s  3 phases   21 ms
+  ok    yield · hz=120              27 steps  137.6 s  3 phases   26 ms
+  ok    yield · phone · all min     15 steps   74.0 s  2 phases   25 ms
+  ok    yield · phone · all max     35 steps  174.4 s  3 phases   60 ms
+  ok    lesson    lesson.mjs over every run and branch: 37 step ids, 7 chapters, 5 asks, 0 picks, 0 checks
+  ok    sources   lesson.sources: 13 source(s), 25 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 4 chapters, 5 questions, 9 defined words, 1670 words, reading grade 5.8
+summary  44 run(s), 0 failing, 0 error(s), 0 warning(s)  5.8 s
+verify examples/linked-list/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    insert                      17 steps   87.3 s  5 phases  161 ms
+  ok    insert · phone              17 steps   87.3 s  5 phases   69 ms
+  ok    insert · n=7                19 steps   94.4 s  5 phases   35 ms
+  ok    insert · at=1               17 steps   85.8 s  5 phases   25 ms
+  ok    insert · at=4               17 steps   88.7 s  5 phases   36 ms
+  ok    insert · phone · all min    17 steps   85.8 s  5 phases   56 ms
+  ok    insert · phone · all max    19 steps   97.2 s  5 phases   44 ms
+  ok    find                        14 steps   70.4 s  4 phases   36 ms
+  ok    find · phone                14 steps   70.4 s  4 phases   25 ms
+  ok    find · n=7                  14 steps   70.4 s  4 phases   36 ms
+  ok    find · at=1                 14 steps   70.4 s  4 phases   31 ms
+  ok    find · at=4                 14 steps   70.4 s  4 phases   22 ms
+  ok    find · phone · all min      14 steps   70.4 s  4 phases   14 ms
+  ok    find · phone · all max      14 steps   70.4 s  4 phases   14 ms
+  ok    wrong                       21 steps  104.7 s  5 phases   44 ms
+  ok    wrong · phone               21 steps  104.7 s  5 phases   19 ms
+  ok    wrong · n=7                 23 steps  112.5 s  5 phases   28 ms
+  ok    wrong · at=1                21 steps  103.1 s  5 phases   33 ms
+  ok    wrong · at=4                21 steps  106.2 s  5 phases   42 ms
+  ok    wrong · phone · all min     21 steps  103.1 s  5 phases   81 ms
+  ok    wrong · phone · all max     23 steps  115.8 s  5 phases   59 ms
+  ok    lesson    lesson.mjs over every run and branch: 27 step ids, 7 chapters, 3 asks, 0 picks, 0 checks
+  ok    sources   lesson.sources: 17 source(s), 21 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level intro, 5 chapters, 3 questions, 5 defined words, 968 words, reading grade 3.9
+summary  21 run(s), 0 failing, 0 error(s), 0 warning(s)  2.9 s
+verify examples/mapreduce/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    happy                          25 steps  140.0 s  5 phases  488 ms  + 1 branch
+  ok    happy · phone                  25 steps  141.6 s  5 phases  141 ms  + 1 branch
+  ok    happy · mappers=1              23 steps  128.3 s  5 phases   47 ms  + 1 branch
+  ok    happy · mappers=6              28 steps  155.6 s  5 phases  155 ms  + 1 branch
+  ok    happy · reducers=1             22 steps  130.5 s  5 phases   35 ms
+  ok    happy · reducers=4             31 steps  160.0 s  5 phases   71 ms  + 3 branches
+  ok    happy · combiner=true          25 steps  140.0 s  5 phases   72 ms  + 1 branch
+  ok    happy · phone · all min        20 steps  122.9 s  5 phases   62 ms
+  ok    happy · phone · all max        34 steps  176.3 s  5 phases   95 ms  + 3 branches
+  ok    crash                          27 steps  141.9 s  5 phases   56 ms
+  ok    crash · phone                  27 steps  143.5 s  5 phases   60 ms
+  ok    crash · mappers=1              26 steps  137.1 s  5 phases   63 ms
+  ok    crash · mappers=6              30 steps  157.5 s  5 phases  158 ms
+  ok    crash · reducers=1             24 steps  132.4 s  5 phases   53 ms
+  ok    crash · reducers=4             33 steps  161.9 s  5 phases   40 ms
+  ok    crash · combiner=true          27 steps  141.4 s  5 phases   77 ms
+  ok    crash · phone · all min        23 steps  131.7 s  5 phases  105 ms
+  ok    crash · phone · all max        36 steps  178.2 s  5 phases   49 ms
+  ok    straggler                      27 steps  143.7 s  5 phases   60 ms
+  ok    straggler · phone              27 steps  145.3 s  5 phases   52 ms
+  ok    straggler · mappers=1          23 steps  120.0 s  5 phases   29 ms
+  ok    straggler · mappers=6          30 steps  158.4 s  5 phases   71 ms
+  ok    straggler · reducers=1         24 steps  134.2 s  5 phases   38 ms
+  ok    straggler · reducers=4         33 steps  163.7 s  5 phases   43 ms
+  ok    straggler · combiner=true      27 steps  143.2 s  5 phases   27 ms
+  ok    straggler · phone · all min    20 steps  114.6 s  5 phases   30 ms
+  ok    straggler · phone · all max    36 steps  179.1 s  5 phases   47 ms
+  ok    skew                           30 steps  168.0 s  5 phases   30 ms
+  ok    skew · phone                   30 steps  170.2 s  5 phases   51 ms
+  ok    skew · mappers=1               28 steps  162.6 s  5 phases   50 ms
+  ok    skew · mappers=6               33 steps  182.7 s  5 phases  189 ms
+  ok    skew · combiner=true           25 steps  131.3 s  5 phases   35 ms
+  ok    skew · phone · all min         28 steps  166.8 s  5 phases   51 ms
+  ok    skew · phone · all max         32 steps  171.0 s  5 phases   80 ms
+  ok    lesson    lesson.mjs over every run and branch: 37 step ids, 5 chapters, 5 asks, 1 picks, 10 checks
+        note   lesson.steps names 2 step id(s) no run here reaches: "map.empty", "reduce.sum-all" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+  ok    sources   lesson.sources: 7 source(s), 37 citation(s)
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   writing: 1 softeners (references/writing.md): figure.mjs:82 "very" → drop it
+        info   level core, 5 chapters, 5 questions, 8 defined words, 2144 words, reading grade 5.8
+summary  34 run(s), 0 failing, 0 error(s), 1 warning(s)  8.6 s
+verify examples/quicksort/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    random                      36 steps  160.8 s  5 phases  198 ms
+  ok    random · phone              36 steps  160.8 s  5 phases   40 ms
+  ok    random · n=2                 8 steps   36.8 s  5 phases   11 ms
+  ok    random · n=12               49 steps  213.4 s  5 phases   28 ms
+  ok    random · phone · all min     8 steps   36.8 s  5 phases   16 ms
+  ok    random · phone · all max    49 steps  213.4 s  5 phases   59 ms
+  ok    sorted                      36 steps  165.3 s  5 phases   26 ms
+  ok    sorted · phone              36 steps  165.3 s  5 phases   79 ms
+  ok    sorted · n=2                 8 steps   36.8 s  5 phases    9 ms
+  ok    sorted · n=12               48 steps  220.5 s  5 phases   75 ms
+  ok    sorted · phone · all min     8 steps   36.8 s  5 phases    6 ms
+  ok    sorted · phone · all max    48 steps  220.5 s  5 phases   37 ms
+  ok    dups                        36 steps  168.0 s  5 phases   43 ms
+  ok    dups · phone                36 steps  168.0 s  5 phases   25 ms
+  ok    dups · n=2                   8 steps   34.7 s  5 phases    5 ms
+  ok    dups · n=12                 46 steps  209.2 s  5 phases   49 ms
+  ok    dups · phone · all min       8 steps   34.7 s  5 phases    6 ms
+  ok    dups · phone · all max      46 steps  209.2 s  5 phases   40 ms
+  ok    lesson    lesson.mjs over every run and branch: 21 step ids, 5 chapters, 4 asks, 0 picks, 0 checks
+        note   lesson.steps names 1 step id(s) no run here reaches: "repeat.copy" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+  ok    sources   lesson.sources: 13 source(s), 21 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 5 chapters, 4 questions, 3 defined words, 2026 words, reading grade 5.2
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  2.9 s
+verify examples/raft/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    happy                          31 steps  115.8 s  3 phases  141 ms
+  ok    happy · phone                  31 steps  115.8 s  3 phases   88 ms
+  ok    happy · nodes=3                26 steps  105.4 s  3 phases   37 ms
+  ok    happy · nodes=7                36 steps  124.5 s  3 phases   76 ms
+  ok    happy · latency=2              27 steps  107.8 s  3 phases   57 ms
+  ok    happy · latency=30             54 steps  174.4 s  3 phases   90 ms
+  ok    happy · drop=0.1               37 steps  137.2 s  3 phases   72 ms
+  ok    happy · lanes="below"          31 steps  115.8 s  3 phases   53 ms
+  ok    happy · phone · all min        23 steps  101.4 s  3 phases   29 ms
+  WARN  happy · phone · all max        95 steps  303.8 s  3 phases  223 ms
+        warn   pacing: phase "Copying the log" lasts 226 s at 1x (> 150 s; advisory): readers may lose the thread; consider trimming or splitting it
+  ok    crash                          41 steps  166.4 s  6 phases   44 ms
+  ok    crash · phone                  41 steps  166.4 s  6 phases   31 ms
+  ok    crash · nodes=3                35 steps  146.8 s  6 phases   40 ms
+  ok    crash · nodes=7                64 steps  230.3 s  6 phases   61 ms
+  ok    crash · latency=2              33 steps  147.4 s  6 phases   41 ms
+  ok    crash · latency=30             70 steps  271.5 s  6 phases   55 ms
+  ok    crash · drop=0.1               77 steps  249.6 s  6 phases   90 ms
+  ok    crash · lanes="below"          41 steps  166.4 s  6 phases   43 ms
+  ok    crash · phone · all min        32 steps  142.8 s  6 phases   21 ms
+  WARN  crash · phone · all max       145 steps  494.8 s  6 phases  128 ms
+        warn   pacing: phase "Re-election" lasts 223 s at 1x (> 150 s; advisory): readers may lose the thread; consider trimming or splitting it
+  ok    partition                      87 steps  233.0 s  6 phases   55 ms
+  ok    partition · phone              87 steps  233.0 s  6 phases   64 ms
+  ok    partition · nodes=3            55 steps  185.3 s  6 phases  107 ms
+  ok    partition · nodes=7            99 steps  241.4 s  6 phases  125 ms
+  ok    partition · latency=2          75 steps  218.8 s  6 phases   47 ms
+  ok    partition · latency=30        103 steps  285.4 s  6 phases  158 ms
+  ok    partition · drop=0.1          130 steps  334.0 s  5 phases  120 ms
+  ok    partition · lanes="below"      87 steps  233.0 s  6 phases  153 ms
+  ok    partition · phone · all min    56 steps  191.5 s  6 phases  110 ms
+  ok    partition · phone · all max   160 steps  489.9 s  6 phases  144 ms
+  ok    lesson    lesson.mjs over every run and branch: 51 step ids, 9 chapters, 4 asks, 0 picks, 0 checks
+        note   lesson.steps names 4 step id(s) no run here reaches: "vote.old", "beat.send-many", "stuck.old", "agree.where" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+        note   lesson.chapters names 1 chapter id(s) no run here reaches: "stuck" (a typo, a step the figure no longer makes, or one only untried knob values reach)
+  ok    sources   lesson.sources: 6 source(s), 39 citation(s)
+  WARN  teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        warn   caption: at other settings: 5 captions over 18 words (longest 31, crash · phone · all max, step 88: "s4, s7 and s6 vote for s5: its log is as complete as theirs. s3 refus…")
+        info   level core, 6 chapters, 6 questions, 9 defined words, 1757 words, reading grade 5.8
+summary  30 run(s), 0 failing, 0 error(s), 3 warning(s)  7.1 s
+verify examples/virtual-memory/figure.mjs  (compiler engine/scene/index.mjs)
+  ok    exports  meta, params, scenarios, counters, invariants, build
+  ok    miss                                25 steps  125.8 s  6 phases  181 ms
+  ok    miss · phone                        25 steps  126.6 s  6 phases   94 ms
+  ok    miss · address="0x7ffde4b21f9c"     25 steps  125.7 s  6 phases   62 ms
+  ok    miss · tlbSize=2                    25 steps  125.8 s  6 phases   45 ms
+  ok    miss · phone · all min              25 steps  126.4 s  6 phases   56 ms
+  ok    miss · phone · all max              25 steps  126.5 s  6 phases   64 ms
+  ok    hit                                  7 steps   33.4 s  3 phases   17 ms
+  ok    hit · phone                          7 steps   33.4 s  3 phases   36 ms
+  ok    hit · address="0x7ffde4b21f9c"       7 steps   33.4 s  3 phases   23 ms
+  ok    hit · tlbSize=2                      7 steps   33.4 s  3 phases   19 ms
+  ok    hit · phone · all min                7 steps   33.4 s  3 phases   41 ms
+  ok    hit · phone · all max                7 steps   33.4 s  3 phases   49 ms
+  ok    fault                               18 steps   90.1 s  5 phases   56 ms
+  ok    fault · phone                       18 steps   90.7 s  5 phases   77 ms
+  ok    fault · address="0x7ffde4b21f9c"    18 steps   90.1 s  5 phases   51 ms
+  ok    fault · tlbSize=2                   18 steps   90.1 s  5 phases   44 ms
+  ok    fault · phone · all min             18 steps   90.6 s  5 phases   53 ms
+  ok    fault · phone · all max             18 steps   90.7 s  5 phases   29 ms
+  ok    lesson    lesson.mjs over every run and branch: 35 step ids, 8 chapters, 4 asks, 0 picks, 0 checks
+  ok    sources   lesson.sources: 13 source(s), 27 citation(s)
+  ok    teaching  the lesson a beginner reads (references/teaching.md; read it with node scripts/lesson.mjs)
+        info   level core, 6 chapters, 4 questions, 12 defined words, 1093 words, reading grade 5.7
+summary  18 run(s), 0 failing, 0 error(s), 0 warning(s)  3.5 s

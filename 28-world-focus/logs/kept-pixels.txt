@@ -1,0 +1,60 @@
+## d-sub vs d-base, every kept solid
+event-loop-s05.png         kept px   242222  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+event-loop-s10.png         kept px   305142  differ 7.43%  >8 2.673%  >24 2.218%  max 106
+event-loop-s14.png         kept px   314158  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+event-loop-s15.png         kept px   223323  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+mapreduce-s03.png          kept px   142290  differ 0.16%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s11.png          kept px   263741  differ 0.12%  >8 0.000%  >24 0.000%  max 3
+mapreduce-s18.png          kept px   334994  differ 0.01%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s23.png          kept px  1250668  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+raft-s04.png               kept px   147655  differ 0.08%  >8 0.067%  >24 0.030%  max 50
+raft-s11.png               kept px    92236  differ 0.02%  >8 0.017%  >24 0.010%  max 40
+raft-s22.png               kept px   303559  differ 0.04%  >8 0.031%  >24 0.025%  max 53
+raft-s26.png               kept px    69776  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+all: kept px 3689764, differ 0.64%, >8 0.227%, >24 0.187%, max 106
+## d-sub vs d-base, kept tiles only
+all: kept px 438712, differ 0.00%, >8 0.000%, >24 0.000%, max 1
+## dk-sub vs dk-base, every kept solid
+event-loop-s05.png         kept px   242222  differ 0.33%  >8 0.000%  >24 0.000%  max 1
+event-loop-s10.png         kept px   305142  differ 10.36%  >8 2.969%  >24 2.208%  max 122
+event-loop-s14.png         kept px   314158  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+event-loop-s15.png         kept px   223323  differ 0.32%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s03.png          kept px   142290  differ 3.47%  >8 0.000%  >24 0.000%  max 3
+mapreduce-s11.png          kept px   263741  differ 2.38%  >8 0.000%  >24 0.000%  max 4
+mapreduce-s18.png          kept px   334994  differ 0.17%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s23.png          kept px  1250668  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+all: kept px 3076538, differ 1.46%, >8 0.294%, >24 0.219%, max 122
+## dk-sub vs dk-base, kept tiles only
+all: kept px 393216, differ 0.00%, >8 0.000%, >24 0.000%, max 0
+## p-sub vs p-base, every kept solid
+event-loop-s05.png         kept px    85552  differ 0.24%  >8 0.032%  >24 0.013%  max 27
+event-loop-s10.png         kept px   130696  differ 7.84%  >8 2.774%  >24 2.310%  max 107
+event-loop-s14.png         kept px   115950  differ 0.01%  >8 0.003%  >24 0.001%  max 25
+event-loop-s15.png         kept px    83176  differ 0.06%  >8 0.024%  >24 0.012%  max 33
+mapreduce-s03.png          kept px   126692  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+mapreduce-s11.png          kept px   121689  differ 0.08%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s18.png          kept px   116485  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+mapreduce-s23.png          kept px   319372  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+raft-s04.png               kept px    69472  differ 0.08%  >8 0.026%  >24 0.006%  max 28
+raft-s11.png               kept px    31234  differ 0.07%  >8 0.000%  >24 0.000%  max 1
+raft-s22.png               kept px   134287  differ 0.07%  >8 0.031%  >24 0.019%  max 44
+raft-s26.png               kept px    30099  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+all: kept px 1364704, differ 0.79%, >8 0.274%, >24 0.225%, max 107
+## p-sub vs p-base, kept tiles only
+all: kept px 140447, differ 0.00%, >8 0.000%, >24 0.000%, max 1
+## d-clear vs d-base, every kept solid
+event-loop-s05.png         kept px   242222  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+event-loop-s10.png         kept px   305142  differ 7.89%  >8 3.616%  >24 2.245%  max 139
+event-loop-s14.png         kept px   314158  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+event-loop-s15.png         kept px   223323  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+mapreduce-s03.png          kept px   142290  differ 0.24%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s11.png          kept px   263741  differ 0.20%  >8 0.000%  >24 0.000%  max 3
+mapreduce-s18.png          kept px   334994  differ 0.01%  >8 0.000%  >24 0.000%  max 1
+mapreduce-s23.png          kept px  1250668  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+raft-s04.png               kept px   147655  differ 0.08%  >8 0.073%  >24 0.056%  max 77
+raft-s11.png               kept px    92236  differ 0.03%  >8 0.018%  >24 0.015%  max 62
+raft-s22.png               kept px   303559  differ 0.04%  >8 0.034%  >24 0.028%  max 83
+raft-s26.png               kept px    69776  differ 0.00%  >8 0.000%  >24 0.000%  max 0
+all: kept px 3689764, differ 0.68%, >8 0.305%, >24 0.191%, max 139
+## d-clear vs d-base, kept tiles only
+all: kept px 438712, differ 0.00%, >8 0.000%, >24 0.000%, max 1
