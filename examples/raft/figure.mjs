@@ -12,7 +12,7 @@
 //
 // The lesson (references/teaching.md), for a reader who knows basic programming but not consensus:
 //   Level        core (teaching.md lists Raft as deep; a beginner gets fewer chapters and knobs, not more)
-//   Hook         five servers keep copies of one list and any can crash: how do they never disagree?
+//   Hook         a few servers (3 to 7, a knob) keep copies of one list and any can crash: how do they never disagree?
 //   Picture      a group keeping one shared notebook. Each person's copy = a log; a line = an entry; the elected
 //                note-taker = the leader; "most of us have copied it" = a majority; a line that counts = committed;
 //                the note-taker's "still here" = a heartbeat; which vote this is = the term. Where it stops
@@ -97,10 +97,10 @@ export const meta = {
   subtitle: "How servers that can crash keep one shared log",
   kicker: "Distributed systems",
   fig: 3,
-  cite: { text: "Ongaro & Ousterhout, “In Search of an Understandable Consensus Algorithm”, USENIX ATC 2014", url: "https://raft.github.io/raft.pdf" },
+  cite: "[ongaro2014]",
   theme: "light",
   level: "core",
-  hook: "Five servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
+  hook: "A few servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
   terms: {
     leader: "The one server that decides what goes into the notebook. The others copy what it sends.",
     log: "A server's copy of the notebook: the list of commands, in order.",
@@ -307,7 +307,7 @@ function payoff(s, net, p) {
   s.focus("board");   // the cluster and its client: the payoff shot frames them large, nothing cut under the dock
   s.lit(...up);
   s.step(same && cmds.length
-    ? `${up.length === N ? `All ${N}` : `${up.length} of ${N}`} servers hold the same committed log: ${cmds.map((c) => fmt.code(c)).join(", ")}, in the same order.`
+    ? `${up.length === N ? `All ${N}` : `${up.length} of ${N}`} servers hold the same committed commands, ${cmds.map((c) => fmt.code(c)).join(", ")}, in the same order.`
     : `${fmt.plural(st.commitIndex, "entry", "entries")} committed on ${fmt.ref(up[0] ?? ids[0])}.`,
     { t: net.now, id: same && cmds.length ? "agree.same" : "agree.where",
       vars: same && cmds.length ? { N, upIds: up, up: up.length, log: cmds.map((c) => ({ code: c })) } : { N, committed: st.commitIndex, whoId: up[0] ?? ids[0] } });
@@ -515,7 +515,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
   function becomeFollower(ctx, term) {
     const st = ctx.state;
     const was = st.role;
-    if (term > st.term) { st.term = term; st.votedFor = null; }
+    // a newer term, or a leader stepping down: who leads is unknown until that leader's heartbeat names it
+    if (term > st.term) { st.term = term; st.votedFor = null; st.leader = null; }
+    if (was === "leader") st.leader = null;
     st.role = "follower";
     st.votes = [];
     if (was === "leader") { ctx.cancel("heartbeat"); st.nextIndex = {}; st.matchIndex = {}; }
@@ -637,8 +639,11 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     const cv = { cand: chip(b.candidate), candId: b.candidate };
     if (grant) {
       grantAt.set(b.candidate, net.stepSerial);
+      // the servers that stepped down first get a sentence of their own; beside the others' it needs no reason again
       sing(ctx, `grant|${b.candidate}|${st.term}|${stepped}`, "vote.grant", { ...cv, term: st.term, stepped }, (list, n) =>
-        `${crowd(list, n)}${stepped ? ` ${v(n, "steps", "step")} down and` : ""} ${v(n, "votes", "vote")} for ${R(b.candidate)}: its log is as complete as ${v(n, "its own", "theirs")}.`);
+        stepped && subjects.has(`grant|${b.candidate}|${st.term}|false`)
+          ? `${crowd(list, n)} ${v(n, "steps", "step")} down and ${v(n, "votes", "vote")} for ${R(b.candidate)} too.`
+          : `${crowd(list, n)}${stepped ? ` ${v(n, "steps", "step")} down and` : ""} ${v(n, "votes", "vote")} for ${R(b.candidate)}: its log is as complete as ${v(n, "its own", "theirs")}.`);
     } else if (b.term < st.term) {
       const now = st.term;
       sing(ctx, `old-vote|${b.candidate}|${b.term}|${now}`, "vote.old", { ...cv, term: b.term, own: now }, (list, n) => `${crowd(list, n)} ${v(n, "refuses", "refuse")} ${R(b.candidate)}: term ${b.term} is older than ${v(n, "its own", "their")} term ${now}.`);
@@ -667,7 +672,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (!st.votes.includes(m.from)) st.votes.push(m.from);
     if (st.votes.length >= majority) return becomeLeader(ctx);
     const term = st.term;
-    sing(ctx, `tally|${ctx.id}|${term}`, "vote.tally", { ...cv, votes: st.votes.length, need: majority }, () => (st.role === "candidate" && st.term === term ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
+    // a refusal in the same step already ends with the tally ("…; it has 2 of the 4 votes it needs")
+    sing(ctx, `tally|${ctx.id}|${term}`, "vote.tally", { ...cv, votes: st.votes.length, need: majority }, () => (st.role === "candidate" && st.term === term
+      && !subjects.has(`deny|${ctx.id}|${term}`) ? `${R(ctx.id)} has ${st.votes.length} of the ${majority} votes it needs.` : null));
   });
 
   // ---- replication ----
@@ -704,8 +711,9 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (b.prevLogIndex > lastIndex(st) || termAt(st, b.prevLogIndex) !== b.prevLogTerm) {
       line("appendCheck");
       ctx.reply(m, MSG.updateReply, { term: st.term, success: false, prev: b.prevLogIndex, last: lastIndex(st) });
-      return say(ctx, "update.gap", { who: chip(ctx.id), whoId: ctx.id, from: chip(m.from), fromId: m.from, index: b.prevLogIndex, term: b.prevLogTerm },
-        `${R(ctx.id)} lacks entry ${b.prevLogIndex} from term ${b.prevLogTerm} and refuses the update.`);
+      // servers that lack the same entry refuse it in one sentence
+      return sing(ctx, `gap|${m.from}|${b.prevLogIndex}|${b.prevLogTerm}`, "update.gap", { whoId: ctx.id, from: chip(m.from), fromId: m.from, index: b.prevLogIndex, term: b.prevLogTerm },
+        (list, n) => `${crowd(list, n)} ${v(n, "lacks", "lack")} entry ${b.prevLogIndex} from term ${b.prevLogTerm} and ${v(n, "refuses", "refuse")} the update.`, ctx.id, { rank: 2 });
     }
     let i = b.prevLogIndex, added = [], cut = 0, from = 0;
     for (const e of b.entries) {
@@ -833,8 +841,10 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     line("replyFail");
     st.nextIndex[f] = Math.max(1, (st.matchIndex[f] ?? 0) + 1, Math.min(b.prev, b.last + 1));
     sendAppend(ctx, f);
-    say(ctx, "update.back", { ...lv, who: chip(f), whoId: f, missing: b.prev, next: st.nextIndex[f] },
-      `${R(f)} lacks entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${st.nextIndex[f]} and resends.`);
+    // followers that lack the same entry get one sentence: the leader steps back for each of them alike
+    const next = st.nextIndex[f];
+    sing(ctx, `back|${ctx.id}|${b.prev}|${next}`, "update.back", { ...lv, whoId: f, missing: b.prev, next },
+      (list, n) => `${crowd(list, n)} ${v(n, "lacks", "lack")} entry ${b.prev}, so ${R(ctx.id)} steps back to entry ${next} and resends.`, f, { rank: 2 });
   });
 
   // ---- the client ----
@@ -849,11 +859,12 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (!ls.length) return null;
     return ls.reduce((a, b) => (net.state(b).term > net.state(a).term ? b : a));
   }
-  // the client keeps talking to the leader it believes in; only a retry (or having none) makes it look again
+  // the client keeps talking to the leader it believes in; only a retry, a refusal that names no leader ("lookup"), or
+  // having none makes it look again
   function submit(c, why) {
     const cl = net.state("client");
     if (cl.acked.includes(c.id)) return;
-    if (!cl.leader || why === "retry") cl.leader = discover();
+    if (!cl.leader || why === "retry" || why === "lookup") cl.leader = discover();
     const target = cl.leader;
     if (!target) {
       if (why === "retry" && !waiting.has(c.id)) { waiting.add(c.id); say(net, "client.wait", { cmd: K(c.cmd) }, `No answer for ${C(c.cmd)} and no leader to ask: the client waits.`); }
@@ -923,7 +934,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     s.line(null);
     cl.leader = m.body.hint ?? null;
     say(ctx, "client.redirect", { who: chip(m.from), whoId: m.from }, `The client hears that ${R(m.from)} is not the leader.`);
-    if (c && !cl.acked.includes(c.id)) submit(c, cl.leader ? "redirect" : "retry");
+    // refused without a hint, it looks for the leader at once: no timeout has run out, so this is not a retry
+    if (c && !cl.acked.includes(c.id)) submit(c, cl.leader ? "redirect" : "lookup");
   });
 
   net.on("client", MSG.answer, (m, ctx) => {

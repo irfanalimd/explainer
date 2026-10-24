@@ -328,13 +328,16 @@ export function report(r, { cwd = process.cwd() } = {}) {
     for (const e of r.errors) { const k = e.type + e.text; seen.set(k, [...(seen.get(k) ?? []), e]); }
     for (const [, es] of seen) lines.push(`  [${es[0].type}] ${es[0].text.split("\n")[0]}  (${es.length}x, first at ${es[0].shot})`);
   }
-  if (r.problems.length) {
-    const groups = groupFindings(r.problems, (p) => p.shot.replace(/\.png$/, ""));
-    lines.push(`audit problems (${groups.length} distinct, in ${new Set(r.problems.map((p) => p.shot)).size} of ${r.shots.length} shots; run audit.mjs for every step):`);
+  // warn-level findings (the focus under the HUD) are advice, listed apart from the problems
+  for (const [warn, title] of [[false, "audit problems"], [true, "audit advice"]]) {
+    const ps = r.problems.filter((p) => (p.level === "warn") === warn);
+    if (!ps.length) continue;
+    const groups = groupFindings(ps, (p) => p.shot.replace(/\.png$/, ""));
+    lines.push(`${title} (${groups.length} distinct, in ${new Set(ps.map((p) => p.shot)).size} of ${r.shots.length} shots; run audit.mjs for every step):`);
     for (const g of groups.slice(0, 40)) lines.push(findingLine(g));
     if (groups.length > 40) lines.push(`  … ${groups.length - 40} more`);
   }
-  if (!r.errors.length && !r.problems.length) lines.push("no page errors, no audit problems");
+  if (!r.errors.length && !r.problems.some((p) => p.level !== "warn")) lines.push("no page errors, no audit problems");
   return lines.join("\n");
 }
 

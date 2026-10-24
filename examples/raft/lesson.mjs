@@ -25,15 +25,31 @@
 //   leader      leader, leaderId, cmd, index (command.add, split.add + cutIds); committed (command.again); held, term (stuck.old)
 //   failures    who, whoId, leader (crash.down); who, whoId, entries (catchup.restart); sideA, sideB (split.cut)
 //   the end     upIds, up, log (agree.same); committed, whoId (agree.where)
-const PAPER = "D. Ongaro and J. Ousterhout, In Search of an Understandable Consensus Algorithm (Extended Version), USENIX ATC 2014, https://raft.github.io/raft.pdf";
-const THESIS = "D. Ongaro, Consensus: Bridging Theory and Practice, PhD thesis, Stanford 2014, https://github.com/ongardie/dissertation";
-const GUIDE = "J. Gjengset, Students' Guide to Raft (MIT 6.824), https://thesquareplanet.com/blog/students-guide-to-raft/";
-const ETCD = "etcd tuning guide, https://etcd.io/docs/v3.5/tuning/";
+// A layer that states a fact about real systems names its source in `deeper.source` as [id] plus a locator; the ids are
+// `lesson.sources`. The quotes and section numbers were checked against the paper and the thesis themselves.
 
 // a step whose caption says exactly these moves (in any order): a merged step says more than one line can word
 const only = (...ids) => (v) => Array.isArray(v.moves) && v.moves.length === ids.length && ids.every((id) => v.moves.includes(id));
 
 export const lesson = {
+  sources: [
+    { id: "ongaro2014", title: "In Search of an Understandable Consensus Algorithm (Extended Version)", by: "D. Ongaro, J. Ousterhout", year: 2014,
+      where: "USENIX ATC 2014", url: "https://raft.github.io/raft.pdf",
+      supports: "terms and elections with 150–300 ms random timeouts (§5.2, §9.3), log matching and backing up, with the conflict-term shortcut (§5.3), the vote check and commitment rule (§5.4, Figure 8), the timing rule (§5.6), the leader's no-op, client serial numbers and reads (§8), persistent state (Figure 2), the example log of x←3, y←7, x←5 (Figure 6)" },
+    { id: "ongaro-thesis", title: "Consensus: Bridging Theory and Practice", by: "D. Ongaro", year: 2014, where: "PhD thesis, Stanford University",
+      url: "https://github.com/ongardie/dissertation",
+      supports: "a leader steps down after an election timeout without heartbeats reaching a majority (§6.2); Pre-Vote, against a rejoining server's disruption (§9.6)" },
+    { id: "gjengset", title: "Students' Guide to Raft", by: "J. Gjengset", year: 2016, where: "MIT 6.824 teaching notes",
+      url: "https://thesquareplanet.com/blog/students-guide-to-raft/",
+      supports: "the commit index from the last new entry, when to reset the election timer, cutting the log only on a conflict, accelerated backtracking by log length" },
+    { id: "etcd-tuning", title: "Tuning", by: "etcd", year: 2023, where: "etcd v3.5 documentation", url: "https://etcd.io/docs/v3.5/tuning/",
+      supports: "a 100 ms heartbeat and a 1000 ms election timeout by default, both sized by the round trip between members" },
+    { id: "etcd-raft", title: "etcd-io/raft: raft.go and README", by: "etcd", year: 2024, where: "etcd's Raft library", url: "https://github.com/etcd-io/raft",
+      supports: "the PreVote and CheckQuorum options; CockroachDB, TiKV and etcd among its users" },
+    { id: "raft-site", title: "The Raft Consensus Algorithm", by: "D. Ongaro et al.", year: 2024, where: "raft.github.io", url: "https://raft.github.io/",
+      supports: "the list of Raft implementations, Consul's among them" },
+  ],
+
   goal: "Keep one list of commands identical on every server, even when servers crash or the network splits.",
 
   objectives: [
@@ -77,7 +93,7 @@ export const lesson = {
     client: { lead: "the program sending commands", def: "The program outside the servers that sends commands, such as x←3, to be saved." },
     entry: { lead: "one line", def: "One line of the list: one command, such as x←3, with the round it was written in." },
     commit: { lead: "make it count", def: "Made final once most servers store it. A leader counts copies only of its own round's entries." },
-    heartbeat: { lead: "a “still here” message", def: "A short message the leader sends often, so no one starts an election." },
+    heartbeat: { lead: "a “still here” message", def: "A short message the leader sends at a steady interval, so no server starts an election." },
     partition: { lead: "a split in the network", def: "A break in the network that leaves groups of servers unable to hear each other." },
   },
 
@@ -94,7 +110,7 @@ export const lesson = {
     copy: {
       about: "Like a note-taker reading out each new line, the leader writes each command into its log, after a blank `nop` of its own, and sends copies. A line counts once most servers store it, not all.",
       enter: {
-        sofar: "One server won the vote. But no command has been saved yet.",
+        sofar: "One server asked for votes, and they are on their way. No command has been saved yet.",
         now: "The winner leads: it writes each command and sends copies to the rest.",
         done: "An entry lights up on the leader once a majority holds it, before all {N} do.",
       },
@@ -148,6 +164,7 @@ export const lesson = {
         done: "The old leader steps down, and its dim entry is replaced.",
       },
     },
+    // with noop: false only (the Figure 8 tests and old links); no knob or story sets it
     stuck: {
       about: "A leader may count copies only of entries from its own term. Without a blank entry of its own, an older one can never be committed, even on a majority.",
       enter: {
@@ -171,12 +188,12 @@ export const lesson = {
     "elect.start": {
       key: true,
       plain: "Each of {N} servers keeps a {term:log} and starts a random {min}–{max} ms timer.",
-      why: "Random timers mean one server usually runs out first, so it asks to lead before anyone else.",
+      why: "Random timers mean that, in most runs, one server runs out first and asks to lead before anyone else.",
       look: ["{serverIds}"], picture: "copy",
       deeper: {
         how: "The timer is the election timeout. Hearing nothing from a leader before it runs out, a server assumes there is none. The paper suggests {min}–{max} ms (§9.3): random, so two servers rarely run out together.",
-        real: "etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout, sized to the network's round trip and the disk's write time.",
-        source: ETCD,
+        real: "etcd defaults to a 100 ms heartbeat and a 1000 ms election timeout. Its guide sets the heartbeat near the round trip between servers, and the timeout at least 10 times that round trip.",
+        source: "[ongaro2014] §5.2, §9.3; [etcd-tuning]",
       },
     },
     "elect.timeout": {
@@ -188,7 +205,7 @@ export const lesson = {
         deeper: {
           how: "It adds 1 to its term, becomes a candidate (a server asking for votes), votes for itself, and asks every other server, sending the term and index of its last entry (§5.2).",
           code: "`self.term += 1; self.voted_for = self.id` (lines 1–4)",
-          source: PAPER,
+          source: "[ongaro2014] §5.2",
         },
       },
       plain: "{who}'s timer runs out first: it runs for leader in {term:term} {term}, voting for itself.",
@@ -199,8 +216,8 @@ export const lesson = {
       first: {
         why: "Each votes for itself first, so the others' votes may split and nobody reaches a majority.",
         deeper: {
-          edge: "A split vote just ends the term with no leader: the timers run again, each at a new random length, and one candidate usually gets ahead (§5.2).",
-          source: PAPER,
+          edge: "A split vote ends the term with no leader. Each candidate restarts its timer at a new random length, so the next election is unlikely to split again (§5.2).",
+          source: "[ongaro2014] §5.2",
         },
       },
       plain: "{who} time out together, each running in term {term}.",
@@ -211,8 +228,8 @@ export const lesson = {
       first: {
         why: "It hears nothing from a leader, so it runs, even though the old leader is still alive.",
         deeper: {
-          edge: "A server cut off alone would time out again and again, raising its term each time. When it rejoins, its high term forces a healthy leader to step down. Pre-Vote, where a server first asks whether it could win, prevents this (thesis §9.6); etcd and Consul use it.",
-          source: THESIS,
+          edge: "A server cut off alone would time out again and again, raising its term each time. When it rejoins, its high term forces a healthy leader to step down. Pre-Vote, where a server first asks whether it could win, prevents this (thesis §9.6); etcd's Raft library offers it as an option, PreVote.",
+          source: "[ongaro-thesis] §9.6; [etcd-raft]",
         },
       },
       plain: "{cand}'s timer runs out: it runs in term {term}, cut off from {count:cutIds|server}.",
@@ -228,7 +245,7 @@ export const lesson = {
           how: "A voter compares last entries: a later term wins; with equal terms, the longer log wins (§5.4.1). It grants only if it hasn't voted for anyone else this term.",
           code: "`log_ok = (m.last_term, m.last_index) >= (self.last_term(), self.last_index())` (line 8)",
           edge: "A longer log can lose. One ending in an older term counts as less complete than a shorter one ending in a newer term.",
-          source: PAPER,
+          source: "[ongaro2014] §5.4.1",
         },
       },
       plain: "{count:n|server} send {cand} a vote. It needs a {term:majority}: {majority} of {N}.",
@@ -240,6 +257,7 @@ export const lesson = {
       why: "Each server votes once per term. {cand} needs a {term:majority}: {majority} of {N}, its own vote included.",
       look: ["{candId}", "{whoIds}"],
     },
+    // with message loss on (1 in 20 or 1 in 10) and some seeds: a request from an older term arrives late
     "vote.old": {
       when: only("vote.old"),
       first: { why: "A request from an older term comes from an election that is already over." },
@@ -252,7 +270,7 @@ export const lesson = {
         why: "One vote per server per term is what stops two leaders in one term.",
         deeper: {
           how: "The vote is written to disk before the reply goes out (Figure 2). Otherwise a server could crash, restart and vote again in the same term.",
-          source: PAPER,
+          source: "[ongaro2014] Figure 2",
         },
       },
       plain: "{who} already voted this term, so {cand} gets no vote there.",
@@ -264,7 +282,7 @@ export const lesson = {
         why: "This is the check that keeps committed entries: a candidate missing one can't win.",
         deeper: {
           how: "Every committed entry sits on a majority, and every winner needs a majority, so some voter holds the entry and refuses a log without it (§5.4.1).",
-          source: PAPER,
+          source: "[ongaro2014] §5.4.1",
         },
       },
       plain: "{cand} gets no vote from {who}: they hold a more complete log.",
@@ -295,8 +313,8 @@ export const lesson = {
         deeper: {
           how: "Votes count with the candidate's own. Two majorities of {N} share at least one server, and it votes only once per term, so no term ever has two leaders (§5.2).",
           code: "`if len(self.votes) > N // 2: self.become_leader()` (line 15)",
-          edge: "Why the blank `nop`? A new leader learns which older entries are final only once an entry of its own term is stored on a majority. A blank one gets there at once (§8).",
-          source: PAPER,
+          edge: "The blank `nop` is there because a new leader learns which older entries are final only once an entry of its own term is stored on a majority. A blank one gets there at once (§8).",
+          source: "[ongaro2014] §5.2, §8",
         },
       },
       plain: "{leader} wins term {term} once {votes} of {N} votes arrive. It logs a `nop`.",
@@ -306,11 +324,12 @@ export const lesson = {
       key: true,
       plain: "{leader} wins term {term} once {votes} of {N} votes arrive. Its log still has {kept}.",
       why: "Every majority includes a server holding {kept}, and that server refuses any log without it.",
+      "why@crash": "So nothing that counted has to come back from the crashed server: the new leader already holds it.",
       look: ["{leaderId}"],
       deeper: {
         how: "{kept} was on a majority. Any {majority} voters of {N} include one of them, and the vote check refused every log missing it (§5.4.1).",
         edge: "{leader} doesn't know {kept} is committed: that news crashed with the old leader. A new leader counts copies only of its own term's entries; an older entry, even on a majority, can still be overwritten (Figure 8). It becomes final only when a newer entry after it commits.",
-        source: PAPER,
+        source: "[ongaro2014] §5.4.1, §5.4.2, Figure 8",
       },
     },
     "term.newer": {
@@ -334,7 +353,7 @@ export const lesson = {
         picture: "line",
         deeper: {
           how: "Each update names the entry just before the new ones, by index and term. A follower accepts only if its own log has that entry, so a match there means the two logs agree all the way back (the Log Matching property, §5.3).",
-          source: PAPER,
+          source: "[ongaro2014] §5.3",
         },
       },
       plain: "{entries} is copied to {who} as {term:entry} {first}.",
@@ -353,7 +372,7 @@ export const lesson = {
         deeper: {
           how: "Every update carries the leader's commit index. A follower marks entries committed up to that index, but never past the last entry this update gave it.",
           code: "`self.commit = max(self.commit, min(m.leader_commit, m.prev_index + len(m.entries)))` (line 26)",
-          source: PAPER,
+          source: "[ongaro2014] Figure 2",
         },
       },
       plain: "{entries} {be:entries} copied to {who}, and up to {term:entry} {commit} is marked committed.",
@@ -361,7 +380,13 @@ export const lesson = {
     },
     "command.add": {
       when: only("command.add"),
-      first: { why: "Written on the leader alone, {cmd} doesn't count yet: one crash could take it." },
+      first: {
+        why: "Written on the leader alone, {cmd} doesn't count yet: one crash could take it.",
+        deeper: {
+          real: "The commands are the paper's own kind: its example log (Figure 6) is a list of assignments like x←3, y←7 and x←5. Applied in order, they leave every copy with the same variables.",
+          source: "[ongaro2014] Figure 6",
+        },
+      },
       plain: "{leader} adds {cmd} to its log as {term:entry} {index} and sends copies.",
       look: ["{leaderId}"],
     },
@@ -382,7 +407,7 @@ export const lesson = {
           cost: "Each entry costs an update to every other server and a reply from each. {leader} commits as soon as the fastest replies make {have} copies, so one slow server never holds it up.",
           how: "A leader counts copies only of entries from its own term. An older entry on a majority can still be overwritten by a later leader (§5.4.2, Figure 8). Once an entry of the current term commits, every entry before it commits too.",
           code: "`if n > self.commit and self.log[n].term == self.term: self.commit = n` (lines 35–36)",
-          source: PAPER,
+          source: "[ongaro2014] §5.4.2, Figure 8",
         },
       },
       plain: "{leader} hears {cmd} is on {have} of {N}, a {term:majority}: it {term:commit|commits} it.",
@@ -398,7 +423,7 @@ export const lesson = {
         how: "In the paper's Figure 8, an entry from an older term sits on a majority and is still overwritten by a later leader. So a leader commits only entries of its own term by counting copies; every entry before one of those commits with it (§5.4.2).",
         code: "`if n > self.commit and self.log[n].term == self.term: self.commit = n` (lines 35–36)",
         edge: "Once {cmd} is on a majority, no server missing it can win a vote, and {cmd} sits after {older} in every log that holds it. So {older} can no longer be overwritten either (§5.4.3).",
-        source: PAPER,
+        source: "[ongaro2014] §5.4.2, §5.4.3, Figure 8",
       },
     },
     "client.done-next": {
@@ -407,7 +432,7 @@ export const lesson = {
         why: "The leader answers only after a commit, so an answer means the command is safe.",
         deeper: {
           how: "The leader applies the entry to its own copy of the data, then answers the client. Followers apply it once they learn it is committed (§5.3).",
-          source: PAPER,
+          source: "[ongaro2014] §5.3",
         },
       },
       plain: "The client hears {cmd} is committed, and sends {nextCmd} to {leader}.",
@@ -424,10 +449,10 @@ export const lesson = {
       first: {
         why: "The others learn of a commit only from the leader's next message, so their entries light up later.",
         deeper: {
-          how: "Every update carries the leader's commit index. A follower takes the smaller of that and the index of the last entry this update gave it.",
+          how: "A follower takes the smaller of the leader's commit index and the index of the last entry this update gave it.",
           code: "`self.commit = max(self.commit, min(m.leader_commit, m.prev_index + len(m.entries)))` (line 26)",
           edge: "Not the follower's last log index: entries past this update may be stale ones from an old leader, not yet checked against this one. Taking the last index is a common student bug (Gjengset).",
-          source: GUIDE,
+          source: "[ongaro2014] Figure 2; [gjengset]",
         },
       },
       plain: "{from} tells {who}: everything up to entry {commit} is committed.",
@@ -441,12 +466,13 @@ export const lesson = {
         deeper: {
           how: "A heartbeat is an update with no entries. The timing rule is: the time to reach every server ≪ the election timeout ≪ the time between crashes (§5.6).",
           real: "etcd sends a heartbeat every 100 ms by default, against a 1000 ms election timeout.",
-          source: ETCD,
+          source: "[ongaro2014] §5.2, §5.6; [etcd-tuning]",
         },
       },
       plain: "{who} sends {term:heartbeat|heartbeats}, “still here” messages, so no timer runs out.",
       look: ["{whoIds}"],
     },
+    // two leaders heartbeating in one step: none of 2,592 settings tried reaches it (a stranded leader resends instead)
     "beat.send-many": {
       when: only("beat.send-many"),
       plain: "{who} each still lead, in different terms, and both send heartbeats.",
@@ -461,7 +487,7 @@ export const lesson = {
         picture: "here",
         deeper: {
           edge: "Restart the timer only on an update from the current leader, or when granting a vote. Restarting it on every message, old ones included, is a common bug (Gjengset).",
-          source: GUIDE,
+          source: "[gjengset]",
         },
       },
       plain: "{from}'s heartbeat restarts the election timer on {who}.",
@@ -471,7 +497,7 @@ export const lesson = {
       when: only("beat.resend"),
       first: {
         why: "A leader keeps retrying a server that is behind, even one that was down, until their logs match.",
-        deeper: { how: "Raft retries forever: every heartbeat to a server that is behind carries the entries it lacks (§5.3).", source: PAPER },
+        deeper: { how: "Raft retries forever: every heartbeat to a server that is behind carries the entries it lacks (§5.3).", source: "[ongaro2014] §5.3" },
       },
       plain: "{leader} resends missing entries to {count:behindIds|server} that fell behind.",
       look: ["{behindIds}"],
@@ -488,16 +514,16 @@ export const lesson = {
       when: (v) => only("crash.down")(v) && v.leader,
       key: true,
       plain: "Leader {who} {tone:fail|crashes}. Its log is saved on disk, so it survives.",
-      why: "Every committed entry is also on a majority, so this crash loses nothing that counted.",
+      why: "Every committed entry is also on a majority, so this crash loses nothing that counted. Copies already on the wire still arrive.",
       look: ["{whoId}"],
       deeper: {
         how: "Before replying to anyone, a server writes its term, its vote and its log to disk (Figure 2). Which entries are committed it keeps only in memory.",
         edge: "Any {majority} of the {N} servers can carry on alone. With fewer up, nothing new commits until enough come back.",
-        source: PAPER,
+        source: "[ongaro2014] Figure 2",
       },
     },
     "net.down": {
-      first: { why: "A sender can't tell a crash from a slow network: it just hears nothing back." },
+      first: { why: "A sender can't tell a crash from a slow network: either way it hears nothing back." },
       plain: "Messages sent to a crashed server are {tone:fail|lost}.",
     },
     "client.wait": {
@@ -515,7 +541,7 @@ export const lesson = {
         deeper: {
           how: "It waits {after} ms: long enough for a new leader to be elected and heard from.",
           edge: "A retry can put a command in the log twice if the first copy survives too. Raft gives each client command a serial number, so a server applies it once (§8). This run avoids duplicates only by looking the command up in the leader's log.",
-          source: PAPER,
+          source: "[ongaro2014] §8",
         },
       },
       plain: "No answer for {cmd} in {after} ms: the client resends it, to {leader}.",
@@ -538,7 +564,7 @@ export const lesson = {
       deeper: {
         how: "An older-term entry on a majority is not yet safe: in the paper's Figure 8, such an entry is overwritten by a later leader. It becomes final when an entry of the current term after it commits (§5.4.2). The leader's `nop` is that entry.",
         edge: "Until its `nop` commits, a new leader doesn't know which entries are committed, so it can't safely answer reads either (§8).",
-        source: PAPER,
+        source: "[ongaro2014] §5.4.2, §8, Figure 8",
       },
     },
 
@@ -551,28 +577,28 @@ export const lesson = {
       look: ["{whoId}"],
       deeper: {
         how: "The term, the vote and the log are on disk (Figure 2); the commit index is not. The leader's next update tells it.",
-        source: PAPER,
+        source: "[ongaro2014] Figure 2",
       },
     },
     "update.gap": {
       when: only("update.gap"),
       first: { why: "Its log doesn't match the leader's at that point, so it can't take what comes after." },
-      plain: "{who} lacks entry {index} from term {term}, so it refuses the update.",
-      look: ["{whoId}"],
+      plain: "{who} {be:whoIds} missing entry {index} from term {term}, so the update is refused.",
+      look: ["{whoIds}"],
     },
     "update.back": {
       when: only("update.back"),
       first: {
         why: "The leader backs up until it finds where the two logs agree, then sends everything after.",
         deeper: {
-          how: "The paper's basic rule backs up one entry per refusal. Here the refusal also says how long the follower's log is, so the leader jumps straight to its last entry + 1 (§5.3, end).",
+          how: "The paper's basic rule backs up one entry per refusal (§5.3). Here the refusal also says how long the follower's log is, so the leader jumps straight to its last entry + 1, the shortcut the 6.824 students' guide teaches.",
           code: "`self.next[m.sender] = max(self.match[m.sender] + 1, min(m.prev, m.last + 1))` (lines 31–33)",
-          edge: "Real systems also send the conflicting entry's term, to skip a whole term of mismatched entries at once.",
-          source: PAPER,
+          edge: "The paper's own shortcut has the follower send the conflicting entry's term and the first index it holds for that term, so the leader skips a whole term of mismatched entries at once. The paper doubts it is needed, since failures are rare (§5.3).",
+          source: "[ongaro2014] §5.3; [gjengset]",
         },
       },
-      plain: "{who} lacks entry {missing}, so {leader} steps back to entry {next} and resends.",
-      look: ["{whoId}"],
+      plain: "{who} {be:whoIds} missing entry {missing}, so {leader} steps back to entry {next} and resends.",
+      look: ["{whoIds}"],
     },
 
     // ---- The network splits ----
@@ -583,9 +609,9 @@ export const lesson = {
       why: "The leader's side has fewer than {majority} servers, so it can never gather a majority.",
       look: ["{sideA}"],
       deeper: {
-        edge: "Neither side knows it is split: messages just stop arriving, exactly as if the others had crashed.",
-        real: "CheckQuorum, used by etcd, makes a leader step down when it hasn't heard from a majority for an election timeout (thesis §6.2).",
-        source: THESIS,
+        edge: "Neither side knows it is split: messages stop arriving, exactly as if the others had crashed.",
+        real: "The thesis has a leader step down when an election timeout passes without a round of heartbeats reaching a majority (§6.2). etcd's Raft library calls this option CheckQuorum.",
+        source: "[ongaro-thesis] §6.2; [etcd-raft]",
       },
     },
     "split.send": {
@@ -593,7 +619,7 @@ export const lesson = {
         why: "It still thinks it leads: nothing tells it the others can't hear it.",
         deeper: {
           edge: "A cut-off leader could still answer reads with stale data. Raft has it first confirm it leads, by hearing from a majority, or rely on a time lease (§8).",
-          source: PAPER,
+          source: "[ongaro2014] §8",
         },
       },
       plain: "Messages from {who} can't cross the split.",
@@ -602,7 +628,7 @@ export const lesson = {
     "split.add": {
       when: only("split.add"),
       first: { why: "Nothing tells {leader} it is cut off, so it takes commands as before." },
-      plain: "{leader} adds {cmd} as entry {index}, but its copies can't cross the split.",
+      plain: "{leader} adds {cmd} as entry {index}; its copies reach only its own side of the split.",
       look: ["{leaderId}"],
     },
     "split.no-majority": {
@@ -614,7 +640,7 @@ export const lesson = {
       deeper: {
         how: "The commit rule only counts copies. A majority of {N} is {majority}, and the servers across the split can't add theirs.",
         edge: "This is why a stranded leader is harmless for writes. Its client hears nothing and retries, and a retry may reach a leader that can commit.",
-        source: PAPER,
+        source: "[ongaro2014] §5.3, §5.4.2",
       },
     },
     "net.cut": {
@@ -653,7 +679,7 @@ export const lesson = {
         how: "A follower cuts its log only at the first entry whose term differs from the leader's, then adds the rest. Entries that match are never cut (§5.3).",
         code: "`if i <= self.last_index(): del self.log[i:]`, reached only past the entries it already has (lines 22–25)",
         edge: "Cutting on every update is a classic bug: a late, reordered update would erase entries the follower had already confirmed (Gjengset). The client never got an answer for the replaced command, so its retry is safe.",
-        source: GUIDE,
+        source: "[ongaro2014] §5.3; [gjengset]",
       },
     },
     "reply.old": {
@@ -664,6 +690,7 @@ export const lesson = {
     },
 
     // ---- Stuck (only without the nop) ----
+    // with noop: false only (the Figure 8 tests and old links); no knob or story sets it
     "stuck.old": {
       when: only("stuck.old"),
       key: true,
@@ -673,7 +700,7 @@ export const lesson = {
       deeper: {
         how: "This is the gap §8 closes: a new leader writes a blank `nop` of its own term at once. When it commits, every older entry before it commits too.",
         edge: "Counting the old entry here would be unsafe: in Figure 8 an older entry on a majority is overwritten by a later leader.",
-        source: PAPER,
+        source: "[ongaro2014] §5.4.2, §8, Figure 8",
       },
     },
 
@@ -681,7 +708,7 @@ export const lesson = {
     "agree.same": {
       when: (v) => v.up === v.N,
       key: true,
-      plain: "All {N} servers hold the same committed log: {log}, in the same order.",
+      plain: "All {N} servers hold the same committed commands, {log}, in the same order.",
       why: "One leader set the order, and each entry counted only once a majority held it.",
       "why@crash": "The crash cost time, not entries: the new leader already held every committed one.",
       "why@partition": "The cut-off leader's entry never counted, so it gave way without breaking the list.",
@@ -689,9 +716,10 @@ export const lesson = {
       deeper: {
         how: "Apply the same commands in the same order and every copy ends in the same state: every server now has the same variables.",
         real: "etcd (behind Kubernetes), Consul and CockroachDB keep their data consistent with Raft.",
-        source: "The Raft site's list of implementations, https://raft.github.io/",
+        source: "[raft-site]; [etcd-raft]",
       },
     },
+    // with no client commands (an empty "Client commands" field): only the leader's nop is committed
     "agree.where": {
       plain: "Committed so far: {count:committed|entry|entries}.",
       look: ["{whoId}"],

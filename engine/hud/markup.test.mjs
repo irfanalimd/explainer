@@ -157,3 +157,37 @@ test("toDOM makes a defined term a focusable word that carries its definition; a
   const undef = frag.children[3].children[0];
   assert.equal(undef.text, "node");                          // no definition: a plain word, no underline
 });
+
+test("a citation parses with its locator, reads as the short reference, and stays literal when unknown", () => {
+  assert.deepEqual(parse("re-run it [dean2004] §3.3."), [
+    { type: "text", text: "re-run it " }, { type: "cite", id: "dean2004", at: "§3.3", raw: "[dean2004] §3.3" }, { type: "text", text: "." },
+  ]);
+  assert.deepEqual(parse("a[i] stays"), [{ type: "text", text: "a[i] stays" }]);
+  assert.deepEqual(parse("\\[dean2004] stays"), [{ type: "text", text: "[dean2004] stays" }]);
+  const cite = (id) => (id === "dean2004" ? { label: "Dean & Ghemawat 2004", url: "https://example.org/dean.pdf", full: "Jeffrey Dean, Sanjay Ghemawat. MapReduce. OSDI, 2004." } : null);
+  assert.equal(toText(parse("see [dean2004] §3.3"), { cite }), "see Dean & Ghemawat 2004, §3.3");
+  assert.equal(toText(parse("see [nobody1999]"), { cite }), "see [nobody1999]");
+  assert.equal(toText(parse("see [dean2004]")), "see [dean2004]");   // no resolver: as written
+});
+
+test("toDOM makes a known citation a link with the full reference as its tooltip; unknown is literal text", () => {
+  const cite = (id) => (id === "dean2004" ? { label: "Dean & Ghemawat 2004", url: "https://example.org/dean.pdf", full: "Jeffrey Dean, Sanjay Ghemawat. MapReduce. OSDI, 2004." }
+    : id === "book" ? { label: "Knuth 1998", url: null, full: "Donald Knuth. TAOCP 3." } : null);
+  const doc = fakeDoc();
+  const el = doc.createElement;
+  doc.createElement = (tag) => Object.assign(el(tag), { setAttribute(k, v) { this[`@${k}`] = v; } });
+  const frag = toDOM("as [dean2004] §3.3. Also [book] and [nope2000]", doc, { cite });
+  const [, glue, , book, , rest] = frag.children;
+  const a = glue.children[0];
+  assert.equal(glue.className, "ix-nowrap");                 // "§3.3." never breaks before the full stop
+  assert.equal(a.tag, "a");
+  assert.equal(a.className, "ix-cite");
+  assert.equal(a.textContent, "Dean & Ghemawat 2004, §3.3");
+  assert.equal(a.href, "https://example.org/dean.pdf");
+  assert.equal(a.target, "_blank");
+  assert.equal(a.dataset.tip, "Jeffrey Dean, Sanjay Ghemawat. MapReduce. OSDI, 2004.");
+  assert.match(a["@aria-label"], /opens in a new tab/);
+  assert.equal(book.tag, "span");                             // no url: a reference, not a link
+  assert.equal(book.textContent, "Knuth 1998");
+  assert.equal(rest.text, "[nope2000]");
+});

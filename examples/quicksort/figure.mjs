@@ -61,19 +61,19 @@ export const meta = {
   kicker: "Algorithms",
   fig: 2,
   level: "core",
-  // the partition that runs is Lomuto's, as CLRS presents it (Hoare's 1962 original uses two converging markers)
-  cite: { text: "Cormen, Leiserson, Rivest & Stein, “Introduction to Algorithms”, 4th ed., §7.1 (Lomuto partition)", url: "https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/" },
+  // the partition that runs is Lomuto's, as CLRS presents it (Hoare's 1961 original uses two converging markers)
+  cite: "[clrs4] §7.1",
   theme: "light",
   hook: "Comparing every number with every other one is slow. How does quicksort sort with far fewer comparisons, and when does that fail?",
   terms: {
     pivot: "the number that every other number in the group is compared with",
     partition: "one pass that moves the smaller numbers left of a chosen number and the bigger ones right",
-    recursion: "solving each smaller piece with the very same steps, until the pieces are too small to need it",
+    recursion: "solving each smaller piece with the same steps, until the pieces are too small to need it",
   },
   recap: [
-    "Pick one number, the pivot: smaller ones go left, bigger ones right.",
+    "Pick one number, the pivot: numbers no bigger go left, bigger ones right.",
     "The pivot then sits in its final slot and never moves again.",
-    "Each side is split the same way, until every group has one number.",
+    "Each side is split the same way, until every group has one number or none.",
     "The two sides are never compared, so even splits skip most pairs.",
   ],
   takeaway: "Each split puts one number in its final place and leaves two smaller groups that never need comparing with each other.",
@@ -89,11 +89,11 @@ export const scenarios = [
   { id: "random", label: "Shuffled numbers", params: { order: "random" }, whatIf: "the numbers are shuffled",
     description: "Shuffled numbers, the usual case: each split leaves two smaller groups to sort." },
   { id: "sorted", label: "Already sorted input", params: { order: "sorted" }, whatIf: "the numbers are already in order",
-    description: "The numbers are already in order, so each split peels off just one number: the slowest case for this way of choosing.",
+    description: "The numbers are already in order, so each split peels off one number: the slowest case for this way of choosing.",
     takeaway: "With the last number as pivot, sorted input is the slowest case: every pair gets compared. A random or middle pivot avoids it.",
     recap: [
       "In sorted input the last number of a group is always the biggest.",
-      "So every split put all the others on one side and placed just one.",
+      "So every split put all the others on one side and placed only one.",
       "Nothing was skipped: every pair was compared, the slowest this pivot rule can be.",
     ] },
   { id: "dups", label: "Lots of repeated numbers", params: { order: "dups" }, whatIf: "most of the numbers are the same",
@@ -102,7 +102,7 @@ export const scenarios = [
     recap: [
       "With only three values, many numbers equal the pivot.",
       "Equal counts as small, so every copy went to the left side.",
-      "Lopsided splits placed few numbers each, so few pairs were skipped.",
+      "Lopsided splits placed few numbers each, so few pairs, or none, were skipped.",
     ] },
 ];
 
@@ -211,7 +211,7 @@ export function build(s, p, scenario, env = {}) {
   const shown = fmt.and([...new Set(sortedCopy(values))].map(String));
   s.phase("The line", { id: "line", about: `Each number is a person in a line, and its value is their height. The simple way compares every pair: ${fmt.plural(worst, "comparison")}. Quicksort tries to skip most of them.` });
   step("line.numbers", order === "sorted" ? `${n} numbers, already in order: like a line of people already sorted by height.`
-    : order === "dups" ? `${n} numbers, but only ${shown}: like a line of people of just ${new Set(values).size} heights.`
+    : order === "dups" ? `${n} numbers, but only ${shown}: like a line of people of only ${new Set(values).size} heights.`
       : `${n} numbers to sort, like ${n} people in a line to order from shortest to tallest.`,
     { distinct: new Set(values).size, shown: [...new Set(sortedCopy(values))] });
   let m = 0;
@@ -314,7 +314,7 @@ export function build(s, p, scenario, env = {}) {
         const half = (hi - lo) >> 1, rest = hi - lo - half;
         s.ask(`Every number was smaller than ${pivot}. What is left to sort once ${pivot} is placed?`,
           [half === rest ? `Two groups of ${half} each` : `Two groups, of ${half} and ${rest}`, `One group: all ${hi - lo} others`, "Nothing: the line was already sorted"], 1,
-          { id: "place.left", why: `${pivot} is the biggest, so all ${hi - lo} others sit on its left and its right side is empty. This split placed just one number.` });
+          { id: "place.left", why: `${pivot} is the biggest, so all ${hi - lo} others sit on its left and its right side is empty. This split placed only one number.` });
       }
     }
     a.mark(hi, hi, null);   // slot marks stay on their slot: clear the pivot's before it moves
@@ -352,7 +352,7 @@ export function build(s, p, scenario, env = {}) {
     const right = !k ? `Slot ${q}, at the front: every other number is bigger`
       : `Slot ${q}, right after the ${repeats ? `${fmt.plural(k, "number")} no bigger than it` : fmt.plural(k, "smaller number")}`;
     s.ask(`Where will the pivot, ${pivot}, end up?`, [right, `In the middle, slot ${mid}`, `Where it is now, slot ${hi}`], 0,
-      { id: "place.where", why: `${k} of the other ${hi - lo} numbers ${k === 1 ? "is" : "are"} no bigger than ${pivot}, so it belongs right after them. The pivot is just the last number, not the middle one.` });
+      { id: "place.where", why: `${k} of the other ${hi - lo} numbers ${k === 1 ? "is" : "are"} no bigger than ${pivot}, so it belongs right after them. The pivot was picked for being last, not for being the middle one.` });
   }
 
   // the aha, once: after the first split, a number on the left is never compared with one on the right
@@ -372,7 +372,7 @@ export function build(s, p, scenario, env = {}) {
     const q = partition(lo, hi, side, parent, first);
     const pv = chip(q);
     if (first) {
-      s.phase("Repeat on each side", { id: "repeat", about: "The two sides are sorted on their own, so a number on the left is never compared with one on the right. Each side gets the very same split: {term:recursion}." });
+      s.phase("Repeat on each side", { id: "repeat", about: "The two sides are sorted on their own, so a number on the left is never compared with one on the right. Each side gets the same split: {term:recursion}." });
       if (sc === "random" && q > lo && q < hi) {
         const x = a.values()[lo], y = a.values()[q + 1], pivot = a.values()[q], left = num(lo);
         let used = false;

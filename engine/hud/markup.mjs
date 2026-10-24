@@ -3,8 +3,12 @@
 //   {tone:fail|crashed}                status-toned word    `code`                       inline code
 //   {term:pointer} {term:pointer|pointers}  a glossary word: underlined; its plain definition (meta.terms) shows on
 //                                      hover, focus or tap
-//   **bold** (may contain the marks above)                  \{ \` \* \\                   literal characters
+//   [dean2004] [dean2004] §3.6           a citation of lesson.sources: a short linked reference ("Dean & Ghemawat
+//                                      2004, §3.6"), never the brackets (engine/scene/sources.mjs)
+//   **bold** (may contain the marks above)                  \{ \` \* \\ \[                literal characters
 // Anything malformed stays literal text, so a caption never loses words.
+
+import { citesIn } from "../scene/sources.mjs";
 
 export const TONES = ["ok", "busy", "warn", "fail", "idle"];
 const MARK = /^\{(key|ref|tone|term):([^{}|]*)(?:\|([^{}]*))?\}/;
@@ -17,7 +21,7 @@ export function parse(src, inBold = false) {
   const flush = () => { if (buf) { out.push({ type: "text", text: buf }); buf = ""; } };
   for (let i = 0; i < s.length;) {
     const c = s[i];
-    if (c === "\\" && i + 1 < s.length && "{}`*\\|".includes(s[i + 1])) { buf += s[i + 1]; i += 2; continue; }
+    if (c === "\\" && i + 1 < s.length && "{}`*\\|[]".includes(s[i + 1])) { buf += s[i + 1]; i += 2; continue; }
     if (c === "`") {
       const j = findUnescaped(s, "`", i + 1);
       if (j > i + 1) { flush(); out.push({ type: "code", text: unescape(s.slice(i + 1, j)) }); i = j + 1; continue; }
@@ -38,6 +42,16 @@ export function parse(src, inBold = false) {
         else if (kind === "term") out.push({ type: "term", name, text: text ?? name });
         else out.push({ type: "tone", tone: TONES.includes(name) ? name : null, text: text ?? name });
         i += all.length;
+        continue;
+      }
+    }
+    // a citation: [id] where a word may start (not "a[i]"), with its locator ("§3.6") if one follows
+    if (c === "[" && (i === 0 || /[\s(“"'‘]/.test(s[i - 1]))) {
+      const m = citesIn(s.slice(i))[0];
+      if (m && m.index === 0) {
+        flush();
+        out.push({ type: "cite", id: m.id, at: m.at, raw: s.slice(i, i + m.length) });
+        i += m.length;
         continue;
       }
     }
@@ -67,13 +81,19 @@ function findClosingBold(s, from) {
 
 const unescape = (t) => t.replace(/\\([`\\])/g, "$1");
 
-/** Plain text of a node list (for aria-live, titles, search). `refTitle(id)` names entity chips. */
-export function toText(nodes, refTitle = () => null) {
+/**
+ * Plain text of a node list (for aria-live, titles, search). The second argument is `refTitle(id)`, which names
+ * entity chips, or the markup opts ({ refTitle, cite }), whose `cite(id)` also names citations.
+ */
+export function toText(nodes, o = () => null) {
   if (typeof nodes === "string") nodes = parse(nodes);
+  const refTitle = typeof o === "function" ? o : o?.refTitle ?? (() => null);
+  const cite = typeof o === "function" ? null : o?.cite;
   let s = "";
   for (const n of nodes) {
-    if (n.type === "bold") s += toText(n.children, refTitle);
+    if (n.type === "bold") s += toText(n.children, o);
     else if (n.type === "ref") s += n.text ?? refTitle(n.id) ?? n.id;
+    else if (n.type === "cite") { const c = cite?.(n.id); s += c ? (n.at ? `${c.label}, ${n.at}` : c.label) : n.raw; }
     else s += n.text;
   }
   return s;
@@ -83,7 +103,8 @@ export function toText(nodes, refTitle = () => null) {
  * Build DOM nodes for a node list into a DocumentFragment.
  * opts.keyIndex(name) -> identity index or null; opts.refTitle(id) -> entity title or null;
  * opts.refKey(id) -> the entity's identity index or null (an entity chip's dot takes its key colour);
- * opts.term(name) -> the term's plain definition or null (meta.terms).
+ * opts.term(name) -> the term's plain definition or null (meta.terms);
+ * opts.cite(id) -> { label, url, full } of a lesson source, or null (an unknown id stays its literal text).
  * Key chips colour themselves from --ix-key-N, so a theme switch needs no re-render.
  */
 export function toDOM(nodes, doc, opts = {}) {
@@ -96,7 +117,7 @@ export function toDOM(nodes, doc, opts = {}) {
 // A chip is an atomic inline, so a line may break between it and the punctuation after it ("reducer 1" / ":").
 // Glue that punctuation to the chip with a no-wrap span.
 const PUNCT = /^[.,;:!?)\]…»”’%]+/;
-const isChip = (n) => n && (n.type === "key" || n.type === "ref" || n.type === "code" || n.type === "term");
+const isChip = (n) => n && (n.type === "key" || n.type === "ref" || n.type === "code" || n.type === "term" || n.type === "cite");
 function appendAll(parent, nodes, doc, opts) {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i], next = nodes[i + 1];
@@ -158,6 +179,22 @@ function node(n, doc, opts) {
       }
       e.tabIndex = 0;
       e.setAttribute?.("role", "button");
+      return e;
+    }
+    case "cite": {
+      // a reference to lesson.sources: the short form, its locator, and the full reference on hover and to readers
+      const c = opts.cite?.(n.id);
+      if (!c) return doc.createTextNode(n.raw);
+      const label = n.at ? `${c.label}, ${n.at}` : c.label;
+      const e = doc.createElement(c.url ? "a" : "span");
+      e.className = "ix-cite";
+      e.textContent = label;
+      e.dataset.cite = n.id;
+      if (c.full) { e.dataset.tipHead = label; e.dataset.tip = c.full; }
+      if (c.url) {
+        e.href = c.url; e.target = "_blank"; e.rel = "noopener";
+        e.setAttribute?.("aria-label", `${label}: ${c.full || label} (opens in a new tab)`);
+      }
       return e;
     }
     default: return doc.createTextNode("");

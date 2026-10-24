@@ -70,10 +70,7 @@ export const meta = {
   kicker: "Operating systems",
   fig: 4,
   level: "core",
-  cite: {
-    text: "Intel SDM Vol. 3A §4.5, 4-level paging · latencies: Drepper, “What Every Programmer Should Know About Memory”, 2007",
-    url: "https://www.akkadia.org/drepper/cpumemory.pdf",
-  },
+  cite: "[intel-sdm3a] §4.5",
   theme: "light",
   hook: "Two programs can use the same memory address for their own data. Why don't they overwrite each other, and how is it fast?",
   terms: {
@@ -728,7 +725,7 @@ export function build(s, p, scenario, env = {}) {
 
     s.phase("Try again", { id: "retry", about: "The CPU runs the same read again from the start. No sticky note has the page, so it walks the directory again; this time its lines are in the fast {term:cache}." });
     s.ask("The read starts over. Will a sticky note have the page now?",
-      ["Yes: the kernel just put the page in memory", "No: no note was written, so it walks again"], 1,
+      ["Yes: the kernel has put the page back in memory", "No: no note was written, so it walks again"], 1,
       { id: "retry.note", why: "The CPU writes a note only after a walk that finds the room, and the kernel fixed the directory, not the notes." });
     lookup(va0, { quiet: true });
     step("retry.miss", `Still no note: a {tone:warn|miss}. The CPU only writes a note after a walk that succeeds.`, {}, { keep: true });
@@ -753,7 +750,7 @@ export function build(s, p, scenario, env = {}) {
 
   let loads = 1;
   if (off0 < 4095) {
-    s.phase("Same page again", { id: "again", about: "The program reads on through the same page. Every byte there shares the page number, so the sticky note just written answers in one cycle." });
+    s.phase("Same page again", { id: "again", about: "The program reads on through the same page. Every byte there shares the page number, so the sticky note written a moment ago answers in one cycle." });
     const v1 = va0 + 1;
     const ch = setVA(v1);
     s.lit(...ch);
@@ -822,7 +819,7 @@ export function build(s, p, scenario, env = {}) {
   s.beat();
   setPA(null, off0);
   lookup(va0, { quiet: true });
-  step("other.miss", `Program B reads the very same address, ${c(vaHex(va0))}. No sticky note has it: a {tone:warn|miss}.`);
+  step("other.miss", `Program B reads the same address, ${c(vaHex(va0))}. No sticky note has it: a {tone:warn|miss}.`);
 
   s.ask("B uses the same address as A. Whose byte will B read?",
     ["A's byte: an address is one fixed place in memory", "Its own byte: B's directory points to another room", "Neither: two programs can't share an address"], 1,

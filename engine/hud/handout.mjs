@@ -9,7 +9,7 @@
 //                       wrong option means
 // It opens over the page as a preview with a Print button; Ctrl+P anywhere prints it too (the page's print
 // stylesheet shows only the handout). Everything comes from the data the runtime hands over (runtime handoutData()).
-import { layersOf } from "./lesson.mjs";
+import { layersOf, citeOf } from "./lesson.mjs";
 import { applyTheme } from "./theme.mjs";
 
 const letter = (i) => String.fromCharCode(65 + i);
@@ -308,6 +308,15 @@ export function createHandout(ctx) {
     if (recap.length || main.takeaway) out.push(h("section", { class: "ix-ho-sec" }, h("h2", { class: "ix-ho-h2", text: "What you saw" }),
       recap.length ? h("ol", { class: "ix-ho-list ix-ho-recap" }, recap.map((r) => h("li", null, md(r)))) : null, p("ix-ho-takeaway", main.takeaway)));
 
+    // ---- the sources the words cite (lesson.sources), with their addresses written out: paper cannot follow a link ----
+    const sources = lesson?.sources ?? [];
+    if (sources.length) out.push(h("section", { class: "ix-ho-sec ix-ho-sources" }, h("h2", { class: "ix-ho-h2", text: "Sources" }),
+      h("p", { class: "ix-ho-small", text: "The run is a simplified model; these are where its examples and its facts about real systems come from." }),
+      h("ol", { class: "ix-ho-list ix-ho-refs" }, sources.map((s) => h("li", null,
+        h("strong", { text: `${s.short}. ` }), s.full,
+        s.url ? h("span", { class: "ix-ho-url" }, " ", h("a", { href: s.url, target: "_blank", rel: "noopener", text: s.url })) : null,
+        teacher && s.supports?.length ? h("span", { class: "ix-ho-muted ix-ho-supports", text: ` Used for: ${s.supports.join("; ")}.` }) : null)))));
+
     // ---- the answers, on a page of their own ----
     const res = ctx.result();
     out.push(h("section", { class: "ix-ho-answers" },
@@ -320,7 +329,7 @@ export function createHandout(ctx) {
       !teacher ? h("div", { class: "ix-ho-takeaways" }, stories.slice(1).filter((s) => s.takeaway).map((s) => h("p", { class: "ix-ho-small" }, h("strong", { text: `${s.label}: ` }), md(s.takeaway, s.tl)))) : null,
       res ? h("p", { class: "ix-ho-result" }, `Check on the page, this visit: ${res.right} of ${res.total} right on the first try, at the “${res.levelName}” level, ${new Date().toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })}. `,
         h("span", { class: "ix-ho-muted", text: "Self-reported: the page keeps no record and sends nothing." })) : null,
-      h("p", { class: "ix-ho-foot", text: `Made by the page from its own run: every number above comes from the simulation${meta.cite?.text ?? meta.cite ? `. Source: ${typeof meta.cite === "string" ? meta.cite : meta.cite.text}` : ""}.` })));
+      h("p", { class: "ix-ho-foot", text: `Made by the page from its own run: every number above comes from the simulation${citeOf(meta, lesson)?.text ? `. Source: ${(citeOf(meta, lesson).short ?? citeOf(meta, lesson).text).replace(/\.$/, "")}` : ""}.` })));
     return out;
   }
 

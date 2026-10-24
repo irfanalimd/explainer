@@ -97,7 +97,7 @@ One or two sentences: what this figure shows and what the reader should leave kn
 
 ## Facts
 
-- **Source:** the paper, book or docs it follows (also in \`meta.cite\`).
+- **Sources:** the paper, standard or book it follows, and the example the field teaches it with (\`lesson.sources\`, cited as \`[id]\`; \`meta.cite\` names the primary one).
 - **Scenarios:** what each tab demonstrates.
 - **Invariants:** the properties verify checks on every step.
 

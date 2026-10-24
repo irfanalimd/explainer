@@ -18,7 +18,7 @@ import { createLevel, LEVELS, compiledPace, segmented } from "./level.mjs";
 import { createJourney, promiseOf, nextStory } from "./journey.mjs";
 import { createHandout } from "./handout.mjs";
 import { createLayers } from "./layers.mjs";
-import { lessonOf, layersOf, enterOf, termOf, feedbackOf } from "./lesson.mjs";
+import { lessonOf, layersOf, enterOf, termOf, feedbackOf, sourceOf, citeOf } from "./lesson.mjs";
 import { createTurn, liveTurns, detourOf } from "./turn.mjs";
 import { createCheck, checksFor } from "./check.mjs";
 import { createNudge, beliefBlock } from "./nudge.mjs";
@@ -291,7 +291,8 @@ export function createHud(root, opts = {}, cb = {}) {
   on(headRow, "click", (e) => { if (S.size === "phone" && e.target !== aboutBtn && !aboutBtn.contains(e.target)) toggleAbout(); });
   function renderTitle() {
     const m = S.meta;
-    const cite = typeof m.cite === "string" ? { text: m.cite } : m.cite;
+    // meta.cite, or the lesson source it names ("[dean2004]")
+    const cite = citeOf(m, S.lesson);
     // with a paper url the title itself is the link; the citation lives in its tooltip and accessible name
     if (cite?.url) {
       const label = `${m.title ?? ""} — read the paper${cite.text ? `: ${cite.text}` : ""}`;
@@ -660,7 +661,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const veiled = shot.step === veilStep();
     const where = [S.meta.title, sc?.label, S.phases[phaseAt(shot.step)]?.name, `step ${shot.step + 1} of ${S.steps.length}`].filter(Boolean).join("  ·  ");
     const blob = await composeStill(shot, { root, where, caption: veiled ? null : st?.layers?.plain ?? st?.caption ?? null,
-      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle });
+      keyIndex: markupOpts.keyIndex, refTitle: markupOpts.refTitle, cite: markupOpts.cite });
     if (!blob) return null;
     const name = stillName(S.meta.title, S.scenario, shot.step);
     const a = h("a", { href: win.URL.createObjectURL(blob), download: name });
@@ -946,7 +947,7 @@ export function createHud(root, opts = {}, cb = {}) {
   const center = h("div", { class: "ix-center" }, predict, caption);
   const meterList = h("div", { class: "ix-meters-body" });
   const meterClose = iconBtn("close", "Close readout", "Esc", () => toggleReadout(false), "ix-btn-sm ix-close");
-  const meterBox = h("section", { class: "ix-meters ix-pop ix-glass", role: "group", "aria-label": "Numbers from this run", id: uid("readout") },
+  const meterBox = h("section", { class: "ix-meters ix-pop ix-glass", role: "group", "aria-label": "Numbers from this run", id: uid("readout"), tabindex: "-1" },
     h("header", { class: "ix-meters-head" }, h("span", { class: "ix-meters-title", text: "Numbers from this run" }), meterClose), meterList);
   const statsList = h("span", { class: "ix-stats-list" });
   const statsMore = h("span", { class: "ix-stat-more", hidden: true });
@@ -1079,7 +1080,19 @@ export function createHud(root, opts = {}, cb = {}) {
     const sheet = S.size === "phone" && (drawerOpen || shareOpen || codeOpen || pinCard.shown || !!readoutOpen);
     sheetScrim.classList.toggle("ix-open", sheet);
     root.classList.toggle("ix-sheet-open", sheet);
+    syncCover();
   }
+  // A sheet whose box holds the whole caption and dock bar hides them (as the explain sheet hides the caption), so what
+  // it covers is neither read aloud nor reached nor measured. Measured where the sheets come to rest (again when their
+  // slide in ends), and dropped the moment the sheet closes, so the caption is back before focus returns to the dock.
+  function syncCover() {
+    const open = [drawerOpen && drawer, shareOpen && share.el, codeOpen && codePanel, readoutOpen && meterBox, pinCard.shown && pinCard.el, helpOpen && help]
+      .filter(Boolean).map((el) => el.getBoundingClientRect());
+    const holds = (o, r) => r.height === 0 || (o.left <= r.left + 4 && o.right >= r.right - 4 && o.top <= r.top + 4 && o.bottom >= r.bottom - 4);
+    const cr = caption.getBoundingClientRect(), br = bar.getBoundingClientRect();
+    root.classList.toggle("ix-sheet-covers", open.some((o) => holds(o, cr) && holds(o, br)));
+  }
+  for (const el of [drawer, share.el, codePanel, meterBox, pinCard.el, help]) on(el, "transitionend", (e) => { if (e.target === el) syncCover(); });
   function toggleDrawer(open = !drawerOpen) {
     if (open === drawerOpen) return;
     drawerOpen = open;
@@ -1094,8 +1107,8 @@ export function createHud(root, opts = {}, cb = {}) {
       for (const k in knobs) knobs[k].fit?.();
       raf(knobFades);
     }
-    else if (drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
     syncSheets();
+    if (!open && drawer.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : tuneBtn).focus({ preventScroll: true });
   }
   function toggleShare(open = !shareOpen) {
     if (open === shareOpen) return;
@@ -1104,9 +1117,9 @@ export function createHud(root, opts = {}, cb = {}) {
     setOpen(share.el, open);
     shareBtn.setAttribute("aria-pressed", String(open));
     shareBtn.setAttribute("aria-expanded", String(open));
+    syncSheets();
     if (open) { lastFocus = doc.activeElement; share.el.focus({ preventScroll: true }); }
     else if (share.el.contains(doc.activeElement)) (lastFocus?.isConnected ? lastFocus : shareBtn).focus({ preventScroll: true });
-    syncSheets();
   }
   function toggleCode(open = !codeOpen) {
     if (open === codeOpen || (open && !S.code?.source)) return;
@@ -1127,6 +1140,7 @@ export function createHud(root, opts = {}, cb = {}) {
     helpScrim.classList.toggle("ix-open", open);
     helpBtn.setAttribute("aria-pressed", String(open));
     helpTool.setAttribute("aria-pressed", String(open));
+    syncCover();
     if (open) { hideCoach(); lastFocus = doc.activeElement; help.focus({ preventScroll: true }); }   // a coach hint would float over it
     else (lastFocus?.isConnected ? lastFocus : root).focus({ preventScroll: true });
   }
@@ -1176,8 +1190,10 @@ export function createHud(root, opts = {}, cb = {}) {
     meterBox.classList.toggle("ix-open", !!mode);
     meterBox.classList.toggle("ix-pinned", mode === "pinned");
     stats.setAttribute("aria-expanded", String(!!mode));
-    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) stats.focus({ preventScroll: true });
     syncSheets();
+    // a phone's readout sheet covers the strip that opened it, so focus goes into the sheet (and comes back on close)
+    if (mode === "pinned" && root.classList.contains("ix-sheet-covers") && bottom.contains(doc.activeElement)) meterBox.focus({ preventScroll: true });
+    if (!mode && was === "pinned" && meterBox.contains(doc.activeElement)) stats.focus({ preventScroll: true });
   }
   function toggleLegend(mode = legendOpen ? false : "pinned") {
     if (mode && !legend.childElementCount) mode = false;
@@ -1482,7 +1498,7 @@ export function createHud(root, opts = {}, cb = {}) {
     else {
       const done = kind === "end" ? "Run complete" : `${name || `Chapter ${next.phase + 1}`} complete`;
       const t = kind === "end" ? takeaway() : "";
-      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts.refTitle)} ` : ""}${kind === "end" ? (storyAfter() ? `Press Enter for the next story, ${storyAfter().label ?? storyAfter().id}.` : "Press Enter to replay.") : `Press Enter to continue with ${nextChapter()}.`}`;
+      live.textContent = `${done}. ${t ? `${toText(parse(t), markupOpts)} ` : ""}${kind === "end" ? (storyAfter() ? `Press Enter for the next story, ${storyAfter().label ?? storyAfter().id}.` : "Press Enter to replay.") : `Press Enter to continue with ${nextChapter()}.`}`;
     }
     if (keyboardMode) raf(() => { if (S.held) playBtn.focus({ preventScroll: true }); });
   }
@@ -1656,6 +1672,7 @@ export function createHud(root, opts = {}, cb = {}) {
   function setTimeline(tl) {
     S.tl = tl;
     S.lesson = lessonOf(tl);
+    renderTitle();   // meta.cite may name one of the lesson's sources
     syncParamsOpen();   // a lesson starts the knobs folded
     S.steps = tl?.steps ?? [];
     S.duration = tl?.duration ?? (S.steps.length ? S.steps[S.steps.length - 1].t1 : 0);
@@ -1891,6 +1908,8 @@ export function createHud(root, opts = {}, cb = {}) {
     refKey: (id) => S.entities?.get?.(id)?.keyIndex ?? null,
     // {term:name}: the plain definition from meta.terms (the tooltip and the explain panel's first-use note show it)
     term: (name) => termOf(S.lesson, S.meta, name)?.def ?? null,
+    // [id]: a short, linked reference to one of the lesson's sources
+    cite: (id) => sourceOf(S.lesson, id),
   };
   const md = (src) => toDOM(parse(src ?? ""), doc, markupOpts);
   // the caption on narrow screens tells the step in layers too (layers.mjs), keeping to the plain line, the why and its chips
@@ -1931,12 +1950,12 @@ export function createHud(root, opts = {}, cb = {}) {
     // start the enter transition next frame instead of forcing a reflow now
     if (!instant) raf(() => el.classList.remove("ix-enter"));
     obstaclesDirty = true;
-    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts.refTitle));
+    S.capText = veiled ? "" : spokenStep(step, toText(nodes, markupOpts));
     if (!S.held) announce();
   }
   // What the ear gets for a step is what the eye gets at this level (level.mjs POLICY): on entering a chapter its
   // number, name and about (as the panel heads it); then the plain line; then the why wherever the level shows it.
-  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts.refTitle);
+  const spoken = (src) => toText(parse(String(src ?? "")), markupOpts);
   let spokenPhase = -1, chapterLead = { step: -1, text: "" };
   function spokenStep(step, plain) {
     const st = S.steps[step];
@@ -3122,6 +3141,7 @@ export function createHud(root, opts = {}, cb = {}) {
     // the free stage, for what is laid out in it in CSS (the world in words, without a GPU)
     root.style.setProperty("--ix-free-l", `${insets.left}px`);
     root.style.setProperty("--ix-free-r", `${insets.right}px`);
+    if (root.classList.contains("ix-sheet-covers")) syncCover();   // a caption that grew past the sheet shows again
   }
   function onResize() {
     const W = root.clientWidth, H = root.clientHeight;

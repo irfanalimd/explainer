@@ -57,9 +57,8 @@ export async function mount(root, figure, options = {}) {
   // your turn (s.choose, engine/hud/turn.mjs): the candidates lit for a pick, and the main run while a branch plays
   let candidates = null, mainTl = null;
   let frozen = false, visible = true, raf = 0, last = 0, capture = false, lastRenderAt = null, snapping = false, covered = false;
-  // render on demand: something changed the picture (dirty), or the last frame was still moving (settling: its camera
-  // or the HUD's insets moved; drafting: the frame being drawn is one in motion); the two clocks
-  let dirty = true, moving = false, settling = false, drafting = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
+  // render on demand: something changed the picture (dirty), or the last frame was still moving; the two clocks
+  let dirty = true, moving = false, shimmer = 0, clock = 0, resumeTimer = 0, renders = 0;
   // the start card is open; step mode (each Next plays one step); a guided pause at a chapter's end or the run's end
   let intro = false, stepMode = false, held = null, guided = true;
   let viewport = { width: 1, height: 1, dpr: 1 };
@@ -582,7 +581,7 @@ export async function mount(root, figure, options = {}) {
     director.keep(keyFocus ? boundsOfIds([keyFocus]) : null, { as: "focus" });   // the keyboard's thing stays in view
     const camera = settle ? director.update(frame, viewport, dt, { settle: true }) : director.update(frame, viewport, dt);
     if (renderer && !renderer.lost) {
-      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping, draft: drafting });
+      renderer.render(draw, camera, { time: shimmerT, clock: clockT, reducedMotion: reduced(), capture: frozen || capture || snapping });
       renders++;
       pxPerUnit = renderer.pxPerUnit(camera.target) || pxPerUnit;
       const tags = [];
@@ -661,17 +660,13 @@ export async function mount(root, figure, options = {}) {
       dirty = false;
       if (live) shimmer += dt;
       clock += dt;
-      // a frame the next one replaces at once (still playing, or the camera still easing) is a draft: without a GPU
-      // the renderer draws it cheaper (CONTRACTS.md 3.1)
-      drafting = playing || settling;
       const camera = renderFrame(dt, shimmer, clock, false);
-      drafting = false;
+      // the pointer rests over the world: the next tick's hover pick asks about this frame at this point, so ask it now
+      // and let the GPU answer while it would otherwise wait (renderer.prepick)
+      if (hoverAt) renderer?.prepick?.(hoverAt[0], hoverAt[1]);
       // keep drawing while the picture is still settling: the camera easing, the HUD's insets changed while it drew
       // (the director eases to the new framing from the next frame), an afterglow or ping fading out
-      settling = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets);
-      // the camera comes to rest on a draft: draw that frame again in full
-      if (!(playing || dirty || settling) && renderer?.drafted) renderFrame(0, shimmer, clock, false);
-      moving = settling || !!renderer?.busy;
+      moving = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets) || !!renderer?.busy;
     }
     if (playing || dirty || moving) schedule(); else rest();
   }
@@ -893,10 +888,15 @@ export async function mount(root, figure, options = {}) {
       }
       const f = frame.focus;
       if (f) {
+        // outside the frame is a problem; inside it but more than 2 px under a HUD overlay is advice (focus-under-hud)
+        const ins = hud.insets ?? {}, W = viewport.width, H = viewport.height;
+        let under = false;
         for (const c of [[f.minX, f.minY, 0], [f.maxX, f.minY, 0], [f.minX, f.maxY, 0], [f.maxX, f.maxY, 0]]) {
           const [x, y] = renderer.project(c);
-          if (x < -2 || y < -2 || x > viewport.width + 2 || y > viewport.height + 2) { out.push({ kind: "focus-outside", step: frame.step, message: "part of the step's focus is outside the frame" }); break; }
+          if (x < -2 || y < -2 || x > W + 2 || y > H + 2) { out.push({ kind: "focus-outside", step: frame.step, message: "part of the step's focus is outside the frame" }); under = false; break; }
+          if (x < (ins.left ?? 0) - 2 || y < (ins.top ?? 0) - 2 || x > W - (ins.right ?? 0) + 2 || y > H - (ins.bottom ?? 0) + 2) under = true;
         }
+        if (under) out.push({ kind: "focus-under-hud", level: "warn", step: frame.step, message: "part of the step's focus is under the interface" });
       }
     }
     return out;

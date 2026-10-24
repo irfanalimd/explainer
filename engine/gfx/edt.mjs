@@ -3,34 +3,56 @@
 
 const INF = 1e20;
 
-// 1D squared-distance transform of f (length n) in place, using scratch arrays v (Int32) and z (Float64).
-function edt1d(f, offset, stride, n, d, v, z) {
+// 1D squared-distance transform of f[0..n) in place, using scratch arrays v (Int32) and z (Float64) and d for the result.
+// A line whose values are all equal comes out unchanged (each parabola's own centre is its minimum, and c - c is exactly
+// 0), so it is left as it is: most of a string's inner field, and its padding, are such lines.
+function edt1d(f, n, d, v, z) {
+  const f0 = f[0];
+  let flat = true;
+  for (let q = 1; q < n; q++) if (f[q] !== f0) { flat = false; break; }
+  if (flat) return;
   v[0] = 0; z[0] = -INF; z[1] = INF;
   for (let q = 1, k = 0; q < n; q++) {
-    const fq = f[offset + q * stride];
+    const fq = f[q];
     let s;
     do {
       const r = v[k];
-      s = (fq - f[offset + r * stride] + q * q - r * r) / (q - r) / 2;
+      s = (fq - f[r] + q * q - r * r) / (q - r) / 2;
     } while (s <= z[k] && --k > -1);
     k++; v[k] = q; z[k] = s; z[k + 1] = INF;
   }
   for (let q = 0, k = 0; q < n; q++) {
     while (z[k + 1] < q) k++;
     const r = v[k];
-    d[q] = f[offset + r * stride] + (q - r) * (q - r);
+    d[q] = f[r] + (q - r) * (q - r);
   }
-  for (let q = 0; q < n; q++) f[offset + q * stride] = d[q];
+  for (let q = 0; q < n; q++) f[q] = d[q];
+}
+
+// scratch reused across calls (grown when a bigger string needs it): a string's SDF allocates only its result
+let scratchN = 0, line, d1, v1, z1;
+function scratch(n) {
+  if (n <= scratchN) return;
+  scratchN = n; line = new Float64Array(n); d1 = new Float64Array(n); v1 = new Int32Array(n); z1 = new Float64Array(n + 1);
 }
 
 /** In-place 2D squared EDT of grid (w*h Float64Array: 0 at sites, INF elsewhere, or fractional seeds). */
 export function edt2d(grid, w, h) {
-  const n = Math.max(w, h);
-  const d = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1);
-  for (let x = 0; x < w; x++) edt1d(grid, x, w, h, d, v, z);
-  for (let y = 0; y < h; y++) edt1d(grid, y * w, 1, w, d, v, z);
+  scratch(Math.max(w, h));
+  // columns: each copied into a contiguous line, transformed, copied back (the same arithmetic, cache-friendly)
+  for (let x = 0; x < w; x++) {
+    for (let y = 0, i = x; y < h; y++, i += w) line[y] = grid[i];
+    edt1d(line, h, d1, v1, z1);
+    for (let y = 0, i = x; y < h; y++, i += w) grid[i] = line[y];
+  }
+  for (let y = 0; y < h; y++) {
+    const row = grid.subarray(y * w, y * w + w);
+    edt1d(row, w, d1, v1, z1);
+  }
   return grid;
 }
+
+let fieldN = 0, outerF, innerF;
 
 /**
  * Signed distance field from coverage alpha (0..255, w*h). Inside and outside transforms are both exact;
@@ -39,7 +61,8 @@ export function edt2d(grid, w, h) {
  */
 export function sdfFromAlpha(alpha, w, h, spread) {
   const size = w * h;
-  const outer = new Float64Array(size), inner = new Float64Array(size);
+  if (size > fieldN) { fieldN = size; outerF = new Float64Array(size); innerF = new Float64Array(size); }
+  const outer = outerF.subarray(0, size), inner = innerF.subarray(0, size);
   for (let i = 0; i < size; i++) {
     const a = alpha[i] / 255;
     if (a >= 0.999) { outer[i] = 0; inner[i] = INF; }

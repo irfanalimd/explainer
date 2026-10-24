@@ -25,7 +25,6 @@ export function createRenderer(canvas, opts = {}) {
     get backend() { return impl?.stats().backend ?? null; },
     get theme() { return impl?.theme ?? theme; },
     get busy() { return !!impl?.busy; },
-    get drafted() { return !!impl?.drafted; },
     get size() { return impl?.size; },
     get atlas() { return impl?.atlas; },
     resize(w, h, dpr) { size = [w, h, dpr]; impl?.resize(w, h, dpr); },
@@ -33,6 +32,9 @@ export function createRenderer(canvas, opts = {}) {
     setQuality(q) { quality = q; impl?.setQuality(q); },
     render(dl, camera, o) { last = [dl, camera, o]; impl?.render(dl, camera, o); },
     pick: (x, y) => impl?.pick(x, y) ?? null,
+    // the next pick's question, asked ahead so its answer is ready without waiting on the GPU (WebGL2; WebGPU picks on
+    // the CPU and has nothing to wait for)
+    prepick: (x, y) => impl?.prepick?.(x, y),
     project: (p) => impl?.project(p) ?? [NaN, NaN, 0, false],
     unproject: (x, y, z) => impl?.unproject(x, y, z) ?? [NaN, NaN],
     pxPerUnit: (at) => impl?.pxPerUnit(at) ?? 1,

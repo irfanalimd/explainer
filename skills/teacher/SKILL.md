@@ -12,7 +12,7 @@ A figure has three owners. `figure.mjs` owns the truth (the run), the engine own
 
 The repo root is `${CLAUDE_SKILL_DIR}/../..` (written `<root>` below).
 
-**The format** of `lesson.mjs` (fields, step-id merging, templates, `first`, `when`, `@story` keys) is section 10 of `<root>/CONTRACTS.md`. Read it; this file doesn't repeat it. The reference lessons are `<root>/examples/mapreduce/lesson.mjs` (core, several scenarios, `@story` overrides) and `<root>/examples/linked-list/lesson.mjs` (intro). The teaching standard is `<root>/references/teaching.md` (section 5: the layers, term load, readability and levels).
+**The format** of `lesson.mjs` (fields, step-id merging, templates, `first`, `when`, `@story` keys) is section 10 of `<root>/CONTRACTS.md`. Read it; this file doesn't repeat it. The reference lessons are `<root>/examples/mapreduce/lesson.mjs` (core, several scenarios, `@story` overrides) and `<root>/examples/linked-list/lesson.mjs` (intro). The teaching standard is `<root>/references/teaching.md` (section 5: the layers, term load, readability and levels), and the writing standard, for every sentence, is `<root>/references/writing.md`.
 
 ## Inputs
 
@@ -28,11 +28,13 @@ Every number in the words comes from the run, or is a template the figure passes
 | `plain` | what just happened | Every step. ≤ 14 words, at most 2 sentences, present tense, concrete (the real values). No O(·) at `intro`. |
 | `why` | how this moves toward the goal | Only where its purpose differs from the chapter's or defies intuition: the first time a move happens, the aha step, misconception steps, failure steps, the first of a repeat. Never on repeats. 1 sentence, ≤ 18 words. Must not restate `plain`. |
 | `look` | entity ids to watch | One cue per step. Every id exists at the end of that step. Templated ids are fine (`"{prevId}.next"`); a list var expands (`"{splitIds}"`). |
-| `deeper` | the precise version, as `{ cost, how, code, edge, real, source }` | All optional; order matters (Basics shows the first present field as a one-line peek). `cost`: the complexity and the run's real count. `how`: the exact mechanism. `code`: the line, in a real language. `edge`: the case that breaks the simple story. `real`: where a real system does this (CPython, Linux, a paper). `source`: a URL, required when `real` makes a claim. Define every term it uses; a Basics peek may not use a term defined only later. |
+| `deeper` | the precise version, as `{ cost, how, code, edge, real, source }` | All optional; order matters (Basics shows the first present field as a one-line peek). `cost`: the complexity and the run's real count. `how`: the exact mechanism. `code`: the line, in a real language. `edge`: the case that breaks the simple story. `real`: where a real system does this (CPython, Linux, a paper), ending with its citation `[id]` and a locator (`[dean2004] §3.3`). `source`: the citation the step rests on (`"[dean2004] §3.3"`), required when `real` makes a claim. Every `[id]` is in `lesson.sources` (CONTRACTS.md 10.6, `references/teaching.md` 5.6). Define every term it uses; a Basics peek may not use a term defined only later. |
 | `picture` | which picture row this step uses | Only on steps that use the analogy. New shows it as one inline line. |
 | `key` | `true` on the steps that carry the idea | Needs `why` and `deeper`. Holds at New; the camera takes a detail shot of its `look`. |
 
 Somewhere in the lesson there must be at least one `deeper.cost`, and at least one nuance a ten-year practitioner would not know.
+
+**Sources.** `lesson.sources` comes from stage 1 (`review/curriculum.md`); without it, find the primary source, the standard reference and the field's canonical example first (`references/teaching.md` 5.6) and write the entries yourself. Before you cite a source for a claim, open it at the locator and check it says that, in those terms: a median is not an average, "up to" is not "about", a 2004 paper is not today's system. A claim no source makes is cut, or said as what the run showed ("in this run, …"). Point `meta.cite` at the primary source as `"[id]"`, and keep the field's own example where the figure uses it, saying where the figure changes it and why.
 
 ## Per chapter
 
@@ -74,10 +76,14 @@ Somewhere in the lesson there must be at least one `deeper.cost`, and at least o
 - Readability: pooled `plain` + `why` at grade ≤ 7 (`intro`), ≤ 9 (`core`), ≤ 11 (`deep`). For New text, ≥ 95 % of content words are common words, prerequisites or terms already defined.
 - Never show the same words twice: `why` vs `plain`, a card vs its first step.
 - `deeper` is about this step's mechanism. Trivia is a seductive detail; cut it.
+- **Write to `<root>/references/writing.md`.** Say what happens with the run's numbers, one claim per sentence. No
+  inflating words or stock phrases ("crucial", "seamlessly", "plays a key role"), no softeners ("basically",
+  "really"), no questions outside the asks and the teacher's prompts, no em dashes or exclamation marks. A claim about
+  real systems names the system and gives a number or a source. Use the field's canonical example and cite it.
 
 ## Gate
 
-`node <root>/scripts/verify.mjs <figure.mjs>` ends `0 failing`, with no teaching errors and no lesson warnings (every step id has a `plain`, every key step a `why`, every misconception an option). Then read the lesson as a beginner (`node <root>/scripts/lesson.mjs <figure.mjs>`) and fix the first line you would not understand. Fix and rerun at most twice before handing back with the remaining errors listed.
+`node <root>/scripts/verify.mjs <figure.mjs>` ends `0 failing`, with no teaching errors, no lesson warnings (every step id has a `plain`, every key step a `why`, every misconception an option) and no `writing` warnings (`node <root>/scripts/lesson.mjs <figure.mjs> --style` lists each hit with its line and a rewrite). Then read the lesson as a beginner (`node <root>/scripts/lesson.mjs <figure.mjs>`) and fix the first line you would not understand. Fix and rerun at most twice before handing back with the remaining errors listed.
 
 ## Run as `/explainer:teacher <figure.mjs>`
 

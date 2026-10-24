@@ -30,7 +30,7 @@ export const meta = {
   kicker: "Distributed systems",
   fig: 1,
   level: "core",
-  cite: { text: "Dean & Ghemawat, OSDI 2004", url: "https://research.google/pubs/pub62/" },
+  cite: "[dean2004]",
   theme: "light",
   hook: "Each machine reads only part of the text. How do they still count every word exactly, none missed or counted twice?",
   terms: {
@@ -48,7 +48,7 @@ export const meta = {
     "A hash sent every copy of a word to the same counting machine.",
     "Each counter added up its words; together they hold every count.",
   ],
-  takeaway: "Every count is exact because every copy of a word met on one counter. The what-ifs test it with a crash, a slow disk and one very common word.",
+  takeaway: "Every count is exact because every copy of a word met on one counter. The what-ifs test it with a crash, a slow disk and one word on most lines.",
 };
 
 export const params = {
@@ -82,7 +82,7 @@ export const scenarios = [
   { id: "skew", label: "One word is very common", params: { input: "200 200 404 200 200 301 200 200 500 200 200 200 304 200", reducers: 3 },
     whatIf: "one word is far more common than the rest",
     description: "A web log where almost every line is the status code 200, so one counting machine gets most of the work.",
-    takeaway: "Every copy of a word goes to one counter: counts stay exact, but a very common word loads that machine. Adding up repeats on each reader first shrinks the load.",
+    takeaway: "Each word's copies meet on one counter: exact counts, but a word on most lines overloads it. Adding up repeats on each reader first shrinks the load.",
     recap: [
       "Almost every line of the log was the code 200.",
       "The hash sent every 200 to the same counting machine.",
@@ -362,7 +362,7 @@ export function build(s, p, scenario, env = {}) {
     }
     s.ask(`map ${victim} crashed after ${lost} of its ${splits[victim].length} ${unit}. What happens to its piece?`,
       [`The count comes out ${plural(lost, thing)} short`, "The master has the piece read again", "The whole job starts over"], 1,
-      { id: "crash.what", why: "The text is still in the shared input, and reading it again gives the same slips, so redoing just that piece is safe." });
+      { id: "crash.what", why: "The text is still in the shared input, and reading it again gives the same slips, so redoing that piece is safe." });
     s.spawn(copy, { from: `split${victim}`, in: `m${j}`, of: "page", text: `split ${victim}`, sub: `${splits[victim].length} ${unit}` });
     s.set(`m${j}`, { led: "busy" });
     s.tag(`split${victim}`, `read again on map ${j}`, { tone: "warn" });

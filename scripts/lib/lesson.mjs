@@ -6,14 +6,19 @@
 // A figure with a lesson (CONTRACTS.md 10) adds `header` (goal, objectives, picture, terms), each step's `layers`,
 // each chapter's `enter` card and each ask's per-option feedback, all flattened to reading text.
 import { tokens } from "../../engine/scene/narrate.mjs";
+import { sourcesOf, citeLabel } from "../../engine/scene/sources.mjs";
 import { captionTemplate, forkOf } from "../../engine/playback.mjs";
 
 export const LEVELS = ["intro", "core", "deep"];
 
-/** Markup -> plain reading text. refTitle(id) names entity chips; inline code keeps its backticks. */
+/**
+ * Markup -> plain reading text. refTitle(id) names entity chips; inline code keeps its backticks. A citation reads as
+ * the page shows it ("Dean & Ghemawat 2004, §3.6") when refTitle.cite(id) knows the source, else as written.
+ */
 export function flat(markup, refTitle = () => null, { code = true } = {}) {
   const walk = (list) => list.map((t) => {
     if (t.type === "bold") return walk(t.children);
+    if (t.type === "cite") { const src = refTitle?.cite?.(t.id); return src ? citeLabel(src, t.at) : t.text; }
     if (t.type === "ref") return t.text ?? refTitle(t.id) ?? t.id;
     if (t.type === "code") return code ? "`" + t.text + "`" : t.text;
     return t.text;
@@ -24,9 +29,10 @@ export function flat(markup, refTitle = () => null, { code = true } = {}) {
 /** The meta.recap or a scenario's recap as a list of lines ([] when absent or malformed). */
 export const recapOf = (r) => (Array.isArray(r) ? r : typeof r === "string" && r.trim() ? [r] : []).filter((x) => typeof x === "string" && x.trim());
 
-const titleFinder = (tl) => {
+// entity titles near step i; each finder also carries `cite(id)`, the lesson's sources, for flat()
+const titleFinder = (tl, cite = () => null) => {
   const cache = new Map();
-  return (i) => (id) => {
+  return (i) => Object.assign((id) => {
     const k = `${i}:${id}`;
     if (cache.has(k)) return cache.get(k);
     let title = null;
@@ -35,7 +41,7 @@ const titleFinder = (tl) => {
     }
     cache.set(k, title);
     return title;
-  };
+  }, { cite });
 };
 
 // a lesson's layers, entry card and ask feedback as reading text
@@ -81,7 +87,11 @@ export function extractLesson(fig, compile, opts = {}) {
     level: LEVELS.includes(meta.level) ? meta.level : null, levelRaw: meta.level, recap: recapOf(meta.recap), recapRaw: meta.recap,
     terms: termsOf(meta, fig.lesson), termsRaw: meta.terms,
     knobs, counters, scenarioCount: all.length, header: null, stories: [],
+    // lesson.sources with their short and full forms (engine/scene/sources.mjs); the raw list for the lint
+    sources: sourcesOf(fig.lesson), sourcesRaw: fig.lesson?.sources,
   };
+  const byId = new Map(lesson.sources.map((x) => [x.id, x]));
+  const cite = (id) => byId.get(id) ?? null;
   let base = null;
   for (const sc of list) {
     const story = {
@@ -99,7 +109,7 @@ export function extractLesson(fig, compile, opts = {}) {
     story.duration = tl.duration ?? 0;
     if (story.index === 0) base = tl;
     else if (base) { try { story.fork = forkOf(base, tl, sc.start ? { start: sc.start } : {}); } catch { story.fork = null; } }
-    const title = titleFinder(tl);
+    const title = titleFinder(tl, cite);
     const starts = phases.length ? phases : [{ name: "", step: 0, about: null }];
     starts.forEach((ph, k) => {
       const from = ph.step ?? 0, to = k + 1 < starts.length ? starts[k + 1].step : steps.length;
@@ -123,7 +133,7 @@ export function extractLesson(fig, compile, opts = {}) {
             if (j === st.choose.answer) return out;
             try {
               const b = run({ choices: { [st.choose.id]: j } }), last = b.steps[b.steps.length - 1];
-              const bt = titleFinder(b)(b.steps.length - 1);
+              const bt = titleFinder(b, cite)(b.steps.length - 1);
               out.plays = (b.steps.slice(i).map((x) => flat(x.layers?.plain ?? x.caption, bt)));
               out.consequence = last ? flat(last.layers?.plain ?? last.caption, bt) : "";
             } catch (e) { out.consequence = `(the branch failed to compile: ${e?.message ?? e})`; }
@@ -177,6 +187,8 @@ export function formatLesson(L, opts = {}) {
   const seen = new Set();
   const H = L.header;
   const defOf = (name) => (H ? H.terms[name]?.def : L.terms[name]);
+  const srcById = new Map((L.sources ?? []).map((x) => [x.id, x]));
+  const cites = Object.assign(() => null, { cite: (id) => srcById.get(id) ?? null });   // flat() with citations only
   const defineFirst = (markup, text) => {
     let extra = "";
     for (const t of tokens(markup ?? "")) {
@@ -256,8 +268,8 @@ export function formatLesson(L, opts = {}) {
     const take = story.takeaway || L.takeaway;
     const recap = story.recap ?? L.recap;
     out.push("");
-    if (recap.length) { out.push("   RECAP"); recap.forEach((r, j) => out.push(`     ${j + 1}. ${wrap(flat(r), W - 8, "        ")}`)); }
-    field("TAKEAWAY", take || "(none)", "   ");
+    if (recap.length) { out.push("   RECAP"); recap.forEach((r, j) => out.push(`     ${j + 1}. ${wrap(flat(r, cites), W - 8, "        ")}`)); }
+    field("TAKEAWAY", take ? flat(take, cites) : "(none)", "   ");
     if (story.checks?.length) {
       out.push("");
       out.push(`   END CHECK  (New asks ${Math.min(3, story.checks.length)}, Basics ${Math.min(2, story.checks.length)}, Expert 1: the one marked transfer)`);
@@ -277,6 +289,16 @@ export function formatLesson(L, opts = {}) {
   if (H?.next?.length) {
     out.push("", "KEEP GOING  (after the last story)");
     for (const n of H.next) { out.push(`  ${n.title}  ${n.href}`); field("why", flat(n.why), "    "); }
+  }
+  // what the words cite: each source with its short form, the full reference, its address and what it supports
+  if (L.sources?.length) {
+    out.push("", `SOURCES  (lesson.sources: ${L.sources.length})`);
+    for (const x of L.sources) {
+      out.push(`  [${x.id}]  ${x.short}`);
+      field("ref", x.full, "    ");
+      if (x.url) field("url", x.url, "    ");
+      if (x.supports.length) field("supports", x.supports.join("; "), "    ");
+    }
   }
   return out.join("\n");
 }

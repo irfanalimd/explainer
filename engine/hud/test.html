@@ -869,6 +869,53 @@ window.__results = (async () => {
     }
     hH.destroy(); rH.remove();
   }
+  // phones: a sheet that holds the whole caption and dock bar hides them (nothing under it is read aloud, reached by Tab or
+  // measured), and they come back when it closes, focus where it was; the readout covers its own strip, so it takes focus
+  {
+    const rP = document.createElement("div");
+    rP.style.cssText = "position:fixed;left:0;top:0;width:390px;height:844px;opacity:0;pointer-events:none";
+    rP.append(document.createElement("canvas"));
+    document.body.append(rP);
+    const hP = createHud(rP, { meta: { title: "MapReduce" }, params, values: { mappers: 3, combiner: false, input: "the fox", seed: 7 },
+      scenarios, scenario: "happy", hash: false, storage: false, counters: tl.counters }, {});
+    hP.setTimeline(tl);
+    hP.update(frame(3), { time: 3, playing: false, speed: 1 });
+    await frameWait(); await frameWait();
+    const shown = () => getComputedStyle(rP.querySelector(".ix-bottom")).visibility === "visible";
+    const play = rP.querySelector(".ix-play");
+    const before = shown();
+    play.focus();
+    key("s", {}, play);
+    await frameWait(); await frameWait();
+    const under = !shown() && rP.classList.contains("ix-sheet-covers");
+    key("Escape", {}, document.activeElement);
+    await frameWait();
+    check("phone: the settings sheet hides the caption and dock it covers; closing it shows them again and focus returns to Play",
+      before && under && shown() && document.activeElement === play, [before, under, shown(), document.activeElement?.className]);
+    const stats = rP.querySelector(".ix-stats");
+    stats.focus(); stats.click();
+    await frameWait(); await frameWait();
+    // two numbers make a short sheet that leaves the caption in view: then nothing hides and focus stays on the strip
+    const covers = rP.classList.contains("ix-sheet-covers");
+    const open = covers ? document.activeElement === rP.querySelector(".ix-meters") && !shown() : document.activeElement === stats && shown();
+    key("Escape", {}, document.activeElement);
+    await frameWait();
+    check("phone: the readout sheet hides the strip only when it covers it, then takes focus and gives it back on close",
+      open && shown() && document.activeElement === stats, [covers, open, shown(), document.activeElement?.className]);
+    // eight numbers make it tall enough to hold the caption and the bar
+    const many = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`n${i}`, { label: `number ${i}`, format: "int" }]));
+    hP.setTimeline({ ...tl, counters: many });
+    hP.update(frame(3, { counters: Object.fromEntries(Object.keys(many).map((k, i) => [k, i])) }), { time: 3, playing: false, speed: 1 });
+    await frameWait();
+    stats.focus(); stats.click();
+    await frameWait(); await frameWait();
+    const tall = rP.classList.contains("ix-sheet-covers") && document.activeElement === rP.querySelector(".ix-meters") && !shown();
+    key("Escape", {}, document.activeElement);
+    await frameWait();
+    check("phone: a readout tall enough to cover its strip hides it and takes focus; closing gives focus back to the strip",
+      tall && shown() && document.activeElement === stats, [tall, shown(), document.activeElement?.className]);
+    hP.destroy(); rP.remove();
+  }
 
   // teaching: glossary words ({term:…} + meta.terms), the predict "why", and the end's recap (meta.recap)
   for (const width of [1440, 820]) {

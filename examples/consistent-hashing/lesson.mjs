@@ -14,21 +14,43 @@
 //   vnodes.more:   seats, was, changed, keyIds, before, after, total
 //   result:        moved, n1, fair, modm, keyIds · seats, top, topId, share, ratio · heavy, heavyId, share, left,
 //                  modm, dests, rule · spread, alone, heavy, heavyId, ratio, big64, big256, left, dests
-const KARGER = "D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin, Consistent Hashing and Random Trees, STOC 1997, https://doi.org/10.1145/258533.258660";
-const DYNAMO = "G. DeCandia et al., Dynamo: Amazon's Highly Available Key-value Store, SOSP 2007, https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf";
-const CASSANDRA = "Apache Cassandra, Production recommendations (num_tokens), https://cassandra.apache.org/doc/latest/getting-started/production.html";
-const JUMP = "J. Lamping and E. Veach, A Fast, Minimal Memory, Consistent Hash Algorithm, 2014, https://arxiv.org/abs/1406.2294";
-const WHITE = "T. White, Consistent Hashing (2007), https://tom-e-white.com/2007/11/consistent-hashing.html";
+// A layer that states a fact about real systems names its source in `deeper.source` as [id] plus a locator; the ids are
+// `lesson.sources`. Dynamo's section numbers were checked against the paper's text.
 
 export const lesson = {
+  sources: [
+    { id: "karger1997", title: "Consistent Hashing and Random Trees: Distributed Caching Protocols for Relieving Hot Spots on the World Wide Web",
+      by: "D. Karger, E. Lehman, T. Leighton, R. Panigrahy, M. Levine, D. Lewin", year: 1997, where: "STOC 1997",
+      url: "https://doi.org/10.1145/258533.258660",
+      supports: "the ring, for web caches that come and go: a consistent hash “changes minimally as the range of the function changes”; smoothness; about log N copies of each cache for balance" },
+    { id: "leighton2002", title: "Remarks commemorating Danny Lewin", by: "T. Leighton", year: 2002, where: "SIGACT, the Danny Lewin Best Student Paper Award",
+      url: "https://www.sigact.org/prizes/student/remarks.html",
+      supports: "Lewin's master's thesis on consistent hashing became the business plan for Akamai Technologies" },
+    { id: "dynamo2007", title: "Dynamo: Amazon's Highly Available Key-value Store", by: "G. DeCandia et al.", year: 2007, where: "SOSP 2007",
+      url: "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+      supports: "MD5 to a 128-bit identifier (§4.1), the ring and virtual nodes, and why: a failed node's load spreads (§4.2), replication to the next N nodes (§4.3), adding and removing nodes (§4.9), equal-size partitions balance best (§6.2)" },
+    { id: "cassandra-dynamo", short: "Cassandra docs, Dynamo", title: "Dynamo", by: "Apache Cassandra", year: 2024, where: "Cassandra architecture documentation",
+      url: "https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html",
+      supports: "Cassandra's techniques come from Dynamo; 256 random tokens coupled many endpoints and raised the risk of unavailability; a token allocator needs far fewer" },
+    { id: "cassandra-13701", short: "CASSANDRA-13701", title: "CASSANDRA-13701: Lower default num_tokens", by: "Apache Cassandra", year: 2020, where: "Cassandra issue tracker, fixed in 4.0",
+      url: "https://issues.apache.org/jira/browse/CASSANDRA-13701",
+      supports: "num_tokens default lowered in 4.0 (to 16, per CASSANDRA-16979)" },
+    { id: "jump2014", title: "A Fast, Minimal Memory, Consistent Hash Algorithm", by: "J. Lamping, E. Veach", year: 2014, where: "arXiv:1406.2294 (Google)",
+      url: "https://arxiv.org/abs/1406.2294",
+      supports: "jump consistent hash moves 1/(n + 1) of the keys and needs no stored ring, but buckets can only be added or removed at the end" },
+    { id: "white2007", title: "Consistent Hashing", by: "T. White", year: 2007, where: "blog post",
+      url: "https://tom-e-white.com/2007/11/consistent-hashing.html",
+      supports: "the reshuffle that hash mod n causes when a cache joins or leaves; virtual nodes; from Dynamo to memcached" },
+  ],
+
   goal: "Share keys among servers so that a server joining or leaving moves only the keys it must.",
 
   objectives: [
-    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins." },
+    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins.", stories: ["add"] },
     { id: "o-owner", text: "Perform a lookup on the ring: find the server that stores a key, wrapping past the top." },
-    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from." },
-    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many." },
-    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out." },
+    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from.", stories: ["add"] },
+    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many.", stories: ["remove", "vnodes"] },
+    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out.", stories: ["vnodes"] },
   ],
 
   misconceptions: [
@@ -130,9 +152,9 @@ export const lesson = {
       deeper: {
         cost: "On average {N} keys in every {n1} move, the fraction N/(N + 1); one in {n1} is all that must. Here {moved} of {K} moved.",
         how: "A key keeps its server only if hash % {N} equals hash % {n1}. That holds for 1 number in {n1}, so the bigger the cluster, the worse it gets.",
-        edge: "With only {K} keys, luck swings the count above or below the average; with millions of keys it lands very close.",
-        real: "Early web caches spread keys this way. Tom White's widely linked 2007 write-up uses this reshuffle to motivate the ring.",
-        source: WHITE,
+        edge: "With only {K} keys, luck swings the count above or below the average; with a million keys the share moved lands within 0.1% of N/(N + 1).",
+        real: "This is the problem the ring was invented for. Karger et al. wanted web caches that could come and go, and a hash that “changes minimally as the range of the function changes”. Tom White's 2007 write-up starts from this same reshuffle.",
+        source: "[karger1997]; [white2007]",
       },
     },
 
@@ -145,8 +167,8 @@ export const lesson = {
       look: ["{ringIds}"], picture: "table",
       deeper: {
         how: "This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash values in hex.",
-        real: "This run hashes with 32-bit MurmurHash3. Dynamo used 128-bit MD5 (§4.2); Cassandra's default uses 64-bit numbers from MurmurHash3.",
-        source: DYNAMO,
+        real: "This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash function the same way.",
+        source: "[dynamo2007] §4.1; [cassandra-dynamo]",
       },
     },
     "ring.seats": {
@@ -156,9 +178,9 @@ export const lesson = {
         why: "Nobody picks the seats; the hash does, so some gaps come out far wider than others.",
         deeper: {
           how: "A server's arc runs from the seat before it up to its own seat, and it stores every key that lands there.",
-          edge: "With one random seat each, the biggest arc is not 1/N of the ring: on average it is about (ln N + 0.58)/N, roughly 52% for 4 servers.",
-          real: "Karger et al. give each server about log N seats to fix this: then every share is within a constant factor of fair.",
-          source: KARGER,
+          edge: "With one random seat each, the biggest arc is not 1/N of the ring: on average it is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.",
+          real: "Karger et al. give each server about log N seats to fix this: then every share is within a constant factor of fair. Their work grew into the business plan for Akamai, the content delivery network; two of the authors, Tom Leighton and Danny Lewin, founded it.",
+          source: "[karger1997]; [leighton2002]",
         },
       },
       key: true,
@@ -167,7 +189,7 @@ export const lesson = {
       look: ["{tokenIds}"], picture: "seat",
       deeper: {
         how: "Seat i of db01 is the hash of the name db01#i, so every machine works out the same seats.",
-        source: KARGER,
+        source: "[karger1997]; [dynamo2007] §4.2",
       },
     },
 
@@ -219,16 +241,16 @@ export const lesson = {
       first: {
         when: (v) => v.seats === 1,
         plain: "{extra} joins at {hash}, inside {pred}'s arc. It waits, empty.",
-        why: "Which keys now meet {extra} first on their clockwise walk?",
+        why: "Watch which keys now meet {extra} first on their clockwise walk.",
         look: ["{tokenId}", "{predTokenId}"],
       },
       plain: "{extra} joins with {seats} seats, landing in {seats} arcs. It waits, empty.",
-      why: "Which keys now meet one of {extra}'s seats first on their clockwise walk?",
+      why: "Watch which keys now meet one of {extra}'s seats first on their clockwise walk.",
       look: ["{tokenId}"], picture: "chair",
       deeper: {
         how: "A real server copies its keys first and starts answering for them after, so nothing is lost while they move.",
         real: "In Dynamo the existing nodes hand over the key ranges a new node now owns (§4.9).",
-        source: DYNAMO,
+        source: "[dynamo2007] §4.9",
       },
     },
     "add.move": {
@@ -241,7 +263,7 @@ export const lesson = {
           cost: "On average K/(N + 1) keys move, the least any rule can: here {moved} of {K}.",
           how: "Karger et al. call this smoothness: a new server takes keys only from the arcs its seats split.",
           real: "Dynamo adds a node the same way; only the nodes that owned its new ranges send data (§4.9).",
-          source: KARGER,
+          source: "[karger1997]; [dynamo2007] §4.9",
         },
       },
       key: true,
@@ -250,7 +272,7 @@ export const lesson = {
       look: ["{extraId}"],
       deeper: {
         cost: "On average K/(N + 1) keys move; with only {K} keys, an arc can be empty.",
-        source: KARGER,
+        source: "[karger1997]",
       },
     },
 
@@ -277,7 +299,7 @@ export const lesson = {
         how: "No key that {victim} did not hold moves: their walks never passed its seats.",
         edge: "Real stores keep copies: Dynamo writes each key to the next few distinct servers clockwise, so the next server already has a copy when one leaves (§4.3).",
         real: "Dynamo's paper gives this spread as the reason for many seats: a failed node's load is shared by the rest (§4.2).",
-        source: DYNAMO,
+        source: "[dynamo2007] §4.2, §4.3",
       },
     },
 
@@ -291,7 +313,7 @@ export const lesson = {
           how: "Each new seat splits one arc, so only the keys just before it change server.",
           edge: "The spread shrinks slowly, about as 1/√seats: 4 times the seats only halves the unevenness, so one doubling can even make it worse.",
           real: "Karger et al. show about log N seats per server keep every share within a constant factor of fair.",
-          source: KARGER,
+          source: "[karger1997]",
         },
       },
       plain: "Now {seats} seats each: {count:changed|key} moved. Busiest share {before} → {after}.",
@@ -308,7 +330,7 @@ export const lesson = {
         cost: "Ring: about K/(N + 1) keys on average ({fair} here). Remainder way: about K × N/(N + 1).",
         edge: "With few keys, luck can flip a single run, so compare the averages, not one count.",
         real: "Jump consistent hash (Google, 2014) also moves just 1 key in N + 1 and needs no ring in memory, but servers can only join or leave at the end of the list.",
-        source: JUMP,
+        source: "[jump2014]",
       },
     },
     "result.uneven": {
@@ -334,8 +356,8 @@ export const lesson = {
       look: ["{heavyId}"],
       deeper: {
         how: "The remainder way would switch to {rule} and re-divide every key; the ring moved only the leaver's keys.",
-        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reason real stores give each server many seats.",
-        source: DYNAMO,
+        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reason Dynamo gives each server more than one seat on the ring, its virtual nodes.",
+        source: "[dynamo2007] §4.2",
       },
     },
     "result.vnodes": {
@@ -347,8 +369,8 @@ export const lesson = {
         deeper: {
           cost: "Worked out for the servers left: {big64} with 64 seats each, {big256} with 256. Past a few dozen seats, more buys little.",
           edge: "Random seats even out slowly. Dynamo moved to equal-size slices of the ring handed out evenly, its best-balanced strategy (§6.2).",
-          real: "Cassandra cut its default from 256 random seats per node to 16 placed by an allocator in 4.0: fewer seats meant fewer neighbours to stream from and to repair.",
-          source: CASSANDRA,
+          real: "Cassandra 4.0 cut its default from 256 random seats per node to 16, placed by an allocator so they still spread evenly. With 256 random seats, every node shared data with so many others that losing a few nodes could make some data unavailable.",
+          source: "[dynamo2007] §6.2; [cassandra-dynamo]; [cassandra-13701]",
         },
       },
       plain: "Only {heavy} is left, so it holds every key and the whole ring.",

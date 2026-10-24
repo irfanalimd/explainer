@@ -65,10 +65,7 @@ export const meta = {
   kicker: "Distributed systems",
   fig: 4,
   level: "core",
-  cite: {
-    text: "Karger et al., “Consistent Hashing and Random Trees”, STOC 1997 · DeCandia et al., “Dynamo”, SOSP 2007",
-    url: "https://doi.org/10.1145/258533.258660",
-  },
+  cite: "[karger1997]",
   theme: "light",
   hook: "Several servers share the keys. Add one more server: how many keys have to move?",
   terms: {
@@ -102,7 +99,7 @@ export const scenarios = [
     recap: [
       "Each key sits with the next server clockwise.",
       "The leaving server's keys moved on to the next seat clockwise.",
-      "No other key moved, but the servers that took them now own more of the ring.",
+      "No other key moved, and one server took them all: its share grew.",
     ] },
   { id: "vnodes", label: "Many seats per server", params: { vnodes: 8 }, whatIf: "each server takes many seats",
     description: "Each server takes many seats around the ring, so when one leaves, its keys spread over several servers.",

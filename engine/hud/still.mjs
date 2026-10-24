@@ -106,8 +106,12 @@ export async function composeStill(shot, o) {
   function atoms(nodes, opts, bold = false) {
     const out = [];
     for (let i = 0; i < nodes.length; i++) {
-      const n = nodes[i];
+      let n = nodes[i];
       if (n.type === "bold") { out.push(...atoms(n.children, opts, true)); continue; }
+      if (n.type === "cite") {   // a citation prints as the page shows it: "Dean & Ghemawat 2004, §3.6"
+        const c = opts.cite?.(n.id);
+        n = { type: "text", text: c ? (n.at ? `${c.label}, ${n.at}` : c.label) : n.raw };
+      }
       if (n.type === "text" || n.type === "term" || n.type === "tone") {
         for (const part of String(n.text).split(/(\s+)/)) if (part) out.push({ kind: n.type === "tone" ? "tone" : "text", tone: n.tone, text: part, bold });
         continue;

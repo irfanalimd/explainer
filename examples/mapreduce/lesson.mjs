@@ -12,18 +12,43 @@
 //   reduce:        red, redId, got, sums, sumIds, totals, all (every total), ones (words seen once);  output: red, redId, totals, part
 //   skew end:      hot, hotId, load, moved, share, sent, hotC
 //   scale shot:    machines, paperM, paperR (the paper's figures, §3.5), runMachines (this run's M + R)
-const PAPER = "J. Dean and S. Ghemawat, MapReduce: Simplified Data Processing on Large Clusters, OSDI 2004, https://research.google/pubs/pub62/";
+// A layer that states a fact about real systems names its source in `deeper.source` as [id] plus a locator; the ids are
+// `lesson.sources`. Quotes and figures were checked against the paper's USENIX HTML edition.
 
 export const lesson = {
+  sources: [
+    { id: "dean2004", title: "MapReduce: Simplified Data Processing on Large Clusters", by: "J. Dean, S. Ghemawat", year: 2004,
+      where: "OSDI 2004", url: "https://research.google/pubs/pub62/",
+      supports: "word count (§2.1, Appendix A), URL access counts (§2.3), splits of 16–64 MB (§3.1), the master and re-execution (§3.3), GFS's 3 copies and locality (§3.4), M = 200,000, R = 5,000 on 2,000 machines (§3.5), backup tasks and the 30 → 1 MB/s disk (§3.6), partitioning and ordering (§4.1, §4.2), combiners and Zipf (§4.3), the 44% sort result (§5.3), Table 1" },
+    { id: "hadoop-mapred", short: "Hadoop mapred-default.xml", title: "mapred-default.xml", by: "Apache Hadoop", year: 2024, where: "Hadoop MapReduce documentation",
+      url: "https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/mapred-default.xml",
+      supports: "speculative execution on by default and its 10% cap; mapreduce.am.max-attempts" },
+    { id: "hadoop-committers", short: "Hadoop S3A committers", title: "Committing work to S3 with the S3A committers", by: "Apache Hadoop", year: 2024, where: "Hadoop-AWS documentation",
+      url: "https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/committers.html",
+      supports: "output committers, the v1 and v2 algorithms, and why object stores need their own" },
+    { id: "spark-config", short: "Spark configuration", title: "Spark Configuration", by: "Apache Spark", year: 2024, where: "Spark documentation",
+      url: "https://spark.apache.org/docs/latest/configuration.html",
+      supports: "spark.speculation off by default; the external shuffle service" },
+    { id: "spark-rdd", short: "Spark RDD guide", title: "RDD Programming Guide", by: "Apache Spark", year: 2024, where: "Spark documentation",
+      url: "https://spark.apache.org/docs/latest/rdd-programming-guide.html",
+      supports: "reduceByKey combines on the map side and spills its tables to disk; prefer it to groupByKey" },
+    { id: "white2015", title: "Hadoop: The Definitive Guide, 4th edition", by: "T. White", year: 2015, where: "O'Reilly",
+      url: "https://www.oreilly.com/library/view/hadoop-the-definitive/9781491901687/",
+      supports: "combiner functions (ch. 2), the shuffle and sort, with each map's output in one partitioned file (ch. 7), input splits and records across blocks (ch. 8)" },
+    { id: "python-hashseed", short: "Python docs, PYTHONHASHSEED", title: "Command line and environment: PYTHONHASHSEED", by: "Python Software Foundation", year: 2024, where: "Python documentation",
+      url: "https://docs.python.org/3/using/cmdline.html#envvar-PYTHONHASHSEED",
+      supports: "str hashes are salted per process unless PYTHONHASHSEED is set" },
+  ],
+
   goal: "Count every word of a text exactly, with machines that each read only part of it.",
   // `stories`: the stories that teach an objective; the end card's "You can now…" lists only those (all when absent)
   objectives: [
     { id: "o-split", text: "Say why the text is cut into pieces and read in parallel, and what that buys.", stories: ["happy", "skew"] },
     { id: "o-hash", text: "Explain why every copy of a word must reach the same counter, and how a hash does it without asking anyone." },
     { id: "o-reduce", text: "Say what a counting machine writes: one total for each different word it holds.", stories: ["happy"] },
-    { id: "o-crash", text: "Say why a crashed reading task can simply run again, even one that had finished.", stories: ["crash"] },
+    { id: "o-crash", text: "Say why a crashed reading task can run again, even one that had finished.", stories: ["crash"] },
     { id: "o-slow", text: "Say why a backup copy of a slow piece is safe, and why only one copy's slips may count.", stories: ["straggler"] },
-    { id: "o-skew", text: "Explain why one very common word overloads one counter, and why adding up repeats early helps where more machines or a backup don't.", stories: ["skew"] },
+    { id: "o-skew", text: "Explain why one word that fills most of the input overloads one counter, and why adding up repeats early helps where more machines or a backup don't.", stories: ["skew"] },
   ],
 
   misconceptions: [
@@ -36,7 +61,7 @@ export const lesson = {
     { id: "m-wait", wrong: "The job has to wait for its slowest machine.", fix: "A backup copy of the slow piece on a free machine gives the same slips. The first copy to finish wins." },
     { id: "m-skip", wrong: "Skipping a slow piece is a fair price for finishing on time.", fix: "Its words would never be counted. MapReduce never trades a correct count for speed." },
     { id: "m-both", wrong: "Keeping both copies' slips is harmless: the extra copy is only a spare.", fix: "Both copies wrote slips for the same words, so keeping both counts those words twice." },
-    { id: "m-more", wrong: "More counting machines would spread out one very common word.", fix: "The hash sends every copy of a word to one counter, however many there are. More machines only move other words." },
+    { id: "m-more", wrong: "More counting machines would spread out the copies of one common word.", fix: "The hash sends every copy of a word to one counter, however many there are. More machines only move other words." },
     { id: "m-backup", wrong: "A backup copy shares out a busy machine's work.", fix: "A backup does the same work again from the same input. It beats a slow machine, not a big pile of work." },
     { id: "m-readers", wrong: "More reading machines would share out a common word's slips.", fix: "The counter is picked from the word alone, so every copy still goes to the same counter however many machines read." },
     { id: "m-combine", wrong: "Adding up repeats early changes the counts.", fix: "Each early slip carries its count, and the counter adds those counts, so the total is the same." },
@@ -80,12 +105,12 @@ export const lesson = {
       teach: { prompt: "Before it runs: if three people share the counting of one library, what could go wrong with the total?", listen: "A word counted twice, or missed, where two pieces meet. Here every word sits in exactly one piece, so neither can happen.", minutes: 3 },
       about: "Think of counting every word in a library with a team. One person would take ages, so a coordinator, the {term:master}, gives each helper one shelf: a {term:split}, one piece of the text.",
       "about@skew": "The same counting job on a web log. Each line is one website request, and its status code is a number saying how it went (200 OK, 404 not found). The {term:master} gives each machine one {term:split} of the log.",
-      enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. The table names the parts; each comes back when its step plays.", done: "Every word sits in exactly one piece.", picture: true },
+      enter: { sofar: "On one machine, a loop and a dictionary count words: each word maps to its count so far.", now: "Cut the text into pieces, one per machine. “The picture” below matches each part of the library to a part of the system.", done: "Every word sits in exactly one piece.", picture: true },
       "enter@skew": { sofar: "On one machine, a loop and a dictionary count things: each code maps to its count so far.", now: "Cut the log into pieces, one per machine.", done: "Every line sits in exactly one piece.", picture: true },
     },
     map: {
       teach: { prompt: "Why can every reading machine start at once, without waiting for the others?", listen: "Map needs only its own piece, and nobody adds anything yet. Listen for “one machine adds it all up at the end”: the shuffle answers that idea next.", minutes: 3 },
-      "teach@crash": { prompt: "A machine just crashed. Before the question on screen, ask the room: is its part of the count gone for good?", listen: "Its text is still in the shared input, so the master hands the piece out again. Listen for “the count comes out short” and “the whole job starts over”.", minutes: 4 },
+      "teach@crash": { prompt: "A machine has crashed. Before the question on screen, ask the room: is its part of the count gone for good?", listen: "Its text is still in the shared input, so the master hands the piece out again. Listen for “the count comes out short” and “the whole job starts over”.", minutes: 4 },
       "teach@straggler": { prompt: "One machine is far behind. Should the job wait for it, skip it, or do something else?", listen: "A backup copy of the slow piece runs on a free machine, and the first copy to finish wins. Skipping it would leave its words uncounted.", minutes: 4 },
       about: "Each helper tallies their own shelf: each reading machine, a {term:mapper}, writes a slip like `(word, 1)`, meaning “this word, seen once”, for every word. Nobody waits for anybody.",
       "about@skew": "Each reading machine, a {term:mapper}, writes a slip like `(code, 1)` for every line of its piece. Nobody waits for anybody.",
@@ -99,7 +124,7 @@ export const lesson = {
     shuffle: {
       teach: { prompt: "Why not deal the slips out evenly, like cards, so every counter gets the same amount?", listen: "Copies of one word would land on different counters, and no counter could give that word's full count. The hash sends every copy to one counter without any machine asking another.", minutes: 5 },
       "teach@skew": { prompt: "Almost every line is the same code. Where will all those slips go, and what does that do to one machine?", listen: "Every copy goes to the one counter its hash picks: the count stays exact, but that counter does most of the work. Adding up repeats first shrinks it.", minutes: 5 },
-      about: "In {term:shuffle|the shuffle}, each slip travels to one counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters: the remainder (with 2 counters, 0 or 1) names the counter.",
+      about: "In {term:shuffle|the shuffle}, each slip travels to one counting machine. A {term:hash} turns the word into a number. Divide it by the number of counters, here {R}: the remainder, always less than {R}, names the counter.",
       "about@skew": "In {term:shuffle|the shuffle}, each slip goes to the counting machine its {term:hash} picks. {top} fills {topN} of the {n} lines, so where its slips go decides how busy each counter is.",
       enter: { sofar: "Every word is a `(word, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "Every slip sits on a counting machine, and you can say why it went there." },
       "enter@skew": { sofar: "Every line is a `(code, 1)` slip, spread over the reading machines.", now: "Send each slip to one of the {count:R|counting machine}.", done: "Every slip sits on a counting machine, and you can say why it went there." },
@@ -131,8 +156,13 @@ export const lesson = {
       look: ["input"],
       deeper: {
         cost: "Alone: {n} reads, one after another. Shared {M} ways, the reading takes as long as the biggest piece: {biggest} reads.",
-        real: "The paper cuts real input into pieces of 16 to 64 MB, and it often ran jobs of M = 200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.1, §3.5).",
-        source: PAPER,
+        real: "Word count is the paper's own first example (§2.1), and its full program is the paper's Appendix A. Real input is cut into pieces of 16 to 64 MB (§3.1), and Google often ran jobs of M = 200,000 map tasks on 2,000 machines, so each machine reads many pieces (§3.5).",
+        source: "[dean2004] §2.1, §3.1, §3.5",
+      },
+      "deeper@skew": {
+        cost: "Alone: {n} reads, one after another. Shared {M} ways, the reading takes as long as the biggest piece: {biggest} reads.",
+        real: "The paper's second example is this same job: map reads a log of web page requests and writes `(URL, 1)`, and reduce adds up each URL's 1s (§2.3). This story counts status codes instead of URLs.",
+        source: "[dean2004] §2.3",
       },
     },
     "split.alone": {
@@ -149,7 +179,7 @@ export const lesson = {
       look: ["{splitIds}"], picture: "split",
       deeper: {
         how: "Each record (here, a word or a line) belongs to exactly one piece; a piece may be read twice (a re-run or a backup), but only one reading counts. The paper's text reader cuts only at line boundaries (§4.4); Hadoop cuts by bytes: every reader but the first throws away everything up to its first line break, and each reads on past its end to finish the last line it started, so every line belongs to one reader. The master prefers to run each piece on a machine that already stores a copy of it, so most input is read from local disk, not over the network (§3.4).",
-        source: PAPER,
+        source: "[dean2004] §3.4, §4.4; [white2015] ch. 8",
       },
     },
     "split.one": {
@@ -176,13 +206,14 @@ export const lesson = {
         deeper: {
           how: "A real mapper buffers its slips, then writes them to its own local disk, divided into R regions, one per reduce task ({R} here, one per counting machine; Hadoop keeps them as parts of one indexed file). It tells the master where they are (§3.1).",
           code: "`emit(word, 1)` (lines 1–3)",
-          source: PAPER,
+          source: "[dean2004] §3.1; [white2015] ch. 7",
         },
       },
       plain: "{map} writes a slip for each of its {count:count|word}, like {slip}.",
       "plain@skew": "{map} writes a slip for each of its {count:count|line}, like {slip}.",
       look: ["{mapId}"],
     },
+    // only with your own input shorter than the mappers (e.g. "a b" on 6); verify's knob runs keep the default text
     "map.empty": {
       plain: "{map} has an empty piece and finishes at once.",
       why: "There are more machines than words to share.",
@@ -194,9 +225,9 @@ export const lesson = {
         key: true,
         why: "Fewer slips cross the network, and the counts don't change: adding gives the same total wherever it happens.",
         deeper: {
-          how: "The paper calls this a combiner: usually the same code as reduce, run on each mapper's own slips. It is meant for a reduce that is commutative and associative (order and grouping don't change the result), as a sum is; an average, say, cannot be combined this simply (§4.3).",
+          how: "The paper calls this a combiner: usually the same code as reduce, run on each mapper's own slips. It is meant for a reduce that is commutative and associative (order and grouping don't change the result), as a sum is (§4.3). An average cannot be combined this way: the average of two averages is wrong unless each part carries its count.",
           code: "`emit(word, sum(counts))` (lines 5–6)",
-          source: PAPER,
+          source: "[dean2004] §4.3",
         },
       },
       plain: "{map} runs a {term:combiner} first: its {count:before|slip} for {dups} become {after}.",
@@ -219,7 +250,7 @@ export const lesson = {
         how: "The master pings every worker. One that stops answering is marked failed (§3.3). In Hadoop a finished map can also be re-run while its machine is still up: when counters keep failing to fetch its slips, they report it and the master runs the map again.",
         edge: "Even finished map tasks on a dead machine run again, because their slips were on its local disk. Finished reduce tasks don't: their output is already in the shared file system (§3.3). Hadoop re-runs finished maps only while some reduce still needs their slips, and Spark with its external shuffle service keeps a dead worker's map output, so only a lost host forces a re-run.",
         real: "The master itself has no such cover: in the paper, if the master dies the job is aborted, and the client can notice and retry it if it wants; the paper notes that checkpoints of the master would be easy to add (§3.3). Hadoop on YARN restarts a job's master (its ApplicationMaster, mapreduce.am.max-attempts) and can recover the tasks already done.",
-        source: PAPER,
+        source: "[dean2004] §3.3; [hadoop-mapred]; [spark-config]",
       },
     },
     "crash.restart": {
@@ -235,7 +266,7 @@ export const lesson = {
       deeper: {
         how: "The failed machine's tasks are handed out again. Counters that haven't yet fetched its slips are told to fetch from the re-run instead (§3.3).",
         real: "Real input lives in GFS, which keeps several copies of every 64 MB block (usually 3) on different machines. The master likes to run a map next to one of them, so the dead machine often held a copy too; the others survive (§3.4).",
-        source: PAPER,
+        source: "[dean2004] §3.3, §3.4",
       },
     },
     "crash.reread": {
@@ -245,7 +276,7 @@ export const lesson = {
       deeper: {
         edge: "This needs a deterministic map. If map used randomness or the clock, a re-run could write different slips, and the paper then promises only weaker guarantees (§3.3).",
         how: "A map task's slips count only once its machine reports “done” to the master with the names of its files. The crashed copy never reports, so its half-written slips are never handed to a counter. If two copies both report, the master ignores the second (§3.3).",
-        source: PAPER,
+        source: "[dean2004] §3.3",
       },
     },
 
@@ -257,7 +288,7 @@ export const lesson = {
       look: ["{mapId}"],
       deeper: {
         real: "The paper's example: a bad disk with frequent correctable errors slows reads from 30 MB/s to 1 MB/s (§3.6).",
-        source: PAPER,
+        source: "[dean2004] §3.6",
       },
     },
     "slow.wait": {
@@ -274,7 +305,7 @@ export const lesson = {
         how: "The master starts backups only when the job is close to done, for the tasks still running. That costs only a few percent more machine time (§3.6).",
         cost: "In the paper's sort benchmark, turning backups off made the job take 44% longer (§3.6, §5.3).",
         real: "Hadoop calls this speculative execution and turns it on by default for both map and reduce tasks (mapreduce.map.speculative, mapreduce.reduce.speculative); Spark has it off by default (spark.speculation).",
-        source: `${PAPER}; Apache Hadoop, mapred-default.xml, https://hadoop.apache.org/docs/stable/hadoop-mapreduce-client/hadoop-mapreduce-client-core/mapred-default.xml; Apache Spark, Configuration, https://spark.apache.org/docs/latest/configuration.html`,
+        source: "[dean2004] §3.6, §5.3; [hadoop-mapred]; [spark-config]",
       },
     },
     "slow.race": {
@@ -292,7 +323,7 @@ export const lesson = {
       look: ["{mapId}"],
       deeper: {
         edge: "The paper only says the task is marked done when either copy finishes; stopping the slower copy, as here, is what Hadoop does. The paper also starts backups when the whole job is nearly done, where this run starts one once the other map tasks are done. Hadoop can start backups at any point in the job, for map and reduce tasks separately: for the attempts it estimates will finish latest, up to a cap (by default 10% of running tasks; mapred-default.xml, mapreduce.job.speculative.speculative-cap-running-tasks).",
-        source: PAPER,
+        source: "[dean2004] §3.6; [hadoop-mapred]",
       },
     },
 
@@ -309,7 +340,7 @@ export const lesson = {
         edge: "Python's own hash() of a string changes from process to process (hash randomization) unless PYTHONHASHSEED is fixed, and can differ between Python versions, so two machines could disagree. Real jobs use a specified hash; this run uses FNV-1a.",
         real: "`hash(key) mod R` is only the paper's default partitioning function. A job can supply its own: `hash(Hostname(urlkey)) mod R` puts every page of one website in the same output file (§4.1). Within one counter, keys are handed to reduce in increasing order, which is why each output file comes out sorted (§4.2).",
         code: "`hash(word) % R` (lines 8–9)",
-        source: PAPER,
+        source: "[dean2004] §3.2, §3.4, §4.1, §4.2; [python-hashseed]",
       },
     },
     "shuffle.again": {
@@ -357,7 +388,7 @@ export const lesson = {
         deeper: {
           how: "A dictionary of counts works while every different word fits in memory. The paper's reducer sorts by key instead, with a sort on disk when the data doesn't fit, then adds in one pass (§3.1); that also makes each output file come out sorted (§4.2). Hadoop does most of that sorting on the map side, and its reducer merges the sorted runs; for reduceByKey, Spark adds up in a hash table that spills sorted runs to disk instead. Here each beat swaps two slips.",
           code: "`reduce(word, counts)` (lines 11–12)",
-          source: PAPER,
+          source: "[dean2004] §3.1, §4.2; [white2015] ch. 7; [spark-rdd]",
         },
       },
       plain: "{red} sorts its {count:got|slip} so equal words sit together.",
@@ -384,6 +415,7 @@ export const lesson = {
       why: "The rest, seen only once, stay at 1: {ones}.",
       look: ["{sumIds}"],
     },
+    // only when every word on a reducer repeats (your own input, e.g. "fox fox dog dog the the")
     "reduce.sum-all": {
       first: {
         key: true,
@@ -407,7 +439,7 @@ export const lesson = {
         deeper: {
           how: "Reduce output goes to the shared file system, so a finished reduce never runs again, even if its machine dies later. If one reduce task does run twice (a backup or a re-run), each copy writes a private temporary file, then atomically renames it to the final name: exactly one copy's file survives (§3.3). That needs a file system whose rename is atomic: Hadoop lets only one attempt of each task commit, through an output committer (atomic with the v1 algorithm on HDFS; v2 trades that for speed), and on object stores without an atomic rename, like S3, it needs special committers.",
           edge: "The name part-r-00000 is Hadoop's convention. In the paper the user names the files: its word-count program writes /gfs/test/freq-00000-of-00100 and so on (§3.1, Appendix A).",
-          source: `${PAPER}; Apache Hadoop, S3A committers, https://hadoop.apache.org/docs/stable/hadoop-aws/tools/hadoop-aws/committers.html`,
+          source: "[dean2004] §3.3, Appendix A; [hadoop-committers]",
         },
       },
       plain: "{red} writes its {count:totals|total} to the output.",
@@ -420,8 +452,8 @@ export const lesson = {
       look: ["output"],
       deeper: {
         cost: "The reading took as long as the biggest piece ({count:biggest|word}), not all {n}. The price: every slip crossed the network once, {shuffleBytes} bytes here.",
-        real: "Google often ran jobs as large as M = 200,000 map tasks and R = 5,000 reduce tasks on 2,000 machines (§3.5); the average job in August 2004 used 157 machines, 3,351 map tasks and 55 reduce tasks (Table 1).",
-        source: PAPER,
+        real: "At Google in August 2004 the average job ran 3,351 map tasks and 55 reduce tasks on 157 machines (Table 1), so each machine ran about 21 map tasks in turn.",
+        source: "[dean2004] §3.5, Table 1",
       },
     },
     "output.done@crash": {
@@ -433,12 +465,12 @@ export const lesson = {
         when: (v) => v.own > 0,
         deeper: {
           cost: "Redoing the lost piece cost time: {twiceMap} read {count:twice|word} back to back (its own {own}, then the lost piece), where the biggest piece alone is {biggest}. In all {reads} words were read, not {n}: the dead machine's {wasted} were wasted.",
-          source: PAPER,
+          source: "[dean2004] §3.3",
         },
       },
       deeper: {
         cost: "Redoing the lost piece cost time: one machine read two pieces back to back, up to twice the biggest piece ({count:biggest|word}). Words the dead machine read before it crashed are read again, so “words read” can end above {n}.",
-        source: PAPER,
+        source: "[dean2004] §3.3",
       },
     },
     "output.done@straggler": {
@@ -450,12 +482,12 @@ export const lesson = {
         when: (v) => v.own > 0,
         deeper: {
           cost: "The backup cost {twiceMap} a second piece: {count:twice|word} back to back (its own {own}, then the slow piece), but that beat waiting for the failing disk. In all {reads} words were read, not {n}: the slow copy's {wasted} were thrown away.",
-          source: PAPER,
+          source: "[dean2004] §3.6",
         },
       },
       deeper: {
         cost: "The backup cost one machine a second piece: up to twice the biggest piece ({count:biggest|word}) back to back, and the slow copy's reads are thrown away, so “words read” can end above {n}. That still beats waiting for the failing disk.",
-        source: PAPER,
+        source: "[dean2004] §3.6",
       },
     },
     "scale.cluster": {
@@ -464,9 +496,9 @@ export const lesson = {
       why: "A task is one piece of reading or counting work. Each machine runs many in turn; every word still meets one counter.",
       look: ["output"],
       deeper: {
-        real: "The paper often ran jobs with M = 200,000 and R = 5,000 on 2,000 worker machines (§3.5). With far more tasks than machines, each machine runs many small tasks: that balances the load, and when a machine dies its finished map tasks spread over all the others (§3.5).",
+        real: "Google often ran jobs with M = 200,000 and R = 5,000 on 2,000 worker machines (§3.5). With far more tasks than machines, each machine runs many small tasks: that balances the load, and when a machine dies its finished map tasks spread over all the others (§3.5).",
         how: "This view is a simplified picture, not a simulation: the field has the paper's machine count, built from silhouettes of this run's {runMachines} machines, and each light only shows a machine as busy or between tasks. The counts above come from the run on this page.",
-        source: PAPER,
+        source: "[dean2004] §3.5",
       },
     },
     "output.done-alone": {
@@ -476,17 +508,17 @@ export const lesson = {
       look: ["output"],
     },
 
-    // ---- a very common word ----
+    // ---- one word fills most of the input ----
     "skew.done": {
       key: true,
       plain: "Done. {hot} got {load} of {moved} slips, {share}× an even share ({moved} ÷ {R} ≈ {even}).",
       why: "{top} fills {topN} of the {n} lines, and every raw {top} slip must meet on one counter; other codes can hash there too.",
       look: ["{hotId}"],
       deeper: {
-        real: "Real data is like this: word frequencies follow Zipf's law, so a few keys, like “the”, carry much of the data (§4.3).",
+        real: "Real text is lopsided the same way. The paper notes that word frequencies tend to follow a Zipf distribution, so each map task writes hundreds or thousands of `(the, 1)` slips, all bound for one reduce task (§4.3).",
         edge: "With few different keys, the hash alone can lump several on one counter and leave another idle, so part of the overload is chance, not frequency: here {hot} got {count:codes|different code} of the {distinct}.",
         cost: "The job ends when its last counter ends, so the busy counter sets the pace, like the slow disk in “One machine is slow”. A backup copy cannot help here: it would get the same {load} slips (§3.6).",
-        source: PAPER,
+        source: "[dean2004] §3.6, §4.3",
       },
     },
     "skew.more": {
@@ -497,7 +529,7 @@ export const lesson = {
       deeper: {
         cost: "This line runs the run's own hash with one more counter: {eq2}. A counter's share of a key is all of it or none of it, so the busiest counter gets at least {topN} of the {slips} slips whatever the count of counters.",
         edge: "The partitioning function sees only the key (§4.1), so every value of a key goes to one reduce task, which gets them in one call (§2). The fix has to shrink the key's data before the shuffle, or rename the key.",
-        source: PAPER,
+        source: "[dean2004] §2, §4.1",
       },
     },
     "skew.combine": {
@@ -510,7 +542,7 @@ export const lesson = {
         how: "Turn on “Add up repeats first” to watch each reader do it. The paper suggests a combiner where reduce is commutative and associative, as a sum is: order and grouping don't change the result (§4.3). Its output must be the same kind of (word, count) slip that reduce takes. An average, say, must travel as (sum, count) pairs: an average of averages is wrong.",
         edge: "Hadoop treats the combiner as an optimisation it may run zero, one or many times on a map's output, so it must never change the answer. And a combiner helps only when partial results merge: a reduce that needs every value at once (a median, a sorted list) still sends the hot key's whole list to one machine. “Salting” adds a suffix to the hot key so its slips spread over several counters, and a second job merges the parts. That works when the parts merge (sums, counts, sorted runs); a true median needs another second step, such as a histogram or range partitioning on the value. The suffix must be deterministic, so a re-run task sends each line where the first run did.",
         real: "Spark's reduceByKey adds up on each reader first, like a combiner; groupByKey ships every value, and Spark's guide warns to prefer reduceByKey or aggregateByKey for sums and averages.",
-        source: `${PAPER}; T. White, Hadoop: The Definitive Guide, 4th ed., O'Reilly 2015, ch. 2, “Combiner Functions”; Apache Spark, RDD Programming Guide, https://spark.apache.org/docs/latest/rdd-programming-guide.html`,
+        source: "[dean2004] §3.5, §4.3; [white2015] ch. 2; [spark-rdd]",
       },
     },
   },
@@ -593,6 +625,8 @@ export const lesson = {
       "question@skew": "Suppose a new job with {M2} reading machines instead of {M}. How many lines does the busiest one read?",
       why: "{n} words shared by {M2} machines: the biggest piece has {big2}.",
       "why@skew": "{n} lines shared by {M2} machines: the biggest piece has {big2}.",
+      wrong: { feedback: "The master cuts the {n} words into {M2} pieces of nearly the same size, one per machine, so no machine reads them all and the biggest piece has {big2}." },
+      "wrong@skew": { feedback: "The master cuts the {n} lines into {M2} pieces of nearly the same size, one per machine, so no machine reads them all and the biggest piece has {big2}." },
     },
     "check.new-word": {
       question: "Add the word {w}, which the text does not have yet. How many totals would the output hold?",
@@ -608,8 +642,8 @@ export const lesson = {
       "question@skew": "Same {count:M|reading machine} and {count:R|counting machine}: add one more {w} to the log. How many totals would the output hold?",
       why: "The output holds one total per different word. One more {w} changes its count, not how many totals there are: {distinct}.",
       "why@skew": "The output holds one total per different code. One more {w} changes its count, not how many totals there are: {distinct}.",
-      wrong: { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new words." },
-      "wrong@skew": { feedback: "{w} already has a total, so one more only raises that total by 1. New totals come only from new codes." },
+      wrong: { feedback: "{w} already has a total, so one more raises that total by 1 and adds no new one. The output holds one total per different word, not one per word read: {distinct}." },
+      "wrong@skew": { feedback: "{w} already has a total, so one more raises that total by 1 and adds no new one. The output holds one total per different code, not one per line read: {distinct}." },
     },
   },
 
@@ -619,7 +653,7 @@ export const lesson = {
       options: [
         { misconception: "m-lost",
           feedback: "Only if nobody read the piece again. Its text is still in the shared input, so the master hands it out once more." },
-        { feedback: "Right. Reading the same piece again gives the same slips, so redoing just that one piece is safe." },
+        { feedback: "Right. Reading the same piece again gives the same slips, so redoing that one piece is safe." },
         { misconception: "m-restart",
           feedback: "Nothing else was lost: the other machines still hold their slips. Only the dead machine's piece runs again." },
       ],
@@ -639,7 +673,7 @@ export const lesson = {
           feedback: "Spreading would split the slips for {w} between counters that never compare notes, so no counter could give its full count." },
         { feedback: "Right. {w} always hashes to the same number, so every copy of it lands on {firstRed}, however busy it gets." },
         { misconception: "m-central",
-          feedback: "Then one machine would add up every slip, the very work we shared out. Here each counter adds up only its own share." },
+          feedback: "Then one machine would add up every slip, the work we shared out. Here each counter adds up only its own share." },
       ],
     },
     "reduce.how-many": {

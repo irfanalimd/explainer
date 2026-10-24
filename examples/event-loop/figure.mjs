@@ -76,7 +76,7 @@ export const meta = {
   subtitle: "One thread, a task queue and a microtask queue: why a promise callback beats setTimeout(0)",
   kicker: "Web platform",
   fig: 5,
-  cite: { text: "HTML Living Standard, §8.1.7 Event loops; ECMAScript 2025, §9.5 Jobs", url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops" },
+  cite: "[whatwg-loop] §8.1.7",
   theme: "light",
   level: "core",
   hook: "JavaScript does one thing at a time, yet timers and clicks keep coming. Why doesn't the page freeze? Why doesn't setTimeout(fn, 0) run now?",
@@ -109,7 +109,7 @@ export const params = {
 
 export const scenarios = [
   { id: "order", label: "Which runs first?", whatIf: "a promise and a timer both wait",
-    description: "A log, a 0 ms timer, promises and a network request: watch the order their callbacks print in." },
+    description: "A log, a 0 ms timer, promises and a network request: watch the order they print in." },
   { id: "await", label: "Code after await", whatIf: "a function uses await",
     description: "An async function pauses at each await, and the code after it runs later, once the script has finished.",
     takeaway: "Code after an `await` never runs on the spot: it resumes later as a microtask, after the code that called it has finished.",
@@ -128,7 +128,7 @@ export const scenarios = [
     ] },
   { id: "yield", label: "Taking turns with setTimeout", whatIf: "the work takes turns with setTimeout",
     description: "The same work, but each piece goes back in the task queue, so the screen can repaint in between.",
-    takeaway: "Putting each chunk back in the task queue lets timers and repaints run in between, at the cost of the timers' minimum delay.",
+    takeaway: "Chunks in the task queue let timers and repaints run in between; past five nested timers, each chunk waits at least 4 ms.",
     recap: [
       "Each chunk went back to the task queue with a 0 ms timer.",
       "Between chunks, the loop was free to run other tasks: the timer and repaints.",
@@ -439,7 +439,7 @@ function machine(s, cfg, sc, view = {}) {
       ? "When the stack empties, the loop runs every microtask, even new ones added along the way. Here each chunk adds the next, so timers and repaints must wait."
       : "When the stack empties, the loop runs every waiting microtask: promise callbacks and code after `await`. Microtasks added along the way run too, before any new task.",
     "The timer": "A timer's callback waits in the task queue. The loop takes one task at a time, only once the microtasks are done, so even a 0 ms timer waits its turn.",
-    "Tasks at last": "The microtasks are finally done, so the loop can take tasks again: the long-waiting timer, then the render task. This model takes the oldest task first; real browsers often let a repaint go ahead.",
+    "Tasks at last": "The microtasks are finally done, so the loop can take tasks again: the long-waiting timer, then the render task. This model takes the oldest task first; real browsers may let a repaint go ahead.",
     "Taking turns": "Each chunk is now its own task. Between chunks, the loop can run other tasks, like the waiting timer and the render task that repaints the page.",
     "The network": "The `fetch` finishes in the background, in the browser's {term:Web APIs}, and its reply arrives as a task. Running it makes the promise ready, which queues the code waiting on it as microtasks.",
     "Timer limit": "Browsers slow down long chains of timers: once timers have set timers more than five deep, a 0 ms delay becomes 4 ms. The thread idles meanwhile.",
@@ -950,7 +950,7 @@ function machine(s, cfg, sc, view = {}) {
       s.step(sc === "order"
         ? `The ${C("<script>")} in the code panel is the rail's first order. One thread, the cook, runs it`
         : sc === "await"
-          ? `An ${C("async")} function, ${C("load()")}, called from a script. Where does {term:await} send the rest of it?`
+          ? `An ${C("async")} function, ${C("load()")}, called from a script. Watch where {term:await} sends the rest of it.`
           : starve
             ? `A long job cut into ${cfg.chunks} chunks of ${ms(cfg.work)}. Each chunk queues the next with ${C("queueMicrotask")}`
             : `The same ${cfg.chunks} chunks of ${ms(cfg.work)}, but each queues the next with ${C("setTimeout(chunk, 0)")}`,

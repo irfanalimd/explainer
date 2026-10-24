@@ -66,14 +66,13 @@ import { createRenderer } from "./engine/gfx/renderer.mjs";
 const r = createRenderer(canvas, { theme: "light", quality: "high" /* | "medium" | "low" */, gfx /* "webgpu" | "webgl2" */, timing });
 r.resize(cssWidth, cssHeight, devicePixelRatio);
 r.setTheme("dark"); r.setQuality("medium");
-r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture, draft });
+r.render(drawList, camera, { time /* s: the shimmer clock (grain, dashes, blinking) */, clock /* s: the render clock fading memories run on (default time) */, reducedMotion, capture });
 r.pick(cssX, cssY)            // -> entity id string | null (slabs only)
 r.project([x, y, z])          // -> [cssX, cssY, depth, onScreen]
 r.unproject(cssX, cssY, z=0)  // -> [x, y] on the horizontal plane at height z
 r.pxPerUnit(at = [x, y, z])   // -> CSS px per world unit at that point (for LOD and tag sizing)
-r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", draft, gpuMs? }
+r.stats()                     // -> { ms, drawCalls, instances, lights, slabs, strings, backend: "webgpu" | "webgl2", gpuMs? }
 r.busy                        // true while the last frame had something still fading out: draw another
-r.drafted                     // true when the last frame was drawn as a draft: draw the frame that comes to rest again without `draft`
 r.size                        // { cssW, cssH, dpr, W, H, scale } (scale: WebGPU's adaptive resolution, 1 on WebGL2)
 r.profile(opts)               // -> Promise of per-pass GPU timings (WebGPU), or null
 r.backend                     // "webgpu" | "webgl2" | null before ready
@@ -91,13 +90,6 @@ long (a second of frames over the GPU budget that miss their vsync), the scene p
 the device pixel ratio (1, 0.92, 0.84, 0.75) and the composite still fills the canvas; it steps back up only when the
 span at the higher scale would sit well inside the budget, never sooner than `ADAPT.hold`. Captured frames
 (`capture: true`) always draw at full scale.
-
-**Draft frames (no GPU).** The runtime passes `draft: true` for a frame the next one replaces at once: while playing,
-and while the camera or the HUD's insets still move. On a software rasterizer (SwiftShader, llvmpipe and the like:
-`look.mjs` `SOFTWARE`, read from WebGL's unmasked renderer or the WebGPU adapter's info) a draft is drawn in the draft
-tier (`look.mjs` `DRAFT`): WebGL2 at three quarters of the pixel ratio with the low preset's maps and no MSAA or
-tilt-shift, WebGPU at three quarters of its scene scale. When the camera comes to rest on a draft (`r.drafted`) the
-runtime draws that frame again without `draft`, so a still picture is always the full one. A GPU never drafts; captured frames (`capture: true`) never do.
 
 **The DrawList** carries `dl.fields`: the scale fields' packed machines (`[{ n, version, slabs, memo }]`, one per `field`
 pose; `null` when none), which the packer caches by each machine's version.
@@ -443,9 +435,9 @@ Framing must be exact: project the eight corners of the bounds box with the real
 |---|---|
 | `build.mjs <figure.mjs> [--out f.html] [--theme dark]` | one self-contained HTML page (with the `lesson.mjs` beside the figure, mounted as `figure.lesson`): fonts inlined (base64 `@font-face`), `hud.css`, an import map that maps every engine module and the figure to `data:` URLs (relative imports rewritten to bare `@internals/<path>` specifiers), and a boot module that calls `mount()` from `engine/runtime.mjs`. Works from `file://`. Verified: import maps with `data:` URLs work in headless Chrome from file://. |
 | `serve.mjs` | dev server (exists); add live reload. |
-| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (param extremes one at a time, then combined on a phone), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint. Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
+| `verify.mjs <figure.mjs>` | in Node, the figure loaded with its lesson (`scripts/lib/lesson-load.mjs`): compile every scenario (param extremes one at a time, then combined on a phone), check determinism (`tl.hash` twice), run `invariants` on every snapshot, report `tl.problems` (lesson problems included), every step has a caption, counters defined, the lesson's coverage, the teaching lint, and the framing: the director's shot plan at 1440×900 and 390×844, swept every 0.1 s (a step's focus out of the frame is an error, under the HUD for 0.5 s or more a warning). Every `s.choose` wrong option's branch is compiled at the same settings and checked the same way (plus: `tl.branch` names it, and it replays the main run up to the pick); its findings fold into the run's line ("+ N branches") and its steps count for the lesson's coverage. Exit 1 on any problem. Prints a compact report. |
 | `shoot.mjs <page.html> [--at phases\|all\|0,5,9] [--themes dark,light] [--sizes 1440x900,390x844] [--scenario id] [--out dir] [--teach]` | screenshots at chosen steps (mid-step and end-of-step) via `window.__internals`, both themes, both sizes, plus a contact sheet PNG; reports console errors. `--teach` plays live: each predict card (asked, revealed), each pick (`-wrong.png`: a wrong pick's detour held on its consequence; `-right.png`: the right pick and its why) and the end card; every wait times out and is reported, never stalls. |
-| `audit.mjs <page.html>` | in the browser via `window.__internals.audit()`: label overflow, tags off-screen or overlapping, focus outside frame, frame time; exit 1 on problems. |
+| `audit.mjs <page.html>` | in the browser via `window.__internals.audit()`: label overflow, tags off-screen or overlapping, focus outside frame, frame time and focus under the HUD (both warnings); exit 1 on problems, not on warnings. |
 | `record.mjs <page.html> --out x.mp4\|x.webm\|frames/ [--fps 60] [--size 1920x1080] [--scenario id] [--from s] [--to s]` | deterministic frame-by-frame capture via `__internals.renderAt(t)`; encodes with ffmpeg when available (PATH, or `npx -y ffmpeg-static` with the user's consent), otherwise writes PNG frames and prints the ffmpeg command. |
 | `new.mjs <dir> [--from mapreduce]` | scaffolds a figure folder (`figure.mjs`, `lesson.mjs`, README) from the templates or an example. |
 | `lesson.mjs <figure.mjs> [--scenario id] [--params k=v,…]` | the lesson as text, every layer, then the teaching checks. |
@@ -464,7 +456,7 @@ window.__internals = {
   setCapture(on, { chrome }),  // capture mode: chrome hidden, instant captions and counters
   freeze(on),                  // stop the rAF loop (capture mode)
   renderAt(t, { camera: "auto" | "settled" }) // Promise: sample+render exactly at t (director settled for that frame)
-  audit(),                     // -> [{ kind, message, step }]
+  audit(),                     // -> [{ kind, message, step, level? }]; level "warn" is advice (focus-under-hud)
   stats(),                     // renderer stats ({ ms, drawCalls, …, backend }) plus steps, duration, poses, renders (frames drawn)
   insets, director,            // the HUD's insets (css px) the camera frames around, and director.state (shot, goal, plan)
   profile(),                   // Promise: per-pass GPU timings on WebGPU, else null
@@ -537,6 +529,7 @@ export const lesson = {
   choices: { [chooseId]: { prompt?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
   checks: { [checkId]: { question?, why?, options?: [{ text?, feedback?, misconception? }], wrong?: { feedback?, misconception? } } },
   next: [{ title, href, why? }],                     // the lessons that follow; the end of the last story names them
+  sources: [{ id, title, by, year, where, url?, supports, short? }],   // what the facts come from (10.6)
 };
 ```
 
@@ -619,6 +612,50 @@ compile(figure, { params, scenario, choices: { [chooseId]: optionIndex } })   //
   end), the pick card closes; the run asks again when it plays up to the pick. On short roots (`.ix-short`, under
   560 px tall, e.g. an embed frame) an open card speaks alone (caption and readout step aside), tightens, and scrolls
   inside itself if it is still too tall.
+
+### 10.6 Sources (`engine/scene/sources.mjs`)
+
+What the figure's examples and its facts about real systems come from, so a reader (and the expert reviewer) can check
+each one. `lesson.sources` lists them; any text cites one as `[id]`.
+
+```js
+sources: [
+  { id: "dean2004", title: "MapReduce: Simplified Data Processing on Large Clusters", by: ["Jeffrey Dean", "Sanjay Ghemawat"],
+    year: 2004, where: "OSDI", url: "https://www.usenix.org/legacy/event/osdi04/tech/full_papers/dean/dean.pdf",
+    supports: ["the word-count example (§2.1)", "re-running a dead worker's tasks (§3.3)", "the 2,000-machine job (§3.5)"] },
+  { id: "html-spec", title: "HTML Standard: Event loops", by: "WHATWG", short: "HTML Standard", year: "n.d.", where: "WHATWG",
+    url: "https://html.spec.whatwg.org/multipage/webappapis.html#event-loops", supports: ["the order of tasks and microtasks"] },
+],
+```
+
+- **Fields.** `id`: a lowercase slug (`dean2004`, `html-spec`), unique. `title`, `by` (an array of names, or a string
+  of names separated by commas, "and" or "&"; "et al." allowed) and `year` (`"n.d."` for a living document) are
+  required. `where`: the venue or publisher. `url`: an http(s) address that opens, for the primary text where there
+  is one. `supports`: what the figure takes from it (its example, a number, a claim), for the expert reader to check.
+  `short`: the short form, only where the authors' surnames would not make one (an organisation, a standard).
+- **Order of preference.** The primary source (the paper, the standard, the specification, the original author's talk
+  or post), then the best-known textbook or reference (CLRS, OSTEP, MDN), then famous, widely cited explanations
+  (Jake Archibald's "Tasks, microtasks, queues and schedules", raft.github.io).
+- **Citing.** `[id]`, optionally followed by a locator: `§3.6`, `p. 171`, `pp. 170–173`, `ch. 7`, `fig. 2`,
+  `table 1`, `line 12` (`"[dean2004] §3.6"`). A citation starts where a word may (after a space, an opening bracket or
+  quote, or at the start), so `a[i]` is never one; `\[` is a literal bracket, and inline code is never read. A string
+  var never makes one (the template escapes its brackets).
+- **Where.** Any text layer may cite; the ones that state a fact about real systems should: `deeper.real`,
+  `deeper.source`, `deeper.edge`, `meta.cite` (`cite: "[dean2004]"` takes that source's words and url; the
+  `{ text, url }` form still works), a takeaway that says what real systems do, and a scale shot's `lines`.
+- **What the page shows.** The short form and the locator, never the brackets: "Dean & Ghemawat 2004, §3.6"
+  (`shortOf`: one surname, two joined by "&", or the first and "et al.", then the year). In the explain panel, the
+  caption, the presenter view and the handout it is a link to `url` (new tab) with the full reference as its tooltip
+  and accessible name; without a url a dotted-underlined reference. The Source row adds the outward arrow. The scale
+  shot, drawn in the world, prints the short form as text. The handout lists every source under "Sources" with its
+  address written out (the teacher's copy adds what each supports); `meta.cite` names the title's paper link.
+  `node scripts/lesson.mjs` prints citations in their short form and lists the sources at the end.
+- **The Timeline.** `tl.lesson.sources = [{ id, title, by, year, where, url, supports, short, full }]`.
+- **verify** (section `sources`): errors for a malformed list (not a list, a missing or malformed or repeated id, no
+  title, by or year, a url that is not http(s)) and for `[id]` naming no source; warnings for a source nobody cites, a
+  source with no `where` or `supports`, a `deeper.real` or `deeper.source` with no citation, a plain-text `meta.cite`,
+  and a lesson with no `sources` at all (one warning, counting its uncited claims). The warnings become errors once
+  every example cites its sources.
 
 ## 11. Access and embed (`engine/a11y/`, `engine/embed/`)
 

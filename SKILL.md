@@ -46,12 +46,13 @@ When the plugin agents are loaded, run these steps inside the **Teacher pipeline
    - **Sketch** (~10–20 min): one board, one scenario, 10–25 steps.
    - **Figure** (~30–60 min): 2–4 scenarios including a failure or edge case, knobs, counters, code panel, a lesson file, both themes checked. This is the default.
    - **Feature** (1–2 h): several boards (for example a cluster plus a space-time lanes board), predict questions, a lockstep comparison, a recorded video.
-2. **Truth first.** Pin down the real mechanism and its numbers before writing any code:
-   - the exact rules, such as Raft's term and vote rules, or what the combiner is allowed to do
-   - realistic sizes, latencies and counts
-   - the canonical source to cite in `meta.cite`
+2. **Truth first.** Pin down the real mechanism and its numbers before writing any code, from sources a reader can check:
+   - **the primary source**: the paper, standard or specification that defined it (Dean & Ghemawat for MapReduce, the Raft paper, the HTML Standard's event loop), read for its rules, its numbers and its own worked example
+   - **the canonical example**: the instance the field teaches it with, which readers may already have met (word count for MapReduce, the five-server election, Jake Archibald's `setTimeout` / `Promise` ordering puzzle, CLRS's partition trace). Start from it; change it only to show something it cannot, and say so
+   - **one or two standard references** (the best-known textbook chapter or reference docs: CLRS, OSTEP, MDN) and, where they are famous, the explanations readers already trust (raft.github.io, a well-known talk)
+   - the exact rules, such as Raft's term and vote rules, or what the combiner is allowed to do; realistic sizes, latencies and counts, each from one of those sources
 
-   Choose a small instance that still shows the interesting behaviour: 3 mappers, not 300; a 5-node cluster; 8 keys. Decide which **scenarios** tell the story: the happy path, then what breaks (crash, partition, skew, worst case, collision, miss).
+   Record each in `lesson.sources` as `{ id, title, by, year, where, url, supports }` before the lesson is written, check each url opens, and cite it as `[id]` wherever the words state a fact about real systems (`deeper.real`, `deeper.source`, `meta.cite`, a scale shot's lines): CONTRACTS.md 10.6, `references/teaching.md` section 5.6. Choose a small instance that still shows the interesting behaviour: 3 mappers, not 300; a 5-node cluster; 8 keys. Decide which **scenarios** tell the story: the happy path, then what breaks (crash, partition, skew, worst case, collision, miss).
 3. **Plan the lesson** (`references/teaching.md`, read it every time) before any code. Write down, in plain text:
    - the level (`intro` for a linked list or binary search, `core`, `deep` for Raft), which sizes everything
    - the learner's question (the hook), and an everyday picture with an explicit mapping to the real parts
@@ -241,6 +242,7 @@ Never fix it with styling hacks. The design language (`DESIGN.md`):
 Before delivering, all of these must be true:
 - `node scripts/check.mjs figure.mjs --full` ends "Ready for review" (or "Ready to ship" once the blind review has passed): both themes, every teaching card and the audit over every step. Its `check/report.md` is the evidence; mention it in the delivery note.
 - verify ends `0 failing`, with no warnings you can't justify (lesson and teaching warnings included)
+- `node scripts/lesson.mjs figure.mjs --style` lists no writing hits (`references/writing.md`): every sentence says what happens, with the run's numbers, and every claim about real systems names its source
 - you read `node scripts/lesson.mjs figure.mjs` top to bottom **as a beginner** and passed the cold-read rubric (`references/teaching.md` section 8): every word defined before it is needed, the problem before the solution, one idea per chapter, a prediction with its why, a recap you could say back
 - audit ends clean at 1440×900 and 390×844
 - you read `contact.png` and the key frames in both themes:
@@ -256,6 +258,7 @@ Before delivering, all of these must be true:
 - `DESIGN.md`: the art direction (the look, motion, HUD and anti-patterns).
 - `CONTRACTS.md`: the engine architecture; section 10 is the `lesson.mjs` format.
 - `references/teaching.md`: the teaching standard: the reader, the lesson plan, words and jargon, sizing by level, the lesson file and its writing rules, a worked linked-list plan, a before/after MapReduce rewrite, the cold-read rubric and what verify checks.
+- `references/writing.md`: the writing standard for every sentence a figure shows: concrete, sourced, no inflating words, stock phrases, softeners or rhetorical questions, with before/after rewrites from the examples and the writing lint verify runs.
 - `references/builder.md`: the full builder API: groups, housings, containers, tiles, traces, buses, lanes, zones, step ops, pacing, held messages, narration markup, pitfalls.
 - `references/sim.md`: the runtimes: `rng`, `fmt`, `tracked`, `actors`, `lockstep`, `machine`.
 - `references/tooling.md`: every script and flag: doctor, check, verify, lesson, build, serve, shoot, audit, record, new, review-packet, review-check, and the `?gfx=` switch.

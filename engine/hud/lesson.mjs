@@ -1,10 +1,13 @@
 // The lesson as the HUD reads it from a compiled timeline (CONTRACTS.md, "Lesson"):
-//   tl.lesson               null | { goal, objectives, picture: { name, rows: [{ id, picture, real, term }], breaks }, terms }
+//   tl.lesson               null | { goal, objectives, picture: { name, rows: [{ id, picture, real, term }], breaks }, terms,
+//                             sources: [{ id, title, by, year, where, url, supports, short, full }] }
 //   tl.steps[i].layers      { plain, why?, look?: [entityId], deeper?: { cost, how, code, edge, real, source }, picture?, key? }
 //   tl.phases[j].enter      undefined | { sofar?, now, done, picture? } (picture: this card carries the lesson's picture)
 //   step.ask.feedback[k]    { text?, misconception? } per option, when the lesson gives any
 // Every text field is markup (markup.mjs). A figure without a lesson file still reads well: a step's plain layer is
 // its caption, and everything else is simply absent.
+
+import { citesIn } from "../scene/sources.mjs";
 
 /** The deeper fields in reading order (Basics peeks at the first one present), with their labels. */
 export const DEEPER = [["cost", "Cost"], ["how", "How"], ["code", "Code"], ["edge", "Edge case"], ["real", "In real systems"], ["source", "Source"]];
@@ -36,6 +39,25 @@ export function termOf(lesson, meta, name) {
   if (t?.def) return { lead: t.lead ?? null, def: String(t.def).trim() };
   const d = meta?.terms?.[name];
   return typeof d === "string" && d.trim() ? { lead: null, def: d.trim() } : null;
+}
+
+/** A source of the lesson by id, as a citation shows it ({ label, url, full, src }), or null. */
+export function sourceOf(lesson, id) {
+  const src = lesson?.sources?.find?.((x) => x.id === id);
+  return src ? { label: src.short, url: src.url || null, full: src.full, src } : null;
+}
+
+/**
+ * The figure's citation, { text, url } or null: meta.cite as a string or { text, url }, where the string (or its
+ * text) may be a citation of lesson.sources ("[dean2004]", "[dean2004] §3.5"), which takes that source's words and url.
+ */
+export function citeOf(meta, lesson) {
+  const c = typeof meta?.cite === "string" ? { text: meta.cite } : meta?.cite;
+  if (!c) return null;
+  const [m] = citesIn(c.text ?? "");
+  const s = m && m.index === 0 ? sourceOf(lesson, m.id) : null;
+  if (!s) return c;
+  return { text: `${s.full}${m.at ? ` ${m.at}` : ""}`, url: c.url ?? s.url, short: m.at ? `${s.label}, ${m.at}` : s.label };
 }
 
 /** What a predict option says back when the reader picks it, or null. */

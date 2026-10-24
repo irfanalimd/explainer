@@ -14,6 +14,7 @@
 // Hosts forward statements to their LRS as they are; LTI and SCORM are out of scope for a static file.
 import { parseLinks, stripLinks } from "./deeplink.mjs";
 import { liveTurns } from "../hud/turn.mjs";
+import { resolveCites, sourcesOf } from "../scene/sources.mjs";
 
 export const PROTOCOL = { type: "explainer", version: 1 };
 const COMMANDS = new Set(["play", "pause", "seek", "step", "scenario", "level", "theme"]);
@@ -28,7 +29,8 @@ const EXT = "https://explainer.dev/xapi/";   // extension keys: a namespace, nev
 const STEP_SETTLE = 250;                       // ms a step must hold before it is reported (scrubbing passes many)
 
 const slug = (s) => String(s ?? "figure").toLowerCase().replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 64) || "figure";
-const plain = (s) => String(s ?? "").replace(/\{(?:\w+:)?([^}|]*)(?:\|([^}]*))?\}/g, (_, a, b) => b ?? a).replace(/`/g, "").trim();
+// caption markup as plain text, with each [id] citation written out as the page shows it ("Dean & Ghemawat 2004, §3.5")
+export const plain = (s, sources) => resolveCites(String(s ?? ""), sources).replace(/\{(?:\w+:)?([^}|]*)(?:\|([^}]*))?\}/g, (_, a, b) => b ?? a).replace(/`/g, "").trim();
 
 /** The embed settings from the page's query and the figure's meta. */
 export function embedConfig(search, meta = {}) {
@@ -102,12 +104,13 @@ export function attachEmbed(root, figure, { meta = {}, search, log = console } =
   let step = -1, chapter = -1, stepTimer = 0, done = false, asks = { right: 0, total: 0 }, runScenario = figure.scenario;
   const tried = new Set(), solved = new Set();   // question ids: first try made, question done
   const tl = () => figure.timeline;
+  const cites = () => sourcesOf(tl()?.lesson);
   const chapterOf = (i) => { const s = tl()?.steps[i]; return s ? tl().phases.findIndex((p) => p.name === s.phase) : -1; };
   function reportStep(i) {
     const s = tl()?.steps[i];
     if (!s) return;
     const n = tl().steps.length;
-    emit("step", activity(`${iri}#step-${i + 1}`, plain(s.caption) || `Step ${i + 1}`, "interaction"),
+    emit("step", activity(`${iri}#step-${i + 1}`, plain(s.caption, cites()) || `Step ${i + 1}`, "interaction"),
       { extensions: { "https://w3id.org/xapi/cmi5/result/extensions/progress": Math.round(((i + 1) / n) * 100) } },
       { [`${EXT}step`]: i + 1, [`${EXT}stepId`]: s.id ?? null, [`${EXT}steps`]: n });
     const c = chapterOf(i);
@@ -215,9 +218,9 @@ export function attachEmbed(root, figure, { meta = {}, search, log = console } =
       if (!tried.has(key)) { tried.add(key); if (!skipped) { asks.total++; if (success) asks.right++; } }
       if (success || skipped) solved.add(key);
       const option = q.options?.[index];
-      emit("ask-answered", activity(`${iri}#ask-${key}`, plain(q.question ?? q.prompt) || `Question at step ${k + 1}`, "cmi.interaction"),
+      emit("ask-answered", activity(`${iri}#ask-${key}`, plain(q.question ?? q.prompt, cites()) || `Question at step ${k + 1}`, "cmi.interaction"),
         skipped ? { response: "", extensions: { [`${EXT}skipped`]: true } }
-          : { success, response: plain(typeof option === "string" ? option : option?.text), extensions: { [`${EXT}choice`]: index, [`${EXT}answer`]: q.answer, [`${EXT}kind`]: q.kind === "choose" ? "pick" : "predict" } },
+          : { success, response: plain(typeof option === "string" ? option : option?.text, cites()), extensions: { [`${EXT}choice`]: index, [`${EXT}answer`]: q.answer, [`${EXT}kind`]: q.kind === "choose" ? "pick" : "predict" } },
         { [`${EXT}step`]: k + 1 });
     },
     destroy() { win.clearTimeout(stepTimer); offs.forEach((off) => off()); root.classList.remove("ix-embed"); },

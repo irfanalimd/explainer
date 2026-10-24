@@ -85,7 +85,8 @@ network) in the HUD's own tokens:
   blind review yet) or "Ready to ship" (`--full` passed and the latest review round passed its gate), and the next
   thing to do;
 - a **scorecard**: Correct (verify), Teaches (the lint and the reading grade against the level's ceiling), Looks
-  right (audit findings and page errors over every shot), Pacing (the first story's time to watch at 1x, the longest
+  right (audit findings and page errors over every shot; Advice when the only findings are warnings, such as frame
+  time or the focus under the HUD), Pacing (the first story's time to watch at 1x, the longest
   chapter), One file (size against the 2.5 MB budget) and Reviewed (the lowest novice chapter score and open findings
   from `review/round-N/scores.json`, when the teacher pipeline has run);
 - **stories**: steps, time to watch (and from where a story splits off the first), a bar of each chapter's share,
@@ -126,6 +127,13 @@ hung) instead of hanging the caller. Checks, in order:
   **pacing** (warn above 400 or below 4 steps, or, as advice, a phase that takes longer than 150 s to watch at 1x with repeats sped up); a **sampler pass** (mid-step
   `tl.sample` must not throw, pose numbers and points finite, focus and world well formed, focus inside the world,
   tag anchors finite) and an **exact backward scrub** check.
+- **framing**, on each scenario's two default runs (not the knob runs or branches): the director's shot plan
+  (`planShots`) for 1440×900 and 390×844, with the HUD's overlays as the page reports them on MapReduce and Raft
+  (`scripts/lib/framing.mjs` `VIEWPORTS`: 64/384/90/0 with the explain panel docked, 92/0/274/0 on the phone), sampled
+  every 0.1 s of every step. A step's focus box more than 2 px outside the viewport at any sample is an error (the
+  same test as audit's `focus-outside`, which samples a step twice; this sees the camera's moves between). A step
+  whose focus stays under an overlay for 0.5 s or more (`UNDER_HUD`) is a warning; a move passing over an overlay's
+  edge is shorter than that. Scale shots are left out (they frame their reveal). Costs about 6 % of verify's time.
 - **the lesson in every run**: the figure is loaded with its `lesson.mjs`, so each run above merges it, and a
   template var the step does not pass, a `look` id that does not exist at the end of its step, an unknown picture
   row, `deeper` field or misconception id, or an ask whose option count differs is a `lesson` error in that run, at
@@ -167,7 +175,10 @@ hung) instead of hanging the caller. Checks, in order:
   is not one of its options, a malformed `meta.level`, `meta.terms` or `meta.recap`); everything else is advice:
   level, hook, analogy, recap, takeaway, abouts, caption length, predict questions and their `why`, size for the
   level, terms used before they are defined, flagged jargon, jargon in story labels and chapter names, filler words,
-  long sentences and a rough reading grade. The words that appear only at other settings (the extreme and phone runs
+  long sentences and a rough reading grade. Then the writing lint (`scripts/lib/style.mjs`, `references/writing.md`)
+  reads every prose string of `figure.mjs` and `lesson.mjs` (every layer, card, definition, teacher's note and world
+  label; not comments, ids or the program listing) and the compiled lesson for repeats, one warning per kind with the
+  first lines and rewrites. The words that appear only at other settings (the extreme and phone runs
   above, kept from their first compile, so no extra compile) get the same checks, reported once as "at other
   settings". A teaching error counts as one failing entry in the summary. The full rule table is
   `references/teaching.md` section 9.
@@ -177,7 +188,7 @@ An invariant receives `(snap, { step, final, params, scenario, timeline })` and 
 
 ## lesson.mjs
 
-`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--params n=7,at=4] [--all] [--full] [--no-lint] [--json] [--width 100]`
+`node scripts/lesson.mjs <figure.mjs> [--scenario id] [--params n=7,at=4] [--all] [--full] [--no-lint] [--style] [--json] [--width 100]`
 
 Prints the lesson as plain text, story by story, so it can be read like a script: the hook, the defined words, the
 numbers (`*` for the dock), then for each story its what-if and description, each chapter's name and about, every
@@ -198,6 +209,8 @@ objectives its "You can now…" lists.
 
 - A run of steps with one caption shape shows two, then "… 6 more like this (steps 14–19)"; `--all` shows every step.
 - Later stories start where they leave story 1 (as the page does on a switch); `--full` prints them from step 0.
+- `--style` prints only the writing lint: every hit, one per line, as `lesson.mjs:144  words  "crucial" → drop it, or
+  say what breaks without it  (why: "…")`, then the count. It exits 0: the hits are advice for now.
 - `--json` prints `{ figure, lesson, findings }`; with `--all --no-lint` it is the run a lesson writer works from (every
   step id, its caption and its layers). Exit 1 when the teaching checks find an error.
 
@@ -318,7 +331,8 @@ there is one instance per module); everything else is served byte for byte.
 
 Renders mid and end of every step of every scenario at each size (settled camera) and collects
 `__internals.audit()` (label overflow, tags off-screen, focus outside the frame, whatever the runtime checks) plus
-page errors and a frame-time warning from `__internals.stats().ms`. One line per distinct finding with the steps,
+page errors and a frame-time warning from `__internals.stats().ms`. The step's focus inside the frame but more than
+2 px under a HUD overlay is `focus-under-hud`, a warning (verify's framing check sees the moves between shots). One line per distinct finding with the steps,
 the first step's caption and where it was seen. Problems with `level: "warn"` do not fail. Exit 1 on problems or
 page errors.
 
@@ -326,13 +340,18 @@ page errors.
 component with the worst value seen:
 - `a11y-contrast`: each line of HUD text against the pixels actually behind it (the frame is shot again with the
   HUD's glyphs transparent, so plates, halos and the world stay), 4.5:1 or 3:1 for large text, with the two colours.
-  Text clipped out of view or in a scroll edge's fade is judged once it is scrolled in.
+  Text clipped out of view or in a scroll edge's fade is judged once it is scrolled in. The ink is read from the
+  computed colour in any form Chrome gives it (`rgb()`, and `oklab()`, `oklch()` or `color(srgb …)` for a
+  `color-mix()`); a colour it cannot read is left unjudged, never taken as black. Text and controls under an open
+  panel or sheet are not what the reader is shown, so they are not judged until it closes.
 - `a11y-target`: controls under 24 × 24 px that crowd another control (inline chips in a sentence are exempt).
 - `a11y-name`: buttons, links, inputs and widgets with no accessible name.
 - `a11y-focus`: controls that show nothing when focused from the keyboard.
 
-The probe is injected, so it measures any built page, an older build included. `--at phases --themes light,dark` is
-a quick pass (about 160 frames).
+The panels a reader opens are in no step's frame, so with `--a11y` each size and theme of the first scenario adds
+two frames on its last step: the code panel open (`…/code` in the report) and the parameters (or settings) panel open
+(`…/parameters`). The probe is injected, so it measures any built page, an older build included.
+`--at phases --themes light,dark` is a quick pass (about 160 frames).
 
 ## record.mjs
 
@@ -433,11 +452,6 @@ Chrome exposes WebGPU, so shots and videos use whichever tier starts there (a fa
 check the WebGL2 tier, which drops some WebGPU-only looks such as glass zones, give a script the page as a URL with
 the flag: `node scripts/shoot.mjs "file:///…/page.html?gfx=webgl2"`.
 
-Without a GPU (SwiftShader, llvmpipe: `__internals.stats().draft` says when a frame was one) frames in motion are
-drafts (CONTRACTS.md 3.1): three quarters of the pixel ratio, the low preset's maps, no MSAA or tilt-shift, and the frame the camera
-comes to rest on is drawn again in full. Captured frames (shoot, audit, record, the handout's pictures, Save image)
-never draft, so they are the same with or without a GPU; `__gfx.debug.draft = false` turns drafts off.
-
 On a machine with no GPU the scripts' Chrome gets no WebGPU adapter and draws with WebGL2. Chrome started with
 `--enable-unsafe-webgpu --enable-features=Vulkan,WebGPUService --use-angle=swiftshader --use-webgpu-adapter=swiftshader
 --disable-vulkan-surface` does start the WebGPU tier on SwiftShader (`?gfx=webgpu`, the self-test passes), but its canvas
@@ -510,8 +524,9 @@ loads, screenshots; every Chrome it starts is killed and its profile removed on 
 `modules.mjs` (lexer, import scan, specifier resolution and mapping, rewrite, graph), `webm.mjs` (EBML writer,
 muxer, reader), `figure-page.mjs` (open a page through `__internals`, shot times, capture CSS, finding groups),
 `args.mjs`, `node-hooks.mjs`, `lesson-load.mjs` (`loadFigure()`: a figure with the `lesson.mjs` beside it),
-`lesson.mjs` (extract and format the lesson a figure teaches) and `teach.mjs` (the teaching lint, its jargon list and
-size limits, readability helpers).
+`lesson.mjs` (extract and format the lesson a figure teaches), `teach.mjs` (the teaching lint, its jargon list and
+size limits, readability helpers) and `style.mjs` (the writing lint: its word and phrase lists with their rewrites, the
+prose strings of a source file, repeats in a compiled lesson).
 
 ## Tests
 
@@ -546,10 +561,9 @@ back).
   On a page that draws at 20 fps or better the pass keeps its old speeds and waits. Changing the speed only when the
   run starts or stops would save two frames a card, but the camera moves only when a frame is drawn, so a card shot
   right after another (the end check, You can now, the caption, the end card; a pick's wrong branch) was framed
-  differently: the pass keeps them. Drafts (Rendering backends) raised live MapReduce on that machine (SwiftShader,
-  WebGL2) from 0.9 to 2.2 frames a second at 1440x900 and from 2.2 to 7.0 at 390x844 (half the pixel ratio gave 4.2
-  and 11.3, but the world's names could not be read while it played); a full frame still takes about 1.5 s at
-  1440x900, and the closing scale shot (6008 slabs) about 10 s.
+  differently: the pass keeps them. Live MapReduce on that machine (SwiftShader,
+  WebGL2) draws about 0.9 frames a second at 1440x900 and 2.2 at 390x844; a full frame takes about 1.5 s at 1440x900,
+  and the closing scale shot (6008 slabs) about 10 s. Every frame is drawn in full, with or without a GPU.
 - `.mp4` and `.gif` paths were exercised only with a stub ffmpeg (no ffmpeg on the test machine); the `--allow-download`
   path is untested by design (no downloads were made).
 - A wide world in a 9:16 frame gives a small establishing shot (the camera fits by width, then pushes in after the

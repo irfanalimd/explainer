@@ -36,6 +36,9 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
   const files = {}, images = [];
   const img = (name, shot) => { if (!images.some((x) => x.name === name)) images.push({ name, shot }); return name; };
   const terms = L.header?.terms ?? Object.fromEntries(Object.entries(L.terms).map(([k, def]) => [k, { lead: null, def }]));
+  // a citation reads as the page shows it ("Dean & Ghemawat 2004, §3.3"), whatever entity titles the caller has
+  const srcById = new Map((L.sources ?? []).map((x) => [x.id, x]));
+  const withCites = (refTitle) => Object.assign((id) => refTitle?.(id) ?? null, { cite: (id) => srcById.get(id) ?? null });
   for (const level of levels) {
     const P = POLICY[level], label = LEVELS.find((x) => x.id === level)?.label ?? level;
     const seen = new Set();
@@ -48,7 +51,7 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
         else if (n.type === "bold") n.children.forEach(walk);
       };
       tokens(markup).forEach(walk);
-      return shape(flat(markup, refTitle)) + extra;
+      return shape(flat(markup, withCites(refTitle))) + extra;
     };
     const chunks = [];   // { file, lines, images }
     const open = (file, title) => { const c = { file, lines: [`# ${title}`, ""], images: [] }; chunks.push(c); return c; };
@@ -180,6 +183,12 @@ export function packetOf(L, { levels = ["new", "expert"], meta = {} } = {}) {
       if (goals.length) { next.lines.push("**You can now…**", ""); goals.forEach((o) => next.lines.push(`- ${o.text}`)); next.lines.push(""); }
     }
 
+    // the expert checks each citation against its source: the list the page's handout prints, nothing more
+    if (level === "expert" && L.sources?.length) {
+      const src = open("sources.md", "Sources the page cites");
+      src.lines.push("The lesson cites these by their short form (\"Dean & Ghemawat 2004, §3.3\"); the handout lists them like this.", "");
+      for (const x of L.sources) src.lines.push(`- **${x.short}.** ${x.full}${x.url ? ` ${x.url}` : ""}`);
+    }
     const index = ["# Reading order", "", "Read these one at a time, in this order, images included. When a file ends on a prediction, write down your guess before you open the next one.",
       "", "Step numbers match the step counter under the timeline in the images (“Step 6 of 27” is “6 / 27” there).", ""];
     for (const c of chunks) { index.push(`- ${c.file}`); for (const i of c.images) index.push(`- ../img/${i}`); }

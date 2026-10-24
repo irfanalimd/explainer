@@ -33,12 +33,15 @@ function quotesOf(r, role) {
   if (role === "novice") {
     for (const ch of r.chapters ?? []) { add("lost", ch.lost, { chapter: ch.chapter }); add("prior_knowledge", ch.prior_knowledge, { chapter: ch.chapter }); }
     add("weakest", r.weakest_three);
+    add("sloppy", r.sloppy);
     add("guess", (r.guesses ?? []).map((g) => ({ ...g, quote: g.question })));
   } else {
     add("expert", r.findings);
     add("least_precise", r.least_precise_three);
     add("nuance", r.nuance_learned);
+    add("sloppy", r.sloppy);
     add("number", r.numbers_checked);
+    add("citation", r.citations_checked);
   }
   return out;
 }

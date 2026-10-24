@@ -48,7 +48,7 @@
 .ix :focus { outline: none; }
 /* one focus ring everywhere: 2 px of ink, 2 px off the control */
 .ix :focus-visible { outline: var(--ix-ring); outline-offset: 2px; }
-.ix:focus-visible, .ix .ix-panel:focus-visible, .ix .ix-help:focus-visible, .ix .ix-predict:focus-visible, .ix .ix-intro:focus-visible { outline: none; }
+.ix:focus-visible, .ix .ix-panel:focus-visible, .ix .ix-meters:focus-visible, .ix .ix-help:focus-visible, .ix .ix-predict:focus-visible, .ix .ix-intro:focus-visible { outline: none; }
 .ix-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
 /* numbers that change sit on tabular figures so they never jitter */
 .ix :is(.ix-count, .ix-stat-val, .ix-meter-val, .ix-knob-val, .ix-speed-val, .ix-map-pos, .ix-ex-n, .ix-menu-val, .ix-recap-list li::before) { font-variant-numeric: tabular-nums; }
@@ -371,7 +371,7 @@
 .ix-input-select { -webkit-appearance: none; appearance: none; padding-right: 32px; cursor: pointer; font-family: var(--ix-font-sans); }
 .ix-input-select option { color: initial; }
 .ix-select-chev { position: absolute; right: 10px; top: 10px; color: var(--ix-ink-faint); pointer-events: none; }
-.ix-btn-field { width: 36px; height: 36px; border-radius: var(--ix-r-md); box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
+.ix-btn-field { flex: none; width: 36px; height: 36px; border-radius: var(--ix-r-md); box-shadow: inset 0 0 0 1px var(--ix-line-strong); }
 
 .ix-switch {
   position: relative; flex: none;
@@ -399,12 +399,14 @@
 }
 .ix-code-body { padding: 12px 0; font: 400 var(--ix-fs-code)/20px var(--ix-font-mono); -webkit-user-select: text; user-select: text; }
 .ix-code-lines { min-width: max-content; }
-.ix-line { position: relative; display: flex; padding-right: 20px; color: var(--ix-ink-muted); transition: background-color var(--ix-dur-base) var(--ix-ease), opacity var(--ix-dur-slow) var(--ix-ease); }
+.ix-line { position: relative; display: flex; padding-right: 20px; color: var(--ix-ink-muted); transition: background-color var(--ix-dur-base) var(--ix-ease), color var(--ix-dur-slow) var(--ix-ease); }
 .ix-ln { flex: none; width: 48px; padding-right: 16px; text-align: right; color: var(--ix-ink-faint); -webkit-user-select: none; user-select: none; font-variant-numeric: tabular-nums; }
 .ix-lc { white-space: pre; }
 .ix-lv { white-space: pre; margin-left: 24px; color: var(--ix-ink-faint); }
 .ix-lv:empty { display: none; }
-.ix-code.ix-has-active .ix-line:not(.ix-on) { opacity: 0.55; }
+/* the lines the step is not on recede to the faint ink, every token alike, at full opacity: 4.5:1 and more, where
+   fading them (0.55) left line numbers and comments at 2.2:1 */
+.ix-code.ix-has-active .ix-line:not(.ix-on) :is(.ix-lc, .ix-lc *) { color: var(--ix-ink-faint); font-weight: 400; transition: color var(--ix-dur-slow) var(--ix-ease); }
 .ix-line.ix-on { background: var(--ix-hover); color: var(--ix-ink); }
 .ix-line.ix-on::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--ix-ink); }
 .ix-line.ix-on .ix-ln, .ix-line.ix-on .ix-lv { color: var(--ix-ink-muted); }
@@ -1307,6 +1309,11 @@
 
 /* short viewports: give the world room */
 .ix.ix-short .ix-cap-stage { min-height: 0; }
+/* short and not a phone (a landscape phone, a short embed): the header and the dock leave no height for a side panel,
+   so the parameters drawer and the code panel run down over the caption and the dock (their own scroll), instead of
+   opening to their header alone */
+.ix.ix-short:not([data-size="phone"]) .ix-drawer { max-height: calc(100% - var(--ix-pad-t) - var(--ix-row) - 8px - var(--ix-pad-b)); }
+.ix.ix-short:not([data-size="phone"]) .ix-code { max-height: calc(100% - var(--ix-pad-t) - var(--ix-top-h) - 16px - var(--ix-pad-b)); }
 /* short viewports (an embed frame): an open pick, question or check speaks alone (the caption and readout step aside),
    the card tightens, and one still too tall scrolls inside itself rather than running off the top. The root is the
    viewport here (an iframe or a small window), so the cap is taken from it, less the header and the transport. */
@@ -1524,6 +1531,15 @@
 .ix-source { display: inline-flex; align-items: center; gap: 4px; color: var(--ix-ink); text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px; border-radius: 4px; }
 .ix-source:hover { text-decoration-color: var(--ix-ink); }
 .ix-source-icon svg { width: 12px; height: 12px; }
+/* a citation of the lesson's sources ([id] in the text): the short reference, quietly underlined like a source link;
+   the full reference shows in the tooltip. Without a url it is a plain reference with a dotted underline. */
+.ix-cite {
+  color: inherit; text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px;
+  border-radius: 3px; transition: text-decoration-color var(--ix-dur-fast) var(--ix-ease), background-color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-cite:hover, .ix-cite:focus-visible { text-decoration-color: var(--ix-ink); background: var(--ix-hover); }
+span.ix-cite { text-decoration-style: dotted; cursor: help; }
+.ix-cite .ix-source-icon { display: inline-flex; vertical-align: -1px; margin-left: 4px; }
 .ix-peek { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); }
 .ix-peek-text { flex: 1; min-width: 0; color: var(--ix-ink-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ix-peek-more {
@@ -1591,6 +1607,8 @@
 }
 .ix.ix-ex-sheet .ix-ex-top { padding-top: 12px; }
 .ix.ix-ex-sheet-open .ix-caption { visibility: hidden; }
+/* a sheet that holds the whole caption and dock bar hides them: nothing under it is read aloud or reached by Tab */
+.ix.ix-sheet-covers .ix-bottom { visibility: hidden; }
 .ix[data-size="phone"].ix-ex-sheet .ix-explain { width: auto; border-radius: var(--ix-r-xl); }
 .ix[data-size="phone"] .ix-ex-title { display: none; }
 .ix[data-size="phone"] .ix-ex-capbtn { width: var(--ix-icon); padding: 0; justify-content: center; }
@@ -1981,6 +1999,8 @@ textarea.ix-share-field { height: auto; padding: 8px 12px; line-height: 18px; re
 .ix-ho-boxes li::before { content: ""; left: 0; top: 4px; width: 11px; height: 11px; border: 1.25px solid var(--ix-ink); border-radius: 2px; }
 .ix-ho-p { color: var(--ix-ink); text-wrap: pretty; }
 .ix-ho-small { margin-top: 6px; font-size: 12px; line-height: 17px; color: var(--ix-ink-muted); text-wrap: pretty; }
+.ix-ho-refs li { margin: 6px 0; }
+.ix-ho-url a { color: inherit; overflow-wrap: anywhere; text-decoration: underline; text-decoration-color: var(--ix-line-strong); text-underline-offset: 3px; }
 .ix-ho-url { font: 500 12px/18px var(--ix-font-mono); word-break: break-all; }
 .ix-ho-sec, .ix-ho-part { padding: 22px 0 6px; }
 .ix-ho-sec + .ix-ho-sec, .ix-ho-part, .ix-ho-sec:has(+ .ix-ho-part) { border-bottom: 0; }

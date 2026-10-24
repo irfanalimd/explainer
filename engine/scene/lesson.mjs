@@ -4,6 +4,7 @@
 // card; asks, in-world picks (s.choose) and the end check (s.check) get the lesson's text plus per-option feedback.
 // Problems go to script.problems with kind "lesson".
 import { fill, fillIds } from "./template.mjs";
+import { sourcesOf, resolveCites, citesIn } from "./sources.mjs";
 
 const DEEPER = ["cost", "how", "code", "edge", "real", "source"];
 const ENTER = ["sofar", "now", "done"];
@@ -36,6 +37,8 @@ function headerOf(lesson, meta, story) {
     misconceptions: (lesson.misconceptions ?? []).map(({ id, wrong, fix }) => ({ id, wrong, fix })),
     // where a reader goes after the last story: other lessons, each with a line on why it follows this one
     next: (lesson.next ?? []).filter((n) => n?.title && n?.href).map(({ title, href, why }) => ({ title, href, why: why ?? "" })),
+    // what the figure's facts come from (sources.mjs): a text layer cites one as [id], the page shows it short and linked
+    sources: sourcesOf(lesson),
   };
 }
 
@@ -45,6 +48,15 @@ function headerOf(lesson, meta, story) {
  */
 export function mergeLesson(script, lesson, { scenario = null, meta = {} } = {}) {
   script.lesson = lesson ? headerOf(lesson, meta, scenario) : null;
+  // the scale shot's printed lines are drawn in the world, where no link can live: a citation there is written out
+  const cited = script.lesson?.sources ?? [];
+  if (cited.length) for (const st of script.steps) {
+    if (!st.scale) continue;
+    const cites = [];
+    const r = (t) => { if (typeof t !== "string") return t; cites.push(...citesIn(t).map((c) => c.id)); return resolveCites(t, cited); };
+    // `cites`: the ids the lines named, for verify's sources check (the printed text no longer shows them)
+    st.scale = Object.freeze({ ...st.scale, title: r(st.scale.title), note: r(st.scale.note), lines: st.scale.lines ? st.scale.lines.map(r) : st.scale.lines, cites });
+  }
   if (!lesson) {
     for (const st of script.steps) st.layers = { plain: st.caption };
     return script;

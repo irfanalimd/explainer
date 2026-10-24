@@ -32,6 +32,7 @@ Your final message is one fenced ```json block, with nothing before it:
       "image": [ { "file": "03-insert.png", "issue": "couldn't tell which arrow the text meant" } ] } ],
   "guesses": [ { "question": "<quote>", "my_guess": "B", "why": "...", "right": false } ],
   "weakest_three": [ { "step": 0, "quote": "...", "why": "..." } ],
+  "sloppy": [ { "step": 0, "quote": "...", "why": "..." } ],
   "outcome": "Explain the whole idea to a friend in 4 sentences."
 }
 ```
@@ -39,4 +40,7 @@ Your final message is one fenced ```json block, with nothing before it:
 Rules:
 - Every quote is copied exactly from the packet. Quotes are machine-checked, and a wrong quote discards the finding.
 - `weakest_three` is required even if everything was clear: rank the three least clear moments.
+- `sloppy` lists sentences that made you stop trusting the text: words there to sound important ("crucial",
+  "seamlessly", "plays a key role"), a question the next sentence answers, a sentence you had already read, a claim
+  you could not picture because it had no number or example. Leave it empty if there were none.
 - No scores, no praise, no advice on how to fix it. Only what happened in your head.
