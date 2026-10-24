@@ -74,10 +74,10 @@ export const lesson = {
 
   objectives: [
     { id: "o-split", text: "Perform the split of an address into its page number, which is looked up, and its offset, which copies straight over." },
-    { id: "o-walk", text: "Explain how four groups of 9 bits each pick one line in a chain of four tables, starting from CR3." },
-    { id: "o-cost", text: "Compare a sticky-note hit with a directory walk, and compute the average cost of many reads in one page." },
-    { id: "o-apart", text: "Explain why two programs reading the same address reach different rooms." },
-    { id: "o-fault", text: "Predict what happens when a page is out on disk, in order, and which part costs the most." },
+    { id: "o-walk", text: "Explain how four groups of 9 bits each pick one line in a chain of four tables, starting from CR3.", stories: ["miss", "fault"] },
+    { id: "o-cost", text: "Compare a sticky-note hit with a directory walk, and compute the average cost of many reads in one page.", stories: ["miss", "hit"] },
+    { id: "o-apart", text: "Explain why two programs reading the same address reach different rooms.", stories: ["miss"] },
+    { id: "o-fault", text: "Predict what happens when a page is out on disk, in order, and which part costs the most.", stories: ["fault"] },
   ],
 
   misconceptions: [
@@ -450,7 +450,7 @@ export const lesson = {
     },
     "other.walk": {
       key: true,
-      plain: "B's own directory leads {va} to room {frame}, after {cost} cycles.",
+      plain: "B's own directory leads {va} to room {frame}, after a {cost}-cycle walk.",
       why: "B's CR3 starts a different chain of tables, so the same bits pick lines in other tables.",
       look: ["t0", "t1", "t2", "t3"], picture: "directory",
       deeper: {
@@ -490,7 +490,7 @@ export const lesson = {
       why: "Only the operating system knows where the page went, so the CPU must ask it.",
       look: ["{kernelId}"],
       deeper: {
-        cost: "{cycles} cycles, about 1 µs: saving the program's place, entering the kernel, finding the line, and returning.",
+        cost: "This model charges {cycles} cycles, about 1 µs at 3 GHz, for saving the program's place, entering the kernel, finding the line and returning.",
         how: "The CPU raises exception 14, a page fault, puts the address in register CR2 and jumps to the kernel's handler. The read is undone, so it can run again from the start.",
         code: "`raise(PAGE_FAULT, va);` (line 11)",
         source: SDM,
