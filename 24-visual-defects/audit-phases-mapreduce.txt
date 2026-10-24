@@ -1,0 +1,4 @@
+audit mapreduce: happy/1440x900 10 frames, crash/1440x900 10 frames, straggler/1440x900 10 frames, skew/1440x900 10 frames, happy/390x844 10 frames, crash/390x844 10 frames, straggler/390x844 10 frames, skew/390x844 10 frames
+warnings (1 distinct, 1 occurrences):
+  frame-time: average frame 150.5 ms > 16 ms budget  [happy/1440x900]
+ok: no problems, 1 warning(s)

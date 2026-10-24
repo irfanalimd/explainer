@@ -1,0 +1,564 @@
+[
+ {
+  "f": "random-dark-1440x900-000-mid.png",
+  "differ": 89,
+  "big": 2,
+  "max": 60,
+  "box": [
+   299,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00007
+ },
+ {
+  "f": "random-dark-1440x900-001-end.png",
+  "differ": 43,
+  "big": 2,
+  "max": 60,
+  "box": [
+   299,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00003
+ },
+ {
+  "f": "random-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-dark-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "random-light-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-dark-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-018-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "rootsplit-light-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-020-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-1440x900-022-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-020-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-dark-390x844-022-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-020-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-1440x900-022-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-020-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "sequential-light-390x844-022-end.png",
+  "same": "bytes"
+ }
+]

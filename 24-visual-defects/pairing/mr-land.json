@@ -1,0 +1,376 @@
+[
+ {
+  "f": "crash-dark-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-014-mid.png",
+  "differ": 6801,
+  "big": 3054,
+  "max": 228,
+  "box": [
+   391,
+   139,
+   539,
+   177
+  ],
+  "share": 0.02066
+ },
+ {
+  "f": "crash-dark-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-014-mid.png",
+  "differ": 5669,
+  "big": 1649,
+  "max": 244,
+  "box": [
+   391,
+   139,
+   539,
+   176
+  ],
+  "share": 0.01722
+ },
+ {
+  "f": "crash-light-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-011-mid.png",
+  "differ": 8115,
+  "big": 4168,
+  "max": 230,
+  "box": [
+   425,
+   116,
+   575,
+   161
+  ],
+  "share": 0.02465
+ },
+ {
+  "f": "happy-dark-844x390-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-011-mid.png",
+  "differ": 6892,
+  "big": 1384,
+  "max": 244,
+  "box": [
+   425,
+   116,
+   575,
+   159
+  ],
+  "share": 0.02094
+ },
+ {
+  "f": "happy-light-844x390-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-844x390-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-844x390-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-014-mid.png",
+  "differ": 6788,
+  "big": 3061,
+  "max": 228,
+  "box": [
+   391,
+   139,
+   539,
+   177
+  ],
+  "share": 0.02062
+ },
+ {
+  "f": "straggler-dark-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-844x390-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-014-mid.png",
+  "differ": 5727,
+  "big": 1633,
+  "max": 244,
+  "box": [
+   391,
+   139,
+   539,
+   175
+  ],
+  "share": 0.0174
+ },
+ {
+  "f": "straggler-light-844x390-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-844x390-026-end.png",
+  "same": "bytes"
+ }
+]

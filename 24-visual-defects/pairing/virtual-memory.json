@@ -1,0 +1,481 @@
+[
+ {
+  "f": "fault-dark-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-002-end.png",
+  "differ": 24,
+  "big": 0,
+  "max": 2,
+  "box": null,
+  "share": 0.00002
+ },
+ {
+  "f": "fault-dark-1440x900-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-dark-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "fault-light-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-1440x900-002-end.png",
+  "differ": 37,
+  "big": 1,
+  "max": 59,
+  "box": [
+   378,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00003
+ },
+ {
+  "f": "hit-dark-1440x900-003-end.png",
+  "differ": 13,
+  "big": 1,
+  "max": 59,
+  "box": [
+   378,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00001
+ },
+ {
+  "f": "hit-dark-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-1440x900-006-end.png",
+  "differ": 13,
+  "big": 1,
+  "max": 59,
+  "box": [
+   378,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00001
+ },
+ {
+  "f": "hit-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-dark-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-1440x900-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "hit-light-390x844-006-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-021-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-021-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-dark-390x844-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-021-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-003-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-006-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-015-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-017-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-021-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "miss-light-390x844-024-end.png",
+  "same": "bytes"
+ }
+]

@@ -1,0 +1,2 @@
+audit raft: happy/1440x900 6 frames, crash/1440x900 12 frames, partition/1440x900 12 frames, happy/390x844 6 frames, crash/390x844 12 frames, partition/390x844 12 frames
+ok: no problems

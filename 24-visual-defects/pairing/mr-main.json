@@ -1,0 +1,704 @@
+[
+ {
+  "f": "crash-dark-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-014-mid.png",
+  "differ": 12578,
+  "big": 6664,
+  "max": 232,
+  "box": [
+   485,
+   402,
+   635,
+   474
+  ],
+  "share": 0.00971
+ },
+ {
+  "f": "crash-dark-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-1440x900-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-390x844-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-014-mid.png",
+  "differ": 10149,
+  "big": 2966,
+  "max": 244,
+  "box": [
+   486,
+   402,
+   635,
+   472
+  ],
+  "share": 0.00783
+ },
+ {
+  "f": "crash-light-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-1440x900-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-390x844-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-011-mid.png",
+  "differ": 12460,
+  "big": 6795,
+  "max": 232,
+  "box": [
+   493,
+   405,
+   643,
+   476
+  ],
+  "share": 0.00961
+ },
+ {
+  "f": "happy-dark-1440x900-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-390x844-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-011-mid.png",
+  "differ": 10085,
+  "big": 2865,
+  "max": 244,
+  "box": [
+   494,
+   405,
+   643,
+   474
+  ],
+  "share": 0.00778
+ },
+ {
+  "f": "happy-light-1440x900-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-020-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-023-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-390x844-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-001-end.png",
+  "differ": 2,
+  "big": 0,
+  "max": 1,
+  "box": null,
+  "share": 0
+ },
+ {
+  "f": "skew-dark-1440x900-001-mid.png",
+  "differ": 2,
+  "big": 0,
+  "max": 1,
+  "box": null,
+  "share": 0
+ },
+ {
+  "f": "skew-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-1440x900-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-dark-390x844-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-1440x900-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-024-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "skew-light-390x844-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-014-mid.png",
+  "differ": 12578,
+  "big": 6809,
+  "max": 230,
+  "box": [
+   485,
+   402,
+   635,
+   474
+  ],
+  "share": 0.00971
+ },
+ {
+  "f": "straggler-dark-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-1440x900-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-dark-390x844-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-014-mid.png",
+  "differ": 10181,
+  "big": 3052,
+  "max": 243,
+  "box": [
+   486,
+   402,
+   635,
+   472
+  ],
+  "share": 0.00786
+ },
+ {
+  "f": "straggler-light-1440x900-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-1440x900-026-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-005-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-019-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-022-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-023-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-025-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "straggler-light-390x844-026-end.png",
+  "same": "bytes"
+ }
+]

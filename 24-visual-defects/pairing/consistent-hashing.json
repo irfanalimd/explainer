@@ -1,0 +1,540 @@
+[
+ {
+  "f": "add-dark-1440x900-000-mid.png",
+  "differ": 52,
+  "big": 0,
+  "max": 4,
+  "box": null,
+  "share": 0.00004
+ },
+ {
+  "f": "add-dark-1440x900-001-end.png",
+  "differ": 43,
+  "big": 2,
+  "max": 60,
+  "box": [
+   299,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00003
+ },
+ {
+  "f": "add-dark-1440x900-002-end.png",
+  "differ": 43,
+  "big": 2,
+  "max": 60,
+  "box": [
+   299,
+   825,
+   380,
+   827
+  ],
+  "share": 0.00003
+ },
+ {
+  "f": "add-dark-1440x900-002-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-004-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-013-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-002-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-004-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-013-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-dark-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-002-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-004-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-013-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-1440x900-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-000-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-002-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-004-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-004-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-013-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-013-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-014-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "add-light-390x844-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-007-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-1440x900-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-390x844-001-end.png",
+  "differ": 30,
+  "big": 0,
+  "max": 14,
+  "box": [
+   285,
+   804,
+   286,
+   805
+  ],
+  "share": 0.00009
+ },
+ {
+  "f": "remove-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-390x844-005-end.png",
+  "differ": 30,
+  "big": 0,
+  "max": 14,
+  "box": [
+   285,
+   804,
+   286,
+   805
+  ],
+  "share": 0.00009
+ },
+ {
+  "f": "remove-dark-390x844-007-end.png",
+  "differ": 30,
+  "big": 0,
+  "max": 14,
+  "box": [
+   285,
+   804,
+   286,
+   805
+  ],
+  "share": 0.00009
+ },
+ {
+  "f": "remove-dark-390x844-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-dark-390x844-008-end.png",
+  "differ": 30,
+  "big": 0,
+  "max": 14,
+  "box": [
+   285,
+   804,
+   286,
+   805
+  ],
+  "share": 0.00009
+ },
+ {
+  "f": "remove-dark-390x844-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-007-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-1440x900-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-007-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "remove-light-390x844-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-010-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-010-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-dark-390x844-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-010-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-1440x900-011-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-001-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-003-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-005-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-007-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-008-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-010-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-011-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "vnodes-light-390x844-011-mid.png",
+  "same": "bytes"
+ }
+]

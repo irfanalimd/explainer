@@ -1,0 +1,2 @@
+[eval] "{\"pass\":278,\"fail\":0,\"failed\":[]}"
+/home/ubuntu/tmp/explainer-perf/vdefects/hud.png

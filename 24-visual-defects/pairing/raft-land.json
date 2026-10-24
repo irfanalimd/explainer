@@ -1,0 +1,242 @@
+[
+ {
+  "f": "crash-dark-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-021-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-029-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-036-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-038-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-039-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-040-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-dark-844x390-040-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-010-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-016-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-019-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-021-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-029-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-036-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-038-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-039-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-040-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "crash-light-844x390-040-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-030-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-dark-844x390-030-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-016-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-029-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-030-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "happy-light-844x390-030-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-041-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-056-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-070-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-076-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-085-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-086-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-dark-844x390-086-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-001-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-002-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-008-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-015-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-027-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-041-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-056-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-070-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-076-mid.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-085-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-086-end.png",
+  "same": "bytes"
+ },
+ {
+  "f": "partition-light-844x390-086-mid.png",
+  "same": "bytes"
+ }
+]
