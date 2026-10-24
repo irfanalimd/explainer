@@ -36,19 +36,19 @@ export const meta = {
   terms: {
     master: "The coordinator. It hands each machine a piece of the work and notices when one fails.",
     split: "One piece of the text. One machine reads it, the way one helper takes one shelf of a library.",
-    mapper: "A reading machine. It reads its piece and writes a slip such as (fox, 1) for every word.",
+    mapper: "The formal name for a reading machine, which writes a slip such as (fox, 1) for each word.",
     hash: "A calculation that turns a word into a large number. The same word always gives the same number.",
     shuffle: "The stage where every slip travels to the machine that adds up its word.",
-    reducer: "A counting machine. It adds up all the slips for the words it was given.",
+    reducer: "The formal name for a counting machine. It adds up all the slips for the words it was given.",
     straggler: "A machine so much slower than the rest that everyone ends up waiting for it.",
   },
   recap: [
     "The master cut the text into pieces, and each machine read one.",
     "Each reading machine wrote a slip like (fox, 1) for every word.",
-    "A hash sent every copy of a word to the same counter.",
-    "Each counter added up its words, and together they hold every count.",
+    "A hash sent every copy of a word to the same counting machine.",
+    "Each counting machine added up its words, and together they hold every count.",
   ],
-  takeaway: "Every count is exact because all copies of a word met on one counter. The other stories test this with a crash, a slow disk and a lopsided log.",
+  takeaway: "Every count is exact because all the copies of a word met on one counting machine, whichever machine had read them.",
 };
 
 export const params = {
@@ -60,8 +60,8 @@ export const params = {
 };
 
 export const scenarios = [
-  { id: "happy", label: "Everything works", whatIf: "nothing goes wrong",
-    description: "Every machine stays healthy, and you follow the whole job from cutting up the text to the final counts." },
+  { id: "happy", label: "Everything works", whatIf: "every machine stays healthy",
+    description: "Follow the whole job from start to finish, from cutting up the text to the final counts." },
   { id: "crash", label: "One machine crashes", params: { crash: 1 }, whatIf: "a machine crashes halfway through",
     // the description is shown before the prediction, so it sets up the situation and keeps the answer back
     description: "One reading machine crashes halfway through its piece, and the slips it has written are lost with it.",
@@ -82,11 +82,11 @@ export const scenarios = [
   { id: "skew", label: "One word is everywhere", params: { input: "200 200 404 200 200 301 200 200 500 200 200 200 304 200", reducers: 3 },
     whatIf: "one word is far more common than the rest",
     description: "A web log where almost every line has the status code 200, so one counting machine ends up with most of the work.",
-    takeaway: "Every copy of a code meets on one counter. That keeps every count exact, but a code on most lines overloads its counter. Adding up repeats first shrinks the load.",
+    takeaway: "Every copy of a code meets on one counting machine. Counts stay exact, but a code on most lines overloads that machine, and adding up repeats first shrinks the load.",
     recap: [
       "Almost every line of the log had the code 200.",
       "The hash sent every 200 to the same counting machine.",
-      "So one counter did most of the adding while the others sat nearly idle.",
+      "So one counting machine did most of the adding while the others sat nearly idle.",
     ] },
 ];
 
@@ -360,7 +360,7 @@ export function build(s, p, scenario, env = {}) {
       s.set(`m${j}`, { led: "ok", dim: false, sub: "restarted", state: { host: ip(10, j), task: null, status: "restarted" } });
       step("crash.restart", `No other machine is free, so the master restarts {ref:m${j}|map ${j}}.`, cv);
     }
-    s.ask(`map ${victim} crashed after ${lost} of its ${splits[victim].length} ${unit}. What happens to its piece?`,
+    s.ask(`After ${lost} of its ${splits[victim].length} ${unit}, map ${victim} crashed. What happens to its piece?`,
       [`The count comes out ${plural(lost, thing)} short`, "The master has the piece read again", "The whole job starts over"], 1,
       { id: "crash.what", why: "The text is still in the shared input, and reading it again gives the same slips, so redoing that piece is safe." });
     s.spawn(copy, { from: `split${victim}`, in: `m${j}`, of: "page", text: `split ${victim}`, sub: `${splits[victim].length} ${unit}` });
@@ -390,7 +390,7 @@ export function build(s, p, scenario, env = {}) {
       extra = { twice: splits[j].length + list.length, twiceMap: `map ${j}`, own: splits[j].length };
       const had = tray[slow].length;
       Object.assign(sv, { helper: mapRef(j), helperId: `m${j}`, had });
-      s.ask(`map ${slow} has written ${had} of its ${list.length} slips, and the other machines are done. What does the master do?`,
+      s.ask(`The other machines are done, but map ${slow} has written only ${had} of its ${list.length} slips. What does the master do?`,
         ["Wait, because the job can't finish without its piece", "Start a copy of its piece on a free machine", "Skip its words to finish on time"], 1,
         { id: "slow.what", why: "Reading a piece twice gives the same slips, so a backup copy is safe, and the master keeps whichever finishes first." });
       s.spawn(backup, { from: `split${slow}`, in: `m${j}`, of: "page", text: `split ${slow}`, sub: "backup" });
@@ -466,7 +466,7 @@ export function build(s, p, scenario, env = {}) {
       // the common code: a hash spreads different words over the counters, never the copies of one word
       const many = freq.get(word);
       s.ask(`"${word}" fills ${many} of the ${words.length} lines, and the first went to reduce ${again[0]}. Where do all ${many} of its slips go?`,
-        [`Spread over the ${R} counters, about ${Math.ceil(many / R)} each`, `All ${many} to reduce ${again[0]}, with the first`, "Nowhere yet, because one machine adds everything at the end"], 1,
+        [`Spread over the ${R} counting machines, about ${Math.ceil(many / R)} each`, `All ${many} to reduce ${again[0]}, with the first`, "Nowhere yet, because one machine adds everything at the end"], 1,
         { id: "skew.where", why: `hash(${word}) is the same number every time, so its remainder is ${r} every time, and all ${many} meet on reduce ${r}, however busy it gets.` });
     }
     if (pick && !pick.right) {
@@ -577,8 +577,8 @@ export function build(s, p, scenario, env = {}) {
       askedTotals = true;
       const o = [...new Set([1, runs.length, ids.length])].sort((a, b) => a - b);
       const say = (x) => (x === 1 ? `1: it adds all ${ids.length} slips into one number` : x === runs.length ? `${x}: one for each different ${thing}` : `${x}: one for each slip`);
-      s.ask(`reduce ${r} holds ${plural(ids.length, "slip")}, sorted. How many totals will it write?`, o.map(say), o.indexOf(runs.length),
-        { id: "reduce.how-many", why: `A counter adds up each ${thing}'s slips separately. It holds ${runs.length} different ${thing}s, so it writes ${runs.length} totals.` });
+      s.ask(`The ${plural(ids.length, "slip")} on reduce ${r} are now sorted. How many totals will it write?`, o.map(say), o.indexOf(runs.length),
+        { id: "reduce.how-many", why: `A counting machine adds up each ${thing}'s slips separately. It holds ${runs.length} different ${thing}s, so it writes ${runs.length} totals.` });
     }
     let first = true;
     const merged = runs.filter((x) => x.ids.length > 1);
@@ -625,9 +625,9 @@ export function build(s, p, scenario, env = {}) {
     // move; the copies of one code cannot, so the common code's slips still meet on one counter
     const R2 = R + 1, hot2 = hash(top[0]) % R2, load2 = slips.filter((w) => hash(w) % R2 === hot2).length;
     if (!p.combiner) {
-      s.ask(`reduce ${hot} did the adding for ${load[hot]} of the ${moved} slips. Which change takes most of that work off it, and keeps every count exact?`,
-        [`Add a ${ordinal(R2)} counting machine`, `Send some "${top[0]}" slips to a quieter counter`, "Have each reader add up its repeats first"], 2,
-        { id: "skew.fix", why: `Every "${top[0]}" slip has to meet on one counter, so the fix is to send fewer of them. Each reader adds up its own "${top[0]}" slips and sends one, carrying the count.` });
+      s.ask(`Of the ${moved} slips, reduce ${hot} did the adding for ${load[hot]}. Which change takes most of that work off it, and keeps every count exact?`,
+        [`Add a ${ordinal(R2)} counting machine`, `Send some "${top[0]}" slips to a quieter machine`, "Have each reading machine add up its repeats first"], 2,
+        { id: "skew.fix", why: `Every "${top[0]}" slip has to meet on one counting machine, so the fix is to send fewer of them. Each reading machine adds up its own "${top[0]}" slips and sends one, carrying the count.` });
     }
     s.lit(`r${hot}`);
     step("skew.more", `With ${R2} counting machines, every "${top[0]}" would still go to one counter (\`hash(${top[0]}) % ${R2} = ${hot2}\`): ${load2} of ${slips.length} slips.`,
@@ -662,7 +662,7 @@ export function build(s, p, scenario, env = {}) {
       const [w, n] = spaced && next ? next : top, R2 = spaced ? R + 2 : R === 3 ? 4 : 3, rem2 = hash(w) % R2;
       s.check("check.hash", { chapter: "shuffle", ...(transfer ? { transfer: true } : {}),
         question: `Suppose a new job with ${R2} counting machines instead of ${R}. Where do the ${plural(n, `"${w}" slip`)} go?`,
-        options: [`Spread over the ${R2} counters, to share the work`, "All on one counter, whichever the hash picks", "On whichever counter is least busy"], answer: 1,
+        options: [`Spread over the ${R2} counting machines, to share the work`, "All on one machine, whichever the hash picks", "On whichever machine is least busy"], answer: 1,
         vars: { R, M, R2, w: K(w), topN: n, rem2, red2: `reduce ${rem2}` } });
     };
     // a word the text does not have yet: one more total (story 1's one-more-copy question, turned around)
