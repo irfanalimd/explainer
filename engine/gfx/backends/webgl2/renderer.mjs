@@ -27,7 +27,7 @@ export function createRenderer(canvas, opts = {}) {
   let colors = themeColors(theme), TL = themeLight(theme);
   const atlas = new TextAtlas();
   const packer = new Packer();
-  let gl = null, R = null, last = null, frameNo = 0;
+  let gl = null, R = null, last = null, frameNo = 0, pre = null;
   let lostFns = [];
   const stats = { ms: 0, drawCalls: 0, instances: 0, lights: 0, triangles: 0, slabs: 0, strings: 0, backend: "webgl2" };
   let defaultCamera = { target: [0, 0, 0], distance: 1200, yaw: CAMERA.yaw, pitch: CAMERA.pitch, fov: CAMERA.fov };
@@ -37,7 +37,7 @@ export function createRenderer(canvas, opts = {}) {
     debug: {},                     // { bloom: false } for inspecting the light without its glow
     timing: !!opts.timing,         // GPU timer queries -> stats().gpuMs
     ready: null,
-    resize, setTheme, render, pick, project, unproject, pxPerUnit,
+    resize, setTheme, render, pick, prepick, project, unproject, pxPerUnit,
     stats: () => ({ ...stats }),
     onLost: (fn) => { lostFns.push(fn); },
     dispose,
@@ -144,6 +144,12 @@ export function createRenderer(canvas, opts = {}) {
     R.pickTex = texture2D(gl, 1, 1, gl.RGBA8, { filter: gl.NEAREST });
     R.pickDepth = renderbuffer(gl, 1, 1, gl.DEPTH_COMPONENT24, 0);
     R.pickFbo = framebuffer(gl, [R.pickTex], R.pickDepth);
+    // the prepick's readback lands here, so reading it never waits on the GPU (see prepick)
+    R.pickPbo = gl.createBuffer();
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, R.pickPbo);
+    gl.bufferData(gl.PIXEL_PACK_BUFFER, 4, gl.STREAM_READ);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    pre = null;
     R.atlasTex = texture2D(gl, atlas.size, atlas.size, gl.R8);
     atlas.attach((x, y, w, h, bytes) => {
       gl.bindTexture(gl.TEXTURE_2D, R.atlasTex);
@@ -607,10 +613,51 @@ export function createRenderer(canvas, opts = {}) {
     stats.slabs = fr.nSlabs; stats.lights = fr.nLights; stats.raisedInk = fr.nInkRaised; stats.strings = atlas.entries.size; stats.textMissed = atlas.missed;
   }
 
+  // Picking draws the last frame's slabs into a 1x1 target under the pointer, ids for colours, and reads the pixel.
+  // readPixels makes the CPU wait for every command the GPU has queued, the frame before it included, so a pointer
+  // resting over the world while it plays would cost a stall each frame. prepick() draws the same pick right after a
+  // frame and reads it into a buffer behind a fence; pick() takes that result when it asks the same question (the same
+  // point, the same frame, the same canvas size) and the fence has passed, and otherwise picks as before.
+  const pickable = (cssX, cssY) => gl && R && last && !api.lost && last.fr.nSlabs && cssX >= 0 && cssY >= 0 && cssX < cssW && cssY < cssH;
+  const sameAsPre = (cssX, cssY) => pre && pre.x === cssX && pre.y === cssY && pre.frame === frameNo && pre.W === W && pre.H === H && pre.cssW === cssW && pre.cssH === cssH;
+  const pickId = (out) => { const v = out[0] + out[1] * 256 + out[2] * 65536 - 1; return v >= 0 && v < last.fr.ids.length ? last.fr.ids[v] : null; };
+  function dropPre() { if (pre) { gl?.deleteSync(pre.sync); pre = null; } }
+
   function pick(cssX, cssY) {
     if (!gl || !R || !last || api.lost) return null;
+    if (!pickable(cssX, cssY)) return null;
+    stats.picks = (stats.picks ?? 0) + 1;
+    if (sameAsPre(cssX, cssY) && gl.getSyncParameter(pre.sync, gl.SYNC_STATUS) === gl.SIGNALED) {
+      stats.picksAhead = (stats.picksAhead ?? 0) + 1;
+      const out = new Uint8Array(4);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, R.pickPbo);
+      gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, out);
+      gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+      return pickId(out);
+    }
+    pickDraw(cssX, cssY);
+    const out = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return pickId(out);
+  }
+
+  /** The pick the next pick(cssX, cssY) will ask for, started now and read back without waiting (see pick). */
+  function prepick(cssX, cssY) {
+    dropPre();
+    if (!pickable(cssX, cssY)) return;
+    pickDraw(cssX, cssY);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, R.pickPbo);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    pre = { x: cssX, y: cssY, frame: frameNo, W, H, cssW, cssH, sync: gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) };
+    gl.flush();
+  }
+
+  // the pick pass into the 1x1 target, left bound for the readback
+  function pickDraw(cssX, cssY) {
     const { cam, fr } = last;
-    if (!fr.nSlabs || !(cssX >= 0 && cssY >= 0 && cssX < cssW && cssY < cssH)) return null;
     const px = cssX * dpr, py = (cssH - cssY) * dpr;
     const nx = (2 * Math.floor(px) + 1) / W - 1, ny = (2 * Math.floor(py) + 1) / H - 1;
     const M = new Float32Array(16);
@@ -630,11 +677,6 @@ export function createRenderer(canvas, opts = {}) {
     gl.enable(gl.CULL_FACE); gl.frontFace(gl.CW);
     drawSlabs(R.pick, fr, [[R.small, 0, fr.nSmall], [R.large, fr.nSmall, fr.nLarge + fr.nTrans]]);
     gl.disable(gl.CULL_FACE);
-    const out = new Uint8Array(4);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, out);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    const v = out[0] + out[1] * 256 + out[2] * 65536 - 1;
-    return v >= 0 && v < fr.ids.length ? fr.ids[v] : null;
   }
 
   const camNow = () => last?.cam ?? cameraState(defaultCamera, cssW, cssH);
@@ -644,7 +686,7 @@ export function createRenderer(canvas, opts = {}) {
 
   function dispose() {
     try { gl?.getExtension("WEBGL_lose_context")?.loseContext(); } catch {}
-    gl = null; R = null;
+    gl = null; R = null; pre = null;
   }
 
   canvas.addEventListener?.("webglcontextlost", (e) => {

@@ -69,6 +69,37 @@ test("EDT is exact against brute force", () => {
   }
 });
 
+test("EDT gives the plain strided transform's exact doubles, flat lines and reused scratch included", () => {
+  // the transform as first written: every column walked with a stride, nothing skipped, fresh scratch each call
+  const INF = 1e20;
+  const ref1d = (f, o, st, n, d, v, z) => {
+    v[0] = 0; z[0] = -INF; z[1] = INF;
+    for (let q = 1, k = 0; q < n; q++) {
+      const fq = f[o + q * st]; let s;
+      do { const r = v[k]; s = (fq - f[o + r * st] + q * q - r * r) / (q - r) / 2; } while (s <= z[k] && --k > -1);
+      k++; v[k] = q; z[k] = s; z[k + 1] = INF;
+    }
+    for (let q = 0, k = 0; q < n; q++) { while (z[k + 1] < q) k++; const r = v[k]; d[q] = f[o + r * st] + (q - r) * (q - r); }
+    for (let q = 0; q < n; q++) f[o + q * st] = d[q];
+  };
+  const ref2d = (g, w, h) => {
+    const n = Math.max(w, h), d = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1);
+    for (let x = 0; x < w; x++) ref1d(g, x, w, h, d, v, z);
+    for (let y = 0; y < h; y++) ref1d(g, y * w, 1, w, d, v, z);
+  };
+  let s = 7; const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  // sizes in both orders, so the scratch grows and is then reused smaller; seeds of 0, INF and fractions, empty lines
+  for (const [w, h] of [[41, 13], [9, 57], [64, 64], [30, 5], [1, 7], [7, 1]]) {
+    const g = new Float64Array(w * h);
+    for (let i = 0; i < g.length; i++) { const u = rnd(); g[i] = u < 0.08 ? 0 : u < 0.12 ? rnd() * 0.25 : INF; }
+    for (let x = 0; x < w; x += 3) for (let y = 0; y < h; y++) g[y * w + x] = INF;   // whole columns with no site
+    const want = Float64Array.from(g);
+    ref2d(want, w, h);
+    edt2d(g, w, h);
+    assert.deepEqual(Array.from(g), Array.from(want), `${w}x${h}`);
+  }
+});
+
 test("SDF of an anti-aliased disc: 128 on the edge, monotone across it", () => {
   const w = 64, h = 64, R = 20, alpha = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

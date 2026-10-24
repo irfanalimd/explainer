@@ -661,6 +661,9 @@ export async function mount(root, figure, options = {}) {
       if (live) shimmer += dt;
       clock += dt;
       const camera = renderFrame(dt, shimmer, clock, false);
+      // the pointer rests over the world: the next tick's hover pick asks about this frame at this point, so ask it now
+      // and let the GPU answer while it would otherwise wait (renderer.prepick)
+      if (hoverAt) renderer?.prepick?.(hoverAt[0], hoverAt[1]);
       // keep drawing while the picture is still settling: the camera easing, the HUD's insets changed while it drew
       // (the director eases to the new framing from the next frame), an afterglow or ping fading out
       moving = cameraMoved(camera) || insetsMoved(viewport.insets, hud.insets) || !!renderer?.busy;
