@@ -1179,7 +1179,7 @@
    options keeps its size). Settings → Hints stops it. Quiet (?cue=quiet), a 2 px ring at 26 % that calls three
    times, and only on the first three cues of a kind. --ix-cue-base keeps a control's own hairline. */
 .ix-cue {
-  --ix-cue-o: 3px; --ix-cue-grow: 14px; --ix-cue-base: 0 0 #0000; --ix-cue-halo: 0 0 24px 8px; --ix-cue-scale: 1.05;
+  --ix-cue-o: 3px; --ix-cue-grow: 12px; --ix-cue-base: 0 0 #0000; --ix-cue-halo: 0 0 24px 8px; --ix-cue-scale: 1.05;
   outline: 4px solid rgb(var(--ix-ink-rgb) / 0.62); outline-offset: var(--ix-cue-o);
   box-shadow: var(--ix-cue-base), var(--ix-cue-halo) rgb(var(--ix-ink-rgb) / 0.18);
 }
@@ -1188,6 +1188,8 @@
 .ix-pill.ix-cue { --ix-cue-base: inset 0 0 0 1px var(--ix-line-strong); }
 /* a wide pill (Continue to …, Next story) swells by about as many pixels as Play, so it stays clear of Back and Replay */
 .ix-continue.ix-cue, .ix-pill.ix-cue { --ix-cue-scale: 1.035; }
+/* a phone's dock is tight: the ripple travels less, so it stays off the screen's edge and the next control */
+.ix[data-size="phone"] .ix-cue { --ix-cue-grow: 8px; }
 /* a group of options: further off, a smaller ripple and halo, so both stay inside the panel's padding, and no swell */
 .ix-opts.ix-cue, .ix-turn-picks.ix-cue { --ix-cue-o: 6px; --ix-cue-grow: 8px; --ix-cue-halo: 0 0 12px 2px; --ix-cue-scale: 1; border-radius: calc(var(--ix-r-md) + 2px); }
 .ix[data-cue="quiet"] .ix-cue { --ix-cue-grow: 11px; outline: 2px solid rgb(var(--ix-ink-rgb) / 0.26); outline-offset: var(--ix-cue-o); box-shadow: var(--ix-cue-base); }
