@@ -2234,7 +2234,15 @@ export function createHud(root, opts = {}, cb = {}) {
   function syncStrip() {
     stats.hidden = meters.length === 0 || !stripShown();
     if (stats.hidden && readoutOpen && readoutFrom() === null) toggleReadout(false);
+    placeLegend();
     fitSoon();
+  }
+  // a tiered dock (phones, narrow windows) keeps its legend over the transport only beside the numbers; alone, the
+  // legend joins the transport's row, so no row of the dock holds it by itself
+  function placeLegend() {
+    const inTp = root.classList.contains("ix-tiered") && stats.hidden;
+    if (inTp !== (legendBtn.parentNode === transport)) (inTp ? transport : bar).append(legendBtn);
+    root.classList.toggle("ix-legend-in-tp", inTp);
   }
   // A pause's numbers, from the run at this moment: the primary counters in one quiet line under the recap ("So far",
   // "In all" at the end). It opens the readout, every number with what it means.
@@ -3260,6 +3268,7 @@ export function createHud(root, opts = {}, cb = {}) {
     const row = (S.embedded || H < 600) && size !== "phone" && !presenter.on;
     if (row !== S.dockRow) { S.dockRow = row; root.classList.toggle("ix-dock-row", row); applyPrimary(); }
     root.classList.toggle("ix-tiered", !row && (size !== "desktop" || W < 1200));
+    placeLegend();
     root.style.setProperty("--ix-stats-max", `${Math.round(Math.min(W - 48, 1320) * 0.42)}px`);
     if (size !== "phone" && aboutOpen) toggleAbout(false);
     fitSoon();

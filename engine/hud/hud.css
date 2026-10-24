@@ -1243,10 +1243,16 @@
 .ix.ix-tiered .ix-stats { max-width: none; margin: 8px 0 0 8px; padding-left: 12px; }
 .ix.ix-tiered .ix-stats::before { content: none; }
 .ix.ix-tiered .ix-legend-btn { margin: 8px 8px 0 12px; }
-.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
-.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) .ix-legend-btn::before { content: none; }
+.ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden])) > .ix-legend-btn::before { top: 12px; bottom: 12px; left: -6px; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn { grid-column: 1 / -1; justify-self: end; }
+.ix.ix-tiered .ix-bar:not(:has(> .ix-stats:not([hidden]))) > .ix-legend-btn::before { content: none; }
 .ix.ix-tiered .ix-bar:has(> .ix-stats:not([hidden]), > .ix-legend-btn:not([hidden])) .ix-transport { margin-top: 4px; box-shadow: inset 0 1px 0 var(--ix-line); }
+/* without the numbers (a reader's dock) the legend joins the transport's row instead of a row of its own, its dots
+   alone (as on phones) so the timeline keeps its width */
+.ix.ix-legend-in-tp .ix-transport { grid-template-columns: auto auto minmax(0, 1fr) auto auto; grid-template-areas: "speed btns scrub count legend"; }
+.ix.ix-legend-in-tp .ix-legend-btn { grid-area: legend; margin: 0; }
+.ix.ix-legend-in-tp .ix-legend-btn::before { content: none; }
+.ix.ix-legend-in-tp .ix-legend-count { display: none; }
 
 /* ---------- phone ---------- */
 .ix[data-size="phone"] { --ix-pad: 16px; --ix-pad-t: max(12px, env(safe-area-inset-top, 0px)); --ix-pad-b: max(12px, env(safe-area-inset-bottom, 0px)); }
@@ -1302,6 +1308,8 @@
   height: auto; padding: 0 12px 12px 12px; column-gap: 8px; row-gap: 0;
 }
 .ix[data-size="phone"] .ix-tp-btns { justify-self: end; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-transport { grid-template-areas: "scrub scrub count" "speed legend btns"; }
+.ix.ix-legend-in-tp[data-size="phone"] .ix-legend-btn { justify-self: center; margin: 0; }
 .ix[data-size="phone"] .ix-speed-wrap::after { content: none; }
 .ix[data-size="phone"] .ix-scrub-wrap { padding: 0 4px 0 4px; }
 .ix[data-size="phone"] .ix-scrub { height: 48px; }

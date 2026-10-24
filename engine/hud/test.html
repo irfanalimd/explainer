@@ -916,6 +916,12 @@ window.__results = (async () => {
     hP.setTimeline(tl);
     hP.update(frame(3), { time: 3, playing: false, speed: 1 });
     await frameWait(); await frameWait();
+    check("phone: with the numbers out of the dock, the legend joins the transport's row", rP.classList.contains("ix-legend-in-tp")
+      && rP.querySelector(".ix-legend-btn")?.parentElement === rP.querySelector(".ix-transport"));
+    hP.setCapture(true);
+    check("…and goes back beside the numbers in a capture", !rP.classList.contains("ix-legend-in-tp") && rP.querySelector(".ix-legend-btn")?.parentElement === rP.querySelector(".ix-bar")
+      && !rP.querySelector(".ix-stats").hidden);
+    hP.setCapture(false);
     const shown = () => getComputedStyle(rP.querySelector(".ix-bottom")).visibility === "visible";
     const play = rP.querySelector(".ix-play");
     const before = shown();
