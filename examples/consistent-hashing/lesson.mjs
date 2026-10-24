@@ -46,11 +46,11 @@ export const lesson = {
   goal: "Share keys among servers so that a server joining or leaving moves only the keys it must.",
 
   objectives: [
-    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins." },
+    { id: "o-mod", text: "Compute roughly how many keys the remainder way moves when one more server joins.", stories: ["add"] },
     { id: "o-owner", text: "Perform a lookup on the ring: find the server that stores a key, wrapping past the top." },
-    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from." },
-    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many." },
-    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out." },
+    { id: "o-add", text: "Predict which keys move when a server joins the ring, and which server they come from.", stories: ["add"] },
+    { id: "o-leave", text: "Explain where a leaving server's keys go, with one seat per server and with many.", stories: ["remove", "vnodes"] },
+    { id: "o-even", text: "Explain why one seat per server shares the ring unevenly, and how more seats even it out.", stories: ["vnodes"] },
   ],
 
   misconceptions: [
