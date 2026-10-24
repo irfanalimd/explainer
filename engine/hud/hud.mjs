@@ -1008,9 +1008,11 @@ export function createHud(root, opts = {}, cb = {}) {
     labels, track, ticks, hoverLine, playhead);
   const scrubWrap = h("div", { class: "ix-scrub-wrap" }, scrub);
   const countCur = h("span", { class: "ix-count-cur", text: "0" });
+  // figure spaces (a digit's width) ahead of "Step" keep the count's width as the step number grows, with no gap in it
+  const countPad = h("span", { class: "ix-count-pad" });
   const countTot = h("span", { class: "ix-count-tot", text: "0" });
   const countTag = h("span", { class: "ix-count-tag", text: "Detour", hidden: true });
-  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, h("span", { class: "ix-count-word", text: "Step" }), countCur,
+  const counter = h("div", { class: "ix-count", "aria-hidden": "true" }, countTag, countPad, h("span", { class: "ix-count-word", text: "Step" }), countCur,
     h("span", { class: "ix-count-sep", text: "of" }), countTot);
   // the speed is always visible, with its name; the menu says what each value means
   const speedVal = h("span", { class: "ix-speed-val", text: "1×" });
@@ -1856,10 +1858,11 @@ export function createHud(root, opts = {}, cb = {}) {
     // on a detour the count is the detour's own steps, from the pick, under its name
     const k = S.detour?.step ?? 0, n = S.steps.length - k;
     const digits = String(Math.max(1, n)).length;
-    countCur.style.minWidth = `${digits}ch`;
     countTot.textContent = String(n);
     countTag.hidden = !S.detour;
-    countCur.textContent = String(clamp(S.step - k, 0, n - 1) + 1);
+    const cur = String(clamp(S.step - k, 0, n - 1) + 1);
+    countPad.textContent = "\u2007".repeat(Math.max(0, digits - cur.length));
+    countCur.textContent = cur;
   }
 
   // scrubbing with the pointer
