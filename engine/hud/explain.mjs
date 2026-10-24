@@ -1,7 +1,8 @@
 // The explain panel: the teacher, and the one place the words live on a wide screen.
 //   Wide screens (>= 1200 px): a stationary card on the right, under the toolbar and above the dock. Its header holds
 //   the progress map (a dot per chapter, the current one ringed, each a way to jump), the chapter's name, the lesson's
-//   goal and the level switch (level.mjs). Under it: the chapter's about line, the chapter entry card on its first step
+//   goal and the level, one quiet line ("Level  I know the basics") that opens the level switch (level.mjs): the reader
+//   picked it on the start card, so it waits until they want to change it. Under it: the chapter's about line, the chapter entry card on its first step
 //   (chapter-card.mjs), the current step in layers (layers.mjs), then the chapter's earlier steps, newest first, each a
 //   way back, folded to one line ("Earlier: 4 steps") so the current step is the one thing to read (the reader's
 //   choice to open them is remembered). At a chapter pause the current step becomes the chapter's recap; at the end of the run it carries the
@@ -26,6 +27,7 @@ import { createLayers } from "./layers.mjs";
 import { createProgress } from "./progress.mjs";
 import { detourOf } from "./turn.mjs";
 import { chapterCard, pictureMap } from "./chapter-card.mjs";
+import { LEVELS } from "./level.mjs";
 
 const SVG = (body) => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const ICON = {
@@ -81,7 +83,7 @@ export function createExplain(ctx) {
   const { root, doc, h, parent, caption, bar, store, markupOpts, markup } = ctx;
   const S = { tl: null, main: null, detour: null, lesson: null, steps: [], phases: [], first: new Map(), step: -1, ph: -1,
     shown: { step: -2, ph: -2, tl: null, sig: "" }, mode: "", size: "", open: store.get("explain") !== "0", sheet: false,
-    earlierOpen: store.get("earlier") === "1",
+    earlierOpen: store.get("earlier") === "1", levelOpen: false,
     held: null, askEl: null, capOverride: null, aboutDefs: null, aboutFirst: -1, aboutOpen: false, pictureOpen: false,
     mapOpen: null };   // the entry card's picture: null lets fit() fold it, true / false is the reader's choice
 
@@ -93,7 +95,12 @@ export function createExplain(ctx) {
 
   const titleEl = h("h2", { class: "ix-ex-title" });
   const goalEl = h("p", { class: "ix-ex-goal" });
-  const levelEl = h("div", { class: "ix-ex-level" });
+  const levelBox = h("div", { class: "ix-ex-level-box", id: `ix-ex-level-${++uid}`, hidden: true });
+  const levelV = h("span", { class: "ix-ex-level-v" });
+  const levelBtn = h("button", { class: "ix-ex-level-btn", type: "button", "aria-expanded": "false", "aria-controls": levelBox.id,
+    onclick: () => { S.levelOpen = !S.levelOpen; syncLevel(); fit(); } },
+  h("span", { class: "ix-ex-level-k", text: "Level" }), levelV, h("span", { class: "ix-ex-level-chev", html: ICON.chevron }));
+  const levelEl = h("div", { class: "ix-ex-level" }, levelBtn, levelBox);
   const headBtn = h("button", { class: "ix-btn ix-ex-hide", type: "button", onclick: () => toggle() });
   const head = h("div", { class: "ix-ex-head" });
   const entry = h("div", { class: "ix-ex-entry" });
@@ -195,7 +202,7 @@ export function createExplain(ctx) {
     S.first = firstUses(S.steps, S.phases);
     S.step = -1; S.ph = -1;
     S.shown.tl = null;
-    if (S.lesson && !levelEl.firstChild) levelEl.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
+    if (S.lesson && !levelBox.firstChild) levelBox.append(ctx.level.control(h, { cls: "ix-ex-levels" }));
     levelEl.hidden = !S.lesson;
   }
   const phaseOf = (i) => {
@@ -267,6 +274,7 @@ export function createExplain(ctx) {
       more ? h("div", { class: "ix-ex-aboutrow" }, about, more) : about, aboutDefs)] : []));
     S.aboutDefs = aboutDefs; S.aboutFirst = first; S.aboutMore = clamp ? more : null;
     syncAbout();
+    syncLevel();
   }
 
   function render(force, animate = false) {
@@ -377,6 +385,15 @@ export function createExplain(ctx) {
     return out;
   }
 
+  // the level line names the reader's level; the switch opens under it
+  function syncLevel() {
+    const name = LEVELS.find((l) => l.id === ctx.level.value)?.label ?? "";
+    levelV.textContent = name;
+    levelBtn.setAttribute("aria-label", `Level: ${name}. ${S.levelOpen ? "Hide" : "Change"} it`);
+    levelBtn.setAttribute("aria-expanded", String(S.levelOpen));
+    levelBox.hidden = !S.levelOpen;
+    levelEl.classList.toggle("ix-ex-level-open", S.levelOpen);
+  }
   // folded (docked, until the reader opens it) the list leaves the layout; the sheet always shows it
   function syncEarlier() {
     const open = S.earlierOpen || S.mode !== "docked";

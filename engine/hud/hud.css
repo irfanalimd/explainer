@@ -1374,7 +1374,19 @@
 .ix-ex-title { min-width: 0; padding-right: 8px; font-size: var(--ix-fs-lg); line-height: var(--ix-lh-lg); font-weight: 600; letter-spacing: var(--ix-tr-lg); color: var(--ix-ink); text-wrap: balance; }
 .ix-ex-goal { padding-right: 8px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink-muted); text-wrap: pretty; }
 .ix-ex-goal-k { margin-right: 8px; font-size: var(--ix-fs-xs); font-weight: 500; color: var(--ix-ink-faint); }
-.ix-ex-level { margin: 12px 8px 0 0; }
+.ix-ex-level { margin: 8px 8px 0 0; }
+/* the level as one quiet line (the start card asked it); it opens the switch under it */
+.ix-ex-level-btn {
+  display: inline-flex; align-items: center; gap: 8px; height: 28px; margin-left: -8px; padding: 0 8px; border-radius: var(--ix-r-sm);
+  font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); font-weight: 500; color: var(--ix-ink-muted); white-space: nowrap;
+  transition: background-color var(--ix-dur-fast) var(--ix-ease), color var(--ix-dur-fast) var(--ix-ease);
+}
+.ix-ex-level-k { color: var(--ix-ink-faint); }
+.ix-ex-level-chev { display: inline-grid; margin-left: -4px; color: var(--ix-ink-faint); transition: transform var(--ix-dur-slow) var(--ix-ease); }
+.ix-ex-level-open .ix-ex-level-chev { transform: rotate(180deg); }
+.ix-ex-level-btn:hover { background: var(--ix-hover); color: var(--ix-ink); }
+.ix-ex-level-box { margin-top: 4px; }
+.ix-ex-level-box[hidden] { display: none; }
 .ix-ex-levels { width: 100%; }
 .ix-ex-levels .ix-seg-opt { padding: 0 8px; }
 
