@@ -10,7 +10,7 @@ never met MapReduce. The reader should leave knowing:
 - moving the slips to their counters (the shuffle) is where data crosses the network;
 - a failed or slow piece is simply read again elsewhere, because the text is still in the shared input (a reading
   machine's slips live on its own disk, so even a finished piece on a dead machine is read again);
-- the same rule that makes counts exact puts a very common word's whole load on one machine; adding up repeats on
+- the same rule that makes counts exact puts the whole load of a word on most lines onto one machine; adding up repeats on
   each reader first (the combiner) shrinks it.
 
 - **Source:** Dean & Ghemawat, "MapReduce: Simplified Data Processing on Large Clusters", OSDI 2004
@@ -35,13 +35,13 @@ never met MapReduce. The reader should leave knowing:
     machine that should get this one"; a wrong pick plays out for real and splits the word's count in two), and in
     Reduce, "reduce 0 holds 7 slips, sorted. How many totals will it write?" (one per different word, not one sum).
   - One machine crashes: what happens to the crashed piece. One machine is slow: what the master does about it.
-  - One word is very common: where all ten "200" slips go (a hash spreads different words, never the copies of one),
+  - One word is everywhere: where all ten "200" slips go (a hash spreads different words, never the copies of one),
     and which fix takes the work off the busy counter (more counters, sending some 200s elsewhere, or adding up
     repeats first). The step after it runs the run's own hash with one more counter: every 200 still meets on one.
 - **End check, per story** (`s.check`, answered from the run's rules at a situation it did not show). Everything
   works: another number of counters, one more copy of a word, more reading machines. One machine crashes: a machine
   that dies after finishing, then the counters question again. One machine is slow: keeping both copies' slips, one
-  reading machine, then the one-more-word question again. One word is very common: the combiner turned on, a backup
+  reading machine, then the one-more-word question again. One word is everywhere: the combiner turned on, a backup
   copy of the busy counter, more reading machines. So each later story checks its own idea first and brings back one
   of story 1's. "You can now…" lists only the objectives that story taught (`objectives[].stories`).
 - **Words** (`meta.terms`): master, split, mapper, hash, shuffle, reducer, straggler.
@@ -54,7 +54,7 @@ never met MapReduce. The reader should leave knowing:
 | Everything works | 11 words, 8 different, counted by 3 reading and 2 counting machines; 85 bytes cross the network. | The whole pipeline: split, map, shuffle, reduce, output. |
 | One machine crashes | A reading machine crashes after 2 of its 4 words; its slips are lost and the master has split 1 read again. | Reading a piece again is safe: the text survives, and the same piece gives the same slips. |
 | One machine is slow | One machine's disk is failing, so the master races a backup copy of its piece on a free machine. | The backup finishes first, the slow copy is stopped, and the answer is the same. |
-| One word is very common | A web log where the status code `200` is almost every line, over 3 counting machines. | One very common word piles its whole load onto one machine (reduce 0 gets 12 of 14 slips). A last step computes, from the same run, what the combiner would send instead (7 slips, 5 to reduce 0). |
+| One word is everywhere | A web log where the status code `200` is almost every line, over 3 counting machines. | One word on most lines piles its whole load onto one machine (reduce 0 gets 12 of 14 slips). A last step computes, from the same run, what the combiner would send instead (7 slips, 5 to reduce 0). |
 
 **Knobs:** reading machines (1–6), counting machines (1–4), add up repeats first (the combiner), text to count, seed.
 
