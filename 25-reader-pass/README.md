@@ -65,5 +65,4 @@ split, Chrome's hidden-tab throttling, Node's `nextTick` order, `scheduler.yield
 ## Next
 
 1. The scenario name "One word is very common": keep or rename (README and hero image included).
-2. `scripts/review-packet.mjs:116` joins a reveal as "…, because A counter…" with a capital after "because"; readers
-   never see it, but the packet should read cleanly.
+2. Done: the review packet now gives a revealed answer's why its own sentence ("… Why: …").
