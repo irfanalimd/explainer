@@ -54,9 +54,9 @@ export const lesson = {
   objectives: [
     { id: "o-descend", text: "Predict how many pages a search reads from the tree's height, not from how many pages it has." },
     { id: "o-split", text: "Perform a split: say which ids stay, which move to the new page, and which id goes up." },
-    { id: "o-grow", text: "Explain why the tree grows a new level at the top, so every bottom page stays equally deep." },
+    { id: "o-grow", text: "Explain why the tree grows a new level at the top, so every bottom page stays equally deep.", stories: ["sequential", "rootsplit"] },
     { id: "o-scan", text: "Count the pages a range search reads: one per level going down, then one per page walked along." },
-    { id: "o-seq", text: "Explain why ids that only grow leave half-full pages behind when every split is down the middle." },
+    { id: "o-seq", text: "Explain why ids that only grow leave half-full pages behind when every split is down the middle.", stories: ["sequential"] },
   ],
 
   misconceptions: [
