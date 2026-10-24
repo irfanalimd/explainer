@@ -117,7 +117,7 @@ export const lesson = {
     split: {
       teach: { prompt: "On the board, split the textbook's example, 2 8 7 1 3 5 6 4, around its last number, 4: scan left to right, and swap each number no bigger than 4 to the front.", listen: "It ends 2 1 3 4 7 5 6 8, the line in CLRS's Figure 7.1: 4 sits right after the three numbers no bigger than it. Ask what stays true of every slot left of `i` at each step.", minutes: 5 },
       "teach@dups": { prompt: "Before the scan: where should a number equal to the pivot go: left, right, or neither?", listen: "Expect “neither” or “right”. This code's test is “no bigger than the pivot”, so copies go left; a three-way split keeps them in a middle group instead.", minutes: 3 },
-      about: "Pick one number, the {term:pivot}, like the chosen person in the line. Numbers smaller than it or equal to it go to its left, bigger ones to its right.",
+      about: "Pick one number, the {term:pivot}, like the chosen person in the line. Numbers smaller than it or equal to it go to its left, bigger ones to its right. Slots are numbered from 0, as in the code.",
       enter: { sofar: "The simple way checks every pair: {count:worst|comparison}.", now: "Choose one number, and move each other number to its left or its right.", done: "Every number left of `i` is no bigger than the chosen one." },
       "enter@dups": { sofar: "The simple way checks every pair, ties or not: {count:worst|comparison}.", now: "Choose one number, and move each other number left or right, even its copies.", done: "Every number left of `i` is no bigger than the chosen one." },
     },
@@ -405,7 +405,7 @@ export const lesson = {
         plain: "Sorted with {count:comparisons|comparison}, where checking every pair takes {worst}.",
         why: "{count:saved|comparison} never happened: pairs split apart by a pivot never meet.",
         deeper: {
-          cost: "With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1 + 1/2 + … + 1/n: about 1.39 n log2 n, or 20.6 for 9 numbers and 32.7 for 12. This run made {comparisons}.",
+          cost: "With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1 + 1/2 + … + 1/n: 20.6 for 9 numbers and 32.7 for 12. For large n it grows like 1.39 n log2 n. This run made {comparisons}.",
           edge: "The worst case is still every pair: McIlroy showed any deterministic pivot rule has inputs that force it.",
           real: "Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort (two pivots, three groups); Rust's `sort_unstable` is ipnsort, a quicksort that falls back to heapsort so it is never quadratic.",
           source: "[mcilroy1999]; [java-arrays]; [rust-sort]",

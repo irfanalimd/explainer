@@ -102,7 +102,7 @@ export const scenarios = [
     recap: [
       "With only three values, many numbers equal the pivot.",
       "Equal counts as small, so every copy went to the left side.",
-      "Lopsided splits placed few numbers each, so few pairs were skipped.",
+      "Lopsided splits placed few numbers each, so few pairs, or none, were skipped.",
     ] },
 ];
 
