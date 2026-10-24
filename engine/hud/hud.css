@@ -671,7 +671,7 @@
 .ix-opt.ix-wrong, .ix-predict.ix-locked .ix-opt.ix-wrong:hover { background: rgb(var(--ix-fail-rgb) / 0.08); box-shadow: inset 0 0 0 1.5px rgb(var(--ix-fail-rgb) / 0.6); }
 .ix-opt.ix-wrong .ix-opt-key { background: var(--ix-fail); color: var(--ix-key-ink); box-shadow: none; }
 .ix-opt.ix-wrong .ix-opt-mark { color: var(--ix-fail-text); }
-.ix-predict-foot { margin-top: 12px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
+.ix-predict-foot { margin-top: 16px; font-size: var(--ix-fs-xs); line-height: var(--ix-lh-xs); color: var(--ix-ink-faint); }
 .ix-predict-said { display: grid; gap: 12px; margin-top: 16px; }
 .ix-predict-why, .ix-predict-fb { display: grid; gap: 4px; font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); color: var(--ix-ink); text-wrap: pretty; }
 .ix-predict-fb { color: var(--ix-ink-muted); }
@@ -1329,7 +1329,7 @@
 .ix[data-size="phone"] .ix-predict-head { margin-bottom: 4px; }
 .ix[data-size="phone"] .ix-predict-q { font-size: var(--ix-fs-sm); line-height: var(--ix-lh-sm); margin-bottom: 12px; }
 .ix[data-size="phone"] .ix-opt { min-height: 44px; padding: 6px 12px 6px 8px; }
-.ix[data-size="phone"] .ix-predict-foot { margin-top: 8px; }
+.ix[data-size="phone"] .ix-predict-foot { margin-top: 14px; }
 /* the answer's feedback and why sit as close under the options as on a short screen, so a long question still fits
    between the header and the transport */
 .ix[data-size="phone"] .ix-predict-said { margin-top: 8px; gap: 8px; }
