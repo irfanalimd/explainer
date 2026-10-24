@@ -208,7 +208,7 @@ export function lintSource(src, file = "figure.mjs") {
       const o = OPENERS.exec(sentence);
       if (o) hit("openers", o[0].replace(/,$/, ""), "drop it; start with the subject", sentence);
       const dashes = sentence.match(EM_DASH)?.length ?? 0;
-      if (dashes) hit("punctuation", "—", dashes > 1 ? "split the sentence: the house style uses no em dashes" : "a comma, a colon or parentheses (the house style uses no em dashes)", sentence);
+      if (dashes) hit("punctuation", "—", dashes > 1 ? "split the sentence: the house style uses no em dashes" : "a comma, a full stop or parentheses (the house style uses no em dashes)", sentence);
       if (/\?\s*["”’)]?$/.test(sentence) && EXPLAINING.has(s.field)) hit("questions", "?", "say the answer as a statement; questions belong in a prediction, the hook or the teacher's prompt", sentence);
       if (REAL_WORLD.has(s.field) && s.parent === "deeper" && !SOURCED.test(sentence)) for (const m of sentence.matchAll(VAGUE)) hit("vague", m[0], "give the number, or name the system and its source", sentence);
     }
@@ -275,13 +275,51 @@ export function lintRepeats(L, { lessonFile } = {}) {
   return hits;
 }
 
+/**
+ * A sentence that opens on a chip whose text starts in lowercase ("the goes to reduce 0", "map 0 is free…"): the
+ * reader takes the chip's word for an article or a fragment. Read from the compiled lesson, since chips are built in
+ * code. Only chips that print their own text count (a key, or a ref with text): a bare {ref:id} prints its entity's
+ * title, which this cannot see; nor do ids such as p1, db05 or user:9, which read as names. One hit per step or chapter.
+ */
+export function lintChipStarts(L, { lessonFile } = {}) {
+  const hits = [], seen = new Set();
+  const where = (id) => { const l = lessonFile && id ? keyLine(lessonFile, id) : null; return l ? { file: "lesson.mjs", line: l } : { file: "lesson", line: null }; };
+  const check = (markup, place, id, field) => {
+    if (!markup || seen.has(place)) return;
+    let list;
+    try { list = tokens(String(markup)); } catch { return; }
+    let start = true;
+    for (const t of list) {
+      if (t.type === "text") { if (t.text.trim()) start = /[.!?…]["”’)]?\s+$/.test(t.text); continue; }
+      const text = t.type === "key" ? t.text : t.type === "ref" ? t.text : null;
+      // a word the reader can mistake for prose ("the", "map 0", "then 1"); ids like p1, db05 or user:9 read as names
+      if (start && text && /^\p{Ll}[\p{Ll}'-]*(?:\s|$)/u.test(text)) {
+        seen.add(place);
+        hits.push({ rule: "chipstart", ...where(id), match: text, field, sentence: clip(narrateText(list)), fix: "start the sentence with a word of your own (\"The word the goes…\"), or move the chip inside it" });
+        return;
+      }
+      start = false;
+    }
+  };
+  for (const st of L.stories ?? []) for (const ch of st.chapters ?? []) {
+    check(ch.raw?.about ?? ch.about, `chapter ${ch.id ?? ch.name}`, ch.id, "about");
+    for (const s of ch.steps ?? []) {
+      const key = s.id ?? `step ${s.index}`;
+      check(s.raw?.layers?.plain ?? s.caption, `${key} plain`, s.id, "plain");
+      check(s.raw?.layers?.why, `${key} why`, s.id, "why");
+    }
+  }
+  return hits;
+}
+const narrateText = (list) => list.map((t) => (t.type === "bold" ? narrateText(t.children) : t.type === "ref" ? (t.text ?? t.id) : t.text)).join("");
+
 // ---------------------------------------------------------------- report
 
 const RULE_NAMES = {
   words: "words to cut or replace", phrases: "stock phrases", contrast: "\"not just X, but Y\" frames", openers: "empty sentence openers",
   hedges: "softeners", fluff: "words that credit the algorithm with a personality", tricolon: "three praise words in a row",
   punctuation: "punctuation the house style avoids", questions: "rhetorical questions in an explanation", vague: "vague amounts in a real-world claim",
-  repeats: "repeated words",
+  repeats: "repeated words", chipstart: "sentences that open on a lowercase chip",
 };
 
 /** One line per hit: `lesson.mjs:144  words  "crucial" → drop it, or say what breaks without it  (why: "…")`. */
@@ -291,7 +329,7 @@ export const formatHit = (h) => `${h.file}${h.line ? `:${h.line}` : ""}  ${h.rul
 export function styleFindings({ figureFile, lessonFile, lesson } = {}) {
   const hits = [];
   for (const f of [figureFile, lessonFile]) if (f && existsSync(f)) hits.push(...lintSource(readFileSync(f, "utf8"), f));
-  if (lesson) hits.push(...lintRepeats(lesson, { lessonFile }));
+  if (lesson) hits.push(...lintRepeats(lesson, { lessonFile }), ...lintChipStarts(lesson, { lessonFile }));
   const by = new Map();
   for (const h of hits) by.set(h.rule, [...(by.get(h.rule) ?? []), h]);
   const warnings = [...by].map(([rule, list]) => ({
