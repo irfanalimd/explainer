@@ -100,25 +100,25 @@ export const meta = {
   cite: "[ongaro2014]",
   theme: "light",
   level: "core",
-  hook: "A few servers keep copies of the same list, and any of them can crash. How do they never end up disagreeing?",
+  hook: "Several servers keep copies of one list, and any of them can crash. How do they make sure the copies never disagree?",
   terms: {
-    leader: "The one server that decides what goes into the notebook. The others copy what it sends.",
-    log: "A server's copy of the notebook: the list of commands, in order.",
+    leader: "The one server that decides what goes into the notebook. The other servers copy what it sends.",
+    log: "A server's copy of the notebook, which is its list of commands, in order.",
     majority: "More than half of all the servers, such as 3 of 5.",
-    term: "An election round number. Each new election raises it, and a newer round beats an older one.",
-    entry: "One line of the log: one command, such as x←3, with the round it was written in.",
+    term: "An election round number. Each new election raises it, and a newer round always beats an older one.",
+    entry: "One line of the log. It holds one command, such as x←3, and the round it was written in.",
     client: "The program outside the servers that sends commands, such as x←3, to be saved.",
     commit: "To make an entry final once a majority store it. A leader counts copies only of its own term's entries.",
     heartbeat: "A short “still here” message the leader sends often, so no one starts an election.",
     partition: "A break in the network that splits the servers into groups that cannot hear each other.",
   },
   recap: [
-    "The servers elected one leader, by majority vote.",
-    "The leader wrote each command into its log and sent copies.",
-    "An entry counted once the leader heard that most servers had it: it was committed.",
-    "In the end every server held the same entries, in the same order.",
+    "The servers elected one leader by majority vote.",
+    "The leader wrote each command into its log and sent copies to the others.",
+    "An entry counted, or was committed, once the leader heard that most servers had it.",
+    "By the end, every server held the same entries in the same order.",
   ],
-  takeaway: "A leader commits an entry of its term once most servers store it. Any two majorities share a server, so a committed entry is never lost.",
+  takeaway: "A leader commits an entry from its own term as soon as most servers store it. Because any two majorities share a server, a committed entry is never lost.",
 };
 
 export const params = {
@@ -140,19 +140,19 @@ export const params = {
 };
 
 export const scenarios = [
-  { id: "happy", label: "Everything works", whatIf: "nothing goes wrong",
-    description: "The servers vote for a leader, which copies each command to most of the others before it counts." },
+  { id: "happy", label: "Everything works", whatIf: "every server stays up",
+    description: "The servers elect a leader, and the leader copies each command to most of the others before it counts." },
   { id: "crash", label: "The leader crashes", whatIf: "the leader crashes partway through",
     description: "The leader crashes while copying a command, and the others pick a new one without losing anything that counted.",
-    takeaway: "The leader crashed and nothing committed was lost: only a server holding every committed entry could win the new vote.",
+    takeaway: "The leader crashed, and nothing committed was lost, because only a server holding every committed entry could win the new vote.",
     recap: [
       "The leader crashed while a command was still being copied.",
-      "The others voted for a new leader whose log was as complete as theirs.",
-      "Nothing committed was lost, and the old leader caught up when it came back.",
+      "The others elected a new leader whose log was at least as complete as theirs.",
+      "Nothing committed was lost, and the old leader caught up once it came back.",
     ] },
   { id: "partition", label: "The network splits in two", whatIf: "the network splits in two",
     description: "The network splits, leaving the leader on the smaller side. The bigger side picks its own leader, then the network joins up again.",
-    takeaway: "A leader on the smaller side of a split cannot commit anything. When the network joins up, its uncommitted entries give way.",
+    takeaway: "A leader on the smaller side of a split can't commit anything. When the network joins up again, its uncommitted entries are replaced.",
     recap: [
       "The split left the old leader with too few servers for a majority.",
       "The bigger side elected a new leader in a newer term and kept going.",
@@ -164,13 +164,13 @@ export const counters = {
   term: { label: "election term", short: "term", format: "int", primary: true,
     hint: "The election round number. It goes up by one each time a server runs for leader." },
   committed: { label: "entries committed", short: "committed", format: "int", primary: true,
-    hint: "Entries a leader has heard are stored on more than half of the servers, each empty nop included. A committed entry is never lost." },
+    hint: "Entries the leader has heard are stored on more than half of the servers, counting each empty nop. A committed entry is never lost." },
   leaderless: { label: "time without a leader", short: "no leader", format: "ms", primary: ["crash", "partition"],
     hint: "The latest stretch with no leader, from boot or a failure until the next election is won." },
   messages: { label: "messages sent", format: "int",
     hint: "Every vote request, update, heartbeat and reply sent between the servers and the client." },
   lost: { label: "messages lost", format: "int",
-    hint: "Messages that never arrived: cut off by a network split, lost on the way, or sent to a crashed server." },
+    hint: "Messages that never arrived, because a network split cut them off, they were lost on the way, or they went to a crashed server." },
 };
 
 // the handlers the simulation runs, line for line; s.line lights the ones each step executes
@@ -595,8 +595,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
     if (kept.length) {
       const what = kept.join(", ");
       ask("reelect.survive", `${T(crashed)} crashed after ${what} was committed. Will the new leader still have ${what}?`,
-        [`No: it was lost with ${T(crashed)}`, "Yes: voters only back a log as complete as theirs", "Only if the client sends it again"], 1,
-        `A majority stored ${what}. Any winning majority includes one of them, and that server refuses a log without it.`);
+        [`No, it was lost with ${T(crashed)}`, "Yes, voters only back a log as complete as theirs", "Only if the client sends it again"], 1,
+        `${what} was on a majority before the crash, and the vote check made sure the winner's log includes it.`);
       return say(ctx, "reelect.win", { ...won, kept: kept.map(K) }, `${R(ctx.id)} wins term ${st.term} once ${st.votes.length} of ${N} votes arrive. Its log still has ${fmt.and(kept.map(C))}.`);
     }
     say(ctx, "elect.win", { ...won, noop }, `${R(ctx.id)} wins term ${st.term} once ${st.votes.length} of ${N} votes arrive` +
@@ -725,7 +725,7 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
           const old = st.log[i - 1];
           ask("heal.replaced", `The network has joined up again. What happens to ${T(ctx.id)}'s uncommitted ${old.cmd} from term ${old.term}?`,
             [`${T(ctx.id)} copies it to everyone`, `It is replaced by the term-${e.term} leader's log`, `It counts, because ${T(ctx.id)} led first`], 1,
-            `${old.cmd} never reached a majority, so it never counted. The leader of the newer term decides what stays.`);
+            `Only committed entries are protected, and ${old.cmd} never reached a majority, so the newer term's log wins.`);
         }
         cut += lastIndex(st) - i + 1;
         st.log.length = i - 1;
@@ -809,8 +809,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
         // the aha: the first client command to reach a majority counts now, without waiting for every server
         const first = st.log.slice(before, st.commitIndex).find((e) => e.client);
         if (first && have < N) {
-          ask("copy.commit", `${T(ctx.id)} has heard that ${first.cmd} is on ${have} of the ${N} servers, itself included. Can it count it as committed now?`,
-            [`No: all ${N} servers must have it first`, `Yes: ${have} of ${N} is a majority`, `Yes: it was safe once ${T(ctx.id)} wrote it`], 1,
+          ask("copy.commit", `${T(ctx.id)} has heard that ${first.cmd} is on ${have} of the ${N} servers, counting itself. Can it treat it as committed now?`,
+            [`No, all ${N} servers must have it first`, `Yes, ${have} of ${N} is a majority`, `Yes, it was safe as soon as ${T(ctx.id)} wrote it`], 1,
             `Any later majority must include one of these ${have} servers, so ${first.cmd} can never be lost.`);
         }
         const head = `${R(ctx.id)} hears ${C(top.cmd)} is on ${have} of ${N}, a majority: it {tone:ok|commits} it`;
@@ -830,8 +830,8 @@ export function buildRaft(s, p, scenario = "happy", opt = {}) {
         line("commit");   // the majority check is what fails
         const held = 1 + ctx.peers.filter((x) => (st.matchIndex[x] ?? 0) >= upTo).length;
         ask("split.minority", `${T(ctx.id)} is cut off with only ${T(f)}, which has just stored ${pend.cmd}. Can ${T(ctx.id)} commit it?`,
-          [`Yes: ${T(ctx.id)} is still the leader`, `No: ${held} of ${N} servers is not a majority`, `Yes: once ${T(f)} confirms it`], 1,
-          `A majority of ${N} is ${majority}. The other ${N - held} servers can't hear ${T(ctx.id)}, so ${pend.cmd} can't reach ${majority}.`);
+          [`Yes, ${T(ctx.id)} is still the leader`, `No, ${held} of ${N} servers is not a majority`, `Yes, once ${T(f)} confirms it`], 1,
+          `A majority of ${N} is ${majority}, and the other ${N - held} servers can't hear ${T(ctx.id)}, so ${pend.cmd} can never get there.`);
         return say(ctx, "split.no-majority", { ...lv, who: chip(f), whoId: f, cmd: K(pend.cmd), held },
           `${R(f)} stores ${C(pend.cmd)}, but ${held} of ${N} servers is no majority: ${R(ctx.id)} cannot commit it.`);
       }
