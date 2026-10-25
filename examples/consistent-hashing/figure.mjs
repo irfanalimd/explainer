@@ -379,7 +379,8 @@ function plan(p, scenario) {
   const Vmax = levels[levels.length - 1];
   const everyone = extra ? [...servers, extra] : servers;
   const stations = keys.map((k) => ({ id: `k.${k.name}`, theta: (k.hash / SPACE) * TAU, w: SIZE.record.w, d: SIZE.record.d, gap: 6 }));
-  for (const t of buildRing(everyone, Vmax)) stations.push({ id: `t.${t.name}`, theta: (t.hash / SPACE) * TAU, w: SIZE.bit.w, d: SIZE.bit.d, gap: 5 });
+  // a seat keeps more room than a record needs: under the camera's tilt a record standing just in front of a seat hides it
+  for (const t of buildRing(everyone, Vmax)) stations.push({ id: `t.${t.name}`, theta: (t.hash / SPACE) * TAU, w: SIZE.bit.w, d: SIZE.bit.d, gap: 14 });
   const geo = layoutRing(stations, everyone);
   return { N, K, V, sc, keys, servers, extra, levels, Vmax, everyone, geo };
 }
