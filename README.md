@@ -40,6 +40,7 @@ make what exists faster, more accurate, leaner and more polished.
 | 28 | World focus | What the step is about keeps its look and the rest recedes; the words a step names are ringed in the world. | [#33](https://github.com/irfanalimd/explainer/pull/33) |
 | 29 | Calm screen | Earlier steps fold, the level is one line, the chrome steps back while the story plays. | [#31](https://github.com/irfanalimd/explainer/pull/31) |
 | 30 | Five lessons, new voice | B+ tree, consistent hashing, linked list, quicksort and virtual memory, said as a teacher would say them. | [#37](https://github.com/irfanalimd/explainer/pull/37) |
+| 31 | Ring seat clearance | Consistent hashing's records no longer hide a seat. | [#38](https://github.com/irfanalimd/explainer/pull/38) |
 
 ## How to review one
 
