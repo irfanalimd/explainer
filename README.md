@@ -13,7 +13,7 @@ make what exists faster, more accurate, leaner and more polished.
 | 5 | [#34](https://github.com/irfanalimd/explainer/pull/34) | the original tile look (#20), sources, writing and example rewrites (#21–#25), smooth motion and faster full frames (#26, #27), reader passes and the visual defect pass (#28–#30): what the live site is built from | **merged** |
 | 6 | [#35](https://github.com/irfanalimd/explainer/pull/35) | guiding the reader's eye: a ring on the next thing to do, the world's focus on the step, a calmer screen (#31–#33), and MapReduce's lesson in a teacher's voice | **merged** |
 | 7 | [#36](https://github.com/irfanalimd/explainer/pull/36) | Raft and the event loop in the same voice, and the writing rules that ask for it | **merged** |
-| 8 | [#37](https://github.com/irfanalimd/explainer/pull/37) | the other five lessons in the same voice ([30](30-examples-voice/)) | **draft** |
+| 8 | [#37](https://github.com/irfanalimd/explainer/pull/37) | the other five lessons in the same voice ([30](30-examples-voice/)) | **merged** |
 
 | | Branch | What changes | Pull request |
 |---|---|---|---|
