@@ -71,7 +71,7 @@ export const meta = {
     recursion: "solving each smaller piece with the same steps, until the pieces are too small to need it",
   },
   recap: [
-    "Pick one number, the pivot: numbers no bigger go left, bigger ones right.",
+    "We picked one number, the pivot. Smaller or equal numbers went left, bigger ones right.",
     "The pivot then sits in its final slot and never moves again.",
     "Each side is split the same way, until every group has one number or none.",
     "The two sides are never compared, so even splits skip most pairs.",
@@ -89,12 +89,12 @@ export const scenarios = [
   { id: "random", label: "Shuffled numbers", params: { order: "random" }, whatIf: "the numbers are shuffled",
     description: "Shuffled numbers, the usual case: each split leaves two smaller groups to sort." },
   { id: "sorted", label: "Already sorted input", params: { order: "sorted" }, whatIf: "the numbers are already in order",
-    description: "The numbers are already in order, so each split peels off one number: the slowest case for this way of choosing.",
-    takeaway: "With the last number as pivot, sorted input is the slowest case: every pair gets compared. A random or middle pivot avoids it.",
+    description: "The numbers are already in order, so each split peels off only one number, which is the slowest case for this way of choosing.",
+    takeaway: "With the last number as pivot, sorted input is the slowest case, because every pair gets compared. A random or middle pivot avoids it.",
     recap: [
       "In sorted input the last number of a group is always the biggest.",
       "So every split put all the others on one side and placed only one.",
-      "Nothing was skipped: every pair was compared, the slowest this pivot rule can be.",
+      "Nothing was skipped. Every pair was compared, which is the slowest this pivot rule can be.",
     ] },
   { id: "dups", label: "Lots of repeated numbers", params: { order: "dups" }, whatIf: "most of the numbers are the same",
     description: "Only three different values, so copies of the chosen number all pile up on one side.",
@@ -352,7 +352,7 @@ export function build(s, p, scenario, env = {}) {
     const right = !k ? `Slot ${q}, at the front: every other number is bigger`
       : `Slot ${q}, right after the ${repeats ? `${fmt.plural(k, "number")} no bigger than it` : fmt.plural(k, "smaller number")}`;
     s.ask(`Where will the pivot, ${pivot}, end up?`, [right, `In the middle, slot ${mid}`, `Where it is now, slot ${hi}`], 0,
-      { id: "place.where", why: `${k} of the other ${hi - lo} numbers ${k === 1 ? "is" : "are"} no bigger than ${pivot}, so it belongs right after them. The pivot was picked for being last, not for being the middle one.` });
+      { id: "place.where", why: `${k} of the other ${hi - lo} numbers ${k === 1 ? "is" : "are"} no bigger than ${pivot}, so it belongs right after them. The pivot was picked for being last, and nothing makes it the middle value.` });
   }
 
   // the aha, once: after the first split, a number on the left is never compared with one on the right
@@ -381,7 +381,7 @@ export function build(s, p, scenario, env = {}) {
           used = true;
           s.ask(`${x} is left of ${pivot} and ${y} is right of it. Will ${x} and ${y} ever be compared?`,
             ["Yes: every pair is compared in the end", "No: the two sides are sorted separately", "Only if one of them becomes a pivot"], 1,
-            { id: "repeat.compared", why: `Each side of ${pivot} is sorted on its own, with its own pivots. ${x} and ${y} are never compared: that skipping is the saving.` });
+            { id: "repeat.compared", why: `Each side of ${pivot} is sorted on its own, with its own pivots, so ${x} and ${y} are never compared. Skipping pairs like that is where the saving comes from.` });
           s.tag(a.tile(q + 1), "sorted on its own, later");
           return { vars: { other: num(q + 1), otherId: a.tile(q + 1), left, leftId: left.ref }, caption: (l, h, P) => (l === h
             ? `Left of ${pv}: ${P} is alone, so it is placed. ${chip(q + 1)} is never compared with it.`

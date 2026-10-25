@@ -88,8 +88,8 @@ export const meta = {
     cache: "Small, fast memory beside the CPU that keeps copies of recently read memory, so reading again is cheap.",
   },
   recap: [
-    "A program's address is its own number, not a real place in memory.",
-    "Sticky notes, the TLB, are checked first; a miss means a four-level directory walk.",
+    "A program's address is its own number, and it names no real place by itself.",
+    "The sticky notes, the TLB, are checked first, and a miss means a four-level walk.",
     "The note made every later read in that page take one cycle.",
     "Program B's same address led through its own directory to a different room.",
   ],
@@ -113,7 +113,7 @@ export const scenarios = [
   { id: "miss", label: "A new address", whatIf: "the program reads a new address",
     description: "Nothing is noted for this page yet, so the CPU looks it up in the program's directory. Then a second program uses the same address." },
   { id: "hit", label: "A recent address", whatIf: "the page was used a moment ago",
-    description: "The page was used a moment ago, so a sticky note already holds its room: one cycle, no directory.",
+    description: "The page was used a moment ago, so a sticky note already holds its room, and the lookup takes one cycle.",
     takeaway: "With the page already on a sticky note, finding its room takes one cycle and never opens the directory.",
     recap: [
       "The page was used a moment ago, so a sticky note had its room.",
@@ -121,10 +121,10 @@ export const scenarios = [
       "The directory was never opened.",
     ] },
   { id: "fault", label: "The page isn't in memory", whatIf: "the page was moved out to disk",
-    description: "The page was moved out to disk: the CPU stops, the operating system fetches it back, and the read starts over.",
+    description: "The page was moved out to disk, so the CPU stops, the operating system fetches it back, and the read starts over.",
     takeaway: "A page out on disk costs tens of thousands of cycles. That is why the operating system keeps busy pages in memory.",
     recap: [
-      "The directory said the page was out on disk: a page fault.",
+      "The directory said the page was out on disk, which is a page fault.",
       "The kernel copied it into a free room and fixed the directory line.",
       "The read started over, walked the directory again and found the room.",
     ] },
@@ -726,7 +726,7 @@ export function build(s, p, scenario, env = {}) {
     s.phase("Try again", { id: "retry", about: "The CPU runs the same read again from the start. No sticky note has the page, so it walks the directory again; this time its lines are in the fast {term:cache}." });
     s.ask("The read starts over. Will a sticky note have the page now?",
       ["Yes: the kernel has put the page back in memory", "No: no note was written, so it walks again"], 1,
-      { id: "retry.note", why: "The CPU writes a note only after a walk that finds the room, and the kernel fixed the directory, not the notes." });
+      { id: "retry.note", why: "The CPU writes a note only after a walk that finds the room, and the kernel fixed only the directory." });
     lookup(va0, { quiet: true });
     step("retry.miss", `Still no note: a {tone:warn|miss}. The CPU only writes a note after a walk that succeeds.`, {}, { keep: true });
     w = quickWalk("retry.walk", va0, (reads, cost, hits) => (hits === 4

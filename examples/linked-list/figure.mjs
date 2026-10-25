@@ -18,7 +18,7 @@ export const meta = {
   cite: "[knuth1] §2.2.3",
   theme: "light",
   hook: "Putting a number in the middle of an array means sliding everything after it over. Can we insert without moving anything?",
-  takeaway: "A linked list never moves its items: an insert changes two arrows. It pays with a walk from head and an extra address in every node.",
+  takeaway: "A linked list never moves its items, because an insert only changes two arrows. It pays for that with a walk from head and an extra address in every node.",
   terms: {
     address: "The number that says where something is stored in memory, like a house number, such as 0x7f3a_2c10.",
     node: "One item of a linked list: a little box holding a value and the address of the next box.",
@@ -43,23 +43,23 @@ const FIND = 5;   // "Find the 5th item"
 
 export const scenarios = [
   { id: "insert", label: "Insert in the middle", whatIf: "we insert in the middle",
-    description: "An array slides items over to make room; the linked list changes two arrows and moves nothing." },
+    description: "An array slides items over to make room, while the linked list changes two arrows and moves nothing." },
   { id: "find", label: "Find the 5th item", whatIf: "we look for the 5th item",
-    description: "An array works out where the 5th item is; the linked list has to walk there, arrow by arrow.",
-    takeaway: "An array finds item k with one calculation. A linked list has no shortcut: it follows k − 1 arrows from head.",
+    description: "An array works out where the 5th item is, while the linked list has to walk there, arrow by arrow.",
+    takeaway: "An array finds item k with one calculation. A linked list has no shortcut, so it follows k − 1 arrows from head.",
     recap: [
-      "The array found the item with one sum: start + (k − 1) × 4.",
+      "The array found the item with one sum, start + (k − 1) × 4.",
       "A node's address is written only in the node before it.",
       "So the list walked from head, one arrow per item.",
     ] },
   { id: "wrong", label: "Arrows in the wrong order", whatIf: "the arrows change in the wrong order",
-    description: "The same insert with its two arrow changes swapped: the rest of the list is cut off and lost.",
+    description: "The same insert with its two arrow changes swapped, which cuts off the rest of the list and loses it.",
     start: "Wrong order",
-    takeaway: "Before you overwrite an arrow, save where it pointed: point the new node onward first, then point the old one at it.",
+    takeaway: "Before you overwrite an arrow, save where it pointed. Point the new node onward first, and only then point the old node at it.",
     recap: [
       "Changing the old arrow first erased the only copy of the next address.",
       "The new node then pointed at itself, and the rest of the list was lost.",
-      "In the right order the new node saves the address first. Nothing is lost.",
+      "In the right order the new node saves the address first, and nothing is lost.",
     ] },
 ];
 

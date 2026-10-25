@@ -53,21 +53,21 @@ export const meta = {
   level: "core",
   cite: "[comer1979]",
   theme: "light",
-  hook: "A table of a million orders. How does a database find one order in three or four reads, instead of checking every row?",
+  hook: "Picture a table with a million orders. How does a database find one in three or four reads, without checking every row?",
   terms: {
     index: "a sorted guide that says where each row is, like the tabs of a phone book",
-    page: "a fixed-size block that the disk reads in one go; here it holds a few ids",
+    page: "a fixed-size block that the disk reads in one go. Here each one holds a few ids",
     root: "the top page of the tree, where every search starts",
     leaf: "a page at the bottom of the tree, holding the ids themselves",
-    separator: "an id in an upper page that says which way to go: smaller ids go left",
+    separator: "an id in an upper page that tells a search which way to go. Smaller ids go to its left",
   },
   recap: [
     "Without an index, finding one id meant checking them one by one.",
-    "The tree keeps ids sorted in pages; a full page splits in two.",
+    "The tree keeps its ids sorted in pages, and a full page splits in two.",
     "Signposts in the upper pages lead each search down, one page per level.",
-    "The bottom pages are linked, so a range is a walk along them.",
+    "The bottom pages are linked, so a range search walks along them.",
   ],
-  takeaway: "A B+ tree finds any id by reading one page per level, and stays shallow because full pages split and it grows at the top.",
+  takeaway: "A B+ tree finds any id by reading one page per level. It stays shallow because full pages split, and the only new level it ever adds goes on top.",
 };
 
 export const params = {
@@ -83,11 +83,11 @@ export const scenarios = [
     description: "Ids arrive in random order, land in pages all over the tree, and full pages split in two." },
   { id: "sequential", label: "Ids that only grow", params: { pattern: "sequential" }, whatIf: "every new id is bigger than the last",
     description: "Each new id is bigger than the last, so every insert goes to the far right and leaves part-full pages behind.",
-    takeaway: "With the textbook split in half, rising ids fill only the right edge and leave part-full pages behind. Real databases spot rising ids and split unevenly instead.",
+    takeaway: "When every split is down the middle, rising ids only ever fill the right edge and leave part-full pages behind them. Real databases notice rising ids and split unevenly instead.",
     recap: [
       "Every new id was the biggest so far, so it went to the far right.",
       "Each split in half left a part-full page behind that no later id would reach.",
-      "The tree grew taller and emptier than it needed to be.",
+      "So the tree ended up taller and emptier than it needed to be.",
     ] },
   // chosen so every split leaves two half-full leaves: the fifth leaf overflows the root at the 10th insert
   { id: "rootsplit", label: "The top page fills up", params: { order: 3, input: "41 18 63 29 75 52 11 24 84 89 57 35" }, whatIf: "the top page fills up too",
@@ -334,7 +334,7 @@ function run(s, p, scenario, env, keys, dry) {
   syncTree();
   gauges();
   // ---- the problem first: with no index, finding one id means checking them one by one ----
-  s.phase("Without an index", { id: "noindex", about: "Think of a library with no signs and no order: to find one book, you check every spine. A table with no {term:index} works the same way." });
+  s.phase("Without an index", { id: "noindex", about: "Picture a library where the books sit in the order they arrived. To find one, you would check spine after spine. A table with no {term:index} is the same." });
   step("noindex.pile", sequential
     ? `${keys.length} orders arrive, each id one bigger than the last. Nothing sorts them yet.`
     : `${keys.length} orders arrive, their ids in no order, like books dropped in a pile.`,
@@ -496,9 +496,9 @@ function run(s, p, scenario, env, keys, dry) {
         (sequential ? " Ids that only grow always take the rightmost path, so only the right edge fills." : "") });
       // the misconception: "a search checks every page"
       if (pageNo > height()) {
-        s.ask(`${k} is next. How many pages must the search read to find the leaf it belongs in?`,
+        s.ask(`The id ${k} is next. How many pages must the search read to find the leaf it belongs in?`,
           [`${height()}: one page per level`, `All ${pageNo} pages, to be sure`, "Only 1: it goes straight to a leaf"], 0,
-          { id: "descend.reads", why: `Each signpost page points to exactly one page below it, so the search reads one page per level: ${height()} here.` });
+          { id: "descend.reads", why: `Each signpost page points to exactly one page below it, so the search reads one page per level, which is ${height()} here.` });
       }
     }
     const { leaf, path } = insert(k);
@@ -508,9 +508,9 @@ function run(s, p, scenario, env, keys, dry) {
         splitPhase = true;
         s.phase("Leaf split", { id: "split", about: "A full {term:leaf} splits into two half-full leaves. The right leaf's first id is copied up as a signpost, a {term:separator}: smaller ids go left, the rest right. New pages are numbered in the order they are made." });
         if (!willInnerSplit) {
-          s.ask(`${x.id} holds ${x.keys.length} ids, but a page fits ${M}. What happens to it?`,
+          s.ask(`Page ${x.id} now holds ${x.keys.length} ids, but a page only fits ${M}. What happens to it?`,
             ["It splits into two half-full pages", "The new id gets a page of its own", `The page grows to fit ${x.keys.length}`], 0,
-            { id: "split.what", why: `A page has a fixed size on disk, and ${x.keys.length} ids do not fit in it, so ${x.id} must split before it can be saved. Each half then has room for later ids.` });
+            { id: "split.what", why: `A page has a fixed size on disk, and ${x.keys.length} ids don't fit in it, so ${x.id} has to split before it can be saved. Each half then has room for the ids that come later.` });
         }
       }
       if (!x.leaf && !innerPhase) {
@@ -518,9 +518,9 @@ function run(s, p, scenario, env, keys, dry) {
         // the first upper page to overflow is always the root: a lower signpost page exists only after a root split
         s.phase("Root split", { id: "root", about: "A signpost page that is over-full splits too, and its middle id moves up out of it. When the root splits, a new root appears on top: the tree grows at the top, never at the bottom." });
         // the misconception: "the tree grows at the bottom"
-        s.ask(`${x.id} is the top page, and it is over-full too. Where does the tree get its new level?`,
+        s.ask(`Page ${x.id} is the top page, and now it has too many ids as well. Where does the tree get its new level?`,
           ["At the bottom: the leaves go a level deeper", "At the top: a new root appears above it", `Nowhere: ${x.id} just keeps ${x.keys.length} ids`], 1,
-          { id: "root.where", why: `${x.id} splits and its middle id moves up into a brand-new root. So every leaf stays equally deep.` });
+          { id: "root.where", why: `Page ${x.id} splits, and its middle id moves up into a brand-new root. The new level sits above every leaf at once, so all the leaves stay equally deep.` });
       }
       x = split(x, path);
     }
@@ -576,9 +576,9 @@ function run(s, p, scenario, env, keys, dry) {
   while (!r.done) {
     const next = n.next, prev = n;
     if (!hop++) {
-      s.ask(`${n.id} is used up, and the range goes on. How does the search reach the next ids?`,
+      s.ask(`The search has read everything in ${n.id}, and the range goes on. How does it reach the next ids?`,
         ["It walks along to the next leaf", "It climbs back up to the page above", "It starts again from the root"], 0,
-        { id: "scan.next", why: "Each leaf keeps a link to the next one, so the search walks sideways and never re-reads the pages above." });
+        { id: "scan.next", why: "Each leaf keeps a link to the one after it, so the search walks sideways and never reads the pages above it again." });
     }
     s.send(s.uid("q"), n.id, next.id, { key: band(lo) });
     s.beat();

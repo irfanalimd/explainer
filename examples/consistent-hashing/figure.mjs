@@ -67,7 +67,7 @@ export const meta = {
   level: "core",
   cite: "[karger1997]",
   theme: "light",
-  hook: "Several servers share the keys. Add one more server: how many keys have to move?",
+  hook: "Several servers share the keys between them. If you add one more server, how many keys have to move?",
   terms: {
     hash: "a scrambling recipe that turns a name into a big number, the same number every time",
     ring: "every possible number from 0 to about 4.3 billion, bent into a circle that wraps back to 0",
@@ -78,9 +78,9 @@ export const meta = {
     "The remainder way moved more keys than the ring when one more server joined.",
     "On the ring, each key sits with the next server clockwise.",
     "A new server took only the keys just before its new seats.",
-    "The seats share the ring unevenly: the busiest server owns more than its fair share.",
+    "The seats shared the ring unevenly, so the busiest server owned more than its fair share.",
   ],
-  takeaway: "On a ring, a new server takes only the keys just before its seats. The remainder way moves more: on average N keys in N + 1.",
+  takeaway: "On a ring, a new server takes only the keys just before its seats. The remainder way moves far more, on average N keys in every N + 1.",
 };
 
 export const params = {
@@ -95,11 +95,11 @@ export const scenarios = [
     description: "First the simple remainder way, then the ring: a new server takes only the keys just before its seat." },
   { id: "remove", label: "A server leaves", whatIf: "a server leaves",
     description: "A server leaves the ring: only its own keys move, each to the next seat clockwise.",
-    takeaway: "When a server leaves, only its keys move, each to the next seat clockwise; with one seat each, all land on one neighbour.",
+    takeaway: "When a server leaves, only its keys move, each to the next seat clockwise. With one seat each, they all land on one neighbour.",
     recap: [
       "Each key sits with the next server clockwise.",
       "The leaving server's keys moved on to the next seat clockwise.",
-      "No other key moved, and one server took them all: its share grew.",
+      "No other key moved, and one server took them all, so its share grew.",
     ] },
   { id: "vnodes", label: "Many seats per server", params: { vnodes: 8 }, whatIf: "each server takes many seats",
     description: "Each server takes many seats around the ring, so when one leaves, its keys spread over several servers.",
@@ -509,9 +509,9 @@ export function build(s, p, scenario, env) {
     // the right option is the one nearest this run's real count: luck with few keys can make it "about half"
     const movedNow = keys.filter((k) => all[k.hash % n1] !== servers[k.hash % n0]).length;
     const guesses = [K / n1, K / 2, (K * n0) / n1].map((x) => Math.abs(x - movedNow));
-    s.ask(`${extra} joins, so each key now goes to server hash % ${n1}. How many of the ${K} keys change server?`,
+    s.ask(`Server ${extra} joins, so each key now goes to server hash % ${n1}. How many of the ${K} keys change server?`,
       [`About ${Math.round(K / n1)}: the new server's fair share`, "About half of them", "Nearly all of them"], guesses.lastIndexOf(Math.min(...guesses)),
-      { id: "more.moved", why: `A key keeps its server only when its remainders by ${n0} and ${n1} agree: on average 1 key in ${n1}. Here ${movedNow} of ${K} change server.` });
+      { id: "more.moved", why: `A key keeps its server only when its remainders by ${n0} and ${n1} agree, which is 1 key in ${n1} on average. Here ${movedNow} of ${K} change server.` });
     addMod(extra, n1);
     s.set("modzone", { around: [...modIds, `m.${extra}`] });
     for (const sv of all) s.set(`m.${sv}`, { sub: `h % ${n1} = ${all.indexOf(sv)}`, state: { kind: "bucket", server: sv, index: all.indexOf(sv), n: n1 } });
@@ -567,7 +567,7 @@ export function build(s, p, scenario, env) {
       tokenIds: ringNow().map((t) => `t.${t.name}`) }, { min: 2.6 });
 
   // ---- keys: one lookup in full, then the rest arc by arc ----
-  s.phase("Keys", { id: "keys", about: "Each key's name is hashed to a seat too. Like a guest finding a host, the key walks clockwise and sits with the first server it meets." });
+  s.phase("Keys", { id: "keys", about: "Each key's name is hashed onto the ring as well. Then, like a guest looking for a host, the key walks clockwise and sits with the first server it meets." });
   const ownerNow = (h) => successor(ringNow(), h).server;
   // the lookup shown in full: a key whose clockwise walk to its server is long enough to watch
   const walkLen = (k) => { const t = successor(ringNow(), k.hash); return (((t.hash - k.hash) + SPACE) % SPACE) / SPACE; };
@@ -680,14 +680,14 @@ export function build(s, p, scenario, env) {
     const modm = modWhatIf(servers, [...servers, extra]);
     const whole = takes.length === count(pred.server);   // the newcomer takes its neighbour's whole arc (or both hold none)
     s.ask(P.levels[0] === 1
-      ? `${extra} takes over part of ${pred.server}'s arc. Which of the ${K} keys have to move?`
-      : `${extra}'s seats land in ${P.levels[0]} arcs. Which of the ${K} keys have to move?`, [
+      ? `The new server ${extra} takes over part of ${pred.server}'s arc. Which of the ${K} keys have to move?`
+      : `The new server ${extra} has seats in ${P.levels[0]} arcs. Which of the ${K} keys have to move?`, [
       P.levels[0] === 1 ? `Only the keys between ${extra} and the server before it` : "Only the keys just before each of its seats",
       "Keys from all around the ring, like the remainder way",
       whole || P.levels[0] > 1 ? `All ${K} of them` : `All of ${pred.server}'s ${count(pred.server)} keys`,
     ], 0, { id: "add.which", why: P.levels[0] === 1
-      ? `${extra} splits one arc. Only keys between the server before it and ${extra}'s seat now meet ${extra} first.`
-      : `Each new seat splits one arc. Only keys just before a new seat now meet ${extra} first.` });
+      ? `The new seat splits one arc. Only the keys between the server before it and ${extra}'s seat now meet ${extra} first.`
+      : `Each new seat splits one arc. Only the keys just before a new seat now meet ${extra} first.` });
     for (let i = 0; i < P.levels[0]; i++) { const name = tokenName(extra, i); active.set(name, { name, server: extra, i, hash: murmur3(name) }); s.set(`t.${name}`, { dim: false, state: { kind: "token", token: name, server: extra, hash: murmur3(name), hex: hex(murmur3(name)), active: true } }); }
     const srcs = takes.length ? migrate(takes, () => extra, [13, 16]) : new Map();
     if (!takes.length) s.lit(`t.${extra}`);
@@ -744,7 +744,7 @@ export function build(s, p, scenario, env) {
       `Every key in the cluster is reshuffled`,
     ], 0, { id: "leave.where", why: dests.length === 1
       ? `Each key walks clockwise to the first seat still there. With ${victim}'s seat gone, that is ${dests[0]}'s for all of them.`
-      : `Each key walks clockwise to the first seat still there. ${victim}'s seats sat in different places, so the keys reach different servers.` });
+      : `Each key walks clockwise to the first seat still there. The seats of ${victim} sat in different places, so the keys reach different servers.` });
     for (const t of tokensOf) {
       active.delete(t.name);
       s.set(`t.${t.name}`, { state: { kind: "token", token: t.name, server: victim, hash: t.hash, hex: hex(t.hash), active: false } });

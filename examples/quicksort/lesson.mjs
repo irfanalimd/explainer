@@ -22,7 +22,7 @@ const EQUAL = {
   why: "Every copy of {pivot} joins the left side, so the more copies, the longer that side.",
   deeper: {
     how: "The test is `a[j] <= pivot`, so a copy goes left like any smaller number. This split has two sides and no middle.",
-    edge: "So all-equal input costs every pair here. Hoare's two markers both stop on a copy and swap it, which splits a run of copies in half; a three-way split (Dijkstra's) keeps copies beside the pivot and never looks at them again.",
+    edge: "So all-equal input costs every pair here. Hoare's two markers both stop on a copy and swap it, which splits a run of copies in half. A three-way split, Dijkstra's, keeps copies beside the pivot and never looks at them again.",
     source: ALGS4,
   },
 };
@@ -81,13 +81,13 @@ export const lesson = {
 
   misconceptions: [
     { id: "m-middle", wrong: "The pivot ends up in the middle of the line, so every split cuts the group in half.",
-      fix: "The pivot lands right after the numbers no bigger than it, wherever that is: the front, the end or anywhere between." },
-    { id: "m-pairs", wrong: "Every pair gets compared at some point; quicksort only changes the order of the comparisons.",
+      fix: "The pivot lands right after the numbers no bigger than it, and that can be the front, the end or anywhere in between." },
+    { id: "m-pairs", wrong: "Every pair gets compared at some point, and quicksort only changes the order of the comparisons.",
       fix: "Once a pivot is placed, its two sides are sorted apart. A number on one side never meets a number on the other." },
     { id: "m-sorted", wrong: "Numbers already in order are the easy case: there is nothing left to do.",
-      fix: "With the last number as pivot, sorted input places one number per split and compares every pair: the slowest case." },
+      fix: "With the last number as pivot, sorted input places one number per split and compares every pair, which is the slowest case." },
     { id: "m-equal", wrong: "A copy of the pivot can't count as small, so it goes right or waits beside the pivot.",
-      fix: "This split's test is “no bigger than the pivot”, so every copy goes left; only a three-way split keeps copies beside it." },
+      fix: "This split's test is “no bigger than the pivot”, so every copy goes left. Only a three-way split keeps copies beside it." },
   ],
 
   picture: {
@@ -118,17 +118,17 @@ export const lesson = {
       teach: { prompt: "On the board, split the textbook's example, 2 8 7 1 3 5 6 4, around its last number, 4: scan left to right, and swap each number no bigger than 4 to the front.", listen: "It ends 2 1 3 4 7 5 6 8, the line in CLRS's Figure 7.1: 4 sits right after the three numbers no bigger than it. Ask what stays true of every slot left of `i` at each step.", minutes: 5 },
       "teach@dups": { prompt: "Before the scan: where should a number equal to the pivot go: left, right, or neither?", listen: "Expect “neither” or “right”. This code's test is “no bigger than the pivot”, so copies go left; a three-way split keeps them in a middle group instead.", minutes: 3 },
       about: "Pick one number, the {term:pivot}, like the chosen person in the line. Numbers smaller than it or equal to it go to its left, bigger ones to its right. Slots are numbered from 0, as in the code.",
-      enter: { sofar: "The simple way checks every pair: {count:worst|comparison}.", now: "Choose one number, and move each other number to its left or its right.", done: "Every number left of `i` is no bigger than the chosen one." },
-      "enter@dups": { sofar: "The simple way checks every pair, ties or not: {count:worst|comparison}.", now: "Choose one number, and move each other number left or right, even its copies.", done: "Every number left of `i` is no bigger than the chosen one." },
+      enter: { sofar: "The simple way checks every pair, which is {count:worst|comparison}.", now: "Choose one number, and move each other number to its left or its right.", done: "Every number left of `i` is no bigger than the chosen one." },
+      "enter@dups": { sofar: "The simple way checks every pair, ties or not, which is {count:worst|comparison}.", now: "Choose one number, and move each other number left or right, even its copies.", done: "Every number left of `i` is no bigger than the chosen one." },
     },
     place: {
       teach: { prompt: "The pivot is about to move. Which slot will it end in? Say it before it moves.", listen: "Count the numbers no bigger than it: it lands right after them. Expect “the middle”, which holds only when the pivot is the middle value.", minutes: 3 },
-      about: "The pivot belongs right after the numbers no bigger than it. Everything left of that slot is no bigger, everything right is bigger, so the slot is final.",
-      enter: { sofar: "Each other number now sits on the small side or the big side.", now: "Move the pivot into the slot it belongs in.", done: "The pivot turns green: it never moves again." },
+      about: "The pivot belongs right after the numbers no bigger than it. Everything left of that slot is no bigger, and everything right of it is bigger, so the slot is final.",
+      enter: { sofar: "Each other number now sits on the small side or the big side.", now: "Move the pivot into the slot it belongs in.", done: "The pivot turns green, because it never moves again." },
     },
     repeat: {
       teach: { prompt: "Point at two numbers on opposite sides of a green, placed number. Will quicksort ever compare them?", listen: "Never: every later group lies on one side of a placed pivot. Each pair split apart that way is a comparison saved.", minutes: 3 },
-      about: "Each placed number splits the line for good: a number on its left never meets one on its right. Each side gets the same split: {term:recursion}.",
+      about: "Each placed number splits the line for good, so a number on its left never meets one on its right. Each side then gets the same treatment, which is called {term:recursion}.",
       enter: { sofar: "{parent} is placed for good. Every other number waits beside it, left or right.", now: "Split each group with the same steps, one group at a time.", done: "Every number turns green, placed by a split or alone in its group." },
     },
     sorted: {
@@ -153,24 +153,24 @@ export const lesson = {
     "line.numbers@dups": {
       when: (v) => v.order === "dups",
       plain: "{n} numbers with only {count:distinct|different value}: {shown}.",
-      why: "Like people of only a few heights: many of them tie.",
+      why: "Think of people who come in only a few heights, so many of them tie.",
       look: ["a"], picture: "height",
     },
     "line.simple": {
       // n = 2 has one pair; first (the only time this step plays) covers every longer line
       key: true,
-      plain: "The simple way compares the two numbers once: {count:worst|comparison}.",
+      plain: "The simple way compares the two numbers once, which is {count:worst|comparison}.",
       why: "With two numbers there is only one pair to check.",
       look: ["{smallestId}"],
       deeper: {
-        cost: "Every pair once: n(n − 1)/2 = {n} × {first} / 2 = {worst}. Double the numbers and the work roughly quadruples: O(n²).",
-        how: "This is selection sort: each round scans what is left for its smallest number and swaps it to the front.",
-        edge: "Not every simple sort is this slow on every input: insertion sort checks numbers already in order with {count:first|comparison}. That is why sorted input feels easy.",
+        cost: "Every pair is checked once, n(n − 1)/2 = {n} × {first} / 2 = {worst}. Double the numbers and the work roughly quadruples, which is O(n²).",
+        how: "This is selection sort. Each round scans what is left for its smallest number and swaps it to the front.",
+        edge: "Not every simple sort is this slow on every input. Insertion sort checks numbers already in order with {count:first|comparison}, which is why sorted input feels easy.",
       },
       first: {
         when: (v) => v.second > 0,
-        plain: "The simple way: {first} comparisons find the smallest, {second} the next, and so on.",
-        why: "Every number gets checked against every other: {worst} comparisons for {n} numbers.",
+        plain: "The simple way takes {first} comparisons to find the smallest, {second} for the next, and so on.",
+        why: "Every number gets checked against every other one, which adds up to {worst} comparisons for {n} numbers.",
       },
     },
 
@@ -181,82 +181,82 @@ export const lesson = {
       why: "Every other number will be compared with it once, then sent left or right.",
       look: ["{pivotId}"], picture: "chosen",
       deeper: {
-        how: "The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule: it costs nothing to pick, but it never looks at the numbers.",
+        how: "The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule, which costs nothing to pick but never looks at the numbers.",
         code: "`pivot = a[hi]` (line 9)",
         edge: "If the last number is the biggest or the smallest, every other number lands on one side, and the split places only one number.",
         source: CLRS,
       },
     },
     "split.pointers": {
-      plain: "One {term:partition}: `i` marks where small numbers go, `j` checks each in turn.",
-      why: "The rule that always holds: nothing left of `i` is bigger than the pivot.",
+      plain: "In one {term:partition}, `i` marks where small numbers go and `j` checks each number in turn.",
+      why: "One rule holds the whole way through. Nothing left of `i` is ever bigger than the pivot.",
       look: ["a.i", "a.j"], picture: "step",
       deeper: {
-        how: "CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap; this code starts at `lo` and adds 1 after. The rule is the same: slots before `i` hold the small side.",
+        how: "CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap, while this code starts at `lo` and adds 1 after. The rule is the same, because the slots before `i` hold the small side.",
         code: "`i = lo` and `for j in range(lo, hi):` (lines 10–11)",
-        real: "This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is easy to prove. Hoare's original (1961) walks two markers toward each other from both ends and swaps a pair on the wrong sides: fewer swaps, harder to get right.",
+        real: "This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is easy to prove. Hoare's original (1961) walks two markers toward each other from both ends and swaps each pair found on the wrong sides, which makes fewer swaps but is harder to get right.",
         source: `${CLRS}; ${HOARE}`,
       },
     },
     "split.take": {
       when: (v) => !v.eq,
-      plain: "{x} is smaller than {pivot} and already at `i`: the left side takes it.",
+      plain: "{x} is smaller than {pivot} and already at `i`, so the left side takes it.",
       look: ["{xId}"],
       first: {
         key: true,
-        why: "It belongs on the left and is already there, so nothing moves; `i` steps on.",
+        why: "It belongs on the left and is already there, so nothing moves and `i` steps on.",
         deeper: {
-          how: "When `i` equals `j`, a swap would trade {x} with itself, so this code skips it. CLRS swaps anyway; the comparisons are the same.",
+          how: "When `i` equals `j`, a swap would trade {x} with itself, so this code skips it. CLRS swaps anyway, and the comparisons are the same.",
           code: "`if a[j] <= pivot:` … `i += 1` (lines 12–15)",
         },
       },
     },
     "split.take@dups": {
-      plain: "{x} is no bigger than {pivot} and already at `i`: the left side takes it.",
+      plain: "{x} is no bigger than {pivot} and already at `i`, so the left side takes it.",
       look: ["{xId}"],
     },
     "split.swap": {
       when: (v) => !v.eq,
-      plain: "{x} is smaller than {pivot}: it swaps with {y} into slot {i}.",
+      plain: "{x} is smaller than {pivot}, so it swaps with {y} into slot {i}.",
       look: ["{xId}", "{yId}"],
       first: {
         key: true,
         why: "{y} is bigger, so the two trade places, and the left side grows by one.",
         deeper: {
           code: "`a[i], a[j] = a[j], a[i]` then `i += 1` (lines 14–15)",
-          edge: "A swap can carry a number past others of the same value, so equal numbers may end up in either order: quicksort is not stable.",
+          edge: "A swap can carry a number past others of the same value, so equal numbers may end up in either order. In other words, quicksort is not stable.",
         },
       },
     },
     "split.swap@dups": {
-      plain: "{x} is no bigger than {pivot}: it swaps with {y} into slot {i}.",
+      plain: "{x} is no bigger than {pivot}, so it swaps with {y} into slot {i}.",
       look: ["{xId}", "{yId}"],
     },
     "split.copy": {
       // plays once, right after the split.equal ask; first covers a copy that swaps
-      plain: "{x} equals {pivot}, and equal counts as small: the left side takes it.",
+      plain: "{x} equals {pivot}, and equal counts as small, so the left side takes it.",
       look: ["{xId}"],
       ...EQUAL,
-      first: { when: (v) => !!v.y, plain: "{x} equals {pivot}, and equal counts as small: it swaps with {y}.", look: ["{xId}", "{yId}"] },
+      first: { when: (v) => !!v.y, plain: "{x} equals {pivot}, and equal counts as small, so it swaps with {y}.", look: ["{xId}", "{yId}"] },
     },
     "split.stay": {
       plain: "{x} is bigger than {pivot}, so it stays put on the right side.",
       look: ["{xId}"],
       first: {
         why: "Bigger numbers wait between `i` and `j` until a small number swaps past.",
-        deeper: { how: "Only `j` moves on. The slots from `i` up to `j` hold the bigger numbers seen so far; the next small number swaps with the first of them." },
+        deeper: { how: "Only `j` moves on. The slots from `i` up to `j` hold the bigger numbers seen so far, and the next small number swaps with the first of them." },
       },
     },
 
     // ---- Into place ----
     "place.swap": {
       key: true,
-      plain: "{pivot} swaps with {y} into slot {slot}: placed for good.",
-      why: "All to its left are no bigger, all to its right are bigger: its sorted slot.",
+      plain: "{pivot} swaps with {y} into slot {slot}, where it stays for good.",
+      why: "Everything to its left is no bigger and everything to its right is bigger, so this is its sorted slot.",
       look: ["{pivotId}"],
       deeper: {
         cost: "This split made {count:hi|comparison}, one for each other number. A group of m numbers always costs m − 1.",
-        how: "Its slot is its rank: {count:before|number} in the group {be:before} no bigger, so it lands {before} slots from the start. No later split can change that count.",
+        how: "Its slot is its rank. {count:before|number} in the group {be:before} no bigger, so it lands {before} slots from the start, and no later split can change that count.",
         edge: "It lands in the middle only when it happens to be the middle value. Picking the last number makes no such promise.",
         code: "`a[i], a[hi] = a[hi], a[i]` and `return i` (lines 16–18)",
       },
@@ -267,17 +267,17 @@ export const lesson = {
     },
     "place.stay": {
       key: true,
-      plain: "Nothing is bigger than {pivot}, so it stays in slot {slot}: placed for good.",
+      plain: "Nothing is bigger than {pivot}, so it stays in slot {slot} for good.",
       why: "The other {count:before|number} {be:before} no bigger, so the last slot is its sorted slot.",
       look: ["{pivotId}"],
       deeper: {
-        cost: "This split made {count:hi|comparison} and placed one number; {count:before|number} {be:before} left in one group.",
+        cost: "This split made {count:hi|comparison} and placed one number, leaving {count:before|number} in one group.",
         how: "`i` reached `hi`, so the final swap would trade the pivot with itself, and the code skips it.",
       },
       "plain@sorted": "{pivot} stays in slot {slot}. {count:before|other number} {be:before} left, all in one group.",
-      "why@sorted": "{pivot} was the biggest, so nothing went right of it: no second group.",
+      "why@sorted": "{pivot} was the biggest, so nothing went to its right and there is no second group.",
       "deeper@sorted": {
-        cost: "{count:hi|comparison} to place one number: the most a split can cost, for the least progress.",
+        cost: "It took {count:hi|comparison} to place one number, the most a split can cost for the least progress.",
         edge: "Every fixed pivot rule has inputs like this. McIlroy showed that an adversary, choosing values only as the sort compares them, drives any deterministic pivot rule to quadratic time.",
         real: "Libraries guard against it. GCC's `std::sort` is introsort: past 2 log2 n nested splits it switches to heapsort. Go's `sort` (since 1.19) is pattern-defeating quicksort, which sorts input already in order in one pass.",
         source: "[mcilroy1999]; [musser1997]; [libstdcxx] __introsort_loop; [go119]; [peters2021]",
@@ -292,89 +292,89 @@ export const lesson = {
       why: "A pivot meets only its own group, and {other} stays right of {parent} for good.",
       look: ["{pivotId}", "{otherId}"],
       deeper: {
-        cost: "Two numbers meet only if one of them is the first pivot picked from the values between them, these two included. With random pivots, values k ranks apart meet with chance 2/(k + 1): about 1.39 n log2 n comparisons in all.",
-        how: "Each placed pivot is a wall: every later group lies wholly on one side of it, so no pair across it is ever checked.",
+        cost: "Two numbers meet only if one of them is the first pivot picked from the values between them, these two included. With random pivots, values k ranks apart meet with chance 2/(k + 1), which adds up to about 1.39 n log2 n comparisons.",
+        how: "Each placed pivot works like a wall. Every later group lies wholly on one side of it, so no pair across it is ever checked.",
         source: "[clrs4] §7.4.2",
       },
       first: {
         when: (v) => !v.alone,
-        plain: "Left of {parent}: slots {lo}–{hi}, pivot {pivot}. {other} never meets any of them.",
+        plain: "Left of {parent}, slots {lo}–{hi} get the pivot {pivot}, and {other} never meets any of them.",
       },
     },
     "repeat.group": {
-      plain: "The {side} side of {parent}: slots {lo}–{hi}, pivot {pivot}.",
+      plain: "On the {side} side of {parent}, slots {lo}–{hi} get the pivot {pivot}.",
       look: ["{pivotId}"],
       first: {
-        why: "The same steps, on only these {size} numbers: this is {term:recursion}.",
+        why: "These {size} numbers get exactly the same steps, which is what {term:recursion} means.",
         picture: "again",
         deeper: {
           code: "`quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)",
-          how: "Each group still waiting is a call on the stack. Sorted input nests about {n} calls deep; sorting the smaller side first and looping on the bigger one keeps it at most log2 n.",
+          how: "Each group still waiting is a call on the stack. Sorted input nests about {n} calls deep, but sorting the smaller side first and looping on the bigger one keeps it at most log2 n.",
           source: "[sedgewick1978]",
         },
       },
     },
     "repeat.take": {
       when: (v) => !v.eq,
-      plain: "{x} is smaller than {pivot}: it stays left.",
+      plain: "{x} is smaller than {pivot}, so it stays left.",
       look: ["{xId}"],
     },
     "repeat.take@dups": {
-      plain: "{x} is no bigger than {pivot}: it stays left.",
+      plain: "{x} is no bigger than {pivot}, so it stays left.",
       look: ["{xId}"],
       first: { when: (v) => v.eq, why: "Equal counts as small, so this copy of {pivot} goes left too." },
     },
     "repeat.swap": {
       when: (v) => !v.eq,
-      plain: "{x} is smaller than {pivot}: it swaps left with {y}.",
+      plain: "{x} is smaller than {pivot}, so it swaps left with {y}.",
       look: ["{xId}", "{yId}"],
     },
     "repeat.swap@dups": {
-      plain: "{x} is no bigger than {pivot}: it swaps left with {y}.",
+      plain: "{x} is no bigger than {pivot}, so it swaps left with {y}.",
       look: ["{xId}", "{yId}"],
       first: { when: (v) => v.eq, why: "Equal counts as small, so this copy of {pivot} goes left too." },
     },
     "repeat.stay": {
-      plain: "{x} is bigger than {pivot}: it stays right.",
+      plain: "{x} is bigger than {pivot}, so it stays right.",
       look: ["{xId}"],
     },
     // "Lots of repeated numbers" with n = 5: the first copy of the pivot falls in a later split
     "repeat.copy": {
       // the split.equal ask when the first copy of a pivot turns up only in a later split (plays once)
-      plain: "{x} equals {pivot}, and equal counts as small: it goes left.",
+      plain: "{x} equals {pivot}, and equal counts as small, so it goes left.",
       look: ["{xId}"],
       ...EQUAL,
     },
     "repeat.takes": {
       when: (v) => !v.repeats,
-      plain: "The next {count:count|number}, slots {from}–{to}, are smaller than {pivot}: they stay left.",
+      plain: "The next {count:count|number}, slots {from}–{to}, are smaller than {pivot}, so they stay left.",
       look: ["{xIds}"],
-      first: { why: "Each one is already at `i`, so nothing moves: the left side grows by one each time." },
+      first: { why: "Each one is already at `i`, so nothing moves, and the left side grows by one each time." },
     },
     "repeat.takes@dups": {
-      plain: "The next {count:count|number}, slots {from}–{to}, are no bigger than {pivot}: they stay left.",
+      plain: "The next {count:count|number}, slots {from}–{to}, are no bigger than {pivot}, so they stay left.",
       look: ["{xIds}"],
       first: { why: "Each one is already at `i`, so nothing moves, and the left side grows. Copies of {pivot} count as small too." },
     },
     "repeat.stays": {
-      plain: "The next {count:count|number}, slots {from}–{to}, are bigger than {pivot}: they stay right.",
+      plain: "The next {count:count|number}, slots {from}–{to}, are bigger than {pivot}, so they stay right.",
       look: ["{xIds}"],
-      first: { why: "Bigger numbers wait where they are; only `j` moves on." },
+      first: { why: "Bigger numbers wait where they are, and only `j` moves on." },
     },
     "repeat.place": {
-      plain: "{pivot} swaps with {y} into slot {slot}: placed for good.",
+      plain: "{pivot} swaps with {y} into slot {slot}, where it stays.",
       look: ["{pivotId}"],
     },
     "repeat.place-stay": {
-      plain: "Nothing here is bigger than {pivot}: it stays in slot {slot}, placed.",
+      plain: "Nothing here is bigger than {pivot}, so it stays in slot {slot}, placed.",
       look: ["{pivotId}"],
       first: {
-        why: "This group shrank by one number: the most lopsided split there is.",
+        why: "This group shrank by only one number, which is the most lopsided split there is.",
         deeper: { cost: "A split of m numbers always costs m − 1 comparisons. When it places only one, the next group is m − 1 long, and costs m − 2." },
       },
     },
     "repeat.alone": {
-      plain: "The {side} side of {parent} holds only {x}: a group of one, so it is placed.",
+      plain: "The {side} side of {parent} holds only {x}, and a group of one is already placed.",
       look: ["{xId}"],
       first: {
         why: "A group of one needs no split, so here the {term:recursion} stops.",
@@ -386,28 +386,28 @@ export const lesson = {
     "sorted.done": {
       // the slowest case (every pair compared); first covers a run that skipped some (this step plays once)
       key: true,
-      plain: "Sorted, but with all {count:worst|comparison}: no pair was skipped.",
+      plain: "The line is sorted, but it took all {count:worst|comparison}, with no pair skipped.",
       why: "Every split put all the others on one side, so every pair met.",
       look: ["a"],
       deeper: {
-        cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}: as slow as the simple way, O(n²).",
+        cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}, as slow as the simple way at O(n²).",
         edge: "With the last number as pivot, sorted, reverse-sorted and all-equal input all do this. A random pivot makes it unlikely on any input, and the median of the first, middle and last numbers makes sorted input fast.",
         real: "In 1991 a Unix `qsort` ran for hours on an “organ-pipe” array, 1 2 … n n … 2 1. Bentley and McIlroy then drove all of a dozen Unix `qsort`s to quadratic time, and their replacement picks the median of 3 numbers, or of 9 for big groups.",
         source: "[bentley-mcilroy1993] §1 and §3",
       },
       "deeper@sorted": {
-        cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}: as slow as the simple way, O(n²). Yet sorted input makes 0 swaps: every number is already at `i`.",
-        edge: "Reverse-sorted and all-equal input are as slow with this pivot rule. A random pivot makes it unlikely on any input; the median of the first, middle and last numbers makes sorted input fast.",
+        cost: "(n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = {worst}, as slow as the simple way at O(n²). Sorted input still makes 0 swaps, because every number is already at `i`.",
+        edge: "Reverse-sorted and all-equal input are as slow with this pivot rule. A random pivot makes it unlikely on any input, and the median of the first, middle and last numbers makes sorted input fast.",
         source: "[bentley-mcilroy1993] §3",
       },
       first: {
         when: (v) => !v.slowest,
         plain: "Sorted with {count:comparisons|comparison}, where checking every pair takes {worst}.",
-        why: "{count:saved|comparison} never happened: pairs split apart by a pivot never meet.",
+        why: "{count:saved|comparison} never happened, because pairs that a pivot split apart never meet.",
         deeper: {
-          cost: "With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1 + 1/2 + … + 1/n: 20.6 for 9 numbers and 32.7 for 12. For large n it grows like 1.39 n log2 n. This run made {comparisons}.",
-          edge: "The worst case is still every pair: McIlroy showed any deterministic pivot rule has inputs that force it.",
-          real: "Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort (two pivots, three groups); Rust's `sort_unstable` is ipnsort, a quicksort that falls back to heapsort so it is never quadratic.",
+          cost: "With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1 + 1/2 + … + 1/n, which gives 20.6 for 9 numbers and 32.7 for 12. For large n it grows like 1.39 n log2 n. This run made {comparisons}.",
+          edge: "The worst case is still every pair, because McIlroy showed that any deterministic pivot rule has inputs that force it.",
+          real: "Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort, which uses two pivots and three groups. Rust's `sort_unstable` is ipnsort, a quicksort that falls back to heapsort so it is never quadratic.",
           source: "[mcilroy1999]; [java-arrays]; [rust-sort]",
         },
       },
@@ -419,18 +419,18 @@ export const lesson = {
     // options in a fixed order: the right slot, the middle slot, where the pivot is now (the figure asks only when
     // those are three different slots)
     "place.where": {
-      why: "{count:before|other number} {be:before} no bigger than {pivot}, so it lands in slot {slot}, right after them. It was picked for being last, not for its value, so it can land anywhere.",
+      why: "{count:before|other number} {be:before} no bigger than {pivot}, so it lands in slot {slot}, right after them. It was picked for being last rather than for its value, so it can land anywhere.",
       options: [
-        { feedback: "Right. {count:before|number} {be:before} no bigger than {pivot}, so it takes the slot right after them: slot {slot}." },
+        { feedback: "Right. {count:before|number} {be:before} no bigger than {pivot}, so it takes the slot right after them, slot {slot}." },
         { misconception: "m-middle",
-          feedback: "If you expected the middle, slot {mid}: that holds only when the pivot is the middle value. {count:before|number} {be:before} no bigger than {pivot}, so it lands in slot {slot}." },
+          feedback: "A pivot lands in the middle only when it happens to be the middle value, and nothing chose this one for that. {count:before|number} {be:before} no bigger than {pivot}, so it lands in slot {slot}." },
         { feedback: "It stays at the end only when nothing in its group is bigger. Here some numbers are bigger, so it swaps forward to slot {slot}, right after the {count:before|number} no bigger than it." },
       ],
     },
     "place.left": {
       options: [
         { misconception: "m-middle",
-          feedback: "If you expected the pivot to cut the line in half: it lands after every number no bigger than it. Here that is all {before}, so its right side is empty." },
+          feedback: "It is tempting to picture the pivot cutting the line in half, but it lands after every number no bigger than it. Here that is all {before}, so its right side is empty." },
         { feedback: "Right. {pivot} is the biggest, so all {before} others sit on its left and none on its right." },
         { misconception: "m-sorted",
           feedback: "Quicksort never checks whether the line is sorted. To it, the {before} others are one unsorted group, and every one of them will be split again." },
@@ -439,7 +439,7 @@ export const lesson = {
     "repeat.compared": {
       options: [
         { misconception: "m-pairs",
-          feedback: "If you thought every pair meets in the end: every later group lies on one side of {parent}. {left} is on the left and {other} on the right, so they never share a group." },
+          feedback: "Every pair meets in the simple way, but not here. Every later group lies on one side of {parent}, and with {left} on the left and {other} on the right, they never share a group." },
         { feedback: "Right. Each side of {parent} is sorted on its own, so {left} and {other} never meet. That skipped pair is the saving." },
         { misconception: "m-pairs",
           feedback: "A pivot is compared only with numbers in its own group. Even when {left} or {other} becomes a pivot, its group stays on its own side of {parent}, so the two never meet." },
@@ -447,11 +447,11 @@ export const lesson = {
     },
     "split.equal": {
       options: [
-        { feedback: "Right. The test is `a[j] <= pivot`: {x} is no bigger than {pivot}, so it goes left." },
+        { feedback: "Right. The test is `a[j] <= pivot`, and {x} is no bigger than {pivot}, so it goes left." },
         { misconception: "m-equal",
-          feedback: "If you thought only smaller numbers go left: the test is “no bigger than the pivot”. {x} equals {pivot}, so it passes and goes left." },
+          feedback: "Sending only smaller numbers left would need a different test. This one is “no bigger than the pivot”, and {x} equals {pivot}, so it passes and goes left." },
         { misconception: "m-equal",
-          feedback: "This split has only two sides: left of `i` and right of it. {x} passes “no bigger than {pivot}”, so it joins the left; only a three-way split adds a middle." },
+          feedback: "A middle place sounds fair, but this split has only two sides, left of `i` and right of it. {x} passes “no bigger than {pivot}”, so it joins the left, and only a three-way split adds a middle." },
       ],
     },
   },
