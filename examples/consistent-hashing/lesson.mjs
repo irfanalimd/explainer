@@ -57,9 +57,9 @@ export const lesson = {
     { id: "m-fair", wrong: "Adding a server only moves its fair share of the keys, whatever rule places them.",
       fix: "With the remainder way, dividing by a new number changes almost every remainder, so most keys move." },
     { id: "m-reshuffle", wrong: "Any change in the servers reshuffles keys everywhere, on the ring too.",
-      fix: "On the ring, only the keys in the arc that changes hands move; every other key keeps its server." },
+      fix: "On the ring, only the keys in the arc that changes hands move. Every other key keeps its server." },
     { id: "m-even", wrong: "When a server leaves, its keys spread evenly over the servers that are left.",
-      fix: "Each key walks on clockwise, so with one seat per server they all land on the next server." },
+      fix: "Each key walks on clockwise, so with one seat per server they all land on the same next server." },
   ],
 
   picture: {
@@ -72,7 +72,7 @@ export const lesson = {
       { id: "chair", picture: "a newcomer pulling up a chair in one stretch", real: "a server joining: it takes the keys just before its seat" },
       { id: "chairs", picture: "one host keeping several chairs around the table", real: "virtual nodes: many seats for one server", term: "virtual node" },
     ],
-    breaks: "Real guests pick a free seat. Here nobody chooses: a hash fixes every seat, so seats can bunch up and one host can get a huge stretch.",
+    breaks: "Real guests choose where to sit. Here a hash fixes every seat, so seats can bunch up and one host can end up looking after a huge stretch.",
   },
 
   terms: {
@@ -84,39 +84,39 @@ export const lesson = {
 
   chapters: {
     simple: {
-      about: "Like counting off into {N} teams. Each key's name becomes a number with a {term:hash}; divide it by {N}, and the remainder picks the server.",
+      about: "Think of counting people off into {N} teams. A {term:hash} turns each key's name into a number, and the remainder after dividing that number by {N} picks the server.",
       enter: { sofar: "You can look a value up by its key in a dictionary.", now: "Spread the keys over several servers with one sum anyone can do.", done: "Every key sits in the box its remainder names." },
     },
     more: {
       about: "Now there are {n1} servers, so every key's number is divided by {n1} instead of {N}. The remainders change, and each key follows its new remainder.",
-      enter: { sofar: "Each key sits on server `hash % {N}`.", now: "Add one server, so every key divides by one more.", done: "The “moved, remainder” counter shows how many keys changed box." },
+      enter: { sofar: "Each key sits on server `hash % {N}`.", now: "Add one server, so every key is divided by one more.", done: "The “moved, remainder” counter shows how many keys changed box." },
     },
     ring: {
-      about: "Think of a round table whose seats are every {term:hash} number, bent into a {term:ring}. Each server sits where its name hashes to.",
-      enter: { sofar: "The remainder way re-sorted every key, but a key stayed only if both remainders matched.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has its seats, and the seats split the circle into arcs of different sizes.", picture: true },
-      "enter@remove": { sofar: "You can look a value up by its key; here the keys live on several servers.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has a seat, and the seats split the circle into arcs of different sizes.", picture: true },
-      "enter@vnodes": { sofar: "You can look a value up by its key; here the keys live on several servers.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has a seat, and the seats split the circle into arcs of different sizes.", picture: true },
+      about: "Now picture a round table whose seats are numbered with every possible {term:hash} value, so the numbers bend into a {term:ring}. Each server sits at the seat its name hashes to.",
+      enter: { sofar: "The remainder way re-sorted every key, and a key only stayed put if both remainders matched.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has its seats, and the seats split the circle into arcs of different sizes.", picture: true },
+      "enter@remove": { sofar: "You can look a value up by its key, and here the keys live on several servers.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has a seat, and the seats split the circle into arcs of different sizes.", picture: true },
+      "enter@vnodes": { sofar: "You can look a value up by its key, and here the keys live on several servers.", now: "Bend every hash number into a circle and seat each server at its name's hash.", done: "Each server has a seat, and the seats split the circle into arcs of different sizes.", picture: true },
     },
     keys: {
-      about: "Each key's name is hashed to a spot on the ring too. Like a guest finding a host, the key walks clockwise and sits with the first server it meets.",
+      about: "Each key's name is hashed onto the ring as well. Then, like a guest looking for a host, the key walks clockwise and sits with the first server it meets.",
       enter: { sofar: "Every server has a seat on the ring.", now: "Hash each key onto the ring too, and walk clockwise to its server.", done: "Every key takes the colour of the first server seat after it." },
     },
     add: {
-      about: "A new server pulls up a chair inside an arc. It takes only the keys between the seat before its own and its own; every other key stays put.",
+      about: "A new server pulls up a chair inside one arc. It takes only the keys between the seat before it and its own seat, and every other key stays put.",
       enter: { sofar: "Each key sits with the next server clockwise.", now: "Seat one more server, {extra}, on the ring.", done: "Only keys just before {extra}'s new seat change colour." },
     },
     leave: {
-      about: "A server leaves the table. The keys it held walk on clockwise to the next seat still there; no other key moves.",
-      enter: { sofar: "Each key sits with the next server clockwise.", now: "Take a server with the most keys, {victim}, off the ring.", done: "Only {victim}'s keys change colour; every other key keeps its own." },
-      "enter@vnodes": { sofar: "Each server now owns {seats} small arcs around the ring.", now: "Take a server with the most keys, {victim}, off the ring.", done: "Only {victim}'s keys change colour; every other key keeps its own." },
+      about: "Now a server leaves the table. The keys it held walk on clockwise to the next seat that is still there, and no other key moves.",
+      enter: { sofar: "Each key sits with the next server clockwise.", now: "Take a server with the most keys, {victim}, off the ring.", done: "Only {victim}'s keys change colour, and every other key keeps its own." },
+      "enter@vnodes": { sofar: "Each server now owns {seats} small arcs around the ring.", now: "Take a server with the most keys, {victim}, off the ring.", done: "Only {victim}'s keys change colour, and every other key keeps its own." },
     },
     vnodes: {
-      about: "Each server takes more seats around the table, called {term:virtual node|virtual nodes}, so it owns many small arcs. Each new seat splits an arc, so a few keys move; real servers start with all their seats.",
-      enter: { sofar: "With one seat each, the arcs come out uneven, so one server can carry far more than the rest.", now: "Give every server more seats, doubling the count each time.", done: "The “busiest server” meter shows the biggest share against the average; 1× is perfectly even." },
+      about: "Now each server takes several seats, called {term:virtual node|virtual nodes}, so it owns many small arcs. Each new seat splits an arc and moves a few keys, though real servers take all their seats at the start.",
+      enter: { sofar: "With one seat each, the arcs come out uneven, so one server can carry far more than the rest.", now: "Give every server more seats, doubling the count each time.", done: "The “busiest server” meter compares the biggest share with the average, where 1× would be perfectly even." },
     },
     result: {
-      about: "On the ring, only the keys in the split arc moved: on average one key in {n1}. The remainder way moves on average {N} keys in {n1}, and every moved key is data copied over the network.",
-      enter: { sofar: "The new server took keys only from the arc it split; every other key stayed.", now: "Compare the keys each way moved, and check how evenly the ring is shared.", done: "The two moved counters sit side by side: the ring's and the remainder way's." },
+      about: "On the ring, only the keys in the split arc moved, on average one key in {n1}. The remainder way moves on average {N} keys in {n1}, and every key that moves is data copied over the network.",
+      enter: { sofar: "The new server took keys only from the arc it split, and every other key stayed.", now: "Compare the keys each way moved, and check how evenly the ring is shared.", done: "The ring's moved counter and the remainder way's sit side by side." },
       "about@remove": "The ring moved the leaver's keys and nothing else. The remainder way would divide every key by a new number instead, and move keys on every server.",
       "enter@remove": { sofar: "Only the leaver's keys moved, each to the next seat clockwise.", now: "See who carries the load now, and what the remainder way would have moved.", done: "The busiest server's share sits beside the remainder way's moved count." },
       "about@vnodes": "With many seats per server, each server owns many small arcs. A leaver's keys can spread out, and on average the shares stay closer to even than with one seat each.",
@@ -131,28 +131,28 @@ export const lesson = {
       why: "Any machine can work out a key's server by itself, with no table to look up.",
       look: ["{boxIds}"],
       deeper: {
-        how: "The servers are numbered from 0: remainder 0 is db01, 1 is db02, and so on.",
+        how: "The servers are numbered from 0, so remainder 0 is db01, 1 is db02, and so on.",
         code: "Python: `servers[hash(key) % len(servers)]` (line 19).",
       },
     },
     "simple.place": {
-      plain: "Each key goes to the box its remainder names. {example}: {eq}.",
+      plain: "Each key goes to the box its remainder names. For {example}, that is {eq}.",
       look: ["{exampleId}"],
       deeper: {
-        how: "The boxes hold {per} keys. A good hash makes every remainder equally likely, so on average the boxes fill evenly; with only {K} keys they wobble.",
+        how: "The boxes hold {per} keys. A good hash makes every remainder equally likely, so on average the boxes fill evenly, but with only {K} keys they wobble.",
       },
     },
 
     // ---- One more server (add) ----
     "more.move": {
       key: true,
-      plain: "{extra} joins, so every key now uses {rule}: {moved} of {K} change server.",
-      why: "Changing the divisor changes most remainders, so the keys are dealt out again almost from scratch.",
+      plain: "When {extra} joins, every key switches to {rule}, and {moved} of {K} change server.",
+      why: "You might expect only the new server's share to move. A new divisor changes almost every remainder, though, so the keys are dealt out again nearly from scratch.",
       look: ["{extraId}"],
       deeper: {
-        cost: "On average {N} keys in every {n1} move, the fraction N/(N + 1); one in {n1} is all that must. Here {moved} of {K} moved.",
+        cost: "On average {N} keys in every {n1} move, the fraction N/(N + 1), although only one in {n1} has to. Here {moved} of {K} moved.",
         how: "A key keeps its server only if hash % {N} equals hash % {n1}. That holds for 1 number in {n1}, so the bigger the cluster, the worse it gets.",
-        edge: "With only {K} keys, luck swings the count above or below the average; with a million keys the share moved lands within 0.1% of N/(N + 1).",
+        edge: "With only {K} keys, luck swings the count above or below the average. With a million keys, the share moved lands within 0.1% of N/(N + 1).",
         real: "This is the problem the ring was invented for. Karger et al. wanted web caches that could come and go, and a hash that “changes minimally as the range of the function changes”. Tom White's 2007 write-up starts from this same reshuffle.",
         source: "[karger1997]; [white2007]",
       },
@@ -160,13 +160,13 @@ export const lesson = {
 
     // ---- The ring (parts) ----
     "ring.intro": {
-      plain: "Now the ring way, with the same {N} servers. 0 is at the top; numbers rise clockwise.",
-      "plain@remove": "{N} database servers, and a ring of every hash number. 0 is at the top.",
-      "plain@vnodes": "{N} database servers, and a ring of every hash number. 0 is at the top.",
+      plain: "Now the ring way, with the same {N} servers. Zero is at the top, and numbers rise clockwise.",
+      "plain@remove": "Here are {N} database servers and a ring of every hash number, with 0 at the top.",
+      "plain@vnodes": "Here are {N} database servers and a ring of every hash number, with 0 at the top.",
       why: "After the largest number comes 0 again, so the ring has no end and no last server.",
       look: ["{ringIds}"], picture: "table",
       deeper: {
-        how: "This ring is every 32-bit number, 0 to 4,294,967,295. The labels round it are hash values in hex.",
+        how: "This ring is every 32-bit number, from 0 to 4,294,967,295, and the labels around it are hash values in hex.",
         real: "This run hashes with 32-bit MurmurHash3. Dynamo hashed keys with MD5 to 128-bit numbers (§4.1), and Cassandra, which borrows Dynamo's ring, partitions with a hash function the same way.",
         source: "[dynamo2007] §4.1; [cassandra-dynamo]",
       },
@@ -174,18 +174,18 @@ export const lesson = {
     "ring.seats": {
       first: {
         when: (v) => v.seats === 1,
-        plain: "Each server sits at its name's hash. The gaps differ: {biggest}'s {term:arc} is {share}.",
-        why: "Nobody picks the seats; the hash does, so some gaps come out far wider than others.",
+        plain: "Each server sits at its name's hash. The gaps differ, and {biggest}'s {term:arc} alone covers {share}.",
+        why: "Nobody chose these seats. The hash placed them, and random places leave some gaps far wider than others.",
         deeper: {
           how: "A server's arc runs from the seat before it up to its own seat, and it stores every key that lands there.",
-          edge: "With one random seat each, the biggest arc is not 1/N of the ring: on average it is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers: 52% for 4.",
-          real: "Karger et al. give each server about log N seats to fix this: then every share is within a constant factor of fair. Their work grew into the business plan for Akamai, the content delivery network; two of the authors, Tom Leighton and Danny Lewin, founded it.",
+          edge: "With one random seat each, the biggest arc is on average well over 1/N of the ring. Its expected size is (1 + 1/2 + … + 1/N)/N, near (ln N + 0.58)/N for many servers, which is 52% for 4.",
+          real: "Karger et al. give each server about log N seats to fix this, which keeps every share within a constant factor of fair. Their work grew into the business plan for Akamai, the content delivery network, which two of the authors, Tom Leighton and Danny Lewin, founded.",
           source: "[karger1997]; [leighton2002]",
         },
       },
       key: true,
-      plain: "Each server takes {seats} seats, its name and variants: {total} seats, {total} {term:arc|arcs}.",
-      why: "Each server's share is now many small arcs added up, not one lucky or unlucky gap.",
+      plain: "Each server takes {seats} seats, hashing its name and variants of it, for {total} {term:arc|arcs} in all.",
+      why: "A server's share is now many small arcs added together, so one lucky or unlucky gap matters much less.",
       look: ["{tokenIds}"], picture: "seat",
       deeper: {
         how: "Seat i of db01 is the hash of the name db01#i, so every machine works out the same seats.",
@@ -195,24 +195,24 @@ export const lesson = {
 
     // ---- Keys ----
     "keys.hash": {
-      plain: "{key} is hashed the same way: it lands at {hash}, {angle} round the ring.",
+      plain: "The key {key} is hashed the same way and lands at {hash}, {angle} round the ring.",
       why: "Keys and servers now live on one number circle, so we can compare their places.",
       look: ["{keyId}"],
       deeper: {
         how: "The angle is the hash as a fraction of the whole ring: {hash} out of 2^32.",
-        edge: "Tiles are nudged a few degrees apart so they don't overlap; the tag shows the exact hash.",
+        edge: "Tiles are nudged a few degrees apart so they don't overlap, and the tag shows the exact hash.",
       },
     },
     "keys.walk": {
       key: true,
-      plain: "Walk clockwise from {key}: the first seat is {server}'s, so {server} stores it.",
-      why: "{key} sits in {server}'s arc. Every machine can do this same walk, so they all agree.",
+      plain: "Walking clockwise from {key}, the first seat it meets is {server}'s, so {server} stores it.",
+      why: "Any machine can do this same walk and get the same answer, so they all agree where {key} lives without asking each other.",
       look: ["{tokenId}", "{keyId}"], picture: "guest",
       deeper: {
         cost: "One binary search over the sorted seats: O(log S) for S seats, with no message to anyone.",
-        how: "Find the first seat at or after the key's hash. Past the top, wrap round to the first seat.",
+        how: "Find the first seat at or after the key's hash, and past the top, wrap round to the first seat.",
         code: "`i = bisect_left(ring, (h, \"\"))` then `ring[i % len(ring)]` (lines 15–16).",
-        edge: "A key whose hash equals a seat's exactly belongs to that seat: bisect_left finds it, so each arc includes its own end.",
+        edge: "A key whose hash exactly equals a seat's belongs to that seat, because bisect_left finds it. So each arc includes its own end.",
       },
     },
     "keys.arc": {
@@ -220,15 +220,15 @@ export const lesson = {
         why: "An arc ends at its server's seat, so every key inside it walks to that server.",
         picture: "stretch",
       },
-      plain: "{server}'s {count:arcs|arc}: {share} of the ring, {count:count|key}.",
+      plain: "Server {server} owns {share} of the ring in {count:arcs|arc}, holding {count:count|key}.",
       look: ["{tokenId}", "{keyIds}"],
     },
     "keys.rest": {
-      plain: "The other {rest} keys do the same, each in the colour of its arc's server.",
+      plain: "The other {rest} keys do the same, and each takes the colour of its arc's server.",
       look: ["{keyIds}"],
     },
     "keys.loads": {
-      plain: "Keys per server: {loads}. {hot} owns the most ring: {share}.",
+      plain: "The servers hold {loads} keys, and {hot} owns the most ring, {share}.",
       why: "A bigger arc catches more keys on average, so where the seats fall sets the load.",
       look: ["{hotId}"],
       deeper: {
@@ -240,11 +240,11 @@ export const lesson = {
     "add.join": {
       first: {
         when: (v) => v.seats === 1,
-        plain: "{extra} joins at {hash}, inside {pred}'s arc. It waits, empty.",
+        plain: "A new server, {extra}, joins at {hash}, inside {pred}'s arc, and starts out empty.",
         why: "Watch which keys now meet {extra} first on their clockwise walk.",
         look: ["{tokenId}", "{predTokenId}"],
       },
-      plain: "{extra} joins with {seats} seats, landing in {seats} arcs. It waits, empty.",
+      plain: "A new server, {extra}, joins with {seats} seats in {seats} arcs, and starts out empty.",
       why: "Watch which keys now meet one of {extra}'s seats first on their clockwise walk.",
       look: ["{tokenId}"], picture: "chair",
       deeper: {
@@ -256,13 +256,13 @@ export const lesson = {
     "add.move": {
       first: {
         when: (v) => v.moved > 0,
-        plain: "{extra} takes {count:moved|key} from {from}; the other {stayed} stay put.",
+        plain: "The new server {extra} takes {count:moved|key} from {from}, and the other {stayed} stay put.",
         why: "Every other key's clockwise walk still ends at the same seat, so nothing else changes.",
         look: ["{extraId}", "{keyIds}"],
         deeper: {
-          cost: "On average K/(N + 1) keys move, the least any rule can: here {moved} of {K}.",
-          how: "Karger et al. call this smoothness: a new server takes keys only from the arcs its seats split.",
-          real: "Dynamo adds a node the same way; only the nodes that owned its new ranges send data (§4.9).",
+          cost: "On average K/(N + 1) keys move, the least any rule can, and here {moved} of {K} did.",
+          how: "Karger et al. call this smoothness. A new server takes keys only from the arcs its seats split.",
+          real: "Dynamo adds a node the same way, and only the nodes that owned its new ranges send data (§4.9).",
           source: "[karger1997]; [dynamo2007] §4.9",
         },
       },
@@ -271,15 +271,15 @@ export const lesson = {
       why: "Every key's clockwise walk still ends at the same seat as before.",
       look: ["{extraId}"],
       deeper: {
-        cost: "On average K/(N + 1) keys move; with only {K} keys, an arc can be empty.",
+        cost: "On average K/(N + 1) keys move, but with only {K} keys an arc can easily be empty.",
         source: "[karger1997]",
       },
     },
 
     // ---- A server leaves ----
     "leave.drain": {
-      plain: "{victim} is leaving. It holds {count:count|key}, {share} of the ring.",
-      why: "No server holds more keys, so this leave moves as much data as any could.",
+      plain: "Server {victim} is leaving. It holds {count:count|key}, {share} of the ring.",
+      why: "No server holds more keys, so no other leave would move more data than this one.",
       look: ["{victimId}", "{keyIds}"],
       deeper: {
         how: "Its seats dim while it drains. They leave the ring only as its keys move, so every key always has a server.",
@@ -288,16 +288,16 @@ export const lesson = {
     "leave.move": {
       first: {
         when: (v) => v.dests.length === 1,
-        plain: "Each key walks on clockwise, so all {count} land on {dests}. No one else changes.",
+        plain: "Each key walks on clockwise, so all {count} land on {dests}, and no other key moves.",
         why: "Every one of those keys reaches the same next seat, so one server takes the whole load.",
       },
       key: true,
-      plain: "Each key walks on clockwise from its spot: {count} keys spread over {dests}.",
-      why: "{victim}'s seats sat in different arcs, so its keys reach different next seats.",
+      plain: "Each key walks on clockwise, so the {count} keys spread over {dests}.",
+      why: "The seats of {victim} sat in different arcs, so its keys reach different next seats.",
       look: ["{destIds}", "{keyIds}"], picture: "guest",
       deeper: {
-        how: "No key that {victim} did not hold moves: their walks never passed its seats.",
-        edge: "Real stores keep copies: Dynamo writes each key to the next few distinct servers clockwise, so the next server already has a copy when one leaves (§4.3).",
+        how: "No key that {victim} didn't hold moves, because those walks never passed its seats.",
+        edge: "Real stores keep copies. Dynamo writes each key to the next few distinct servers clockwise, so when one leaves, the next server already has a copy (§4.3).",
         real: "Dynamo's paper gives this spread as the reason for many seats: a failed node's load is shared by the rest (§4.2).",
         source: "[dynamo2007] §4.2, §4.3",
       },
@@ -307,28 +307,28 @@ export const lesson = {
     "vnodes.more": {
       first: {
         key: true,
-        why: "A server's share is now a sum of many small arcs, and sums of many pieces vary less.",
+        why: "Watch the busiest share fall. Adding up many small arcs evens out the luck, the way many coin tosses land closer to half heads than a few do.",
         picture: "chairs",
         deeper: {
           how: "Each new seat splits one arc, so only the keys just before it change server.",
-          edge: "The spread shrinks slowly, about as 1/√seats: 4 times the seats only halves the unevenness, so one doubling can even make it worse.",
+          edge: "The spread shrinks slowly, about as 1/√seats, so 4 times the seats only halves the unevenness, and a single doubling can even make it worse.",
           real: "Karger et al. show about log N seats per server keep every share within a constant factor of fair.",
           source: "[karger1997]",
         },
       },
-      plain: "Now {seats} seats each: {count:changed|key} moved. Busiest share {before} → {after}.",
+      plain: "With {seats} seats each, {count:changed|key} moved, and the busiest share went {before} → {after}.",
       look: ["{keyIds}"],
     },
 
     // ---- Result ----
     "result.moved": {
       key: true,
-      plain: "Ring: {moved} of {K} moved; one in {n1} is {fair}. Remainder way: {modm}.",
-      why: "On average the ring moves 1 key in {n1}; the remainder way moves {N} in {n1}.",
+      plain: "The ring moved {moved} of {K} keys, and one in {n1} is {fair}. The remainder way moved {modm}.",
+      why: "That gap is the reason the ring exists. On average it moves 1 key in {n1}, while the remainder way moves {N} in {n1}.",
       look: ["{keyIds}"],
       deeper: {
-        cost: "Ring: about K/(N + 1) keys on average ({fair} here). Remainder way: about K × N/(N + 1).",
-        edge: "With few keys, luck can flip a single run, so compare the averages, not one count.",
+        cost: "The ring moves about K/(N + 1) keys on average, {fair} here. The remainder way moves about K × N/(N + 1).",
+        edge: "With few keys, luck can flip a single run, so compare the averages rather than one count.",
         real: "Jump consistent hash (Google, 2014) also moves just 1 key in N + 1 and needs no ring in memory, but servers can only join or leave at the end of the list.",
         source: "[jump2014]",
       },
@@ -336,8 +336,8 @@ export const lesson = {
     "result.uneven": {
       first: {
         when: (v) => v.seats === 1,
-        plain: "But one seat each shares the ring unevenly: {top} now owns {share} of it.",
-        why: "{top} owns {ratio} the average share, so it stores and serves that much more.",
+        plain: "One seat each still shares the ring unevenly, and {top} now owns {share} of it.",
+        why: "That is {ratio} the average share, so {top} stores and serves that much more than a typical server.",
       },
       plain: "With {seats} seats each, the busiest server owns {share} of the ring, {ratio} the average.",
       look: ["{topId}"],
@@ -347,7 +347,7 @@ export const lesson = {
     },
     "result.leave": {
       key: true,
-      plain: "{heavy} is now the busiest, with {share} of the ring. The remainder way would move {modm}.",
+      plain: "Now {heavy} is the busiest, with {share} of the ring. The remainder way would have moved {modm}.",
       why: "Each moved key moved once, and only because its own server left.",
       first: {
         when: (v) => v.dests === 1 && v.left > 1,
@@ -355,8 +355,8 @@ export const lesson = {
       },
       look: ["{heavyId}"],
       deeper: {
-        how: "The remainder way would switch to {rule} and re-divide every key; the ring moved only the leaver's keys.",
-        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too: one reason Dynamo gives each server more than one seat on the ring, its virtual nodes.",
+        how: "The remainder way would switch to {rule} and re-divide every key, while the ring moved only the leaver's keys.",
+        edge: "A server that takes a leaver's whole arc can be overloaded in turn and fail too. That is one reason Dynamo gives each server more than one seat on the ring, its virtual nodes.",
         source: "[dynamo2007] §4.2",
       },
     },
@@ -364,10 +364,10 @@ export const lesson = {
       first: {
         when: (v) => !v.alone,
         key: true,
-        plain: "{heavy} is now the busiest, at {ratio} the average share. With 256 seats each: {big256}.",
+        plain: "Now {heavy} is the busiest, at {ratio} the average share, and 256 seats each would give {big256}.",
         why: "More seats even out the shares, but each seat is one more arc to track and copy.",
         deeper: {
-          cost: "Worked out for the servers left: {big64} with 64 seats each, {big256} with 256. Past a few dozen seats, more buys little.",
+          cost: "Worked out for the servers that are left, 64 seats each would give {big64} and 256 would give {big256}. Past a few dozen seats, more buys little.",
           edge: "Random seats even out slowly. Dynamo moved to equal-size slices of the ring handed out evenly, its best-balanced strategy (§6.2).",
           real: "Cassandra 4.0 cut its default from 256 random seats per node to 16, placed by an allocator so they still spread evenly. With 256 random seats, every node shared data with so many others that losing a few nodes could make some data unavailable.",
           source: "[dynamo2007] §6.2; [cassandra-dynamo]; [cassandra-13701]",
@@ -382,29 +382,29 @@ export const lesson = {
     "more.moved": {
       options: [
         { text: "About {fair}, one in {n1}: the new server's fair share", misconception: "m-fair",
-          feedback: "A fair share is what the ring moves, not the remainder way. A key stays only if its remainders by {N} and {n1} match, so on average {N} in {n1} move. Here {moved} of {K} did." },
+          feedback: "A fair share is what the ring moves, and the remainder way works differently. A key stays only if its remainders by {N} and {n1} match, so on average {N} in {n1} move. Here {moved} of {K} did." },
         { text: "About half of them",
-          feedback: "A key stays only if its remainders by {N} and {n1} match: on average 1 key in {n1}, so about {N} in {n1} move. With only {K} keys luck swings the count; here {moved} of {K} did." },
+          feedback: "Half can come close in a small run, but on average more move. A key stays only if its remainders by {N} and {n1} match, which is 1 key in {n1}, so about {N} in {n1} move. Here {moved} of {K} did." },
         { text: "Most of them: about {N} in every {n1}",
-          feedback: "On average, yes: a key stays only if its remainders by {N} and {n1} match, 1 key in {n1}. With only {K} keys luck swings the count; here {moved} of {K} did." },
+          feedback: "That is the average. A key stays only if its remainders by {N} and {n1} match, which is 1 key in {n1}. With only {K} keys luck swings the count, and here {moved} of {K} did." },
       ],
-      why: "A key keeps its server only when its remainders by {N} and by {n1} agree: on average 1 key in {n1}.",
+      why: "A key keeps its server only when its remainders by {N} and by {n1} agree, which happens for 1 key in {n1} on average.",
     },
     "add.which": {
       options: [
-        { feedback: "Right. A key moves only if a seat of {extra}'s is now first on its clockwise walk: here {moved} of {K}." },
+        { feedback: "Right. A key moves only if one of {extra}'s seats is now first on its clockwise walk, and here {moved} of {K} did." },
         { text: "Keys from all around the ring, like the remainder way", misconception: "m-reshuffle",
-          feedback: "If you thought any change reshuffles everything: on the ring a key moves only if {extra} is now first on its walk. Here {moved} of {K} moved; {stayed} stayed put." },
-        { feedback: "Only keys that now meet one of {extra}'s seats first move, so it depends on where those seats land. Here {moved} of {K} moved." },
+          feedback: "With remainders, one change did ripple everywhere, so this is a fair guess. On the ring a key moves only if {extra} is now first on its walk, so {moved} of {K} moved and {stayed} stayed put." },
+        { feedback: "That would move more than it needs to. Only the keys that now meet one of {extra}'s seats first change server, so it depends on where those seats land. Here {moved} of {K} moved." },
       ],
     },
     "leave.where": {
       options: [
-        { feedback: "Right. Each key walks on to the first seat still there: here {count} keys went to {dests}." },
+        { feedback: "Right. Each key walks on to the first seat still there, and here {count} keys went to {dests}." },
         { misconception: "m-even",
-          feedback: "Nobody shares the keys out: each key walks on clockwise to the next seat still there. Here {victim}'s {count} keys went to {dests}." },
+          feedback: "Nobody decides where the keys go. Each one simply walks on clockwise to the next seat still there, so {victim}'s {count} keys went to {dests}." },
         { misconception: "m-reshuffle",
-          feedback: "If you thought a leave reshuffles everything: only {victim}'s keys move, since no other key's walk passed its seats. The rest keep their server." },
+          feedback: "A leave only touches the leaver's keys. No other key's walk passed the seats of {victim}, so every other key keeps its server." },
       ],
     },
   },
