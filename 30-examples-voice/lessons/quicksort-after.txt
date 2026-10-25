@@ -1,0 +1,730 @@
+Quicksort: Split around one number, then do the same on each side
+level core · 3 stories · 2 knobs (How many numbers, Your own numbers (optional))
+
+HOOK      Comparing every number with every other one is slow. How does quicksort sort with far
+          fewer comparisons, and when does that fail?
+GOAL      Sort a line of numbers by placing one number for good at a time, and skip comparing most
+          pairs.
+OBJECTIVES
+  o-place: Predict the slot a pivot lands in from how many numbers in its group are no bigger than
+           it.
+  o-split: Perform one split by hand: say which numbers swap as the scan moves along.
+  o-skip: Explain why two numbers on opposite sides of a placed pivot are never compared. (random)
+  o-slow: Predict which inputs make this pivot rule slow, and compute their comparisons: every pair,
+          n(n − 1)/2. (sorted, dups)
+PICTURE   a line of people ordered by height
+  person  one person in the line  =  one number in its slot
+  height  their height  =  the number's value
+  chosen  the person everyone is measured against  =  the pivot  (pivot)
+  step    shorter people step left, taller ones right  =  a partition, one split  (partition)
+  again   the same again inside each smaller group  =  recursion  (recursion)
+  breaks  People can all step aside at once. The computer checks one number against the pivot at a
+          time and moves numbers only by swapping two.
+BELIEFS
+  m-middle: “The pivot ends up in the middle of the line, so every split cuts the group in half.”
+            The pivot lands right after the numbers no bigger than it, and that can be the front,
+            the end or anywhere in between.
+  m-pairs: “Every pair gets compared at some point, and quicksort only changes the order of the
+           comparisons.” Once a pivot is placed, its two sides are sorted apart. A number on one
+           side never meets a number on the other.
+  m-sorted: “Numbers already in order are the easy case: there is nothing left to do.” With the last
+            number as pivot, sorted input places one number per split and compares every pair, which
+            is the slowest case.
+  m-equal: “A copy of the pivot can't count as small, so it goes right or waits beside the pivot.”
+           This split's test is “no bigger than the pivot”, so every copy goes left. Only a
+           three-way split keeps copies beside it.
+WORDS
+  pivot: (the chosen number) The number every other number in the group is compared with. Here it is
+         the group's last number.
+  partition: (one split) One pass that moves the numbers no bigger than the pivot to its left and
+             the bigger ones right.
+  recursion: (the same again, smaller) Solving each smaller piece with the same steps, until a piece
+             has one number or none.
+NUMBERS   comparisons * · swaps   (* in each pause's recap)
+
+━━ Story 1 of 3 · Shuffled numbers  (random)  36 steps, 173 s at 1x
+   what if   What if… the numbers are shuffled
+   story     Shuffled numbers, the usual case: each split leaves two smaller groups to sort.
+
+   ▸ Chapter 1 of 5 · The line
+     about     Picture each number as a person in a line, and its value as their height. Sorting
+               lines them up from shortest to tallest, one check at a time.
+     so far    You can sort a short list by hand: find the smallest, then the next smallest, and so
+               on.
+     now       Count what that simple way costs on these 9 numbers.
+     done when You can say how many comparisons it needs: 36.
+     card      shows the picture map (a line of people ordered by height)
+   0  9 numbers to sort, like 9 people to line up by height.   ‹line.numbers›
+        look      a
+        picture   one person in the line = one number in its slot
+   1  ★ The simple way takes 8 comparisons to find the smallest, 7 for the next, and so on.   ‹line.simple›
+        why       Every number gets checked against every other one, which adds up to 36 comparisons
+                  for 9 numbers.
+        look      a[6]
+        · cost    Every pair is checked once, n(n − 1)/2 = 9 × 8 / 2 = 36. Double the numbers and
+                  the work roughly quadruples, which is O(n²).
+        · how     This is selection sort. Each round scans what is left for its smallest number and
+                  swaps it to the front.
+        · edge    Not every simple sort is this slow on every input. Insertion sort checks numbers
+                  already in order with 8 comparisons, which is why sorted input feels easy.
+
+   ▸ Chapter 2 of 5 · Split around one
+     about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
+               0, as in the code. [pivot: The number every other number in the group is compared
+               with. Here it is the group's last number.]
+     so far    The simple way checks every pair, which is 36 comparisons.
+     now       Choose one number, and move each other number to its left or its right.
+     done when Every number left of `i` is no bigger than the chosen one.
+   2  ★ 87, the last number, is the pivot.   ‹split.pivot›
+        why       Every other number will be compared with it once, then sent left or right.
+        look      a[8]
+        picture   the person everyone is measured against = the pivot
+        · how     The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule, which costs
+                  nothing to pick but never looks at the numbers.
+        · code    `pivot = a[hi]` (line 9)
+        · edge    If the last number is the biggest or the smallest, every other number lands on one
+                  side, and the split places only one number.
+        · source  Cormen et al. 2022, ch. 7
+   3  In one partition, `i` marks where small numbers go and `j` checks each number in turn.
+      [partition: One pass that moves the numbers no bigger than the pivot to its left and the
+      bigger ones right.]   ‹split.pointers›
+        why       One rule holds the whole way through. Nothing left of `i` is ever bigger than the
+                  pivot.
+        look      a.i, a.j
+        picture   shorter people step left, taller ones right = a partition, one split
+        · how     CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap, while
+                  this code starts at `lo` and adds 1 after. The rule is the same, because the slots
+                  before `i` hold the small side.
+        · code    `i = lo` and `for j in range(lo, hi):` (lines 10–11)
+        · real    This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is
+                  easy to prove. Hoare's original (1961) walks two markers toward each other from
+                  both ends and swaps each pair found on the wrong sides, which makes fewer swaps
+                  but is harder to get right.
+        · source  Cormen et al. 2022, ch. 7; Hoare 1961; Hoare 1962
+   4  ★ 29 is smaller than 87 and already at `i`, so the left side takes it.   ‹split.take›
+        why       It belongs on the left and is already there, so nothing moves and `i` steps on.
+        look      a[0]
+        · how     When `i` equals `j`, a swap would trade 29 with itself, so this code skips it.
+                  CLRS swaps anyway, and the comparisons are the same.
+        · code    `if a[j] <= pivot:` … `i += 1` (lines 12–15)
+   5  79 is smaller than 87 and already at `i`, so the left side takes it.   ‹split.take›
+        look      a[1]
+       … 1 more like this (steps 6–6)
+   7  99 is bigger than 87, so it stays put on the right side.   ‹split.stay›
+        why       Bigger numbers wait between `i` and `j` until a small number swaps past.
+        look      a[3]
+        · how     Only `j` moves on. The slots from `i` up to `j` hold the bigger numbers seen so
+                  far, and the next small number swaps with the first of them.
+   8  ★ 15 is smaller than 87, so it swaps with 99 into slot 3.   ‹split.swap›
+        why       99 is bigger, so the two trade places, and the left side grows by one.
+        look      a[4], a[3]
+        · code    `a[i], a[j] = a[j], a[i]` then `i += 1` (lines 14–15)
+        · edge    A swap can carry a number past others of the same value, so equal numbers may end
+                  up in either order. In other words, quicksort is not stable.
+   9  27 is smaller than 87, so it swaps with 99 into slot 4.   ‹split.swap›
+        look      a[5], a[3]
+       … 2 more like this (steps 10–11)
+
+   ▸ Chapter 3 of 5 · Into place
+     about     The pivot belongs right after the numbers no bigger than it. Everything left of that
+               slot is no bigger, and everything right of it is bigger, so the slot is final.
+     so far    Each other number now sits on the small side or the big side.
+     now       Move the pivot into the slot it belongs in.
+     done when The pivot turns green, because it never moves again.
+     PREDICT  Where will the pivot, 87, end up?
+              A) Slot 7, right after the 7 smaller numbers   ✓
+                 → Right. 7 numbers are no bigger than 87, so it takes the slot right after them,
+                   slot 7.
+              B) In the middle, slot 4
+                 → A pivot lands in the middle only when it happens to be the middle value, and
+                   nothing chose this one for that. 7 numbers are no bigger than 87, so it lands in
+                   slot 7. [m-middle]
+              C) Where it is now, slot 8
+                 → It stays at the end only when nothing in its group is bigger. Here some numbers
+                   are bigger, so it swaps forward to slot 7, right after the 7 numbers no bigger than
+                   it.
+              why: 7 other numbers are no bigger than 87, so it lands in slot 7, right after them.
+                   It was picked for being last rather than for its value, so it can land anywhere.
+  12  ★ 87 swaps with 99 into slot 7, right after the 7 small numbers.   ‹place.swap›
+        why       Everything to its left is no bigger and everything to its right is bigger, so this
+                  is its sorted slot.
+        look      a[8]
+        · cost    This split made 8 comparisons, one for each other number. A group of m numbers
+                  always costs m − 1.
+        · how     Its slot is its rank. 7 numbers in the group are no bigger, so it lands 7 slots
+                  from the start, and no later split can change that count.
+        · edge    It lands in the middle only when it happens to be the middle value. Picking the
+                  last number makes no such promise.
+        · code    `a[i], a[hi] = a[hi], a[i]` and `return i` (lines 16–18)
+
+   ▸ Chapter 4 of 5 · Repeat on each side
+     about     Each placed number splits the line for good, so a number on its left never meets one
+               on its right. Each side then gets the same treatment, which is called recursion.
+               [recursion: Solving each smaller piece with the same steps, until a piece has one
+               number or none.]
+     so far    87 is placed for good. Every other number waits beside it, left or right.
+     now       Split each group with the same steps, one group at a time.
+     done when Every number turns green, placed by a split or alone in its group.
+     PREDICT  29 is left of 87 and 99 is right of it. Will 29 and 99 ever be compared?
+              A) Yes: every pair is compared in the end
+                 → Every pair meets in the simple way, but not here. Every later group lies on one
+                   side of 87, and with 29 on the left and 99 on the right, they never share a group.
+                   [m-pairs]
+              B) No: the two sides are sorted separately   ✓
+                 → Right. Each side of 87 is sorted on its own, so 29 and 99 never meet. That
+                   skipped pair is the saving.
+              C) Only if one of them becomes a pivot
+                 → A pivot is compared only with numbers in its own group. Even when 29 or 99
+                   becomes a pivot, its group stays on its own side of 87, so the two never meet.
+                   [m-pairs]
+              why: Each side of 87 is sorted on its own, with its own pivots, so 29 and 99 are never
+                   compared. Skipping pairs like that is where the saving comes from.
+  13  ★ Left of 87, slots 0–6 get the pivot 51, and 99 never meets any of them.   ‹repeat.never›
+        why       A pivot meets only its own group, and 99 stays right of 87 for good.
+        look      a[7], a[3]
+        · cost    Two numbers meet only if one of them is the first pivot picked from the values
+                  between them, these two included. With random pivots, values k ranks apart meet
+                  with chance 2/(k + 1), which adds up to about 1.39 n log2 n comparisons.
+        · how     Each placed pivot works like a wall. Every later group lies wholly on one side of
+                  it, so no pair across it is ever checked.
+        · source  Cormen et al. 2022, §7.4.2
+  14  29 is smaller than 51, so it stays left.   ‹repeat.take›
+        look      a[0]
+  15  The next 2 numbers, slots 1–2, are bigger than 51, so they stay right.   ‹repeat.stays›
+        why       Bigger numbers wait where they are, and only `j` moves on.
+        look      a[1], a[2]
+  16  15 is smaller than 51, so it swaps left with 79.   ‹repeat.swap›
+        look      a[4], a[1]
+  17  27 is smaller than 51, so it swaps left with 65.   ‹repeat.swap›
+        look      a[5], a[2]
+       … 1 more like this (steps 18–18)
+  19  51 swaps with 65 into slot 4, where it stays.   ‹repeat.place›
+        look      a[7]
+  20  On the left side of 51, slots 0–3 get the pivot 8.   ‹repeat.group›
+        why       These 4 numbers get exactly the same steps, which is what recursion means.
+        look      a[6]
+        picture   the same again inside each smaller group = recursion
+        · code    `quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)
+        · how     Each group still waiting is a call on the stack. Sorted input nests about 9 calls
+                  deep, but sorting the smaller side first and looping on the bigger one keeps it at
+                  most log2 n.
+        · source  Sedgewick 1978
+  21  The next 3 numbers, slots 0–2, are bigger than 8, so they stay right.   ‹repeat.stays›
+        look      a[0], a[4], a[5]
+  22  8 swaps with 29 into slot 0, where it stays.   ‹repeat.place›
+        look      a[6]
+  23  On the right side of 8, slots 1–3 get the pivot 29.   ‹repeat.group›
+        look      a[0]
+  24  The next 2 numbers, slots 1–2, are smaller than 29, so they stay left.   ‹repeat.takes›
+        why       Each one is already at `i`, so nothing moves, and the left side grows by one each
+                  time.
+        look      a[4], a[5]
+  25  Nothing here is bigger than 29, so it stays in slot 3, placed.   ‹repeat.place-stay›
+        why       This group shrank by only one number, which is the most lopsided split there is.
+        look      a[0]
+        · cost    A split of m numbers always costs m − 1 comparisons. When it places only one, the
+                  next group is m − 1 long, and costs m − 2.
+  26  On the left side of 29, slots 1–2 get the pivot 27.   ‹repeat.group›
+        look      a[5]
+  27  15 is smaller than 27, so it stays left.   ‹repeat.take›
+        look      a[4]
+  28  Nothing here is bigger than 27, so it stays in slot 2, placed.   ‹repeat.place-stay›
+        look      a[5]
+  29  The left side of 27 holds only 15, and a group of one is already placed.   ‹repeat.alone›
+        why       A group of one needs no split, so here the recursion stops.
+        look      a[4]
+        · code    `if lo >= hi: return` (lines 2–3)
+  30  On the right side of 51, slots 5–6 get the pivot 65.   ‹repeat.group›
+        look      a[2]
+  31  79 is bigger than 65, so it stays right.   ‹repeat.stay›
+        look      a[1]
+  32  65 swaps with 79 into slot 5, where it stays.   ‹repeat.place›
+        look      a[2]
+  33  The right side of 65 holds only 79, and a group of one is already placed.   ‹repeat.alone›
+        look      a[1]
+  34  The right side of 87 holds only 99, and a group of one is already placed.   ‹repeat.alone›
+        look      a[3]
+
+   ▸ Chapter 5 of 5 · Sorted
+     about     Every number was a pivot or alone in a group, so the line is sorted. The counter
+               shows how many pairs were never compared.
+     so far    Each split placed one number for good and left smaller groups.
+     now       Set quicksort's count against checking every pair.
+     done when The counter is below 36, or at 36 in the slow case.
+  35  ★ Sorted with 21 comparisons, where checking every pair takes 36.   ‹sorted.done›
+        why       15 comparisons never happened, because pairs that a pivot split apart never meet.
+        look      a
+        · cost    With random pivots quicksort expects 2(n + 1)H(n) − 4n comparisons, where H(n) = 1
+                  + 1/2 + … + 1/n, which gives 20.6 for 9 numbers and 32.7 for 12. For large n it
+                  grows like 1.39 n log2 n. This run made 21.
+        · edge    The worst case is still every pair, because McIlroy showed that any deterministic
+                  pivot rule has inputs that force it.
+        · real    Production sorts build on this. Java sorts `int[]` with dual-pivot quicksort,
+                  which uses two pivots and three groups. Rust's `sort_unstable` is ipnsort, a
+                  quicksort that falls back to heapsort so it is never quadratic.
+        · source  McIlroy 1999; Java SE 21, Arrays.sort; Rust, slice::sort_unstable
+
+   RECAP
+     1. We picked one number, the pivot. Smaller or equal numbers went left, bigger ones right.
+     2. The pivot then sits in its final slot and never moves again.
+     3. Each side is split the same way, until every group has one number or none.
+     4. The two sides are never compared, so even splits skip most pairs.
+   TAKEAWAY  Each split puts one number in its final place and leaves two smaller groups that never
+             need comparing with each other.
+   CAN NOW   o-place, o-split, o-skip
+
+━━ Story 2 of 3 · Already sorted input  (sorted)  36 steps, 181 s at 1x
+   what if   What if… the numbers are already in order
+   story     The numbers are already in order, so each split peels off only one number, which is the
+             slowest case for this way of choosing.
+
+   ▸ Chapter 1 of 5 · The line
+     about     Picture each number as a person in a line, and its value as their height. Sorting
+               lines them up from shortest to tallest, one check at a time.
+     so far    You can sort a short list by hand: find the smallest, then the next smallest, and so
+               on.
+     now       Count what that simple way costs on these 9 numbers.
+     done when You can say how many comparisons it needs: 36.
+     card      shows the picture map (a line of people ordered by height)
+   0  9 numbers already in order, like people already lined up by height.   ‹line.numbers›
+        why       Already sorted looks like the easy case. Keep an eye on the comparison counter.
+        look      a
+        picture   one person in the line = one number in its slot
+   1  ★ The simple way takes 8 comparisons to find the smallest, 7 for the next, and so on.   ‹line.simple›
+        why       Every number gets checked against every other one, which adds up to 36 comparisons
+                  for 9 numbers.
+        look      a[0]
+        · cost    Every pair is checked once, n(n − 1)/2 = 9 × 8 / 2 = 36. Double the numbers and
+                  the work roughly quadruples, which is O(n²).
+        · how     This is selection sort. Each round scans what is left for its smallest number and
+                  swaps it to the front.
+        · edge    Not every simple sort is this slow on every input. Insertion sort checks numbers
+                  already in order with 8 comparisons, which is why sorted input feels easy.
+
+   ▸ Chapter 2 of 5 · Split around one
+     about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
+               0, as in the code.
+     so far    The simple way checks every pair, which is 36 comparisons.
+     now       Choose one number, and move each other number to its left or its right.
+     done when Every number left of `i` is no bigger than the chosen one.
+   2  ★ 99, the last number, is the pivot.   ‹split.pivot›
+        why       Every other number will be compared with it once, then sent left or right.
+        look      a[8]
+        picture   the person everyone is measured against = the pivot
+        · how     The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule, which costs
+                  nothing to pick but never looks at the numbers.
+        · code    `pivot = a[hi]` (line 9)
+        · edge    If the last number is the biggest or the smallest, every other number lands on one
+                  side, and the split places only one number.
+        · source  Cormen et al. 2022, ch. 7
+   3  In one partition, `i` marks where small numbers go and `j` checks each number in turn.   ‹split.pointers›
+        why       One rule holds the whole way through. Nothing left of `i` is ever bigger than the
+                  pivot.
+        look      a.i, a.j
+        picture   shorter people step left, taller ones right = a partition, one split
+        · how     CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap, while
+                  this code starts at `lo` and adds 1 after. The rule is the same, because the slots
+                  before `i` hold the small side.
+        · code    `i = lo` and `for j in range(lo, hi):` (lines 10–11)
+        · real    This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is
+                  easy to prove. Hoare's original (1961) walks two markers toward each other from
+                  both ends and swaps each pair found on the wrong sides, which makes fewer swaps
+                  but is harder to get right.
+        · source  Cormen et al. 2022, ch. 7; Hoare 1961; Hoare 1962
+   4  ★ 8 is smaller than 99 and already at `i`, so the left side takes it.   ‹split.take›
+        why       It belongs on the left and is already there, so nothing moves and `i` steps on.
+        look      a[0]
+        · how     When `i` equals `j`, a swap would trade 8 with itself, so this code skips it. CLRS
+                  swaps anyway, and the comparisons are the same.
+        · code    `if a[j] <= pivot:` … `i += 1` (lines 12–15)
+   5  15 is smaller than 99 and already at `i`, so the left side takes it.   ‹split.take›
+        look      a[1]
+       … 6 more like this (steps 6–11)
+
+   ▸ Chapter 3 of 5 · Into place
+     about     The pivot belongs right after the numbers no bigger than it. Everything left of that
+               slot is no bigger, and everything right of it is bigger, so the slot is final.
+     so far    Each other number now sits on the small side or the big side.
+     now       Move the pivot into the slot it belongs in.
+     done when The pivot turns green, because it never moves again.
+     PREDICT  Every number was smaller than 99. What is left to sort once 99 is placed?
+              A) Two groups of 4 each
+                 → It is tempting to picture the pivot cutting the line in half, but it lands after
+                   every number no bigger than it. Here that is all 8, so its right side is empty.
+                   [m-middle]
+              B) One group: all 8 others   ✓
+                 → Right. 99 is the biggest, so all 8 others sit on its left and none on its right.
+              C) Nothing: the line was already sorted
+                 → Quicksort never checks whether the line is sorted. To it, the 8 others are one
+                   unsorted group, and every one of them will be split again. [m-sorted]
+              why: 99 is the biggest, so all 8 others sit on its left and its right side is empty.
+                   This split placed only one number.
+  12  ★ 99 stays in slot 8. 8 other numbers are left, all in one group.   ‹place.stay›
+        why       99 was the biggest, so nothing went to its right and there is no second group.
+        look      a[8]
+        · cost    It took 8 comparisons to place one number, the most a split can cost for the least
+                  progress.
+        · edge    Every fixed pivot rule has inputs like this. McIlroy showed that an adversary,
+                  choosing values only as the sort compares them, drives any deterministic pivot
+                  rule to quadratic time.
+        · real    Libraries guard against it. GCC's `std::sort` is introsort: past 2 log2 n nested
+                  splits it switches to heapsort. Go's `sort` (since 1.19) is pattern-defeating
+                  quicksort, which sorts input already in order in one pass.
+        · source  McIlroy 1999; Musser 1997; libstdc++ stl_algo.h __introsort_loop; Go 1.19 release
+                  notes; Peters 2021
+
+   ▸ Chapter 4 of 5 · Repeat on each side
+     about     Each placed number splits the line for good, so a number on its left never meets one
+               on its right. Each side then gets the same treatment, which is called recursion.
+     so far    99 is placed for good. Every other number waits beside it, left or right.
+     now       Split each group with the same steps, one group at a time.
+     done when Every number turns green, placed by a split or alone in its group.
+  13  On the left side of 99, slots 0–7 get the pivot 87.   ‹repeat.group›
+        why       These 8 numbers get exactly the same steps, which is what recursion means.
+        look      a[7]
+        picture   the same again inside each smaller group = recursion
+        · code    `quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)
+        · how     Each group still waiting is a call on the stack. Sorted input nests about 9 calls
+                  deep, but sorting the smaller side first and looping on the bigger one keeps it at
+                  most log2 n.
+        · source  Sedgewick 1978
+  14  The next 7 numbers, slots 0–6, are smaller than 87, so they stay left.   ‹repeat.takes›
+        why       Each one is already at `i`, so nothing moves, and the left side grows by one each
+                  time.
+        look      a[0], a[1], a[2], a[3], a[4], a[5], a[6]
+  15  Nothing here is bigger than 87, so it stays in slot 7, placed.   ‹repeat.place-stay›
+        why       This group shrank by only one number, which is the most lopsided split there is.
+        look      a[7]
+        · cost    A split of m numbers always costs m − 1 comparisons. When it places only one, the
+                  next group is m − 1 long, and costs m − 2.
+  16  On the left side of 87, slots 0–6 get the pivot 79.   ‹repeat.group›
+        look      a[6]
+  17  The next 6 numbers, slots 0–5, are smaller than 79, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2], a[3], a[4], a[5]
+  18  Nothing here is bigger than 79, so it stays in slot 6, placed.   ‹repeat.place-stay›
+        look      a[6]
+  19  On the left side of 79, slots 0–5 get the pivot 65.   ‹repeat.group›
+        look      a[5]
+  20  The next 5 numbers, slots 0–4, are smaller than 65, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2], a[3], a[4]
+  21  Nothing here is bigger than 65, so it stays in slot 5, placed.   ‹repeat.place-stay›
+        look      a[5]
+  22  On the left side of 65, slots 0–4 get the pivot 51.   ‹repeat.group›
+        look      a[4]
+  23  The next 4 numbers, slots 0–3, are smaller than 51, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2], a[3]
+  24  Nothing here is bigger than 51, so it stays in slot 4, placed.   ‹repeat.place-stay›
+        look      a[4]
+  25  On the left side of 51, slots 0–3 get the pivot 29.   ‹repeat.group›
+        look      a[3]
+  26  The next 3 numbers, slots 0–2, are smaller than 29, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2]
+  27  Nothing here is bigger than 29, so it stays in slot 3, placed.   ‹repeat.place-stay›
+        look      a[3]
+  28  On the left side of 29, slots 0–2 get the pivot 27.   ‹repeat.group›
+        look      a[2]
+  29  The next 2 numbers, slots 0–1, are smaller than 27, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1]
+  30  Nothing here is bigger than 27, so it stays in slot 2, placed.   ‹repeat.place-stay›
+        look      a[2]
+  31  On the left side of 27, slots 0–1 get the pivot 15.   ‹repeat.group›
+        look      a[1]
+  32  8 is smaller than 15, so it stays left.   ‹repeat.take›
+        look      a[0]
+  33  Nothing here is bigger than 15, so it stays in slot 1, placed.   ‹repeat.place-stay›
+        look      a[1]
+  34  The left side of 15 holds only 8, and a group of one is already placed.   ‹repeat.alone›
+        why       A group of one needs no split, so here the recursion stops.
+        look      a[0]
+        · code    `if lo >= hi: return` (lines 2–3)
+
+   ▸ Chapter 5 of 5 · Sorted
+     about     Every number was a pivot or alone in a group, so the line is sorted. The counter
+               shows how many pairs were never compared.
+     so far    Each split placed one number for good and left smaller groups.
+     now       Set quicksort's count against checking every pair.
+     done when The counter is below 36, or at 36 in the slow case.
+  35  ★ The line is sorted, but it took all 36 comparisons, with no pair skipped.   ‹sorted.done›
+        why       Every split put all the others on one side, so every pair met.
+        look      a
+        · cost    (n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = 36, as slow as the simple way at O(n²).
+                  Sorted input still makes 0 swaps, because every number is already at `i`.
+        · edge    Reverse-sorted and all-equal input are as slow with this pivot rule. A random
+                  pivot makes it unlikely on any input, and the median of the first, middle and last
+                  numbers makes sorted input fast.
+        · source  Bentley & McIlroy 1993, §3
+
+   RECAP
+     1. In sorted input the last number of a group is always the biggest.
+     2. So every split put all the others on one side and placed only one.
+     3. Nothing was skipped. Every pair was compared, which is the slowest this pivot rule can be.
+   TAKEAWAY  With the last number as pivot, sorted input is the slowest case, because every pair
+             gets compared. A random or middle pivot avoids it.
+   CAN NOW   o-place, o-split, o-slow
+
+━━ Story 3 of 3 · Lots of repeated numbers  (dups)  36 steps, 183 s at 1x
+   what if   What if… most of the numbers are the same
+   story     Only three different values, so copies of the chosen number all pile up on one side.
+
+   ▸ Chapter 1 of 5 · The line
+     about     Picture each number as a person in a line, and its value as their height. Sorting
+               lines them up from shortest to tallest, one check at a time.
+     so far    You can sort a short list by hand: find the smallest, then the next smallest, and so
+               on.
+     now       Count what that simple way costs on these 9 numbers.
+     done when You can say how many comparisons it needs: 36.
+     card      shows the picture map (a line of people ordered by height)
+   0  9 numbers with only 3 different values: 1, 2 and 3.   ‹line.numbers›
+        why       Think of people who come in only a few heights, so many of them tie.
+        look      a
+        picture   their height = the number's value
+   1  ★ The simple way takes 8 comparisons to find the smallest, 7 for the next, and so on.   ‹line.simple›
+        why       Every number gets checked against every other one, which adds up to 36 comparisons
+                  for 9 numbers.
+        look      a[4]
+        · cost    Every pair is checked once, n(n − 1)/2 = 9 × 8 / 2 = 36. Double the numbers and
+                  the work roughly quadruples, which is O(n²).
+        · how     This is selection sort. Each round scans what is left for its smallest number and
+                  swaps it to the front.
+        · edge    Not every simple sort is this slow on every input. Insertion sort checks numbers
+                  already in order with 8 comparisons, which is why sorted input feels easy.
+
+   ▸ Chapter 2 of 5 · Split around one
+     about     Pick one number, the pivot, like the chosen person in the line. Numbers smaller than
+               it or equal to it go to its left, bigger ones to its right. Slots are numbered from
+               0, as in the code.
+     so far    The simple way checks every pair, ties or not, which is 36 comparisons.
+     now       Choose one number, and move each other number left or right, even its copies.
+     done when Every number left of `i` is no bigger than the chosen one.
+   2  ★ 3, the last number, is the pivot.   ‹split.pivot›
+        why       Every other number will be compared with it once, then sent left or right.
+        look      a[8]
+        picture   the person everyone is measured against = the pivot
+        · how     The pivot is `a[hi]`, the last slot of the group. CLRS uses this rule, which costs
+                  nothing to pick but never looks at the numbers.
+        · code    `pivot = a[hi]` (line 9)
+        · edge    If the last number is the biggest or the smallest, every other number lands on one
+                  side, and the split places only one number.
+        · source  Cormen et al. 2022, ch. 7
+   3  In one partition, `i` marks where small numbers go and `j` checks each number in turn.   ‹split.pointers›
+        why       One rule holds the whole way through. Nothing left of `i` is ever bigger than the
+                  pivot.
+        look      a.i, a.j
+        picture   shorter people step left, taller ones right = a partition, one split
+        · how     CLRS starts `i` one slot early (`i = p − 1`) and adds 1 before each swap, while
+                  this code starts at `lo` and adds 1 after. The rule is the same, because the slots
+                  before `i` hold the small side.
+        · code    `i = lo` and `for j in range(lo, hi):` (lines 10–11)
+        · real    This one-marker split is Lomuto's, made popular by Bentley and CLRS because it is
+                  easy to prove. Hoare's original (1961) walks two markers toward each other from
+                  both ends and swaps each pair found on the wrong sides, which makes fewer swaps
+                  but is harder to get right.
+        · source  Cormen et al. 2022, ch. 7; Hoare 1961; Hoare 1962
+     PREDICT  3 is the same as the pivot, 3. Which side does it go to?
+              A) The left, with the smaller numbers   ✓
+                 → Right. The test is `a[j] <= pivot`, and 3 is no bigger than 3, so it goes left.
+              B) The right, with the bigger numbers
+                 → Sending only smaller numbers left would need a different test. This one is “no
+                   bigger than the pivot”, and 3 equals 3, so it passes and goes left. [m-equal]
+              C) Neither: it waits beside the pivot
+                 → A middle place sounds fair, but this split has only two sides, left of `i` and
+                   right of it. 3 passes “no bigger than 3”, so it joins the left, and only a
+                   three-way split adds a middle. [m-equal]
+              why: This split's rule is “smaller than or equal to the pivot goes left”, so every
+                   copy of 3 lands on the left. A three-way split would keep it beside the pivot.
+   4  ★ 3 equals 3, and equal counts as small, so the left side takes it.   ‹split.copy›
+        why       Every copy of 3 joins the left side, so the more copies, the longer that side.
+        look      a[0]
+        · how     The test is `a[j] <= pivot`, so a copy goes left like any smaller number. This
+                  split has two sides and no middle.
+        · edge    So all-equal input costs every pair here. Hoare's two markers both stop on a copy
+                  and swap it, which splits a run of copies in half. A three-way split, Dijkstra's,
+                  keeps copies beside the pivot and never looks at them again.
+        · source  Sedgewick & Wayne 2011, §2.3, 3-way partitioning; Bentley & McIlroy 1993, §4
+   5  2 is no bigger than 3 and already at `i`, so the left side takes it.   ‹split.take›
+        look      a[1]
+   6  2 is no bigger than 3 and already at `i`, so the left side takes it.   ‹split.take›
+        look      a[2]
+       … 5 more like this (steps 7–11)
+
+   ▸ Chapter 3 of 5 · Into place
+     about     The pivot belongs right after the numbers no bigger than it. Everything left of that
+               slot is no bigger, and everything right of it is bigger, so the slot is final.
+     so far    Each other number now sits on the small side or the big side.
+     now       Move the pivot into the slot it belongs in.
+     done when The pivot turns green, because it never moves again.
+  12  ★ Nothing is bigger than 3, so it stays in slot 8 for good.   ‹place.stay›
+        why       The other 8 numbers are no bigger, so the last slot is its sorted slot.
+        look      a[8]
+        · cost    This split made 8 comparisons and placed one number, leaving 8 numbers in one
+                  group.
+        · how     `i` reached `hi`, so the final swap would trade the pivot with itself, and the
+                  code skips it.
+
+   ▸ Chapter 4 of 5 · Repeat on each side
+     about     Each placed number splits the line for good, so a number on its left never meets one
+               on its right. Each side then gets the same treatment, which is called recursion.
+     so far    3 is placed for good. Every other number waits beside it, left or right.
+     now       Split each group with the same steps, one group at a time.
+     done when Every number turns green, placed by a split or alone in its group.
+  13  On the left side of 3, slots 0–7 get the pivot 3.   ‹repeat.group›
+        why       These 8 numbers get exactly the same steps, which is what recursion means.
+        look      a[7]
+        picture   the same again inside each smaller group = recursion
+        · code    `quicksort(a, lo, p - 1)` and `quicksort(a, p + 1, hi)` (lines 5–6)
+        · how     Each group still waiting is a call on the stack. Sorted input nests about 9 calls
+                  deep, but sorting the smaller side first and looping on the bigger one keeps it at
+                  most log2 n.
+        · source  Sedgewick 1978
+  14  The next 7 numbers, slots 0–6, are no bigger than 3, so they stay left.   ‹repeat.takes›
+        why       Each one is already at `i`, so nothing moves, and the left side grows. Copies of 3
+                  count as small too.
+        look      a[0], a[1], a[2], a[3], a[4], a[5], a[6]
+  15  Nothing here is bigger than 3, so it stays in slot 7, placed.   ‹repeat.place-stay›
+        why       This group shrank by only one number, which is the most lopsided split there is.
+        look      a[7]
+        · cost    A split of m numbers always costs m − 1 comparisons. When it places only one, the
+                  next group is m − 1 long, and costs m − 2.
+  16  On the left side of 3, slots 0–6 get the pivot 3.   ‹repeat.group›
+        look      a[6]
+  17  The next 6 numbers, slots 0–5, are no bigger than 3, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2], a[3], a[4], a[5]
+  18  Nothing here is bigger than 3, so it stays in slot 6, placed.   ‹repeat.place-stay›
+        look      a[6]
+  19  On the left side of 3, slots 0–5 get the pivot 3.   ‹repeat.group›
+        look      a[5]
+  20  The next 5 numbers, slots 0–4, are no bigger than 3, so they stay left.   ‹repeat.takes›
+        look      a[0], a[1], a[2], a[3], a[4]
+  21  Nothing here is bigger than 3, so it stays in slot 5, placed.   ‹repeat.place-stay›
+        look      a[5]
+  22  On the left side of 3, slots 0–4 get the pivot 1.   ‹repeat.group›
+        look      a[4]
+  23  The next 4 numbers, slots 0–3, are bigger than 1, so they stay right.   ‹repeat.stays›
+        why       Bigger numbers wait where they are, and only `j` moves on.
+        look      a[0], a[1], a[2], a[3]
+  24  1 swaps with 3 into slot 0, where it stays.   ‹repeat.place›
+        look      a[4]
+  25  On the right side of 1, slots 1–4 get the pivot 3.   ‹repeat.group›
+        look      a[0]
+  26  The next 3 numbers, slots 1–3, are no bigger than 3, so they stay left.   ‹repeat.takes›
+        look      a[1], a[2], a[3]
+  27  Nothing here is bigger than 3, so it stays in slot 4, placed.   ‹repeat.place-stay›
+        look      a[0]
+  28  On the left side of 3, slots 1–3 get the pivot 3.   ‹repeat.group›
+        look      a[3]
+  29  The next 2 numbers, slots 1–2, are no bigger than 3, so they stay left.   ‹repeat.takes›
+        look      a[1], a[2]
+  30  Nothing here is bigger than 3, so it stays in slot 3, placed.   ‹repeat.place-stay›
+        look      a[3]
+  31  On the left side of 3, slots 1–2 get the pivot 2.   ‹repeat.group›
+        look      a[2]
+  32  2 is no bigger than 2, so it stays left.   ‹repeat.take›
+        why       Equal counts as small, so this copy of 2 goes left too.
+        look      a[1]
+  33  Nothing here is bigger than 2, so it stays in slot 2, placed.   ‹repeat.place-stay›
+        look      a[2]
+  34  The left side of 2 holds only 2, and a group of one is already placed.   ‹repeat.alone›
+        why       A group of one needs no split, so here the recursion stops.
+        look      a[1]
+        · code    `if lo >= hi: return` (lines 2–3)
+
+   ▸ Chapter 5 of 5 · Sorted
+     about     Every number was a pivot or alone in a group, so the line is sorted. The counter
+               shows how many pairs were never compared.
+     so far    Each split placed one number for good and left smaller groups.
+     now       Set quicksort's count against checking every pair.
+     done when The counter is below 36, or at 36 in the slow case.
+  35  ★ The line is sorted, but it took all 36 comparisons, with no pair skipped.   ‹sorted.done›
+        why       Every split put all the others on one side, so every pair met.
+        look      a
+        · cost    (n − 1) + (n − 2) + … + 1 = n(n − 1)/2 = 36, as slow as the simple way at O(n²).
+        · edge    With the last number as pivot, sorted, reverse-sorted and all-equal input all do
+                  this. A random pivot makes it unlikely on any input, and the median of the first,
+                  middle and last numbers makes sorted input fast.
+        · real    In 1991 a Unix `qsort` ran for hours on an “organ-pipe” array, 1 2 … n n … 2 1.
+                  Bentley and McIlroy then drove all of a dozen Unix `qsort`s to quadratic time, and
+                  their replacement picks the median of 3 numbers, or of 9 for big groups.
+        · source  Bentley & McIlroy 1993, §1 and §3
+
+   RECAP
+     1. With only three values, many numbers equal the pivot.
+     2. Equal counts as small, so every copy went to the left side.
+     3. Lopsided splits placed few numbers each, so few pairs, or none, were skipped.
+   TAKEAWAY  In this split, a copy of the pivot counts as small, so many repeats make lopsided, slow
+             splits. A three-way split keeps copies beside the pivot instead.
+   CAN NOW   o-place, o-split, o-slow
+
+SOURCES  (lesson.sources: 13)
+  [clrs4]  Cormen et al. 2022
+    ref       Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, Clifford Stein. Introduction
+              to Algorithms, 4th edition. MIT Press, 2022.
+    url       https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/
+    supports  §7.1 PARTITION with pivot A[r] and the test A[j] ≤ x (Figure 7.1 runs it on 2 8 7 1 3
+              5 6 4); §7.4.2 the chance 2/(j − i + 1) that two values meet
+  [hoare1961]  Hoare 1961
+    ref       C. A. R. Hoare. Algorithm 63: Partition; Algorithm 64: Quicksort. Communications of
+              the ACM 4(7):321, 1961.
+    url       https://doi.org/10.1145/366622.366642
+    supports  the first published quicksort, with two markers that walk toward each other from both
+              ends
+  [hoare1962]  Hoare 1962
+    ref       C. A. R. Hoare. Quicksort. The Computer Journal 5(1):10–16, 1962.
+    url       https://doi.org/10.1093/comjnl/5.1.10
+    supports  the full paper: the method, its average cost, and picking the bound at random
+  [algs4]  Sedgewick & Wayne 2011
+    ref       Robert Sedgewick, Kevin Wayne. Algorithms, 4th edition, §2.3 Quicksort.
+              Addison-Wesley; algs4.cs.princeton.edu, 2011.
+    url       https://algs4.cs.princeton.edu/23quicksort/
+    supports  Dijkstra's 3-way partitioning for many equal keys; Hoare's markers stopping on keys
+              equal to the pivot
+  [sedgewick1978]  Sedgewick 1978
+    ref       Robert Sedgewick. Implementing Quicksort programs. Communications of the ACM
+              21(10):847–857, 1978.
+    url       https://doi.org/10.1145/359619.359631
+    supports  sorting the smaller side first keeps the stack at most log2 n deep
+  [bentley-mcilroy1993]  Bentley & McIlroy 1993
+    ref       Jon L. Bentley, M. Douglas McIlroy. Engineering a sort function. Software: Practice
+              and Experience 23(11):1249–1265, 1993.
+    url       https://doi.org/10.1002/spe.4380231105
+    supports  a 1991 qsort that took n² comparisons on an organ-pipe array; a dozen Unix qsorts all
+              driven to quadratic time; the middle element, median of 3 and Tukey's ninther as
+              pivots; a split that keeps equal keys apart
+  [mcilroy1999]  McIlroy 1999
+    ref       M. Douglas McIlroy. A killer adversary for quicksort. Software: Practice and
+              Experience 29(4):341–344, 1999.
+    url       https://doi.org/10.1002/(SICI)1097-024X(19990410)29:4%3C341::AID-SPE237%3E3.0.CO;2-R
+    supports  an adversary that picks values as the sort compares them drives any deterministic
+              pivot rule to quadratic time
+  [musser1997]  Musser 1997
+    ref       David R. Musser. Introspective sorting and selection algorithms. Software: Practice
+              and Experience 27(8):983–993, 1997.
+    url       https://doi.org/10.1002/(SICI)1097-024X(199708)27:8%3C983::AID-SPE117%3E3.0.CO;2-%23
+    supports  introsort: quicksort that switches to heapsort past a depth limit
+  [libstdcxx]  libstdc++ stl_algo.h
+    ref       GCC. libstdc++, bits/stl_algo.h: std::sort. the GCC source tree, 2026.
+    url       https://raw.githubusercontent.com/gcc-mirror/gcc/master/libstdc++-v3/include/bits/stl_algo.h
+    supports  GCC's std::sort runs __introsort_loop with a depth limit of 2 × floor(log2 n), then
+              heapsort
+  [go119]  Go 1.19 release notes
+    ref       The Go team. Go 1.19 release notes: sort. go.dev, 2022.
+    url       https://go.dev/doc/go1.19#sort
+    supports  Go's sort package rewritten as pattern-defeating quicksort
+  [peters2021]  Peters 2021
+    ref       Orson R. L. Peters. Pattern-defeating Quicksort. arXiv:2106.05123, 2021.
+    url       https://arxiv.org/abs/2106.05123
+    supports  pdqsort: linear time on sorted input, heapsort fallback for a worst case of n log n
+  [java-arrays]  Java SE 21, Arrays.sort
+    ref       Oracle. Java SE 21 API, Arrays.sort(int[]). docs.oracle.com, 2023.
+    url       https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#sort(int%5B%5D)
+    supports  Dual-Pivot Quicksort by Vladimir Yaroslavskiy, Jon Bentley and Joshua Bloch
+  [rust-sort]  Rust, slice::sort_unstable
+    ref       The Rust project. Rust standard library, slice::sort_unstable. doc.rust-lang.org,
+              2026.
+    url       https://doc.rust-lang.org/std/primitive.slice.html#method.sort_unstable
+    supports  ipnsort by Lukas Bergdoll and Orson Peters: quicksort's average case with heapsort's
+              worst case
+
+teaching checks  examples/quicksort/figure.mjs
+  info   level core, 5 chapters, 4 questions, 3 defined words, 2205 words, reading grade 5.2

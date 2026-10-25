@@ -1,0 +1,632 @@
+Virtual memory: How each program gets its own addresses, and how one read finds its byte
+level core · 3 stories · 3 knobs (Address the program reads, Or type your own address (hex), Sticky notes (TLB size))
+
+HOOK      Two programs can use the same memory address for their own data. Why don't they overwrite
+          each other, and how is it fast?
+GOAL      Turn a program's own address into a real place in memory, so programs stay apart and reads
+          stay fast.
+OBJECTIVES
+  o-split: Perform the split of an address into its page number, which is looked up, and its offset,
+           which copies straight over.
+  o-walk: Explain how four groups of 9 bits each pick one line in a chain of four tables, starting
+          from CR3. (miss, fault)
+  o-cost: Compare a sticky-note hit with a directory walk, and compute the average cost of many
+          reads in one page. (miss, hit)
+  o-apart: Explain why two programs reading the same address reach different rooms. (miss)
+  o-fault: Predict what happens when a page is out on disk, in order, and which part costs the most.
+           (fault)
+PICTURE   a building where each program has its own apartment numbers
+  number  an apartment number  =  a virtual address: the program's own number  (virtual address)
+  spot    the spot inside the apartment  =  the offset, the low 12 bits  (offset)
+  directorythe program's building directory  =  its page table  (page table)
+  desk    which directory lies open on the desk  =  CR3, where that page table starts  (CR3)
+  room    the real room  =  a frame of physical memory  (frame)
+  notes   the receptionist's sticky notes  =  the TLB  (TLB)
+  storage a room whose boxes went to storage  =  a page out on disk: a page fault  (page fault)
+  breaks  A receptionist reads one big directory. The CPU's is four small tables, each saying where
+          the next starts, and it keeps only a few notes.
+BELIEFS
+  m-walk: “Every read looks its address up in the directory, so every read is slow.” Only a miss
+          reads the directory. The note it leaves answers every later read in that page in one
+          cycle.
+  m-fixed: “An address is one fixed place in memory, the same for every program.” An address is the
+           program's own number. Its directory decides which real room it means.
+  m-unique: “Two programs can't use the same address: the system gives each its own addresses.”
+            Programs use the same addresses all the time. Their directories send them to different
+            rooms.
+  m-note: “Once the kernel brings the page back, the sticky notes know about it too.” The kernel
+          fixes the directory line and leaves the notes alone. A note is written only after a walk
+          that finds the room.
+WORDS
+  virtual address: (the program's own address) A program's own number for a place in its memory,
+                   like an apartment number. It names no real room.
+  page: (a 4,096-byte block) A block of 4,096 bytes. Memory is handed out, looked up and moved one
+        block at a time.
+  offset: (the place inside the block) How many bytes into its 4,096-byte block a byte sits,
+          counting from the block's start.
+  TLB: (the sticky notes) The translation lookaside buffer, the CPU's few sticky notes of recently
+       looked-up pages and their real rooms.
+  cycle: (one clock tick) One tick of the CPU's clock. A 3 GHz CPU ticks 3 billion times a second.
+  page table: (the directory) A program's directory, with a line for each of its pages saying which
+              real room holds it.
+  CR3: (where the directory starts) A slot inside the CPU that holds where the running program's
+       directory starts in memory.
+  frame: (a real room) A page-sized room of real memory. A page lives in one while it is in memory.
+  physical address: (the real address) The real place in memory, which is the room's start plus the
+                    offset inside it.
+  page fault: (the page isn't here) The CPU finds a page is not in memory, stops, and asks the
+              operating system to fetch it.
+  kernel: (the operating system's core) The core of the operating system, which hands out memory and
+          fetches pages back from disk.
+  cache: (fast memory beside the CPU) Small, fast memory beside the CPU that keeps copies of
+         recently read memory, so reading again is cheap.
+NUMBERS   cycles spent translating * · answered by a sticky note * · not on a sticky note · directory reads from memory * · directory reads from the cache · pages fetched from disk *   (* in each pause's recap)
+
+━━ Story 1 of 3 · A new address  (miss)  25 steps, 134 s at 1x
+   what if   What if… the program reads a new address
+   story     Nothing is noted for this page yet, so the CPU looks it up in the program's directory.
+             Then a second program uses the same address.
+
+   ▸ Chapter 1 of 6 · Apartment numbers
+     about     Think of a building where each program has its own apartment numbers, and its own
+               directory that turns a number into a real room. Addresses are written in hex, where
+               each digit stands for 4 bits.
+     so far    Programs read memory by address, like a[3] in an array.
+     now       Split the program's address into the part that is looked up and the part that isn't.
+     done when The last 3 hex digits copy straight into the real address below.
+     card      shows the picture map (a building where each program has its own apartment numbers)
+   0  ★ The program reads one byte at `0x7f3a_2c10_8e48`. That is its own virtual address. [virtual
+      address: A program's own number for a place in its memory, like an apartment number. It
+      names no real room.]   ‹address.read›
+        why       If it were a real place, two programs using this number would overwrite each
+                  other's data.
+        look      va
+        picture   an apartment number = a virtual address: the program's own number
+        · how     Every address a program ever sees, from a printed pointer to its stack, is
+                  virtual. The CPU translates it on every read, write and instruction fetch.
+        · edge    Only 48 of the 64 bits count. Bits 63–48 must copy bit 47, or the CPU refuses the
+                  address. Programs live in the lower half, below 0x8000_0000_0000.
+        · source  Intel SDM 2025, Vol. 1, §3.3.7.1, canonical addressing
+   1  ★ The low 12 bits, `0xe48`, are the offset, the byte's place in its block. [offset: How many
+      bytes into its 4,096-byte block a byte sits, counting from the block's start.]   ‹address.offset›
+        why       These bits copy straight down into the real address unchanged, so they never need
+                  looking up.
+        look      pa
+        picture   the spot inside the apartment = the offset, the low 12 bits
+        · how     12 bits count from 0 to 4,095, one number for each byte of a 4,096-byte block. In
+                  hex that is the last 3 digits, here `0xe48`.
+        · code    `off = va & 0xfff;` (line 3)
+        · source  OSTEP 2023, ch. 18
+   2  ★ The upper 36 bits, `0x7f3a2c108`, name its page. Only this part is looked up. [page: A block
+      of 4,096 bytes. Memory is handed out, looked up and moved one block at a time.]   ‹address.page›
+        why       Looking up a whole page of 4,096 bytes at once, instead of each byte, keeps the
+                  directory small.
+        look      va
+        picture   an apartment number = a virtual address: the program's own number
+        · cost    Translation works per page, so there are 2^36 possible pages to describe instead
+                  of 2^48 single bytes.
+        · how     Bits 47–12 are the page number, so `0x7f3a2c108` is `0x7f3a_2c10_8e48` with its
+                  last 3 hex digits dropped.
+        · code    `vpn = va >> 12;` (line 3)
+
+   ▸ Chapter 2 of 6 · Sticky notes
+     about     Reading the directory is slow, because it sits in memory too. So the CPU keeps sticky
+               notes of recent lookups, the TLB, and checks them first, in one cycle. [TLB: The
+               translation lookaside buffer, the CPU's few sticky notes of recently looked-up pages
+               and their real rooms.] [cycle: One tick of the CPU's clock. A 3 GHz CPU ticks 3
+               billion times a second.]
+     so far    Only the page number, `0x7f3a2c108`, needs looking up, but the directory sits in slow
+               memory.
+     now       Check the CPU's sticky notes for this page first.
+     done when The notes answer at once: a hit or a miss.
+   3  ★ The TLB checks all 8 notes at once for page `0x7f3a2c108`, and it's a miss.   ‹notes.miss›
+        why       No note has this page yet, so the CPU must find its room the slow way.
+        look      tlb
+        picture   the receptionist's sticky notes = the TLB
+        · cost    It takes 1 cycle, hit or miss, because every note is compared at the same moment.
+        · how     Each note pairs a page number with a room number. The TLB compares `0x7f3a2c108`
+                  with all 8 page numbers in parallel, and a match is a hit.
+        · real    Real CPUs keep two levels of notes: a first level of a few dozen, checked in
+                  parallel like these, then a bigger second level that costs a few cycles more.
+        · source  Drepper 2007, §3.3.1 and §4.3; OSTEP 2023, ch. 19
+
+   ▸ Chapter 3 of 6 · The directory
+     about     On a miss, the CPU reads this program's directory, the page table, which is a chain
+               of four small tables. Each 9 bits of the page number pick one line in one table.
+               [page table: A program's directory, with a line for each of its pages saying which
+               real room holds it.]
+     so far    No note has page `0x7f3a2c108`, so the notes can't say where it lives.
+     now       Read the program's directory, one table after another.
+     done when The last table's line names the page's room.
+   4  ★ The CPU opens this program's directory, and CR3 says where it starts, `0x7ae0_d000`. [CR3: A
+      slot inside the CPU that holds where the running program's directory starts in memory.]   ‹walk.cr3›
+        why       Each program has its own directory, and CR3 picks which one the CPU reads.
+        look      cr3
+        picture   which directory lies open on the desk = CR3, where that page table starts
+        · how     CR3 holds the start of the first table, which Intel calls the PML4. Its low 12
+                  bits hold flags, so the CPU masks them off.
+        · code    `u64 table = cr3 & ~0xfffull;` (line 6)
+        · edge    Only the operating system may write CR3. A program that tries is stopped by the
+                  CPU, so it can never point the CPU at another program's directory.
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   5  Bits 47–39 pick line 254 of the first table, which leads to the second.   ‹walk.level›
+        why       Each line says where the next table starts, so the four reads must go one after
+                  another.
+        look      t0.e1
+        picture   the program's building directory = its page table
+        · cost    This read costs 240 cycles, because the line comes from main memory.
+        · how     Each table has 512 lines of 8 bytes. 9 bits count from 0 to 511, so bits 47–39
+                  pick line 254, read at the table's start + 8 × 254.
+        · code    `u64 e = read64(table + 8 * i);` (line 9)
+        · edge    Real CPUs keep recently used upper lines in small paging-structure caches, so a
+                  walk to a nearby page may read only the last table. This run keeps none, which is
+                  the worst case.
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+   6  Bits 38–30 pick line 232 of the second table, which leads to the third.   ‹walk.level›
+        look      t1.e1
+   7  Bits 29–21 pick line 352 of the third table, which leads to the last.   ‹walk.level›
+        look      t2.e1
+   8  ★ Bits 20–12 pick line 264 of the last table, which names the page's room, frame `0x189f3`.
+      [frame: A page-sized room of real memory. A page lives in one while it is in memory.]   ‹walk.leaf›
+        why       This is the line the whole walk was for. It names the real room where page
+                  `0x7f3a2c108` lives right now.
+        look      t3.e1
+        picture   the real room = a frame of physical memory
+        · cost    That is 4 lines, each read from main memory at 240 cycles, one after another.
+        · how     The line is a real x86-64 entry. The frame number sits in bits 51–12, and the low
+                  bits are flags: P (present), RW (may write), US (programs may use it), A
+                  (accessed) and D (dirty), with NX (no running code from it) in bit 63.
+        · edge    The CPU sets the A flag in each line it walks through, and D on a write. The
+                  operating system reads A later to pick pages to move out.
+        · real    Under a virtual machine each table read is itself translated through the host's
+                  tables, so one miss can take up to 24 memory reads.
+        · source  Bhargava et al. 2008
+
+   ▸ Chapter 4 of 6 · The real room
+     about     The walk found the page's room. The CPU puts the offset after the room number to get
+               the real address, writes a sticky note for next time, and reads the byte.
+     so far    Four slow reads later, the last table named the page's room.
+     now       Put the offset after the room number, and read the byte.
+     done when The real address fills in, a note remembers the room, and the byte lights up.
+   9  ★ Room `0x189f3` followed by offset `0xe48` gives the real address, the physical address,
+      `0x189f_3e48`. [physical address: The real place in memory, which is the room's start plus
+      the offset inside it.]   ‹room.address›
+        why       Only the room number came from the directory, and the offset copied over
+                  unchanged.
+        look      pa
+        picture   the real room = a frame of physical memory
+        · how     The frame number fills bits 38–12 of the physical address and the offset bits
+                  11–0, which works out to frame × 4,096 + offset. This CPU has 39 physical address
+                  bits, a common laptop size.
+        · code    `return table | off;` (line 15)
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+  10  ★ A sticky note now maps page `0x7f3a2c108` to room `0x189f3`, replacing `0x7f3a2c3e6`'s note.   ‹room.fill›
+        why       The next read in this page can skip the directory entirely.
+        look      tlb.v0, tlb.p0
+        picture   the receptionist's sticky notes = the TLB
+        · how     With every note in use, the one used longest ago makes room, a rule called least
+                  recently used, or LRU.
+        · code    `tlb_insert(vpn, table >> 12);` (line 14)
+        · edge    A note is written only after a walk that ends in a room. A walk that finds “not
+                  present” leaves no note behind.
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+  11  The byte at `0x189f_3e48` is `0x37`. Finding its room cost 961 cycles.   ‹room.byte›
+        why       Nothing was remembered, so every directory line came from slow memory, which is
+                  the worst case.
+        look      page.b1
+        · cost    That is 961 cycles, 1 for the note check and then 4 directory reads at 240 each.
+        · source  Drepper 2007, §3.3 and §4
+
+   ▸ Chapter 5 of 6 · Same page again
+     about     The program reads on through the same page. Every byte there has the same page
+               number, so the note written a moment ago answers for all of them.
+     so far    The first byte's room took four slow reads, every line from main memory.
+     now       Read the next byte, in the same page `0x7f3a2c108`.
+     done when The note answers, and no directory line lights up.
+  12  Next it reads the following byte, `0x7f3a_2c10_8e49`, one byte further into the same page.   ‹again.next›
+        look      va
+        · how     `0x7f3a_2c10_8e49` differs only in its offset, now `0xe49`, and bits 47–12 still
+                  say page `0x7f3a2c108`.
+     PREDICT  How long will finding this byte's room take?
+              A) 961 cycles again: every read walks the directory
+                 → A walk for every read is what would happen with no notes at all. The note written
+                   a moment ago maps page `0x7f3a2c108` to room `0x189f3`, so this read takes 1 cycle.
+                   [m-walk]
+              B) 1 cycle: a sticky note has this page   ✓
+                 → Right. Both bytes are in page `0x7f3a2c108`, and a note already maps it to room
+                   `0x189f3`, so it takes 1 cycle and no directory.
+              C) About half: part of the walk is remembered
+                 → Real CPUs do keep some upper directory lines in small caches, which can shorten a
+                   walk. Here the note answers before any walk starts, for the whole page, so it takes
+                   1 cycle instead of 961. [m-walk]
+              why: Both bytes are in page 0x7f3a2c108, and the note written a moment ago already
+                   maps that page to its room.
+  13  ★ A note has page `0x7f3a2c108`, so room `0x189f3` comes back in 1 cycle with no directory
+      read.   ‹again.hit›
+        why       The page needed one slow lookup, and every later read in it rides on that note.
+        look      tlb.v0, tlb.p0
+        picture   the receptionist's sticky notes = the TLB
+        · cost    1 cycle, against 961 for the first byte.
+        · how     A first-level hit is close to free. The CPU's first cache, L1, the smallest copy
+                  of memory beside it, starts its lookup with the 12 offset bits, which need no
+                  translating, while the TLB translates the rest at the same time.
+        · edge    That trick caps the L1 cache, because each of its ways can hold at most one 4 KiB
+                  page's worth. So a 32 KiB L1 has 8 ways and a 48 KiB one has 12.
+        · source  Drepper 2007, §3.3 and §4
+  14  Room `0x189f3` and offset `0xe49` give physical address `0x189f_3e49`, without opening the
+      directory.   ‹again.address›
+        look      pa
+  15  The byte at `0x189f_3e49` is `0x61`, and the two reads so far took 962 cycles.   ‹again.byte›
+        look      page.b2
+  16  It reads on to the end of the page, 438 more bytes at 1 cycle each.   ‹again.rest›
+        look      tlb.v0, tlb.p0
+        · cost    That is 438 note hits at 1 cycle each, 438 cycles with not one directory read.
+  17  ★ That makes 440 reads in 1 400 cycles, about 3.2 each, nearly all answered by the note.   ‹again.total›
+        why       The one slow lookup is shared by every read in the page, so the average stays
+                  small.
+        look      tlb
+        · cost    The first read took 961 cycles and each of the rest took 1, for 1 400 cycles over
+                  440 reads.
+        · edge    Reading one byte from each of 4,096 different pages instead would miss 4,096 times
+                  and pay a walk for each. Code that hops across a huge array feels this.
+        · real    A 2 MiB huge page lets one note cover 512 small pages, and its walk stops at the
+                  third table. Linux uses them for large memory areas.
+        · source  Linux docs, transparent hugepages
+
+   ▸ Chapter 6 of 6 · Another program
+     about     The operating system now runs program B, which uses the same address through its own
+               directory. This CPU wipes the notes on a switch. Real CPUs can tag each note with a
+               small number for a recent program instead.
+     so far    Program A found its room and noted it. But program B may use the same address.
+     now       Switch to program B, and read `0x7f3a_2c10_8e48` there.
+     done when B lands in a different room, and A's byte stays as it was.
+  18  ★ Switching to program B, the operating system loads B's directory into CR3: `0x1ab1_2000`.   ‹other.switch›
+        why       On this CPU, writing CR3 also wipes every sticky note, since A's notes would
+                  mislead B.
+        look      cr3
+        picture   which directory lies open on the desk = CR3, where that page table starts
+        · cost    The wipe is the hidden cost of a switch, because B's first reads all miss and
+                  walk.
+        · how     With PCIDs (process-context identifiers), CR3 carries a 12-bit tag, each note
+                  keeps the tag of the program that made it, and a switch keeps other tags' notes.
+                  Without them, a CR3 write drops every note except global ones, which the operating
+                  system uses for its own pages.
+        · real    Linux doesn't give each process a lasting tag. Each CPU recycles 6 tags,
+                  TLB_NR_DYN_ASIDS, among the programs it ran most recently, and with page-table
+                  isolation each uses a pair, one for the program and one for the operating system
+                  side. ARM and RISC-V tag notes the same way, with an ASID.
+        · source  Linux tlbflush.h TLB_NR_DYN_ASIDS
+  19  Program B reads the same address, `0x7f3a_2c10_8e48`, and since no note has it, that's a
+      miss.   ‹other.miss›
+        look      tlb
+     PREDICT  B uses the same address as A. Whose byte will B read?
+              A) A's byte: an address is one fixed place in memory
+                 → A number feels like a place, but `0x7f3a_2c10_8e48` is only B's own number. B's
+                   directory turns it into room `0xe2b9d`, a room A never uses. [m-fixed]
+              B) Its own byte: B's directory points to another room   ✓
+                 → Right. CR3 now points at B's directory, and its lines lead `0x7f3a_2c10_8e48` to
+                   room `0xe2b9d`, a room only B was given.
+              C) Neither: two programs can't share an address
+                 → Programs share addresses all the time. B reads `0x7f3a_2c10_8e48`, the same
+                   number A read, and its own directory sends it to room `0xe2b9d`. [m-unique]
+              why: Every program has its own directory. B's lines lead to a room the operating
+                   system gave B, so A's room is never reached.
+  20  ★ B's own directory leads `0x7f3a_2c10_8e48` to room `0xe2b9d`, after a 960-cycle walk.   ‹other.walk›
+        why       B's CR3 starts a different chain of tables, so the same bits pick lines in other
+                  tables.
+        look      t0, t1, t2, t3
+        picture   the program's building directory = its page table
+        · cost    It took 4 reads and 960 cycles, because the wipe left B with no notes.
+        · how     The 4 line numbers are the same as A's, because `0x7f3a_2c10_8e48` has not
+                  changed. Only the tables they index differ, because the chain starts from B's CR3.
+        · edge    Two directories may name the same room on purpose. That is how programs share
+                  library code, marked read-only, and shared memory.
+        · source  OSTEP 2023, ch. 20
+  21  Room `0xe2b9d` with the same offset `0xe48` gives B the physical address `0xe2b9_de48`.   ‹other.address›
+        look      pa
+  22  A sticky note now maps page `0x7f3a2c108` to room `0xe2b9d`, B's room this time.   ‹other.fill›
+        look      tlb.v0, tlb.p0
+  23  B reads `0x6f` from room `0xe2b9d`. A's byte, `0x37`, sits untouched in `0x189f3`.   ‹other.byte›
+        look      pageB.b1, page.b1
+  24  ★ One address led to two rooms, because each program's directory keeps its data apart.   ‹other.apart›
+        why       A program reaches only rooms its own directory names, and only the operating
+                  system writes directories.
+        look      page, pageB
+        picture   the program's building directory = its page table
+        · how     Each line also has a US flag (programs may use it) and RW (may write). The
+                  operating system's own pages sit in every directory but are marked off-limits to
+                  programs.
+        · real    In 2018, Meltdown read those off-limits pages anyway, through the CPU's guesswork.
+                  Linux answered with page-table isolation, a second directory without them that is
+                  swapped in on every system call, and that made PCID tags matter.
+        · source  Hansen 2017
+
+   RECAP
+     1. A program's address is its own number, and it names no real place by itself.
+     2. The sticky notes, the TLB, are checked first, and a miss means a four-level walk.
+     3. The note made every later read in that page take one cycle.
+     4. Program B's same address led through its own directory to a different room.
+   TAKEAWAY  Each program's addresses go through its own directory, which only the operating system
+             can set. So a program reaches only rooms it was given, and notes keep it fast.
+   CAN NOW   o-split, o-walk, o-cost, o-apart
+
+━━ Story 2 of 3 · A recent address  (hit)  7 steps, 35 s at 1x
+   what if   What if… the page was used a moment ago
+   story     The page was used a moment ago, so a sticky note already holds its room, and the lookup
+             takes one cycle.
+   (steps 0–2 repeat story 1 and are skipped here; --full shows them)
+
+   ▸ Chapter 2 of 3 · Sticky notes
+     about     Reading the directory is slow, because it sits in memory too. So the CPU keeps sticky
+               notes of recent lookups, the TLB, and checks them first, in one cycle.
+     so far    Only the page number, `0x7f3a2c108`, needs looking up, but the directory sits in slow
+               memory.
+     now       Check the CPU's sticky notes for this page first.
+     done when The notes answer at once: a hit or a miss.
+     PREDICT  This page was read a moment ago. How long will finding its room take?
+              A) 961 cycles: every read walks the directory
+                 → If every read walked the directory, memory would be several times slower than it
+                   is. Only a miss walks, and a note still maps page `0x7f3a2c108` to room `0x189f3`,
+                   so this lookup takes 1 cycle instead of 961. [m-walk]
+              B) 1 cycle: a sticky note has this page   ✓
+                 → Right. The page was read a moment ago, so note 6 still holds its room, `0x189f3`,
+                   and the lookup takes 1 cycle with no directory.
+              why: A page read a moment ago is still on a sticky note, and the notes are checked
+                   first, in one cycle.
+   3  ★ Page `0x7f3a2c108` is on note 6, a hit, which gives its real room, frame `0x189f3`.   ‹notes.hit›
+        why       The program used this page a moment ago, so the note still remembers its room.
+        look      tlb.v5, tlb.p5
+        picture   the receptionist's sticky notes = the TLB
+        · cost    It takes 1 cycle. Without the note, the CPU would read up to 4 directory lines
+                  from main memory at about 240 cycles each, the Pentium M numbers Drepper quotes
+                  and this model uses. A 2020 server's main memory takes about 100 ns, some 300
+                  cycles at 3 GHz.
+        · how     The TLB compares `0x7f3a2c108` with all 8 notes at once, and note 6 matches and
+                  hands over its room number, `0x189f3`.
+        · real    One note covers a whole page, so a program reading through 4,096 one-byte values
+                  in a row misses once and hits 4,095 times. That reuse is why so few notes are
+                  enough.
+        · source  OSTEP 2023, ch. 19; Drepper 2007, §3.3; Gregg 2020, Table 2.2
+
+   ▸ Chapter 3 of 3 · The real room
+     about     The note already had the room, so the CPU puts the offset after it to get the real
+               address and reads the byte. The directory stays shut.
+     so far    A note already held page `0x7f3a2c108` and its room.
+     now       Put the offset after the room number, and read the byte.
+     done when The real address fills in without one directory read.
+   4  ★ Frame `0x189f3` followed by offset `0xe48` gives the physical address, `0x189f_3e48`.   ‹room.address›
+        why       The note gave the room, so not one directory line was read.
+        look      pa
+        picture   the real room = a frame of physical memory
+        · how     It is the same sum as after a walk, frame × 4,096 + offset, and only the frame
+                  number came from the note.
+        · code    `return pfn << 12 | off;` (line 5)
+   5  The byte at physical address `0x189f_3e48` is `0x37`, after 1 cycle.   ‹room.byte›
+        look      page.b1
+   6  ★ Finding the room cost 1 cycle, where the directory would have added up to 960.   ‹room.cost›
+        why       Real programs keep reusing their pages, so notes answer almost every lookup.
+        look      tlb
+        · cost    The directory would have meant up to 4 reads at about 240 cycles each from main
+                  memory, so the note saved 960 cycles.
+        · how     A first-level TLB hit costs about nothing, because the CPU's first cache starts
+                  looking with the 12 offset bits, which need no translating, while the notes
+                  translate the rest at the same time.
+        · source  Drepper 2007, §3.3 and §4
+
+   RECAP
+     1. The page was used a moment ago, so a sticky note had its room.
+     2. The real address came straight from the note, in one cycle.
+     3. The directory was never opened.
+   TAKEAWAY  With the page already on a sticky note, finding its room takes one cycle and never
+             opens the directory.
+   CAN NOW   o-split, o-cost
+
+━━ Story 3 of 3 · The page isn't in memory  (fault)  18 steps, 95 s at 1x
+   what if   What if… the page was moved out to disk
+   story     The page was moved out to disk, so the CPU stops, the operating system fetches it back,
+             and the read starts over.
+   (steps 0–6 repeat story 1 and are skipped here; --full shows them)
+
+   ▸ Chapter 3 of 5 · The directory
+     about     On a miss, the CPU reads this program's directory, the page table, which is a chain
+               of four small tables. Each 9 bits of the page number pick one line in one table.
+     so far    No note has page `0x7f3a2c108`, so the notes can't say where it lives.
+     now       Read the program's directory, one table after another.
+     done when The last table's line names the page's room, or says it has none.
+   7  Bits 29–21 pick line 352 of the third table, which leads to the last.   ‹walk.level›
+        look      t2.e1
+   8  ★ Line 264 of the last table says not present, which means the page isn't in memory.   ‹walk.absent›
+        why       The line's present flag is 0, so it names no room for the CPU to use.
+        look      t3.e1
+        picture   a room whose boxes went to storage = a page out on disk: a page fault
+        · how     Bit 0 of the line, P, is 0. The CPU then ignores every other bit, so the operating
+                  system may keep its own notes there. Here it keeps the page's slot on disk.
+        · real    Linux keeps the slot there too, stored inverted with every bit flipped, so the
+                  line can never look like a real frame number to a CPU that reads it by mistake, as
+                  in the L1TF flaw of 2018. This run stores the slot plainly in bits 12 and up.
+        · source  Linux pgtable_64.h __swp_entry
+
+   ▸ Chapter 4 of 5 · Fetch from disk
+     about     Earlier, the operating system moved this page to disk to free memory, like boxes sent
+               to storage. Reading it now causes a page fault, so the CPU stops and the operating
+               system copies the page back. [page fault: The CPU finds a page is not in memory,
+               stops, and asks the operating system to fetch it.]
+     so far    The last table's line says page `0x7f3a2c108` is not in memory.
+     now       Stop the program, and fetch the page back from disk.
+     done when The directory line names a room again, marked present.
+   9  The CPU stops the program and hands the address to the kernel, which costs 3 000 cycles.
+      [kernel: The core of the operating system, which hands out memory and fetches pages back
+      from disk.]   ‹fault.trap›
+        why       Only the operating system knows where the page went, so the CPU must ask it.
+        look      kernel
+        · cost    This model charges 3 000 cycles, about 1 µs at 3 GHz, for saving the program's
+                  place, entering the kernel, finding the line and returning.
+        · how     The CPU raises exception 14, a page fault, puts the address in register CR2 and
+                  jumps to the kernel's handler. The read is undone, so it can run again from the
+                  start.
+        · code    `raise(PAGE_FAULT, va);` (line 11)
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+  10  ★ The kernel copies the page from disk slot `0x712` into free room `0x88e85`.   ‹fault.disk›
+        why       This copy is the slow part. At 60 000 cycles, it takes longer than everything else
+                  in this read put together.
+        look      page
+        picture   a room whose boxes went to storage = a page out on disk: a page fault
+        · cost    60 000 cycles at 3 GHz is 20 µs, a typical 4 KiB read from an NVMe SSD. The
+                  counter adds them as this read's delay, but the program does no work in that time.
+                  It sleeps, and the CPU runs another program until the disk is done.
+        · how     The kernel takes a free room, asks the disk for the slot named in the line, and
+                  waits for the copy to finish.
+        · code    `swap_read(pte_to_swp_entry(*pte), frame);` (line 22)
+        · edge    A fault that needs no disk, such as the first touch of fresh memory, is called a
+                  minor fault. It costs only the stop and the kernel's work, with no copy and no
+                  wait.
+        · real    An SSD read takes about 10–100 µs, and a spinning disk takes milliseconds, which
+                  is millions of cycles.
+        · source  Gregg 2020, Table 2.2
+  11  The kernel writes room `0x88e85` into line 264, marks it present, and returns.   ‹fault.fix›
+        why       The read that stopped halfway can now start over from the beginning.
+        look      t3.e1
+        · how     The new line holds frame `0x88e85` with P set, plus RW, US, A, D and NX, the flags
+                  of a data page.
+        · code    `*pte = frame | PRESENT | RW | USER | ACCESSED | DIRTY | NX;` (line 23)
+        · source  OSTEP 2023, ch. 21
+
+   ▸ Chapter 5 of 5 · Try again
+     about     The CPU runs the same read again from the start: note check, directory, room. The
+               directory lines it needs were read moments ago.
+     so far    The kernel fixed the directory line, but the read itself never finished.
+     now       Run the same read again, from the start.
+     done when The real address fills in, and the byte lights up.
+     PREDICT  The read starts over. Will a sticky note have the page now?
+              A) Yes: the kernel has put the page back in memory
+                 → It would be handy if the notes learned what the kernel fixed, but the kernel only
+                   wrote the directory line. A note is written only after a walk that ends in a room,
+                   and the last one ended at “not present”. [m-note]
+              B) No: no note was written, so it walks again   ✓
+                 → Right. The last walk found no room, so it left no note, and the kernel only
+                   changed the directory. The CPU walks again.
+              why: The CPU writes a note only after a walk that finds the room, and the kernel fixed
+                   only the directory.
+  12  ★ There is still no note for page `0x7f3a2c108`, so it's another miss.   ‹retry.miss›
+        why       A note is written only after a walk that finds a room, and the last walk didn't.
+        look      tlb
+        · how     The CPU never keeps a note of a not-present line, so turning P from 0 to 1 needs
+                  no clearing of notes (SDM §4.10.2 and §4.10.4).
+        · edge    Changing a line that was present is different, because an old note may still hold
+                  it. The kernel must drop it with `invlpg`, and on a many-core machine it must
+                  interrupt every core that may hold it, which is called a TLB shootdown.
+        · source  Intel SDM 2025, Vol. 3A, ch. 4, Paging
+  13  The walk reads the same 4 lines again, now from the cache, in 56 cycles. [cache: Small, fast
+      memory beside the CPU that keeps copies of recently read memory, so reading again is cheap.]   ‹retry.walk›
+        why       The first walk left these lines in fast memory beside the CPU, so each read is
+                  cheap.
+        look      t0, t1, t2, t3
+        · cost    56 cycles for 4 reads, against 240 each from main memory.
+        · how     The cache here models the CPU's second-level cache, at about 14 cycles a read. The
+                  kernel's own write of the last line left that line there too.
+        · source  Drepper 2007, §3.3 and §4
+  14  Room `0x88e85` followed by offset `0xe48` gives the physical address, `0x88e8_5e48`.   ‹retry.address›
+        why       The room is the one the kernel just filled from disk, and the offset copies over
+                  as always.
+        look      pa
+        picture   the real room = a frame of physical memory
+        · how     The sum is the usual frame × 4,096 + offset.
+        · code    `return table | off;` (line 15)
+  15  A sticky note now maps page `0x7f3a2c108` to room `0x88e85`, replacing `0x7f3a2c3e6`'s note.   ‹retry.fill›
+        look      tlb.v0, tlb.p0
+        · how     This is the note the first try couldn't write. Its walk found “not present”, so
+                  only the retry, which ends in a room, leaves one.
+  16  The byte at physical address `0x88e8_5e48` is `0x37`, and that one byte took 64 018 cycles.   ‹retry.byte›
+        look      page.b1
+  17  ★ A hit costs 1 cycle and a walk up to 961, but this read cost 64 018.   ‹retry.cost›
+        why       The disk made up 94% of it, which is why the system keeps busy pages in memory.
+        look      ssd
+        · cost    Of 64 018 cycles, 60 000 were the disk copy and 3 000 the stop and the kernel's
+                  handler; the note checks and walks were the rest.
+        · edge    The disk share is waiting rather than CPU work, because the program sleeps through
+                  it while others run. A machine short of memory that faults constantly does little
+                  but wait, which is called thrashing.
+        · source  OSTEP 2023, ch. 21
+
+   RECAP
+     1. The directory said the page was out on disk, which is a page fault.
+     2. The kernel copied it into a free room and fixed the directory line.
+     3. The read started over, walked the directory again and found the room.
+   TAKEAWAY  A page out on disk costs tens of thousands of cycles. That is why the operating system
+             keeps busy pages in memory.
+   CAN NOW   o-split, o-walk, o-fault
+
+SOURCES  (lesson.sources: 13)
+  [intel-sdm3a]  Intel SDM 2025, Vol. 3A
+    ref       Intel. Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 3A,
+              chapter 4: Paging. intel.com, 2025.
+    url       https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+    supports  4-level paging: CR3, four tables of 512 eight-byte entries, 9 index bits per level,
+              the P, RW, US, A, D and NX flags, PCIDs, the paging-structure caches, invalidation
+              (§4.10)
+  [intel-sdm1]  Intel SDM 2025, Vol. 1
+    ref       Intel. Intel 64 and IA-32 Architectures Software Developer's Manual, Volume 1,
+              §3.3.7.1 Canonical addressing. intel.com, 2025.
+    url       https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
+    supports  with 48-bit linear addresses, bits 63–48 must copy bit 47
+  [drepper2007]  Drepper 2007
+    ref       Ulrich Drepper. What Every Programmer Should Know About Memory. akkadia.org (Red Hat),
+              2007.
+    url       https://www.akkadia.org/drepper/cpumemory.pdf
+    supports  the access times Intel lists for a Pentium M (L2 about 14 cycles, main memory about
+              240), the model's latencies; a fully associative TLB holds a few dozen entries at most
+  [ostep18]  OSTEP 2023, ch. 18
+    ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+              Pieces, ch. 18, Paging: Introduction. pages.cs.wisc.edu/~remzi/OSTEP, 2023.
+    url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-paging.pdf
+    supports  an address splits into a page number, which is translated, and an offset, which is not
+  [ostep19]  OSTEP 2023, ch. 19
+    ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+              Pieces, ch. 19, Paging: Faster Translations (TLBs). pages.cs.wisc.edu/~remzi/OSTEP,
+              2023.
+    url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-tlbs.pdf
+    supports  the TLB caches translations; a hit avoids the extra memory reads; ASIDs instead of
+              flushing on a switch
+  [ostep20]  OSTEP 2023, ch. 20
+    ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+              Pieces, ch. 20, Paging: Smaller Tables. pages.cs.wisc.edu/~remzi/OSTEP, 2023.
+    url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-smalltables.pdf
+    supports  multi-level page tables: a directory of tables, each index picking one line
+  [ostep21]  OSTEP 2023, ch. 21
+    ref       Remzi H. Arpaci-Dusseau, Andrea C. Arpaci-Dusseau. Operating Systems: Three Easy
+              Pieces, ch. 21, Beyond Physical Memory: Mechanisms. pages.cs.wisc.edu/~remzi/OSTEP,
+              2023.
+    url       https://pages.cs.wisc.edu/~remzi/OSTEP/vm-beyondphys.pdf
+    supports  the present bit, the page fault, the swap slot kept in the entry, retrying the
+              instruction
+  [linux-tlbflush]  Linux tlbflush.h
+    ref       The Linux kernel. Linux, arch/x86/include/asm/tlbflush.h. kernel source, 2026.
+    url       https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/tlbflush.h
+    supports  TLB_NR_DYN_ASIDS: each CPU recycles 6 PCID tags among recent address spaces
+  [linux-pgtable64]  Linux pgtable_64.h
+    ref       The Linux kernel. Linux, arch/x86/include/asm/pgtable_64.h. kernel source, 2026.
+    url       https://github.com/torvalds/linux/blob/master/arch/x86/include/asm/pgtable_64.h
+    supports  __swp_entry stores the swap offset inverted, against L1TF
+  [hansen2017]  Hansen 2017
+    ref       Dave Hansen. x86/mm/kaiser: Use PCID feature to make user and kernel switches faster.
+              Linux kernel mailing list, 2017.
+    url       https://lkml.iu.edu/hypermail/linux/kernel/1711.3/00118.html
+    supports  page-table isolation uses a pair of PCIDs per address space
+  [bhargava2008]  Bhargava et al. 2008
+    ref       Ravi Bhargava, Benjamin Serebrin, Francesco Spadini, Srilatha Manne. Accelerating
+              two-dimensional page walks for virtualized systems. ASPLOS 2008, 2008.
+    url       https://dl.acm.org/doi/10.1145/1346281.1346286
+    supports  a nested walk under a virtual machine takes up to 24 memory references
+  [linux-thp]  Linux docs, transparent hugepages
+    ref       The Linux kernel documentation. Transparent Hugepage Support. docs.kernel.org, 2026.
+    url       https://docs.kernel.org/admin-guide/mm/transhuge.html
+    supports  2 MiB pages for large memory areas, one TLB entry for 512 small pages
+  [gregg2020]  Gregg 2020
+    ref       Brendan Gregg. Systems Performance: Enterprise and the Cloud, 2nd edition.
+              Addison-Wesley, 2020.
+    url       https://www.brendangregg.com/systems-performance-2nd-edition-book.html
+    supports  Table 2.2, example latencies: main memory about 100 ns, an SSD I/O 10–100 µs, a
+              rotational disk I/O 1–10 ms
+
+teaching checks  examples/virtual-memory/figure.mjs
+  info   level core, 6 chapters, 4 questions, 12 defined words, 1155 words, reading grade 5.7
