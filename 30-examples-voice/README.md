@@ -23,11 +23,11 @@ memory. Only the words change. Every number, source and fact is the one that was
 
 ## Checks (on 7af669f)
 
-| | `main` (4c343db) | this branch |
-|---|---|---|
-| Unit tests | 387 / 387 | 387 / 387 |
-| `verify.mjs`, the five rewritten examples | 0 failing, 0 warnings | 0 failing, 0 warnings |
-| `verify.mjs`, all 8 | 0 failing (Raft's 3 known warnings, MapReduce 1) | 0 failing (Raft's 3 known warnings) |
+| | this branch |
+|---|---|
+| Unit tests | 387 / 387 |
+| `verify.mjs`, the five rewritten examples | 0 failing, 0 warnings (each also had 0 on `main` before the rewrite) |
+| `verify.mjs`, all 8 | 0 failing, only Raft's 3 known warnings |
 
 The lessons are a little longer, because full sentences need their small words back. The reading grade stays about
 the same:
