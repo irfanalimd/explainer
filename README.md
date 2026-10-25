@@ -11,7 +11,9 @@ make what exists faster, more accurate, leaner and more polished.
 | 3 | [#13](https://github.com/irfanalimd/explainer/pull/13) | accuracy, HUD and design, page speed, tooling speed (#9–#12) | **merged** |
 | 4 | [#19](https://github.com/irfanalimd/explainer/pull/19) | framing check, phone sheets, code panel and landscape accessibility, lesson words (#14, #16–#18) | **merged** (via #34) |
 | 5 | [#34](https://github.com/irfanalimd/explainer/pull/34) | the original tile look (#20), sources, writing and example rewrites (#21–#25), smooth motion and faster full frames (#26, #27), reader passes and the visual defect pass (#28–#30): what the live site is built from | **merged** |
-| 6 | [#35](https://github.com/irfanalimd/explainer/pull/35) | guiding the reader's eye: a ring on the next thing to do, the world's focus on the step, a calmer screen (#31–#33). [Unlisted previews](combined-6/) | **draft: trying it on the previews** |
+| 6 | [#35](https://github.com/irfanalimd/explainer/pull/35) | guiding the reader's eye: a ring on the next thing to do, the world's focus on the step, a calmer screen (#31–#33), and MapReduce's lesson in a teacher's voice | **merged** |
+| 7 | [#36](https://github.com/irfanalimd/explainer/pull/36) | Raft and the event loop in the same voice, and the writing rules that ask for it | **merged** |
+| 8 | [#37](https://github.com/irfanalimd/explainer/pull/37) | the other five lessons in the same voice ([30](30-examples-voice/)) | **draft** |
 
 | | Branch | What changes | Pull request |
 |---|---|---|---|
@@ -37,6 +39,7 @@ make what exists faster, more accurate, leaner and more polished.
 | 27 | Next cue | One clear ring on the next thing to do, with an "Up next" line and a Hints switch. | [#32](https://github.com/irfanalimd/explainer/pull/32) |
 | 28 | World focus | What the step is about keeps its look and the rest recedes; the words a step names are ringed in the world. | [#33](https://github.com/irfanalimd/explainer/pull/33) |
 | 29 | Calm screen | Earlier steps fold, the level is one line, the chrome steps back while the story plays. | [#31](https://github.com/irfanalimd/explainer/pull/31) |
+| 30 | Five lessons, new voice | B+ tree, consistent hashing, linked list, quicksort and virtual memory, said as a teacher would say them. | [#37](https://github.com/irfanalimd/explainer/pull/37) |
 
 ## How to review one
 
